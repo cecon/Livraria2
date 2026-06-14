@@ -27,7 +27,7 @@ Dinheiro = inteiro em centavos (i64). Todo arquivo de lógica ≤ 300 linhas sig
 
 **Purpose**: dependências, esqueleto hexagonal e guardrails ativos desde o início.
 
-- [ ] T001 Adicionar dependências Rust em `src-tauri/Cargo.toml`: `sea-orm` (features sqlite + runtime-tokio-rustls + macros), `sea-orm-migration`, `tokio`, `serde`, `thiserror`, `tauri-plugin` conforme necessário
+- [X] T001 Adicionar dependências Rust em `src-tauri/Cargo.toml`: `sea-orm` (features sqlite + runtime-tokio-rustls + macros), `sea-orm-migration`, `tokio`, `serde`, `thiserror`, `tauri-plugin` conforme necessário
 - [X] T002 [P] Adicionar `react-router-dom` ao frontend via npm (raiz)
 - [ ] T003 [P] Criar esqueleto hexagonal em `src-tauri/src/`: pastas+`mod.rs` para `domain/`, `application/`, `adapters/persistencia/entities/`, `adapters/legado/`, `migration/`
 - [X] T004 [P] Criar pastas do frontend com placeholders: `src/routes/`, `src/components/`, `src/lib/`
@@ -57,9 +57,9 @@ Dinheiro = inteiro em centavos (i64). Todo arquivo de lógica ≤ 300 linhas sig
 
 ### Persistência — conexão, migrations, entidades
 
-- [ ] T014 Configurar conexão SeaORM/SQLite (arquivo em `app_data_dir`) em `src-tauri/src/adapters/persistencia/mod.rs`
-- [ ] T015 Criar migrator `sea-orm-migration` com a 1ª migration (tabelas `livro`, `pedido`, `item_pedido`, `usuario`, índices) idempotente em `src-tauri/src/migration/` (ADR-0004, data-model.md)
-- [ ] T016 [P] Criar entidades SeaORM (um arquivo por tabela) em `src-tauri/src/adapters/persistencia/entities/` (`livro.rs`, `pedido.rs`, `item_pedido.rs`, `usuario.rs`)
+- [X] T014 Configurar conexão SeaORM/SQLite (arquivo em `app_data_dir`) em `src-tauri/src/adapters/persistencia/mod.rs`
+- [X] T015 Criar migrator `sea-orm-migration` com a 1ª migration (tabelas `livro`, `pedido`, `item_pedido`, `usuario`, índices) idempotente em `src-tauri/src/migration/` (ADR-0004, data-model.md)
+- [X] T016 [P] Criar entidades SeaORM (um arquivo por tabela) em `src-tauri/src/adapters/persistencia/entities/` (`livro.rs`, `pedido.rs`, `item_pedido.rs`, `usuario.rs`)
 - [ ] T017 [P] Implementar adapter `Relogio` do sistema em `src-tauri/src/adapters/relogio.rs`
 
 ### Plumbing Tauri + Frontend base
