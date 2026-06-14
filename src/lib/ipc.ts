@@ -90,7 +90,7 @@ export interface DashboardDia {
   estoqueBaixo: Livro[];
 }
 
-export type PeriodoDash = "hoje" | "7dias" | "mes";
+export type PeriodoDash = "hoje" | "7dias" | "mes" | "ano";
 
 export async function dashboardDoDia(
   periodo: PeriodoDash = "hoje",

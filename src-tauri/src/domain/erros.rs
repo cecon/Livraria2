@@ -20,6 +20,9 @@ pub enum ErroDominio {
 
     #[error("dados inválidos: {0}")]
     DadosInvalidos(String),
+
+    #[error("troco só pode sair do dinheiro recebido")]
+    TrocoSemDinheiro,
 }
 
 impl ErroDominio {
@@ -32,6 +35,7 @@ impl ErroDominio {
             ErroDominio::CodigoInvalido => "CODIGO_INVALIDO",
             ErroDominio::QuantidadeInvalida => "QUANTIDADE_INVALIDA",
             ErroDominio::DadosInvalidos(_) => "DADOS_INVALIDOS",
+            ErroDominio::TrocoSemDinheiro => "TROCO_SEM_DINHEIRO",
         }
     }
 }

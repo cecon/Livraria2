@@ -30,6 +30,7 @@ const PERIODOS: { id: PeriodoDash; rotulo: string }[] = [
   { id: "hoje", rotulo: "Hoje" },
   { id: "7dias", rotulo: "Últimos 7 dias" },
   { id: "mes", rotulo: "Do mês" },
+  { id: "ano", rotulo: "Ano" },
 ];
 
 const ACOES = [

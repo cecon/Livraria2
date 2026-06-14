@@ -182,14 +182,16 @@ pub struct DashboardDto {
 
 /// Intervalo de datas (ISO) para o período: "hoje" | "7dias" | "mes".
 fn intervalo_periodo(periodo: Option<&str>) -> (String, String) {
-    use chrono::{Datelike, Duration, Local};
+    use chrono::{Datelike, Duration, Local, NaiveDate};
     let hoje = Local::now().date_naive();
     let inicio = match periodo {
-        Some("7dias") => hoje - Duration::days(6),
+        // mesmo dia da semana anterior (ex.: domingo → domingo passado)
+        Some("7dias") => hoje - Duration::days(7),
         Some("mes") => hoje.with_day(1).unwrap_or(hoje),
+        Some("ano") => NaiveDate::from_ymd_opt(hoje.year(), 1, 1).unwrap_or(hoje),
         _ => hoje,
     };
-    let fmt = |d: chrono::NaiveDate| d.format("%Y-%m-%d").to_string();
+    let fmt = |d: NaiveDate| d.format("%Y-%m-%d").to_string();
     (fmt(inicio), fmt(hoje))
 }
 

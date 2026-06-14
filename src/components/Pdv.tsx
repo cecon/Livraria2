@@ -159,6 +159,11 @@ export function Pdv() {
       toast.error(`Falta ${brl(restante)}`);
       return;
     }
+    const dinheiroCent = parseBrlParaCentavos(pag.dinheiro) ?? 0;
+    if (troco > 0 && dinheiroCent < troco) {
+      toast.error("O troco só pode sair do dinheiro. Ajuste as formas de pagamento.");
+      return;
+    }
     setOcupado(true);
     try {
       const r = await registrarVenda({

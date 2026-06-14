@@ -105,6 +105,11 @@ impl Pedido {
                 falta_centavos: restante.centavos(),
             });
         }
+        // Troco só pode sair do dinheiro: o excedente não pode vir de cartão/PIX/etc.
+        let troco = self.troco().centavos();
+        if troco > 0 && self.pagamentos.dinheiro.centavos() < troco {
+            return Err(ErroDominio::TrocoSemDinheiro);
+        }
         Ok(())
     }
 }
@@ -196,5 +201,18 @@ mod tests {
         );
         assert!(p.validar_conclusao().is_ok());
         assert_eq!(p.troco().centavos(), 2000);
+    }
+
+    #[test]
+    fn conclusao_bloqueia_troco_sem_dinheiro() {
+        // Cartão pagou mais que o total, sem dinheiro → troco sem dinheiro: inválido.
+        let p = pedido(
+            vec![item("A", 3000, 1)],
+            Pagamentos {
+                cartao: Dinheiro::de_centavos(5000),
+                ..Default::default()
+            },
+        );
+        assert_eq!(p.validar_conclusao(), Err(ErroDominio::TrocoSemDinheiro));
     }
 }
