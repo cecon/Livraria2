@@ -41,6 +41,7 @@ pub fn run() {
             commands::salvar_livro,
             commands::excluir_livro,
             commands::livros_recentes,
+            commands::migrar_legado,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

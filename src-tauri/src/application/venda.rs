@@ -141,6 +141,9 @@ mod tests {
             *self.registrado.lock().unwrap() = Some(pedido.clone());
             Ok(())
         }
+        async fn importar(&self, _pedido: &Pedido) -> Result<bool, RepoErro> {
+            Ok(true)
+        }
     }
 
     struct RelogioFixo;

@@ -166,11 +166,11 @@ Depende dos repositórios `LivroRepo` (US2) e `PedidoRepo` (US1).
 **Independent Test**: rodar `migrar_legado` importa ~503 livros e ~5.109 vendas; re-rodar → 0 inserções
 novas, sem duplicar (quickstart cenário 2, SC-009).
 
-- [ ] T050 [MIG] Validar contra amostra real e fixar mapas `vdmetodo`→FormaPagamento e `vdturma`→Turno (default seguro) — registrar no `src-tauri/src/adapters/legado/mapeamentos.rs` (data-model)
-- [ ] T051 [MIG] Adapter `ImportadorLegado` lendo `../Livraria/livraria.mdb` via `mdb-export` (subprocesso) + parse CSV em `src-tauri/src/adapters/legado/mdb_importer.rs` (ADR-0006)
-- [ ] T052 [MIG] Caso de uso `migracao`: upsert de livros (categoria→enum 0–6; preço→centavos) e reconstrução normalizada de pedidos+itens (agrupar por nº, linha-resumo, split derivado de `vdmetodo`), preservando dados criados no novo sistema, em `src-tauri/src/application/migracao.rs` + testes (FR-066/067/067a/069a)
-- [ ] T053 [MIG] Gerar `RelatorioMigracao` (inseridos/atualizados/descartados/divergências) e expor comando `migrar_legado` em `src-tauri/src/commands.rs`
-- [ ] T054 [MIG] Teste de idempotência: rodar import 2× sobre SQLite temporário → sem duplicação; sequência de nº de pedido continua de MAX+1 (FR-068/069) em `src-tauri/tests/migracao.rs`
+- [X] T050 [MIG] Validar contra amostra real e fixar mapas `vdmetodo`→FormaPagamento e `vdturma`→Turno (default seguro) — registrar no `src-tauri/src/adapters/legado/mapeamentos.rs` (data-model)
+- [X] T051 [MIG] Adapter `ImportadorLegado` lendo `../Livraria/livraria.mdb` via `mdb-export` (subprocesso) + parse CSV em `src-tauri/src/adapters/legado/mdb_importer.rs` (ADR-0006)
+- [X] T052 [MIG] Caso de uso `migracao`: upsert de livros (categoria→enum 0–6; preço→centavos) e reconstrução normalizada de pedidos+itens (agrupar por nº, linha-resumo, split derivado de `vdmetodo`), preservando dados criados no novo sistema, em `src-tauri/src/application/migracao.rs` + testes (FR-066/067/067a/069a)
+- [X] T053 [MIG] Gerar `RelatorioMigracao` (inseridos/atualizados/descartados/divergências) e expor comando `migrar_legado` em `src-tauri/src/commands.rs`
+- [X] T054 [MIG] Teste de idempotência: rodar import 2× sobre SQLite temporário → sem duplicação; sequência de nº de pedido continua de MAX+1 (FR-068/069) em `src-tauri/tests/migracao.rs`
 
 **Checkpoint**: dados reais disponíveis no novo sistema; re-sync seguro.
 

@@ -7,7 +7,8 @@ use crate::domain::pedido::Pedido;
 use async_trait::async_trait;
 use sea_orm::{
     ActiveValue::{NotSet, Set},
-    ConnectionTrait, DatabaseConnection, DbErr, EntityTrait, Statement, TransactionTrait,
+    ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait, Statement,
+    TransactionTrait,
 };
 
 pub struct SeaPedidoRepo {
@@ -22,6 +23,40 @@ impl SeaPedidoRepo {
 
 fn erro(e: DbErr) -> RepoErro {
     RepoErro::Persistencia(e.to_string())
+}
+
+/// Insere o cabeçalho do pedido e seus itens na transação (sem mexer no estoque).
+async fn inserir_cabecalho_e_itens(
+    txn: &DatabaseTransaction,
+    pedido: &Pedido,
+) -> Result<(), DbErr> {
+    let pag = &pedido.pagamentos;
+    let pm = pedido::ActiveModel {
+        numero: Set(pedido.numero),
+        cliente: Set(pedido.cliente.clone()),
+        turno: Set(pedido.turno.chave().to_string()),
+        data: Set(pedido.data.clone()),
+        total_centavos: Set(pedido.total().centavos()),
+        val_cartao: Set(pag.cartao.centavos()),
+        val_dinheiro: Set(pag.dinheiro.centavos()),
+        val_pix: Set(pag.pix.centavos()),
+        val_ministerio: Set(pag.ministerio.centavos()),
+        val_vale: Set(pag.vale.centavos()),
+    };
+    pedido::Entity::insert(pm).exec(txn).await?;
+
+    for it in &pedido.itens {
+        let im = item_pedido::ActiveModel {
+            id: NotSet,
+            pedido_numero: Set(pedido.numero),
+            codigo: Set(it.codigo.clone()),
+            titulo: Set(it.titulo.clone()),
+            preco_centavos: Set(it.preco.centavos()),
+            qtd: Set(it.qtd),
+        };
+        item_pedido::Entity::insert(im).exec(txn).await?;
+    }
+    Ok(())
 }
 
 #[async_trait]
@@ -46,38 +81,9 @@ impl PedidoRepo for SeaPedidoRepo {
         let txn = self.db.begin().await.map_err(erro)?;
         let backend = txn.get_database_backend();
 
-        let pag = &pedido.pagamentos;
-        let pm = pedido::ActiveModel {
-            numero: Set(pedido.numero),
-            cliente: Set(pedido.cliente.clone()),
-            turno: Set(pedido.turno.chave().to_string()),
-            data: Set(pedido.data.clone()),
-            total_centavos: Set(pedido.total().centavos()),
-            val_cartao: Set(pag.cartao.centavos()),
-            val_dinheiro: Set(pag.dinheiro.centavos()),
-            val_pix: Set(pag.pix.centavos()),
-            val_ministerio: Set(pag.ministerio.centavos()),
-            val_vale: Set(pag.vale.centavos()),
-        };
-        pedido::Entity::insert(pm)
-            .exec(&txn)
-            .await
-            .map_err(erro)?;
+        inserir_cabecalho_e_itens(&txn, pedido).await.map_err(erro)?;
 
         for it in &pedido.itens {
-            let im = item_pedido::ActiveModel {
-                id: NotSet,
-                pedido_numero: Set(pedido.numero),
-                codigo: Set(it.codigo.clone()),
-                titulo: Set(it.titulo.clone()),
-                preco_centavos: Set(it.preco.centavos()),
-                qtd: Set(it.qtd),
-            };
-            item_pedido::Entity::insert(im)
-                .exec(&txn)
-                .await
-                .map_err(erro)?;
-
             // Baixa de estoque com piso em zero (FR-015), na mesma transação.
             txn.execute(Statement::from_sql_and_values(
                 backend,
@@ -90,5 +96,20 @@ impl PedidoRepo for SeaPedidoRepo {
 
         txn.commit().await.map_err(erro)?;
         Ok(())
+    }
+
+    async fn importar(&self, pedido: &Pedido) -> Result<bool, RepoErro> {
+        // Idempotente: pula se o número já existe (FR-069).
+        let existe = pedido::Entity::find_by_id(pedido.numero)
+            .one(&self.db)
+            .await
+            .map_err(erro)?;
+        if existe.is_some() {
+            return Ok(false);
+        }
+        let txn = self.db.begin().await.map_err(erro)?;
+        inserir_cabecalho_e_itens(&txn, pedido).await.map_err(erro)?;
+        txn.commit().await.map_err(erro)?;
+        Ok(true)
     }
 }

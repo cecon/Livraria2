@@ -80,7 +80,8 @@ CREATE TABLE IF NOT EXISTS pedido (
 CREATE TABLE IF NOT EXISTS item_pedido (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   pedido_numero INTEGER NOT NULL REFERENCES pedido(numero),
-  codigo TEXT NOT NULL REFERENCES livro(codigo),
+  codigo TEXT NOT NULL, -- snapshot; SEM FK p/ livro: vendas históricas referenciam
+                        -- códigos que podem não estar mais no acervo (ver migração)
   titulo TEXT NOT NULL, preco_centavos INTEGER NOT NULL, qtd INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_item_pedido ON item_pedido(pedido_numero);

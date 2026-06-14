@@ -1,14 +1,16 @@
 //! Porta de entrada Tauri: estado, DTOs de fronteira e comandos (`invoke`).
 //! DTOs em camelCase espelham `src/lib/types.ts` (contracts/tauri-commands.md).
 
+use crate::adapters::legado::mdb_importer::MdbImportador;
 use crate::adapters::persistencia::inicializar_schema;
 use crate::adapters::persistencia::livro_repo::SeaLivroRepo;
 use crate::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use crate::adapters::relogio::RelogioSistema;
 use crate::application::erros::ErroApp;
+use crate::application::migracao::{self, RelatorioMigracao};
 use crate::application::ports::LivroRepo;
-use crate::application::{cadastro, venda};
 use crate::application::venda::VendaInput;
+use crate::application::{cadastro, venda};
 use crate::domain::categoria::Categoria;
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::livro::Livro;
@@ -149,6 +151,20 @@ pub async fn excluir_livro(
     let livros = SeaLivroRepo::new(state.db.clone());
     cadastro::excluir(&codigo, &livros).await?;
     Ok(())
+}
+
+/// Migra/sincroniza o legado Access (idempotente, FR-065..069). `caminho_mdb`
+/// default: `../Livraria/livraria.mdb` (irmão de Livraria2).
+#[tauri::command]
+pub async fn migrar_legado(
+    state: tauri::State<'_, AppState>,
+    caminho: Option<String>,
+) -> Result<RelatorioMigracao, ErroDto> {
+    let caminho = caminho.unwrap_or_else(|| "../Livraria/livraria.mdb".to_string());
+    let importador = MdbImportador::new(caminho);
+    let livros = SeaLivroRepo::new(state.db.clone());
+    let pedidos = SeaPedidoRepo::new(state.db.clone());
+    Ok(migracao::migrar(&importador, &livros, &pedidos).await?)
 }
 
 /// Últimos livros cadastrados/alterados (US2, FR-005).

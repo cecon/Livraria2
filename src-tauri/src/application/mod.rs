@@ -3,5 +3,6 @@
 
 pub mod cadastro;
 pub mod erros;
+pub mod migracao;
 pub mod ports;
 pub mod venda;

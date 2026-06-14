@@ -65,3 +65,14 @@ export async function excluirLivro(codigo: string): Promise<void> {
 export async function livrosRecentes(limite = 4): Promise<Livro[]> {
   return await invoke("livros_recentes", { limite });
 }
+
+export interface RelatorioMigracao {
+  livrosImportados: number;
+  pedidosInseridos: number;
+  pedidosExistentes: number;
+  divergencias: string[];
+}
+
+export async function migrarLegado(caminho?: string): Promise<RelatorioMigracao> {
+  return await invoke("migrar_legado", { caminho: caminho ?? null });
+}

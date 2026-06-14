@@ -50,7 +50,7 @@ mod m_init {
         "CREATE TABLE IF NOT EXISTS item_pedido (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             pedido_numero INTEGER NOT NULL REFERENCES pedido(numero),
-            codigo TEXT NOT NULL REFERENCES livro(codigo),
+            codigo TEXT NOT NULL,
             titulo TEXT NOT NULL,
             preco_centavos INTEGER NOT NULL,
             qtd INTEGER NOT NULL

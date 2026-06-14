@@ -32,6 +32,21 @@ pub trait PedidoRepo: Send + Sync {
     async fn proximo_numero(&self) -> Result<i64, RepoErro>;
     /// Grava pedido + itens e baixa o estoque, atomicamente (FR-015).
     async fn registrar(&self, pedido: &Pedido) -> Result<(), RepoErro>;
+    /// Importa um pedido histórico de forma idempotente, SEM baixar estoque.
+    /// Retorna `true` se inseriu, `false` se o número já existia (FR-069).
+    async fn importar(&self, pedido: &Pedido) -> Result<bool, RepoErro>;
+}
+
+/// Pedidos reconstruídos do legado + divergências encontradas (FR-067a).
+pub struct PedidosImportados {
+    pub pedidos: Vec<Pedido>,
+    pub divergencias: Vec<String>,
+}
+
+/// Porta do importador do legado (Access). Implementada pelo adapter mdbtools.
+pub trait ImportadorLegado: Send + Sync {
+    fn livros(&self) -> Result<Vec<Livro>, RepoErro>;
+    fn pedidos(&self) -> Result<PedidosImportados, RepoErro>;
 }
 
 /// Relógio do sistema (porta) — permite testar turno/data sem depender do relógio real.
