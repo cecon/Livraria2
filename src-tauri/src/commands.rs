@@ -219,6 +219,17 @@ pub async fn relatorio_vendas(
     Ok(relatorios::vendas(&data, &periodo, &repo).await?)
 }
 
+/// Cancela uma venda inteira (pedido + itens) — edição da venda do dia.
+#[tauri::command]
+pub async fn excluir_pedido(
+    state: tauri::State<'_, AppState>,
+    numero: i64,
+) -> Result<(), ErroDto> {
+    let pedidos = SeaPedidoRepo::new(state.db.clone());
+    pedidos.excluir_pedido(numero).await.map_err(ErroApp::from)?;
+    Ok(())
+}
+
 /// Salva bytes num arquivo no caminho escolhido pelo usuário (ex.: exportar Excel).
 #[tauri::command]
 pub fn salvar_arquivo(caminho: String, conteudo: Vec<u8>) -> Result<(), String> {

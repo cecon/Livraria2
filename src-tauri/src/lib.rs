@@ -57,6 +57,7 @@ pub fn run() {
             commands::relatorio_vendas,
             commands::relatorio_estoque,
             commands::excluir_item_pedido,
+            commands::excluir_pedido,
             commands::salvar_arquivo,
         ])
         .run(tauri::generate_context!())

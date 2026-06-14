@@ -147,6 +147,9 @@ mod tests {
         async fn excluir_item(&self, _item_id: i64) -> Result<(), RepoErro> {
             Ok(())
         }
+        async fn excluir_pedido(&self, _numero: i64) -> Result<(), RepoErro> {
+            Ok(())
+        }
     }
 
     struct RelogioFixo;

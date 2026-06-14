@@ -156,3 +156,7 @@ export async function relatorioEstoque(): Promise<RelatorioEstoque> {
 export async function excluirItemPedido(id: number): Promise<void> {
   await invoke("excluir_item_pedido", { id });
 }
+
+export async function excluirPedido(numero: number): Promise<void> {
+  await invoke("excluir_pedido", { numero });
+}

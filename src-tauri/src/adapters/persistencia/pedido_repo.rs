@@ -145,4 +145,19 @@ impl PedidoRepo for SeaPedidoRepo {
         txn.commit().await.map_err(erro)?;
         Ok(())
     }
+
+    async fn excluir_pedido(&self, numero: i64) -> Result<(), RepoErro> {
+        let txn = self.db.begin().await.map_err(erro)?;
+        item_pedido::Entity::delete_many()
+            .filter(item_pedido::Column::PedidoNumero.eq(numero))
+            .exec(&txn)
+            .await
+            .map_err(erro)?;
+        pedido::Entity::delete_by_id(numero)
+            .exec(&txn)
+            .await
+            .map_err(erro)?;
+        txn.commit().await.map_err(erro)?;
+        Ok(())
+    }
 }

@@ -38,6 +38,8 @@ pub trait PedidoRepo: Send + Sync {
     async fn importar(&self, pedido: &Pedido) -> Result<bool, RepoErro>;
     /// Remove um item de pedido e recalcula o total do pedido (correção de dados).
     async fn excluir_item(&self, item_id: i64) -> Result<(), RepoErro>;
+    /// Remove um pedido inteiro e seus itens (cancelar venda do dia).
+    async fn excluir_pedido(&self, numero: i64) -> Result<(), RepoErro>;
 }
 
 /// Pedidos reconstruídos do legado + divergências encontradas (FR-067a).
