@@ -1,6 +1,8 @@
 // Barra lateral fixa (256px), sempre escura (design handoff). Navegação + tema.
 
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
+import { getVersion } from "@tauri-apps/api/app";
 import {
   BookPlus,
   FileBarChart,
@@ -26,6 +28,14 @@ interface Props {
 }
 
 export function AppSidebar({ tema, onToggleTema }: Props) {
+  const [versao, setVersao] = useState("");
+
+  useEffect(() => {
+    getVersion()
+      .then(setVersao)
+      .catch(() => setVersao(""));
+  }, []);
+
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col bg-zinc-900 text-zinc-100">
       <div className="flex items-center gap-2 px-5 py-4">
@@ -34,7 +44,9 @@ export function AppSidebar({ tema, onToggleTema }: Props) {
         </div>
         <div className="leading-tight">
           <div className="text-sm font-semibold">Espaço do Livro</div>
-          <div className="text-[11px] text-zinc-400">Livraria 2</div>
+          <div className="text-[11px] text-zinc-400">
+            Livraria 2{versao && ` · v${versao}`}
+          </div>
         </div>
       </div>
 

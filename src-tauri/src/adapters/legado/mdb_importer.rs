@@ -11,6 +11,38 @@ use crate::domain::texto::caixa_alta_sem_acento;
 use csv::StringRecord;
 use std::collections::{BTreeMap, HashMap};
 
+/// Lê uma tabela do Access via ADODB/ACE OLEDB e imprime CSV UTF-8.
+/// Cultura invariante para os decimais saírem com ponto (igual ao mdb-export).
+#[cfg(target_os = "windows")]
+const PS_LER_ACCESS: &str = r#"
+$ErrorActionPreference = 'Stop'
+[System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::InvariantCulture
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$path = $env:MDB_PATH; $table = $env:MDB_TABLE
+$conn = New-Object -ComObject ADODB.Connection
+$opened = $false
+foreach ($p in @('Microsoft.ACE.OLEDB.12.0','Microsoft.ACE.OLEDB.16.0')) {
+  try { $conn.Open("Provider=$p;Data Source=$path;"); $opened = $true; break } catch {}
+}
+if (-not $opened) { throw 'Provedor ACE OLEDB nao encontrado (instale o Access/Office 64 bits)' }
+$rs = New-Object -ComObject ADODB.Recordset
+$rs.Open("SELECT * FROM [$table]", $conn)
+$sb = New-Object System.Text.StringBuilder
+$n = $rs.Fields.Count
+$h = for ($i=0; $i -lt $n; $i++) { '"' + (($rs.Fields.Item($i).Name) -replace '"','""') + '"' }
+[void]$sb.AppendLine($h -join ',')
+while (-not $rs.EOF) {
+  $row = for ($i=0; $i -lt $n; $i++) {
+    $v = $rs.Fields.Item($i).Value
+    if ($null -eq $v) { '""' } else { '"' + (([string]$v) -replace '"','""') + '"' }
+  }
+  [void]$sb.AppendLine($row -join ',')
+  $rs.MoveNext()
+}
+$rs.Close(); $conn.Close()
+[Console]::Out.Write($sb.ToString())
+"#;
+
 pub struct MdbImportador {
     caminho: String,
 }
@@ -22,21 +54,48 @@ impl MdbImportador {
         }
     }
 
+    /// Exporta uma tabela do Access como CSV (bytes UTF-8).
+    /// Windows: usa o motor do Office (ACE OLEDB) já instalado na máquina.
+    /// macOS/Linux: usa o mdbtools (mdb-export).
     fn exportar(&self, tabela: &str) -> Result<Vec<u8>, RepoErro> {
+        #[cfg(target_os = "windows")]
+        return self.exportar_ace(tabela);
+        #[cfg(not(target_os = "windows"))]
+        return self.exportar_mdbtools(tabela);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn exportar_mdbtools(&self, tabela: &str) -> Result<Vec<u8>, RepoErro> {
         let saida = std::process::Command::new("mdb-export")
             .arg(&self.caminho)
             .arg(tabela)
             .output()
             .map_err(|e| {
                 RepoErro::Persistencia(format!(
-                    "A ferramenta de leitura do Access (mdbtools/mdb-export) não está \
-                     instalada nesta máquina, então não é possível ler o .mdb aqui. \
-                     ({e})"
+                    "mdbtools (mdb-export) não está instalado nesta máquina. ({e})"
                 ))
             })?;
         if !saida.status.success() {
             return Err(RepoErro::Persistencia(format!(
                 "mdb-export {tabela}: {}",
+                String::from_utf8_lossy(&saida.stderr)
+            )));
+        }
+        Ok(saida.stdout)
+    }
+
+    #[cfg(target_os = "windows")]
+    fn exportar_ace(&self, tabela: &str) -> Result<Vec<u8>, RepoErro> {
+        let saida = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", PS_LER_ACCESS])
+            .env("MDB_PATH", &self.caminho)
+            .env("MDB_TABLE", tabela)
+            .output()
+            .map_err(|e| RepoErro::Persistencia(format!("PowerShell indisponível: {e}")))?;
+        if !saida.status.success() {
+            return Err(RepoErro::Persistencia(format!(
+                "Não consegui ler o Access via o motor do Office (ACE) nesta máquina. \
+                 Verifique se o Access/Office (64 bits) está instalado. Detalhe: {}",
                 String::from_utf8_lossy(&saida.stderr)
             )));
         }
