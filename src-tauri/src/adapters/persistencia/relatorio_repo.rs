@@ -49,6 +49,7 @@ impl RelatorioRepo for SeaRelatorioRepo {
                 .map_err(erro)?
                 .into_iter()
                 .map(|i| ItemRelatorio {
+                    id: i.id,
                     titulo: i.titulo,
                     qtd: i.qtd,
                     valor_centavos: i.preco_centavos * i.qtd,

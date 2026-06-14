@@ -128,6 +128,9 @@ mod tests {
                 Ok(true)
             }
         }
+        async fn excluir_item(&self, _item_id: i64) -> Result<(), RepoErro> {
+            Ok(())
+        }
     }
 
     #[tokio::test]

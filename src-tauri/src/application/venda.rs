@@ -144,6 +144,9 @@ mod tests {
         async fn importar(&self, _pedido: &Pedido) -> Result<bool, RepoErro> {
             Ok(true)
         }
+        async fn excluir_item(&self, _item_id: i64) -> Result<(), RepoErro> {
+            Ok(())
+        }
     }
 
     struct RelogioFixo;

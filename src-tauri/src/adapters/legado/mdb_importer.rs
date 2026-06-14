@@ -160,7 +160,7 @@ impl ImportadorLegado for MdbImportador {
                 ministerio: Dinheiro::de_centavos(valor_para_centavos(campo(res, &idx, "vdministerio"))),
                 vale: Dinheiro::de_centavos(valor_para_centavos(campo(res, &idx, "vdvale"))),
             });
-            let pagamentos = match pag_resumo {
+            let mut pagamentos = match pag_resumo {
                 Some(p) if p.pago().centavos() > 0 => p,
                 _ => Pagamentos {
                     cartao: Dinheiro::de_centavos(acc[0]),
@@ -170,6 +170,15 @@ impl ImportadorLegado for MdbImportador {
                     vale: Dinheiro::de_centavos(acc[4]),
                 },
             };
+
+            // Marcador de repasse: a livraria soma alguns centavos no PIX para o
+            // financeiro identificar o lançamento. Ao importar, removemos esse
+            // excedente pequeno (≤5c) do PIX para o pagamento bater com o total.
+            let item_total: i64 = itens.iter().map(|i| i.preco.centavos() * i.qtd).sum();
+            let excedente = pagamentos.pago().centavos() - item_total;
+            if pagamentos.pix.centavos() > 0 && (1..=5).contains(&excedente) {
+                pagamentos.pix = Dinheiro::de_centavos(pagamentos.pix.centavos() - excedente);
+            }
 
             let nome = campo(fonte, &idx, "vdnome").trim();
             let pedido = Pedido {

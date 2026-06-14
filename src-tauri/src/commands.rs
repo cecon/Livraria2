@@ -13,7 +13,7 @@ use crate::application::dashboard;
 use crate::application::relatorios::{self, RelatorioEstoque, RelatorioVendas};
 use crate::application::erros::ErroApp;
 use crate::application::migracao::{self, RelatorioMigracao};
-use crate::application::ports::{LivroRepo, Relogio};
+use crate::application::ports::{LivroRepo, PedidoRepo, Relogio};
 use crate::application::venda::VendaInput;
 use crate::application::{cadastro, pesquisa, venda};
 use crate::domain::categoria::Categoria;
@@ -215,6 +215,17 @@ pub async fn relatorio_vendas(
 ) -> Result<RelatorioVendas, ErroDto> {
     let repo = SeaRelatorioRepo::new(state.db.clone());
     Ok(relatorios::vendas(&data, &periodo, &repo).await?)
+}
+
+/// Remove um item de um pedido e recalcula o total (correção de dados — US5).
+#[tauri::command]
+pub async fn excluir_item_pedido(
+    state: tauri::State<'_, AppState>,
+    id: i64,
+) -> Result<(), ErroDto> {
+    let pedidos = SeaPedidoRepo::new(state.db.clone());
+    pedidos.excluir_item(id).await.map_err(ErroApp::from)?;
+    Ok(())
 }
 
 /// Relatório de estoque (US5, FR-043).

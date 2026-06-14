@@ -1,5 +1,6 @@
 // Visualizações dos relatórios emitidos (US5, FR-042/043).
 
+import { X } from "lucide-react";
 import { brl } from "@/lib/format";
 import { CATEGORIAS } from "@/lib/types";
 import type { RelatorioEstoque, RelatorioVendas } from "@/lib/ipc";
@@ -10,7 +11,12 @@ const PERIODO_ROTULO: Record<string, string> = {
   tarde: "Turma da Tarde",
 };
 
-export function VendasView({ rel }: { rel: RelatorioVendas }) {
+interface VendasProps {
+  rel: RelatorioVendas;
+  onExcluirItem: (id: number) => void;
+}
+
+export function VendasView({ rel, onExcluirItem }: VendasProps) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">
@@ -41,12 +47,19 @@ export function VendasView({ rel }: { rel: RelatorioVendas }) {
               )}
             </div>
             <ul className="text-muted-foreground mt-1">
-              {p.itens.map((i, idx) => (
-                <li key={idx} className="flex justify-between font-mono text-[12px]">
-                  <span>
+              {p.itens.map((i) => (
+                <li key={i.id} className="flex items-center gap-2 font-mono text-[12px]">
+                  <span className="flex-1">
                     {i.qtd}× {i.titulo}
                   </span>
                   <span>{brl(i.valorCentavos)}</span>
+                  <button
+                    onClick={() => onExcluirItem(i.id)}
+                    className="text-rose-500 hover:text-rose-600 print:hidden"
+                    title="Excluir este item"
+                  >
+                    <X size={13} />
+                  </button>
                 </li>
               ))}
             </ul>

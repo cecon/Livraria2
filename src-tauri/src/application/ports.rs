@@ -36,6 +36,8 @@ pub trait PedidoRepo: Send + Sync {
     /// Importa um pedido histórico de forma idempotente, SEM baixar estoque.
     /// Retorna `true` se inseriu, `false` se o número já existia (FR-069).
     async fn importar(&self, pedido: &Pedido) -> Result<bool, RepoErro>;
+    /// Remove um item de pedido e recalcula o total do pedido (correção de dados).
+    async fn excluir_item(&self, item_id: i64) -> Result<(), RepoErro>;
 }
 
 /// Pedidos reconstruídos do legado + divergências encontradas (FR-067a).
@@ -68,6 +70,7 @@ pub trait DashboardRepo: Send + Sync {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ItemRelatorio {
+    pub id: i64,
     pub titulo: String,
     pub qtd: i64,
     pub valor_centavos: i64,

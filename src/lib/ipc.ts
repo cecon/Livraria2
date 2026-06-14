@@ -97,6 +97,7 @@ export async function autenticar(usuario: string, senha: string): Promise<boolea
 }
 
 export interface ItemRelatorio {
+  id: number;
   titulo: string;
   qtd: number;
   valorCentavos: number;
@@ -149,4 +150,8 @@ export async function relatorioVendas(
 
 export async function relatorioEstoque(): Promise<RelatorioEstoque> {
   return await invoke("relatorio_estoque");
+}
+
+export async function excluirItemPedido(id: number): Promise<void> {
+  await invoke("excluir_item_pedido", { id });
 }

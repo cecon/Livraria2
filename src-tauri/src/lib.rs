@@ -56,6 +56,7 @@ pub fn run() {
             commands::autenticar,
             commands::relatorio_vendas,
             commands::relatorio_estoque,
+            commands::excluir_item_pedido,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

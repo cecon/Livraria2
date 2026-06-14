@@ -6,9 +6,10 @@ use crate::application::ports::{PedidoRepo, RepoErro};
 use crate::domain::pedido::Pedido;
 use async_trait::async_trait;
 use sea_orm::{
+    ActiveModelTrait,
     ActiveValue::{NotSet, Set},
-    ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait, Statement,
-    TransactionTrait,
+    ColumnTrait, ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait,
+    QueryFilter, Statement, TransactionTrait,
 };
 
 pub struct SeaPedidoRepo {
@@ -111,5 +112,37 @@ impl PedidoRepo for SeaPedidoRepo {
         inserir_cabecalho_e_itens(&txn, pedido).await.map_err(erro)?;
         txn.commit().await.map_err(erro)?;
         Ok(true)
+    }
+
+    async fn excluir_item(&self, item_id: i64) -> Result<(), RepoErro> {
+        let txn = self.db.begin().await.map_err(erro)?;
+        let item = item_pedido::Entity::find_by_id(item_id)
+            .one(&txn)
+            .await
+            .map_err(erro)?;
+        if let Some(it) = item {
+            let numero = it.pedido_numero;
+            item_pedido::Entity::delete_by_id(item_id)
+                .exec(&txn)
+                .await
+                .map_err(erro)?;
+            // Recalcula o total do pedido pela soma dos itens restantes.
+            let restantes = item_pedido::Entity::find()
+                .filter(item_pedido::Column::PedidoNumero.eq(numero))
+                .all(&txn)
+                .await
+                .map_err(erro)?;
+            let total: i64 = restantes.iter().map(|i| i.preco_centavos * i.qtd).sum();
+            let mut am: pedido::ActiveModel = pedido::Entity::find_by_id(numero)
+                .one(&txn)
+                .await
+                .map_err(erro)?
+                .ok_or_else(|| RepoErro::Persistencia("pedido não encontrado".into()))?
+                .into();
+            am.total_centavos = Set(total);
+            am.update(&txn).await.map_err(erro)?;
+        }
+        txn.commit().await.map_err(erro)?;
+        Ok(())
     }
 }
