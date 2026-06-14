@@ -9,8 +9,8 @@ use async_trait::async_trait;
 use chrono::Local;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::{
-    ActiveValue::Set, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder,
-    QuerySelect,
+    ActiveValue::Set, ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
+    QueryOrder, QuerySelect,
 };
 
 pub struct SeaLivroRepo {
@@ -111,7 +111,12 @@ impl LivroRepo for SeaLivroRepo {
         let padrao = format!("%{}%", termo_norm);
         let ms = LivroEntity::find()
             .filter(livro::Column::Ativo.eq(true))
-            .filter(livro::Column::BuscaNorm.like(padrao))
+            // casa por título/autor (busca_norm) OU por código de barras
+            .filter(
+                Condition::any()
+                    .add(livro::Column::BuscaNorm.like(padrao.clone()))
+                    .add(livro::Column::Codigo.like(padrao)),
+            )
             .order_by_asc(livro::Column::Titulo)
             .limit(limite as u64)
             .all(&self.db)

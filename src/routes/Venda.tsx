@@ -6,7 +6,7 @@ import { Banknote, Church, CreditCard, Gift, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PaymentRow } from "@/components/PaymentRow";
-import { BuscaLivro } from "@/components/BuscaLivro";
+import { EntradaProduto } from "@/components/EntradaProduto";
 import { CarrinhoItens, type ItemCarrinho } from "@/components/CarrinhoItens";
 import { brl, centavosParaInput, parseBrlParaCentavos } from "@/lib/format";
 import type { Livro } from "@/lib/types";
@@ -200,30 +200,24 @@ export default function Venda() {
           </div>
           <div className="flex-1">
             <label className="text-muted-foreground text-[11px] uppercase">
-              Código de Barras
+              Código, título ou autor
             </label>
-            <Input
-              ref={codigoRef}
+            <EntradaProduto
               value={codigo}
-              autoFocus
-              onChange={(e) => setCodigo(e.currentTarget.value)}
-              onKeyDown={(e) => e.key === "Enter" && adicionar()}
-              className="h-9 font-mono"
-              placeholder="Escaneie ou digite o código"
+              onChange={setCodigo}
+              inputRef={codigoRef}
+              onCodigoExato={adicionar}
+              onSelecionar={(l) => {
+                inserirNoCarrinho(l, qtdAtual());
+                setCodigo("");
+                focarCodigo();
+              }}
             />
           </div>
           <Button onClick={adicionar} className="h-9">
             Adicionar
           </Button>
         </div>
-
-        <BuscaLivro
-          numero={numero}
-          onSelect={(l) => {
-            inserirNoCarrinho(l, qtdAtual());
-            focarCodigo();
-          }}
-        />
 
         <CarrinhoItens itens={itens} onAlterar={alterarQtd} onRemover={remover} />
       </div>
