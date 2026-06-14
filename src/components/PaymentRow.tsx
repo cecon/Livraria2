@@ -1,15 +1,16 @@
-// Linha de forma de pagamento no resumo do PDV (FR-013): rótulo + input + "Receber restante".
+// Linha de forma de pagamento (FR-013). Input estilo maquininha: digita só os
+// números e as 2 casas decimais entram da direita para a esquerda.
 
 import type { LucideIcon } from "lucide-react";
-import { brl } from "@/lib/format";
+import { brl, digitosParaCentavos, valorPos } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 interface Props {
   rotulo: string;
   Icon: LucideIcon;
-  valor: string;
-  onChange: (texto: string) => void;
+  valor: number; // centavos
+  onChange: (centavos: number) => void;
   onReceberRestante: () => void;
   restanteCentavos: number;
 }
@@ -29,10 +30,10 @@ export function PaymentRow({
         {rotulo}
       </div>
       <Input
-        inputMode="decimal"
+        inputMode="numeric"
         placeholder="0,00"
-        value={valor}
-        onChange={(e) => onChange(e.currentTarget.value)}
+        value={valor > 0 ? valorPos(valor) : ""}
+        onChange={(e) => onChange(digitosParaCentavos(e.currentTarget.value))}
         className="h-9 flex-1 text-right font-mono"
       />
       <Button

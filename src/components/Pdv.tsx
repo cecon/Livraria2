@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { PaymentRow } from "@/components/PaymentRow";
 import { EntradaProduto } from "@/components/EntradaProduto";
 import { CarrinhoItens, type ItemCarrinho } from "@/components/CarrinhoItens";
-import { brl, centavosParaInput, parseBrlParaCentavos } from "@/lib/format";
+import { brl } from "@/lib/format";
 import type { Livro } from "@/lib/types";
 import {
   livroPorCodigo,
@@ -28,12 +28,12 @@ const FORMAS: { key: FormaKey; rotulo: string; Icon: typeof CreditCard }[] = [
   { key: "vale", rotulo: "Vale Presente", Icon: Gift },
 ];
 
-const PAG_VAZIO: Record<FormaKey, string> = {
-  cartao: "",
-  dinheiro: "",
-  pix: "",
-  ministerio: "",
-  vale: "",
+const PAG_VAZIO: Record<FormaKey, number> = {
+  cartao: 0,
+  dinheiro: 0,
+  pix: 0,
+  ministerio: 0,
+  vale: 0,
 };
 
 const RASCUNHO = "eldl-venda-rascunho";
@@ -41,7 +41,7 @@ const RASCUNHO = "eldl-venda-rascunho";
 interface Rascunho {
   cliente: string;
   itens: ItemCarrinho[];
-  pag: Record<FormaKey, string>;
+  pag: Record<FormaKey, number>;
 }
 
 function carregarRascunho(): Rascunho | null {
@@ -60,7 +60,7 @@ export function Pdv() {
   const [qtd, setQtd] = useState("1");
   const [codigo, setCodigo] = useState("");
   const [itens, setItens] = useState<ItemCarrinho[]>(inicial?.itens ?? []);
-  const [pag, setPag] = useState<Record<FormaKey, string>>(inicial?.pag ?? PAG_VAZIO);
+  const [pag, setPag] = useState<Record<FormaKey, number>>(inicial?.pag ?? PAG_VAZIO);
   const [ocupado, setOcupado] = useState(false);
   const codigoRef = useRef<HTMLInputElement>(null);
 
@@ -79,7 +79,7 @@ export function Pdv() {
     [itens],
   );
   const pagoCentavos = useMemo(
-    () => FORMAS.reduce((s, f) => s + (parseBrlParaCentavos(pag[f.key]) ?? 0), 0),
+    () => FORMAS.reduce((s, f) => s + pag[f.key], 0),
     [pag],
   );
   const restante = Math.max(0, totalCentavos - pagoCentavos);
@@ -139,8 +139,7 @@ export function Pdv() {
   }
 
   function receberRestante(key: FormaKey) {
-    const atualCentavos = parseBrlParaCentavos(pag[key]) ?? 0;
-    setPag((p) => ({ ...p, [key]: centavosParaInput(atualCentavos + restante) }));
+    setPag((p) => ({ ...p, [key]: p[key] + restante }));
   }
 
   function limpar() {
@@ -159,8 +158,7 @@ export function Pdv() {
       toast.error(`Falta ${brl(restante)}`);
       return;
     }
-    const dinheiroCent = parseBrlParaCentavos(pag.dinheiro) ?? 0;
-    if (troco > 0 && dinheiroCent < troco) {
+    if (troco > 0 && pag.dinheiro < troco) {
       toast.error("O troco só pode sair do dinheiro. Ajuste as formas de pagamento.");
       return;
     }
@@ -170,11 +168,11 @@ export function Pdv() {
         cliente,
         itens: itens.map((i) => ({ codigo: i.codigo, qtd: i.qtd })),
         pagamentos: {
-          cartao: parseBrlParaCentavos(pag.cartao) ?? 0,
-          dinheiro: parseBrlParaCentavos(pag.dinheiro) ?? 0,
-          pix: parseBrlParaCentavos(pag.pix) ?? 0,
-          ministerio: parseBrlParaCentavos(pag.ministerio) ?? 0,
-          vale: parseBrlParaCentavos(pag.vale) ?? 0,
+          cartao: pag.cartao,
+          dinheiro: pag.dinheiro,
+          pix: pag.pix,
+          ministerio: pag.ministerio,
+          vale: pag.vale,
         },
       });
       toast.success(

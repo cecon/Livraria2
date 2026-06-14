@@ -14,6 +14,20 @@ export function centavosParaInput(centavos: number): string {
   return (centavos / 100).toFixed(2).replace(".", ",");
 }
 
+/** Centavos -> "1.500,00" (estilo maquininha, com milhar). */
+export function valorPos(centavos: number): string {
+  return (centavos / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+/** Só os dígitos digitados viram centavos (POS: dois últimos = decimais). */
+export function digitosParaCentavos(entrada: string): number {
+  const d = entrada.replace(/\D/g, "");
+  return d ? parseInt(d, 10) : 0;
+}
+
 /** "1.234,56" | "30" | "R$ 30,5" -> centavos (inteiro). null se inválido. */
 export function parseBrlParaCentavos(entrada: string): number | null {
   const limpo = entrada
