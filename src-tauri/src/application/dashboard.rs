@@ -9,6 +9,7 @@ pub struct Indicadores {
     pub itens_vendidos: i64,
     pub ticket_medio_centavos: i64,
     pub total_livros: i64,
+    pub total_estoque: i64,
     pub estoque_baixo: Vec<Livro>,
 }
 
@@ -22,11 +23,13 @@ pub async fn do_dia(data: &str, repo: &dyn DashboardRepo) -> Result<Indicadores,
     };
     let estoque_baixo = repo.estoque_baixo(3).await?;
     let total_livros = repo.total_livros().await?;
+    let total_estoque = repo.total_estoque().await?;
     Ok(Indicadores {
         vendas_centavos: r.total_centavos,
         itens_vendidos: r.itens_vendidos,
         ticket_medio_centavos: ticket,
         total_livros,
+        total_estoque,
         estoque_baixo,
     })
 }
@@ -51,6 +54,9 @@ mod tests {
             Ok(vec![])
         }
         async fn total_livros(&self) -> Result<i64, RepoErro> {
+            Ok(0)
+        }
+        async fn total_estoque(&self) -> Result<i64, RepoErro> {
             Ok(0)
         }
     }

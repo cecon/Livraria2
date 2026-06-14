@@ -176,6 +176,7 @@ pub struct DashboardDto {
     pub itens_vendidos: i64,
     pub ticket_medio_centavos: i64,
     pub total_livros: i64,
+    pub total_estoque: i64,
     pub estoque_baixo: Vec<LivroDto>,
 }
 
@@ -193,6 +194,7 @@ pub async fn dashboard_do_dia(
         itens_vendidos: ind.itens_vendidos,
         ticket_medio_centavos: ind.ticket_medio_centavos,
         total_livros: ind.total_livros,
+        total_estoque: ind.total_estoque,
         estoque_baixo: ind.estoque_baixo.into_iter().map(LivroDto::from).collect(),
     })
 }

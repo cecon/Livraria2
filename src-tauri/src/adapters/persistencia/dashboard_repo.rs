@@ -88,4 +88,20 @@ impl DashboardRepo for SeaDashboardRepo {
             .map_err(erro)?;
         Ok(n as i64)
     }
+
+    async fn total_estoque(&self) -> Result<i64, RepoErro> {
+        let backend = self.db.get_database_backend();
+        let row = self
+            .db
+            .query_one(Statement::from_string(
+                backend,
+                "SELECT COALESCE(SUM(estoque), 0) AS s FROM livro WHERE ativo = 1".to_string(),
+            ))
+            .await
+            .map_err(erro)?;
+        match row {
+            Some(r) => Ok(r.try_get::<i64>("", "s").map_err(erro)?),
+            None => Ok(0),
+        }
+    }
 }

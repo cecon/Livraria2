@@ -68,6 +68,8 @@ pub trait DashboardRepo: Send + Sync {
     async fn estoque_baixo(&self, limite: i64) -> Result<Vec<Livro>, RepoErro>;
     /// Total de livros ativos no acervo (nº de títulos).
     async fn total_livros(&self) -> Result<i64, RepoErro>;
+    /// Soma das unidades em estoque (todos os livros ativos).
+    async fn total_estoque(&self) -> Result<i64, RepoErro>;
 }
 
 /// Linha de item num relatório de vendas.
