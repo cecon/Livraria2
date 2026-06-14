@@ -49,10 +49,10 @@ export function VendasView({ rel }: { rel: RelatorioVendas }) {
 
       <div className="bg-muted/40 rounded-lg p-4">
         <div className="mb-2 text-sm font-semibold">Resumo das Vendas</div>
-        <div className="grid grid-cols-2 gap-1 font-mono text-sm">
+        <div className="space-y-1 font-mono text-sm">
           <Linha rotulo="Total Cartão" v={rel.resumo.cartao} />
-          <Linha rotulo="Total PIX" v={rel.resumo.pix} />
           <Linha rotulo="Total Dinheiro" v={rel.resumo.dinheiro} />
+          <Linha rotulo="Total PIX" v={rel.resumo.pix} />
           <Linha rotulo="Total Ministério" v={rel.resumo.ministerio} />
           <Linha rotulo="Total Vale Presente" v={rel.resumo.vale} />
         </div>
