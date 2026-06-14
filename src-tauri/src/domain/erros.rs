@@ -17,6 +17,9 @@ pub enum ErroDominio {
 
     #[error("quantidade inválida (mínimo 1)")]
     QuantidadeInvalida,
+
+    #[error("dados inválidos: {0}")]
+    DadosInvalidos(String),
 }
 
 impl ErroDominio {
@@ -28,6 +31,7 @@ impl ErroDominio {
             ErroDominio::LivroNaoEncontrado => "LIVRO_NAO_ENCONTRADO",
             ErroDominio::CodigoInvalido => "CODIGO_INVALIDO",
             ErroDominio::QuantidadeInvalida => "QUANTIDADE_INVALIDA",
+            ErroDominio::DadosInvalidos(_) => "DADOS_INVALIDOS",
         }
     }
 }

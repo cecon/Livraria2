@@ -57,3 +57,11 @@ export async function registrarVenda(
 export async function salvarLivro(livro: Livro): Promise<void> {
   await invoke("salvar_livro", { livro });
 }
+
+export async function excluirLivro(codigo: string): Promise<void> {
+  await invoke("excluir_livro", { codigo });
+}
+
+export async function livrosRecentes(limite = 4): Promise<Livro[]> {
+  return await invoke("livros_recentes", { limite });
+}

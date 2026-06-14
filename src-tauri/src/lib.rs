@@ -39,6 +39,8 @@ pub fn run() {
             commands::registrar_venda,
             commands::livro_por_codigo,
             commands::salvar_livro,
+            commands::excluir_livro,
+            commands::livros_recentes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

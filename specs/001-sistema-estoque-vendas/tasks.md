@@ -103,10 +103,10 @@ aparece em "recentes" (quickstart cenário 5).
 
 - [X] T031 [P] [US2] Validações de `Livro` (campos, categoria, estoque ≥ 0) e cálculo de `busca_norm` em `src-tauri/src/domain/livro.rs` + testes
 - [X] T032 [US2] Implementar `LivroRepo` (upsert por código, `livros_recentes`, soft-delete) em `src-tauri/src/adapters/persistencia/livro_repo.rs` (data-model: soft-delete)
-- [ ] T033 [US2] Caso de uso `cadastro` (incluir/alterar/excluir, lookup por código) em `src-tauri/src/application/cadastro.rs` + testes com repo fake (FR-001/002)
-- [ ] T034 [US2] Expor comandos `livro_por_codigo`, `salvar_livro`, `excluir_livro`, `livros_recentes` em `src-tauri/src/commands.rs`
-- [ ] T035 [US2] Teste de integração do `LivroRepo` (upsert idempotente, soft-delete) em `src-tauri/tests/livro_repo.rs`
-- [ ] T036 [US2] Tela `src/routes/Cadastro.tsx`: lookup, form (Select de Categoria "id — nome", textarea), recentes, modo novo/edição (FR-003/004/005)
+- [X] T033 [US2] Caso de uso `cadastro` (incluir/alterar/excluir, lookup por código) em `src-tauri/src/application/cadastro.rs` + testes com repo fake (FR-001/002)
+- [X] T034 [US2] Expor comandos `livro_por_codigo`, `salvar_livro`, `excluir_livro`, `livros_recentes` em `src-tauri/src/commands.rs`
+- [X] T035 [US2] Teste de integração do `LivroRepo` (upsert idempotente, soft-delete) em `src-tauri/tests/livro_repo.rs`
+- [X] T036 [US2] Tela `src/routes/Cadastro.tsx`: lookup, form (Select de Categoria "id — nome", textarea), recentes, modo novo/edição (FR-003/004/005)
 
 **Checkpoint**: US1 e US2 funcionam independentemente; já há acervo para vender.
 

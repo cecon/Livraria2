@@ -7,7 +7,8 @@ use crate::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use crate::adapters::relogio::RelogioSistema;
 use crate::application::erros::ErroApp;
 use crate::application::ports::LivroRepo;
-use crate::application::venda::{self, VendaInput};
+use crate::application::{cadastro, venda};
+use crate::application::venda::VendaInput;
 use crate::domain::categoria::Categoria;
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::livro::Livro;
@@ -128,16 +129,35 @@ pub async fn livro_por_codigo(
     Ok(l.map(LivroDto::from))
 }
 
-/// Inclui ou altera um livro (upsert por código) — usado também para semear dados.
+/// Inclui ou altera um livro (upsert por código), com validação (US2, FR-001).
 #[tauri::command]
 pub async fn salvar_livro(
     state: tauri::State<'_, AppState>,
     livro: LivroDto,
 ) -> Result<(), ErroDto> {
     let livros = SeaLivroRepo::new(state.db.clone());
-    livros
-        .salvar(&livro.para_dominio())
-        .await
-        .map_err(ErroApp::from)?;
+    cadastro::salvar(livro.para_dominio(), &livros).await?;
     Ok(())
+}
+
+/// Exclui (soft-delete) um livro (US2, FR-001).
+#[tauri::command]
+pub async fn excluir_livro(
+    state: tauri::State<'_, AppState>,
+    codigo: String,
+) -> Result<(), ErroDto> {
+    let livros = SeaLivroRepo::new(state.db.clone());
+    cadastro::excluir(&codigo, &livros).await?;
+    Ok(())
+}
+
+/// Últimos livros cadastrados/alterados (US2, FR-005).
+#[tauri::command]
+pub async fn livros_recentes(
+    state: tauri::State<'_, AppState>,
+    limite: Option<i64>,
+) -> Result<Vec<LivroDto>, ErroDto> {
+    let livros = SeaLivroRepo::new(state.db.clone());
+    let ls = cadastro::recentes(limite.unwrap_or(4), &livros).await?;
+    Ok(ls.into_iter().map(LivroDto::from).collect())
 }
