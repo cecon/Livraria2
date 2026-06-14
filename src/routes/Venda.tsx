@@ -2,33 +2,20 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-  Banknote,
-  Church,
-  CreditCard,
-  Gift,
-  Minus,
-  Plus,
-  QrCode,
-  Trash2,
-} from "lucide-react";
+import { Banknote, Church, CreditCard, Gift, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PaymentRow } from "@/components/PaymentRow";
+import { BuscaLivro } from "@/components/BuscaLivro";
+import { CarrinhoItens, type ItemCarrinho } from "@/components/CarrinhoItens";
 import { brl, centavosParaInput, parseBrlParaCentavos } from "@/lib/format";
+import type { Livro } from "@/lib/types";
 import {
   livroPorCodigo,
   proximoNumeroPedido,
   registrarVenda,
   type ErroIpc,
 } from "@/lib/ipc";
-
-interface ItemCarrinho {
-  codigo: string;
-  titulo: string;
-  precoCentavos: number;
-  qtd: number;
-}
 
 type FormaKey = "cartao" | "dinheiro" | "pix" | "ministerio" | "vale";
 
@@ -80,35 +67,42 @@ export default function Venda() {
     setTimeout(() => codigoRef.current?.focus(), 0);
   }
 
+  function qtdAtual() {
+    return Math.max(1, parseInt(qtd, 10) || 1);
+  }
+
+  function inserirNoCarrinho(livro: Livro, q: number) {
+    setItens((atual) => {
+      const i = atual.findIndex((x) => x.codigo === livro.codigo);
+      if (i >= 0) {
+        const copia = [...atual];
+        copia[i] = { ...copia[i], qtd: copia[i].qtd + q };
+        return copia;
+      }
+      return [
+        ...atual,
+        {
+          codigo: livro.codigo,
+          titulo: livro.titulo,
+          precoCentavos: livro.precoCentavos,
+          qtd: q,
+        },
+      ];
+    });
+    setQtd("1");
+  }
+
   async function adicionar() {
     const cod = codigo.trim();
     if (!cod) return;
-    const q = Math.max(1, parseInt(qtd, 10) || 1);
     try {
       const livro = await livroPorCodigo(cod);
       if (!livro) {
         toast.error(`Código ${cod} não encontrado`);
         return;
       }
-      setItens((atual) => {
-        const i = atual.findIndex((x) => x.codigo === livro.codigo);
-        if (i >= 0) {
-          const copia = [...atual];
-          copia[i] = { ...copia[i], qtd: copia[i].qtd + q };
-          return copia;
-        }
-        return [
-          ...atual,
-          {
-            codigo: livro.codigo,
-            titulo: livro.titulo,
-            precoCentavos: livro.precoCentavos,
-            qtd: q,
-          },
-        ];
-      });
+      inserirNoCarrinho(livro, qtdAtual());
       setCodigo("");
-      setQtd("1");
     } catch (e) {
       toast.error((e as ErroIpc).mensagem ?? "Erro ao buscar o livro");
     } finally {
@@ -223,48 +217,15 @@ export default function Venda() {
           </Button>
         </div>
 
-        <div className="bg-card flex-1 overflow-auto rounded-xl border">
-          <div className="text-muted-foreground grid grid-cols-[1fr_96px_128px_100px_52px] border-b px-4 py-2 text-[11px] uppercase">
-            <span>Título</span>
-            <span className="text-right">Preço</span>
-            <span className="text-center">Quantidade</span>
-            <span className="text-right">Total</span>
-            <span />
-          </div>
-          {itens.length === 0 ? (
-            <div className="text-muted-foreground p-8 text-center text-sm">
-              Escaneie um código de barras para começar.
-            </div>
-          ) : (
-            itens.map((i) => (
-              <div
-                key={i.codigo}
-                className="grid grid-cols-[1fr_96px_128px_100px_52px] items-center border-b px-4 py-2 text-sm"
-              >
-                <div className="min-w-0">
-                  <div className="truncate">{i.titulo}</div>
-                  <div className="text-muted-foreground font-mono text-[11px]">
-                    {i.codigo}
-                  </div>
-                </div>
-                <span className="text-right font-mono">{brl(i.precoCentavos)}</span>
-                <div className="flex items-center justify-center gap-1">
-                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => alterarQtd(i.codigo, -1)}>
-                    <Minus size={14} />
-                  </Button>
-                  <span className="w-8 text-center font-mono">{i.qtd}</span>
-                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => alterarQtd(i.codigo, 1)}>
-                    <Plus size={14} />
-                  </Button>
-                </div>
-                <span className="text-right font-mono">{brl(i.precoCentavos * i.qtd)}</span>
-                <button onClick={() => remover(i.codigo)} className="text-rose-500 hover:text-rose-600" title="Remover">
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))
-          )}
-        </div>
+        <BuscaLivro
+          numero={numero}
+          onSelect={(l) => {
+            inserirNoCarrinho(l, qtdAtual());
+            focarCodigo();
+          }}
+        />
+
+        <CarrinhoItens itens={itens} onAlterar={alterarQtd} onRemover={remover} />
       </div>
 
       <aside className="bg-card flex flex-col gap-3 rounded-xl border p-5">
