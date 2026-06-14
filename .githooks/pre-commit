@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Guardrail de 300 linhas (Constituição, Princípio III / ADR-0007).
+# Verifica os arquivos staged antes de permitir o commit.
+# Portável para bash 3.2 (macOS) — sem `mapfile`.
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+
+staged=()
+while IFS= read -r f; do
+  [ -n "$f" ] && staged+=("$f")
+done < <(git diff --cached --name-only --diff-filter=ACM)
+
+if [ "${#staged[@]}" -eq 0 ]; then
+  exit 0
+fi
+
+exec "$ROOT/scripts/check-file-size.sh" "${staged[@]}"

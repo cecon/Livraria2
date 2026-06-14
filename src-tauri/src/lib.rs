@@ -1,3 +1,8 @@
+//! Composição da aplicação (Hexagonal). Por enquanto: domínio + comando de exemplo.
+//! Adapters de persistência (SeaORM) e casos de uso são adicionados nos próximos incrementos.
+
+pub mod domain;
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
