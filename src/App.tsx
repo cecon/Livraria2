@@ -1,32 +1,39 @@
-import { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AppSidebar } from "@/components/AppSidebar";
+import { aplicarTema, temaInicial, type Tema } from "@/lib/theme";
+import Inicio from "@/routes/Inicio";
+import Venda from "@/routes/Venda";
+import Cadastro from "@/routes/Cadastro";
+import Pesquisa from "@/routes/Pesquisa";
+import Relatorios from "@/routes/Relatorios";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
+  const [tema, setTema] = useState<Tema>(temaInicial);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name: "Espaço do Livro" }));
-  }
+  useEffect(() => {
+    aplicarTema(tema);
+  }, [tema]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
-      <div className="text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Livraria 2
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          Tauri 2 · React · TypeScript · shadcn/ui · Tailwind
-        </p>
+    <BrowserRouter>
+      <div className="bg-background text-foreground flex h-screen overflow-hidden">
+        <AppSidebar
+          tema={tema}
+          onToggleTema={() => setTema((t) => (t === "dark" ? "light" : "dark"))}
+        />
+        <main className="flex-1 overflow-auto">
+          <Routes>
+            <Route path="/" element={<Inicio />} />
+            <Route path="/venda" element={<Venda />} />
+            <Route path="/cadastro" element={<Cadastro />} />
+            <Route path="/pesquisa" element={<Pesquisa />} />
+            <Route path="/relatorios" element={<Relatorios />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
       </div>
-
-      <Button onClick={greet}>Testar comando Rust</Button>
-
-      {greetMsg && (
-        <p className="text-muted-foreground text-sm">{greetMsg}</p>
-      )}
-    </main>
+    </BrowserRouter>
   );
 }
 

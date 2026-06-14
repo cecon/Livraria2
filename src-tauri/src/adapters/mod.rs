@@ -2,3 +2,4 @@
 //! Persistência (SeaORM), relógio, importador do legado (próximos incrementos).
 
 pub mod persistencia;
+pub mod relogio;

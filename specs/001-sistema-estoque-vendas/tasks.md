@@ -29,7 +29,7 @@ Dinheiro = inteiro em centavos (i64). Todo arquivo de lógica ≤ 300 linhas sig
 
 - [X] T001 Adicionar dependências Rust em `src-tauri/Cargo.toml`: `sea-orm` (features sqlite + runtime-tokio-rustls + macros), `sea-orm-migration`, `tokio`, `serde`, `thiserror`, `tauri-plugin` conforme necessário
 - [X] T002 [P] Adicionar `react-router-dom` ao frontend via npm (raiz)
-- [ ] T003 [P] Criar esqueleto hexagonal em `src-tauri/src/`: pastas+`mod.rs` para `domain/`, `application/`, `adapters/persistencia/entities/`, `adapters/legado/`, `migration/`
+- [X] T003 [P] Criar esqueleto hexagonal em `src-tauri/src/`: pastas+`mod.rs` para `domain/`, `application/`, `adapters/persistencia/entities/`, `adapters/legado/`, `migration/`
 - [X] T004 [P] Criar pastas do frontend com placeholders: `src/routes/`, `src/components/`, `src/lib/`
 - [X] T005 Criar guardrail `scripts/check-file-size.sh`: conta linhas significativas (exclui comentários, linhas em branco; ignora `.md`) para `.ts/.tsx/.js/.jsx/.rs/.css/.scss`; sai ≠ 0 se algum > 300 (ADR-0007)
 - [X] T006 Acionar o guardrail: git pre-commit hook + hook do Claude Code (`.claude/settings.json` PostToolUse em Edit/Write) chamando `scripts/check-file-size.sh`
@@ -60,15 +60,15 @@ Dinheiro = inteiro em centavos (i64). Todo arquivo de lógica ≤ 300 linhas sig
 - [X] T014 Configurar conexão SeaORM/SQLite (arquivo em `app_data_dir`) em `src-tauri/src/adapters/persistencia/mod.rs`
 - [X] T015 Criar migrator `sea-orm-migration` com a 1ª migration (tabelas `livro`, `pedido`, `item_pedido`, `usuario`, índices) idempotente em `src-tauri/src/migration/` (ADR-0004, data-model.md)
 - [X] T016 [P] Criar entidades SeaORM (um arquivo por tabela) em `src-tauri/src/adapters/persistencia/entities/` (`livro.rs`, `pedido.rs`, `item_pedido.rs`, `usuario.rs`)
-- [ ] T017 [P] Implementar adapter `Relogio` do sistema em `src-tauri/src/adapters/relogio.rs`
+- [X] T017 [P] Implementar adapter `Relogio` do sistema em `src-tauri/src/adapters/relogio.rs`
 
 ### Plumbing Tauri + Frontend base
 
-- [ ] T018 Esqueleto de comandos em `src-tauri/src/commands.rs` + wiring/DI dos adapters nas portas e `manage(state)` em `src-tauri/src/lib.rs`
-- [ ] T019 Comando `inicializar_dados` (roda o migrator idempotente) em `src-tauri/src/commands.rs` (FR-061)
-- [ ] T020 [P] Camada IPC do front: wrappers `invoke` em `src/lib/ipc.ts` e tipos espelhados em `src/lib/types.ts` (contracts/)
-- [ ] T021 [P] Utilidades de UI `BRL()`/`normalize()` em `src/lib/format.ts`
-- [ ] T022 Shell de navegação: `react-router` com rotas `/ /venda /cadastro /pesquisa /relatorios` + `AppSidebar` + tema claro/escuro em `src/App.tsx` e `src/components/AppSidebar.tsx` (FR-053)
+- [X] T018 Esqueleto de comandos em `src-tauri/src/commands.rs` + wiring/DI dos adapters nas portas e `manage(state)` em `src-tauri/src/lib.rs`
+- [X] T019 Comando `inicializar_dados` (roda o migrator idempotente) em `src-tauri/src/commands.rs` (FR-061)
+- [X] T020 [P] Camada IPC do front: wrappers `invoke` em `src/lib/ipc.ts` e tipos espelhados em `src/lib/types.ts` (contracts/)
+- [X] T021 [P] Utilidades de UI `BRL()`/`normalize()` em `src/lib/format.ts`
+- [X] T022 Shell de navegação: `react-router` com rotas `/ /venda /cadastro /pesquisa /relatorios` + `AppSidebar` + tema claro/escuro em `src/App.tsx` e `src/components/AppSidebar.tsx` (FR-053)
 
 **Checkpoint**: domínio testável por `cargo test` sem UI/banco; app abre com navegação e DB inicializado.
 
