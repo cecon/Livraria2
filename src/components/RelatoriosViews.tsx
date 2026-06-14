@@ -20,10 +20,25 @@ export function VendasView({ rel }: { rel: RelatorioVendas }) {
       {rel.pedidos.length === 0 ? (
         <p className="text-muted-foreground text-sm">Nenhuma venda no período.</p>
       ) : (
-        rel.pedidos.map((p) => (
-          <div key={p.numero} className="rounded-lg border p-3 text-sm">
-            <div className="font-medium">
-              Pedido Nº {p.numero} · {p.cliente}
+        rel.pedidos.map((p) => {
+          const pago = p.cartao + p.dinheiro + p.pix + p.ministerio + p.vale;
+          const divergente = pago !== p.totalCentavos;
+          return (
+          <div
+            key={p.numero}
+            className={`rounded-lg border p-3 text-sm ${
+              divergente ? "border-rose-500 ring-1 ring-rose-500" : ""
+            }`}
+          >
+            <div className="flex items-center justify-between font-medium">
+              <span>
+                Pedido Nº {p.numero} · {p.cliente}
+              </span>
+              {divergente && (
+                <span className="text-[11px] font-normal text-rose-600">
+                  ⚠ Pago {brl(pago)} ≠ Total {brl(p.totalCentavos)}
+                </span>
+              )}
             </div>
             <ul className="text-muted-foreground mt-1">
               {p.itens.map((i, idx) => (
@@ -44,7 +59,8 @@ export function VendasView({ rel }: { rel: RelatorioVendas }) {
               <span className="ml-auto font-semibold">Total {brl(p.totalCentavos)}</span>
             </div>
           </div>
-        ))
+          );
+        })
       )}
 
       <div className="bg-muted/40 rounded-lg p-4">
