@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { StockBadge } from "@/components/StockBadge";
+import { Cover } from "@/components/Cover";
 import { brl } from "@/lib/format";
 import {
   dashboardDoDia,
@@ -83,6 +85,7 @@ export default function Inicio() {
     }
   }
 
+  const baixoCount = dash?.estoqueBaixo.length ?? 0;
   const hoje = new Date().toLocaleDateString("pt-BR", {
     weekday: "long",
     day: "numeric",
@@ -99,10 +102,11 @@ export default function Inicio() {
         <div className="text-muted-foreground text-sm capitalize">{hoje}</div>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-3">
+      <div className="mt-5 grid grid-cols-4 gap-3">
         <Stat rotulo="Vendas de hoje" valor={brl(dash?.vendasCentavos ?? 0)} />
         <Stat rotulo="Itens vendidos" valor={String(dash?.itensVendidos ?? 0)} />
         <Stat rotulo="Ticket médio" valor={brl(dash?.ticketMedioCentavos ?? 0)} />
+        <Stat rotulo="Estoque baixo" valor={String(baixoCount)} alerta={baixoCount > 0} />
       </div>
 
       <div className="mt-3 grid grid-cols-4 gap-3">
@@ -120,7 +124,31 @@ export default function Inicio() {
         ))}
       </div>
 
-      <div className="mt-5">
+      <div className="mt-5 grid grid-cols-2 gap-4">
+        <div className="bg-card rounded-xl border p-5">
+          <h2 className="text-sm font-semibold">Estoque baixo</h2>
+          <div className="mt-3 space-y-2">
+            {baixoCount === 0 ? (
+              <div className="text-muted-foreground text-sm">Tudo em ordem.</div>
+            ) : (
+              dash?.estoqueBaixo.slice(0, 8).map((l) => (
+                <div key={l.codigo} className="flex items-center gap-2">
+                  <Cover titulo={l.titulo} tamanho="sm" />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm">{l.titulo}</div>
+                    {l.autor && (
+                      <div className="text-muted-foreground truncate text-[11px]">
+                        {l.autor}
+                      </div>
+                    )}
+                  </div>
+                  <StockBadge estoque={l.estoque} />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         <div className="bg-card rounded-xl border p-5">
           <h2 className="text-sm font-semibold">Migração / Sincronização do legado</h2>
           <p className="text-muted-foreground mt-1 text-[12px]">
