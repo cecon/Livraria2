@@ -26,15 +26,15 @@ fn erro(e: DbErr) -> RepoErro {
 
 #[async_trait]
 impl DashboardRepo for SeaDashboardRepo {
-    async fn resumo_do_dia(&self, data: &str) -> Result<ResumoDia, RepoErro> {
+    async fn resumo_periodo(&self, inicio: &str, fim: &str) -> Result<ResumoDia, RepoErro> {
         let backend = self.db.get_database_backend();
         let cab = self
             .db
             .query_one(Statement::from_sql_and_values(
                 backend,
                 "SELECT COALESCE(SUM(total_centavos),0) AS total, COUNT(*) AS n \
-                 FROM pedido WHERE data = ?",
-                [data.into()],
+                 FROM pedido WHERE data BETWEEN ? AND ?",
+                [inicio.into(), fim.into()],
             ))
             .await
             .map_err(erro)?;
@@ -51,8 +51,8 @@ impl DashboardRepo for SeaDashboardRepo {
             .query_one(Statement::from_sql_and_values(
                 backend,
                 "SELECT COALESCE(SUM(ip.qtd),0) AS itens FROM item_pedido ip \
-                 JOIN pedido p ON ip.pedido_numero = p.numero WHERE p.data = ?",
-                [data.into()],
+                 JOIN pedido p ON ip.pedido_numero = p.numero WHERE p.data BETWEEN ? AND ?",
+                [inicio.into(), fim.into()],
             ))
             .await
             .map_err(erro)?;

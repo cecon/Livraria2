@@ -13,7 +13,7 @@ use crate::application::dashboard;
 use crate::application::relatorios::{self, RelatorioEstoque, RelatorioVendas};
 use crate::application::erros::ErroApp;
 use crate::application::migracao::{self, RelatorioMigracao};
-use crate::application::ports::{LivroRepo, PedidoRepo, Relogio};
+use crate::application::ports::{LivroRepo, PedidoRepo};
 use crate::application::venda::VendaInput;
 use crate::application::{cadastro, pesquisa, venda};
 use crate::domain::categoria::Categoria;
@@ -180,15 +180,28 @@ pub struct DashboardDto {
     pub estoque_baixo: Vec<LivroDto>,
 }
 
-/// Indicadores do dia (US4, FR-030/031). `data` default = hoje.
+/// Intervalo de datas (ISO) para o período: "hoje" | "7dias" | "mes".
+fn intervalo_periodo(periodo: Option<&str>) -> (String, String) {
+    use chrono::{Datelike, Duration, Local};
+    let hoje = Local::now().date_naive();
+    let inicio = match periodo {
+        Some("7dias") => hoje - Duration::days(6),
+        Some("mes") => hoje.with_day(1).unwrap_or(hoje),
+        _ => hoje,
+    };
+    let fmt = |d: chrono::NaiveDate| d.format("%Y-%m-%d").to_string();
+    (fmt(inicio), fmt(hoje))
+}
+
+/// Indicadores do dashboard (US4, FR-030/031). `periodo` = hoje | 7dias | mes.
 #[tauri::command]
 pub async fn dashboard_do_dia(
     state: tauri::State<'_, AppState>,
-    data: Option<String>,
+    periodo: Option<String>,
 ) -> Result<DashboardDto, ErroDto> {
     let repo = SeaDashboardRepo::new(state.db.clone());
-    let dia = data.unwrap_or_else(|| RelogioSistema.hoje_iso());
-    let ind = dashboard::do_dia(&dia, &repo).await?;
+    let (inicio, fim) = intervalo_periodo(periodo.as_deref());
+    let ind = dashboard::do_periodo(&inicio, &fim, &repo).await?;
     Ok(DashboardDto {
         vendas_centavos: ind.vendas_centavos,
         itens_vendidos: ind.itens_vendidos,

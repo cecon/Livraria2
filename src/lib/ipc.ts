@@ -90,8 +90,12 @@ export interface DashboardDia {
   estoqueBaixo: Livro[];
 }
 
-export async function dashboardDoDia(data?: string): Promise<DashboardDia> {
-  return await invoke("dashboard_do_dia", { data: data ?? null });
+export type PeriodoDash = "hoje" | "7dias" | "mes";
+
+export async function dashboardDoDia(
+  periodo: PeriodoDash = "hoje",
+): Promise<DashboardDia> {
+  return await invoke("dashboard_do_dia", { periodo });
 }
 
 export async function autenticar(usuario: string, senha: string): Promise<boolean> {

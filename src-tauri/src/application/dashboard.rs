@@ -13,9 +13,14 @@ pub struct Indicadores {
     pub estoque_baixo: Vec<Livro>,
 }
 
-/// Monta os indicadores do dia: vendas (Σ totais), itens, ticket médio e estoque baixo (≤3).
-pub async fn do_dia(data: &str, repo: &dyn DashboardRepo) -> Result<Indicadores, ErroApp> {
-    let r = repo.resumo_do_dia(data).await?;
+/// Indicadores do período [inicio, fim]: vendas (Σ totais), itens, ticket médio,
+/// e snapshot atual de acervo/estoque/estoque baixo.
+pub async fn do_periodo(
+    inicio: &str,
+    fim: &str,
+    repo: &dyn DashboardRepo,
+) -> Result<Indicadores, ErroApp> {
+    let r = repo.resumo_periodo(inicio, fim).await?;
     let ticket = if r.num_pedidos > 0 {
         r.total_centavos / r.num_pedidos
     } else {
@@ -43,7 +48,7 @@ mod tests {
     struct FakeRepo;
     #[async_trait]
     impl DashboardRepo for FakeRepo {
-        async fn resumo_do_dia(&self, _data: &str) -> Result<ResumoDia, RepoErro> {
+        async fn resumo_periodo(&self, _i: &str, _f: &str) -> Result<ResumoDia, RepoErro> {
             Ok(ResumoDia {
                 total_centavos: 9000,
                 num_pedidos: 3,
@@ -63,7 +68,7 @@ mod tests {
 
     #[tokio::test]
     async fn ticket_medio_e_indicadores() {
-        let ind = do_dia("2026-06-14", &FakeRepo).await.unwrap();
+        let ind = do_periodo("2026-06-14", "2026-06-14", &FakeRepo).await.unwrap();
         assert_eq!(ind.vendas_centavos, 9000);
         assert_eq!(ind.itens_vendidos, 7);
         assert_eq!(ind.ticket_medio_centavos, 3000); // 9000 / 3

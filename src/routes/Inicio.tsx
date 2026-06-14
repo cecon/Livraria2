@@ -22,8 +22,15 @@ import {
   migrarLegado,
   type DashboardDia,
   type ErroIpc,
+  type PeriodoDash,
   type RelatorioMigracao,
 } from "@/lib/ipc";
+
+const PERIODOS: { id: PeriodoDash; rotulo: string }[] = [
+  { id: "hoje", rotulo: "Hoje" },
+  { id: "7dias", rotulo: "Últimos 7 dias" },
+  { id: "mes", rotulo: "Do mês" },
+];
 
 const ACOES = [
   { to: "/venda", rotulo: "Nova Venda", Icon: ShoppingCart, destaque: true },
@@ -36,6 +43,7 @@ const MDB_KEY = "eldl-mdb-path";
 
 export default function Inicio() {
   const [dash, setDash] = useState<DashboardDia | null>(null);
+  const [periodo, setPeriodo] = useState<PeriodoDash>("hoje");
   const [caminho, setCaminho] = useState(
     () => localStorage.getItem(MDB_KEY) ?? "../Livraria/livraria.mdb",
   );
@@ -44,11 +52,15 @@ export default function Inicio() {
 
   useEffect(() => {
     carregar();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodo]);
 
   function carregar() {
-    dashboardDoDia().then(setDash).catch(() => setDash(null));
+    dashboardDoDia(periodo).then(setDash).catch(() => setDash(null));
   }
+
+  const periodoRotulo =
+    PERIODOS.find((p) => p.id === periodo)?.rotulo.toLowerCase() ?? "hoje";
 
   function lembrarCaminho(p: string) {
     setCaminho(p);
@@ -102,12 +114,37 @@ export default function Inicio() {
         <div className="text-muted-foreground text-sm capitalize">{hoje}</div>
       </div>
 
-      <div className="mt-5 grid grid-cols-4 gap-3">
-        <Stat rotulo="Vendas de hoje" valor={brl(dash?.vendasCentavos ?? 0)} />
-        <Stat rotulo="Itens vendidos" valor={String(dash?.itensVendidos ?? 0)} />
-        <Stat rotulo="Ticket médio" valor={brl(dash?.ticketMedioCentavos ?? 0)} />
+      <div className="mt-5 flex gap-1">
+        {PERIODOS.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => setPeriodo(p.id)}
+            className={`rounded-md border px-3 py-1 text-xs transition-colors ${
+              periodo === p.id
+                ? "border-[#1f7a4d] bg-[#1f7a4d] text-white"
+                : "bg-card hover:bg-muted/50"
+            }`}
+          >
+            {p.rotulo}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-3 grid grid-cols-4 gap-3">
+        <Stat rotulo="Vendas" sub={periodoRotulo} valor={brl(dash?.vendasCentavos ?? 0)} />
+        <Stat
+          rotulo="Itens vendidos"
+          sub={periodoRotulo}
+          valor={String(dash?.itensVendidos ?? 0)}
+        />
+        <Stat
+          rotulo="Ticket médio"
+          sub={periodoRotulo}
+          valor={brl(dash?.ticketMedioCentavos ?? 0)}
+        />
         <Stat
           rotulo="Livros / estoque"
+          sub="atual"
           valor={`${dash?.totalLivros ?? 0} / ${(dash?.totalEstoque ?? 0).toLocaleString("pt-BR")}`}
         />
       </div>
@@ -191,15 +228,20 @@ export default function Inicio() {
 function Stat({
   rotulo,
   valor,
+  sub,
   alerta,
 }: {
   rotulo: string;
   valor: string;
+  sub?: string;
   alerta?: boolean;
 }) {
   return (
     <div className="bg-card rounded-xl border p-4">
-      <div className="text-muted-foreground text-[11px] uppercase">{rotulo}</div>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-muted-foreground text-[11px] uppercase">{rotulo}</span>
+        {sub && <span className="text-muted-foreground text-[10px]">{sub}</span>}
+      </div>
       <div
         className={`mt-1 font-mono text-xl font-bold ${alerta ? "text-amber-600" : ""}`}
       >
