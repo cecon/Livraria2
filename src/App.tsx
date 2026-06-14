@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { toast } from "sonner";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { aplicarTema, temaInicial, type Tema } from "@/lib/theme";
+import { verificarAtualizacao } from "@/lib/updater";
 import Inicio from "@/routes/Inicio";
 import Venda from "@/routes/Venda";
 import Cadastro from "@/routes/Cadastro";
@@ -15,6 +17,22 @@ function App() {
   useEffect(() => {
     aplicarTema(tema);
   }, [tema]);
+
+  useEffect(() => {
+    verificarAtualizacao((versao, instalar) => {
+      toast(`Atualização ${versao} disponível`, {
+        description: "Baixar e reiniciar para aplicar?",
+        duration: Infinity,
+        action: {
+          label: "Atualizar",
+          onClick: () => {
+            toast.loading("Baixando atualização…");
+            void instalar();
+          },
+        },
+      });
+    });
+  }, []);
 
   return (
     <BrowserRouter>

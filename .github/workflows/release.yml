@@ -1,0 +1,52 @@
+name: release
+
+# Cada push na main publica uma nova versão (auto-versionada) e os clientes
+# atualizam sozinhos via o plugin updater do Tauri.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Definir versão automática (0.1.<run_number>)
+        shell: bash
+        run: |
+          VERSION="0.1.${{ github.run_number }}"
+          node -e "const f='src-tauri/tauri.conf.json';const j=require('./'+f);j.version='$VERSION';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n');"
+          node -e "const f='package.json';const j=require('./'+f);j.version='$VERSION';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n');"
+          echo "Publicando versão $VERSION"
+
+      - name: Instalar dependências do front
+        run: npm ci
+
+      - name: Build + release (assinado) com tauri-action
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: app-v__VERSION__
+          releaseName: "Livraria 2 v__VERSION__"
+          releaseBody: "Atualização automática (Windows). Os clientes instalados se atualizam sozinhos."
+          releaseDraft: false
+          prerelease: false

@@ -22,6 +22,8 @@ fn db_url(app: &tauri::App) -> Result<String, Box<dyn std::error::Error>> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let url = db_url(app)?;
             // Conecta e aplica as migrations idempotentes na subida (FR-061).
