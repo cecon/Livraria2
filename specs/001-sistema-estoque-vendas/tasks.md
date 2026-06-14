@@ -134,9 +134,9 @@ aparece em "recentes" (quickstart cenário 5).
 
 **Independent Test**: após vendas, `dashboard_do_dia` reflete vendas/itens/ticket e lista estoque baixo (quickstart cenário 7).
 
-- [ ] T042 [US4] Caso de uso `dashboard` (agrega vendas do dia, itens, ticket médio, estoque baixo ≤3 + esgotados) em `src-tauri/src/application/dashboard.rs` + testes (FR-030)
-- [ ] T043 [US4] Expor comando `dashboard_do_dia` em `src-tauri/src/commands.rs`
-- [ ] T044 [P] [US4] Tela `src/routes/Inicio.tsx`: 4 stats, 4 atalhos, listas "Pedidos recentes" e "Estoque baixo" (esgotados primeiro) (FR-031)
+- [X] T042 [US4] Caso de uso `dashboard` (agrega vendas do dia, itens, ticket médio, estoque baixo ≤3 + esgotados) em `src-tauri/src/application/dashboard.rs` + testes (FR-030)
+- [X] T043 [US4] Expor comando `dashboard_do_dia` em `src-tauri/src/commands.rs`
+- [X] T044 [P] [US4] Tela `src/routes/Inicio.tsx`: 4 stats, 4 atalhos, listas "Pedidos recentes" e "Estoque baixo" (esgotados primeiro) (FR-031)
 
 **Checkpoint**: US1–US4 operáveis isoladamente.
 

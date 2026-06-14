@@ -23,7 +23,7 @@ impl SeaLivroRepo {
     }
 }
 
-fn para_dominio(m: livro::Model) -> Livro {
+pub(crate) fn para_dominio(m: livro::Model) -> Livro {
     Livro {
         codigo: m.codigo,
         titulo: m.titulo,

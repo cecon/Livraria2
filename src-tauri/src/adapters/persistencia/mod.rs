@@ -1,5 +1,6 @@
 //! Adapter de persistência: conexão SQLite (SeaORM) e aplicação das migrations.
 
+pub mod dashboard_repo;
 pub mod entities;
 pub mod livro_repo;
 pub mod pedido_repo;

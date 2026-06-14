@@ -3,12 +3,14 @@
 
 use crate::adapters::legado::mdb_importer::MdbImportador;
 use crate::adapters::persistencia::inicializar_schema;
+use crate::adapters::persistencia::dashboard_repo::SeaDashboardRepo;
 use crate::adapters::persistencia::livro_repo::SeaLivroRepo;
 use crate::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use crate::adapters::relogio::RelogioSistema;
+use crate::application::dashboard;
 use crate::application::erros::ErroApp;
 use crate::application::migracao::{self, RelatorioMigracao};
-use crate::application::ports::LivroRepo;
+use crate::application::ports::{LivroRepo, Relogio};
 use crate::application::venda::VendaInput;
 use crate::application::{cadastro, pesquisa, venda};
 use crate::domain::categoria::Categoria;
@@ -162,6 +164,32 @@ pub async fn excluir_livro(
     let livros = SeaLivroRepo::new(state.db.clone());
     cadastro::excluir(&codigo, &livros).await?;
     Ok(())
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DashboardDto {
+    pub vendas_centavos: i64,
+    pub itens_vendidos: i64,
+    pub ticket_medio_centavos: i64,
+    pub estoque_baixo: Vec<LivroDto>,
+}
+
+/// Indicadores do dia (US4, FR-030/031). `data` default = hoje.
+#[tauri::command]
+pub async fn dashboard_do_dia(
+    state: tauri::State<'_, AppState>,
+    data: Option<String>,
+) -> Result<DashboardDto, ErroDto> {
+    let repo = SeaDashboardRepo::new(state.db.clone());
+    let dia = data.unwrap_or_else(|| RelogioSistema.hoje_iso());
+    let ind = dashboard::do_dia(&dia, &repo).await?;
+    Ok(DashboardDto {
+        vendas_centavos: ind.vendas_centavos,
+        itens_vendidos: ind.itens_vendidos,
+        ticket_medio_centavos: ind.ticket_medio_centavos,
+        estoque_baixo: ind.estoque_baixo.into_iter().map(LivroDto::from).collect(),
+    })
 }
 
 /// Migra/sincroniza o legado Access (idempotente, FR-065..069). `caminho_mdb`

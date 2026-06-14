@@ -80,3 +80,14 @@ export interface RelatorioMigracao {
 export async function migrarLegado(caminho?: string): Promise<RelatorioMigracao> {
   return await invoke("migrar_legado", { caminho: caminho ?? null });
 }
+
+export interface DashboardDia {
+  vendasCentavos: number;
+  itensVendidos: number;
+  ticketMedioCentavos: number;
+  estoqueBaixo: Livro[];
+}
+
+export async function dashboardDoDia(data?: string): Promise<DashboardDia> {
+  return await invoke("dashboard_do_dia", { data: data ?? null });
+}

@@ -49,6 +49,20 @@ pub trait ImportadorLegado: Send + Sync {
     fn pedidos(&self) -> Result<PedidosImportados, RepoErro>;
 }
 
+/// Resumo agregado das vendas de um dia (dashboard).
+pub struct ResumoDia {
+    pub total_centavos: i64,
+    pub num_pedidos: i64,
+    pub itens_vendidos: i64,
+}
+
+/// Porta de leitura para o dashboard (US4).
+#[async_trait]
+pub trait DashboardRepo: Send + Sync {
+    async fn resumo_do_dia(&self, data: &str) -> Result<ResumoDia, RepoErro>;
+    async fn estoque_baixo(&self, limite: i64) -> Result<Vec<Livro>, RepoErro>;
+}
+
 /// Relógio do sistema (porta) — permite testar turno/data sem depender do relógio real.
 pub trait Relogio: Send + Sync {
     /// Hora local 0–23 (define o turno, FR-015).
