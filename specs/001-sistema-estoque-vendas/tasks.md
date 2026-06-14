@@ -87,8 +87,8 @@ estoque baixado, nº incrementado (quickstart cenário 3/4).
 - [X] T026 [US1] Caso de uso `registrar_venda` + `proximo_numero_pedido` (valida ≥1 item e pago ≥ total) em `src-tauri/src/application/venda.rs` + testes com repos fake (FR-014/015)
 - [X] T027 [US1] Expor comandos `registrar_venda` e `proximo_numero_pedido` em `src-tauri/src/commands.rs` (contracts/)
 - [X] T028 [US1] Teste de integração do `PedidoRepo` com SQLite temporário em `src-tauri/tests/pedido_repo.rs` (SC-002)
-- [ ] T029 [P] [US1] Tela PDV `src/routes/Venda.tsx`: entrada de código (autofocus, Enter), busca/dropdown, tabela de itens com stepper, foco pós-conclusão (FR-010/011/052)
-- [ ] T030 [P] [US1] Componentes `src/components/PaymentRow.tsx` (formas na ordem exata + "Receber restante") e resumo com Total/Pago/Troco (FR-013)
+- [X] T029 [P] [US1] Tela PDV `src/routes/Venda.tsx`: entrada de código (autofocus, Enter), busca/dropdown, tabela de itens com stepper, foco pós-conclusão (FR-010/011/052)
+- [X] T030 [P] [US1] Componentes `src/components/PaymentRow.tsx` (formas na ordem exata + "Receber restante") e resumo com Total/Pago/Troco (FR-013)
 
 **Checkpoint**: US1 funciona ponta a ponta e é testável isoladamente (MVP).
 

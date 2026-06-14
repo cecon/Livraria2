@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppSidebar } from "@/components/AppSidebar";
+import { Toaster } from "@/components/ui/sonner";
 import { aplicarTema, temaInicial, type Tema } from "@/lib/theme";
 import Inicio from "@/routes/Inicio";
 import Venda from "@/routes/Venda";
@@ -33,6 +34,7 @@ function App() {
           </Routes>
         </main>
       </div>
+      <Toaster richColors position="top-right" />
     </BrowserRouter>
   );
 }

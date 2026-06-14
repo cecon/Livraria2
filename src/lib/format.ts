@@ -9,6 +9,11 @@ export function brl(centavos: number): string {
   });
 }
 
+/** Centavos -> "1234,56" (sem símbolo, para preencher inputs). */
+export function centavosParaInput(centavos: number): string {
+  return (centavos / 100).toFixed(2).replace(".", ",");
+}
+
 /** "1.234,56" | "30" | "R$ 30,5" -> centavos (inteiro). null se inválido. */
 export function parseBrlParaCentavos(entrada: string): number | null {
   const limpo = entrada
