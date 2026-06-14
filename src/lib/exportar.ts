@@ -30,27 +30,62 @@ async function salvarPlanilha(wb: XLSX.WorkBook, nome: string): Promise<boolean>
   return salvarBytes(nome, new Uint8Array(buf), "Excel", "xlsx");
 }
 
+function formasDoPedido(p: RelatorioVendas["pedidos"][number]): string {
+  const fs: string[] = [];
+  if (p.cartao > 0) fs.push(`Cartão ${brl(p.cartao)}`);
+  if (p.pix > 0) fs.push(`PIX ${brl(p.pix)}`);
+  if (p.dinheiro > 0) fs.push(`Dinheiro ${brl(p.dinheiro)}`);
+  if (p.ministerio > 0) fs.push(`Ministério ${brl(p.ministerio)}`);
+  if (p.vale > 0) fs.push(`Vale ${brl(p.vale)}`);
+  return fs.join("   ");
+}
+
 export async function exportarVendasPdf(rel: RelatorioVendas): Promise<boolean> {
   const doc = new jsPDF();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const finalY = () => (doc as any).lastAutoTable.finalY as number;
   doc.setFontSize(14);
-  doc.text(`Relatório de Vendas — ${rel.data}`, 14, 16);
-  autoTable(doc, {
-    startY: 22,
-    styles: { fontSize: 8 },
-    head: [["Pedido", "Cliente", "Cartão", "Dinheiro", "PIX", "Min.", "Vale", "Total"]],
-    body: rel.pedidos.map((p) => [
-      p.numero,
-      p.cliente,
-      brl(p.cartao),
-      brl(p.dinheiro),
-      brl(p.pix),
-      brl(p.ministerio),
-      brl(p.vale),
-      brl(p.totalCentavos),
-    ]),
-  });
+  doc.text(`Relatório de Vendas — ${rel.data}`, 14, 14);
+  let y = 20;
+
+  for (const p of rel.pedidos) {
+    if (y > 262) {
+      doc.addPage();
+      y = 14;
+    }
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Pedido Nº ${p.numero} · ${p.cliente}`, 14, y);
+    doc.setFont("helvetica", "normal");
+    autoTable(doc, {
+      startY: y + 2,
+      margin: { left: 14, right: 14 },
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [31, 122, 77] },
+      head: [["Qtd", "Título", "Valor"]],
+      body: p.itens.map((i) => [i.qtd, i.titulo, brl(i.valorCentavos)]),
+      columnStyles: {
+        0: { cellWidth: 14 },
+        2: { halign: "right", cellWidth: 28 },
+      },
+    });
+    y = finalY();
+    doc.setFontSize(8);
+    doc.text(formasDoPedido(p), 14, y + 4);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total ${brl(p.totalCentavos)}`, 196, y + 4, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    y += 10;
+  }
+
   const r = rel.resumo;
+  if (y > 240) {
+    doc.addPage();
+    y = 14;
+  }
   autoTable(doc, {
+    startY: y + 2,
+    margin: { left: 14, right: 14 },
     styles: { fontSize: 9 },
     head: [["Resumo das Vendas", "Valor"]],
     body: [
@@ -59,9 +94,11 @@ export async function exportarVendasPdf(rel: RelatorioVendas): Promise<boolean> 
       ["PIX", brl(r.pix)],
       ["Ministério", brl(r.ministerio)],
       ["Vale Presente", brl(r.vale)],
-      ["TOTAL", brl(r.subtotalCentavos)],
+      ["TOTAL DAS VENDAS", brl(r.subtotalCentavos)],
     ],
+    columnStyles: { 1: { halign: "right" } },
   });
+
   const bytes = new Uint8Array(doc.output("arraybuffer"));
   return salvarBytes(`relatorio-vendas-${rel.data}.pdf`, bytes, "PDF", "pdf");
 }
