@@ -12,7 +12,7 @@ pub struct ResumoVendas {
     pub pix: i64,
     pub ministerio: i64,
     pub vale: i64,
-    /// Sub Total (Dinheiro + Cartão + PIX) (FR-042).
+    /// Total recebido: soma de TODAS as formas de pagamento (FR-042).
     pub subtotal_centavos: i64,
 }
 
@@ -66,7 +66,7 @@ pub async fn vendas(
         r.ministerio += p.ministerio;
         r.vale += p.vale;
     }
-    r.subtotal_centavos = r.dinheiro + r.cartao + r.pix;
+    r.subtotal_centavos = r.cartao + r.dinheiro + r.pix + r.ministerio + r.vale;
     Ok(RelatorioVendas {
         periodo: periodo.to_string(),
         data: data.to_string(),
@@ -132,9 +132,9 @@ mod tests {
                     cartao: 0,
                     dinheiro: 2000,
                     pix: 500,
-                    ministerio: 0,
+                    ministerio: 1000,
                     vale: 0,
-                    total_centavos: 2500,
+                    total_centavos: 3500,
                 },
             ])
         }
@@ -150,8 +150,9 @@ mod tests {
         assert_eq!(rel.resumo.cartao, 3000);
         assert_eq!(rel.resumo.dinheiro, 2000);
         assert_eq!(rel.resumo.pix, 500);
-        // Subtotal Din+Cartão+PIX
-        assert_eq!(rel.resumo.subtotal_centavos, 5500);
+        assert_eq!(rel.resumo.ministerio, 1000);
+        // Total recebido = todas as formas (inclui Ministério e Vale)
+        assert_eq!(rel.resumo.subtotal_centavos, 6500);
         // reconcilia com a soma dos totais dos pedidos (SC-004)
         let soma_totais: i64 = rel.pedidos.iter().map(|p| p.total_centavos).sum();
         let soma_formas = rel.resumo.cartao

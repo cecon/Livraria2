@@ -56,21 +56,9 @@ export function VendasView({ rel }: { rel: RelatorioVendas }) {
           <Linha rotulo="Total Ministério" v={rel.resumo.ministerio} />
           <Linha rotulo="Total Vale Presente" v={rel.resumo.vale} />
         </div>
-        <div className="mt-2 flex justify-between border-t pt-2 font-mono">
-          <span>Sub Total (Dinheiro + Cartão + PIX)</span>
+        <div className="mt-2 flex justify-between border-t pt-2 font-mono text-base font-bold">
+          <span>Total das Vendas (todas as formas)</span>
           <span>{brl(rel.resumo.subtotalCentavos)}</span>
-        </div>
-        <div className="mt-1 flex justify-between font-mono font-bold">
-          <span>Total Geral (todas as formas)</span>
-          <span>
-            {brl(
-              rel.resumo.cartao +
-                rel.resumo.dinheiro +
-                rel.resumo.pix +
-                rel.resumo.ministerio +
-                rel.resumo.vale,
-            )}
-          </span>
         </div>
       </div>
     </div>
