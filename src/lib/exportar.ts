@@ -130,7 +130,19 @@ export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean
     { Forma: "Vale Presente", Valor: rel.resumo.vale / 100 },
     { Forma: "TOTAL", Valor: rel.resumo.subtotalCentavos / 100 },
   ];
+  // Aba "Detalhado": cada pedido com seus livros + formas + total (igual à tela).
+  const det: (string | number)[][] = [];
+  for (const p of rel.pedidos) {
+    det.push([`Pedido Nº ${p.numero} · ${p.cliente}`]);
+    det.push(["Qtd", "Título", "Valor"]);
+    for (const i of p.itens) det.push([i.qtd, i.titulo, i.valorCentavos / 100]);
+    det.push(["", "Formas", formasDoPedido(p) || "—"]);
+    det.push(["", "Total", p.totalCentavos / 100]);
+    det.push([]);
+  }
+
   const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(det), "Detalhado");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pagamentos), "Pagamentos");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(itens), "Itens");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumo), "Resumo");
