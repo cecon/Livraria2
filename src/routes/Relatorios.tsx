@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { FileSpreadsheet, Printer } from "lucide-react";
+import { FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   exportarEstoqueExcel,
   exportarVendasExcel,
+  exportarVendasPdf,
   whatsappEstoque,
   whatsappVendas,
 } from "@/lib/exportar";
@@ -69,6 +70,15 @@ export default function Relatorios() {
     else if (estoque) void whatsappEstoque(estoque);
   }
 
+  async function exportarPdf() {
+    if (!vendas) return;
+    try {
+      if (await exportarVendasPdf(vendas)) toast.success("PDF exportado");
+    } catch (e) {
+      toast.error((e as ErroIpc).mensagem ?? "Erro ao exportar PDF");
+    }
+  }
+
   async function excluirItem(id: number) {
     if (!window.confirm("Excluir este item da venda? O total será recalculado.")) {
       return;
@@ -112,8 +122,13 @@ export default function Relatorios() {
             ← Voltar
           </Button>
           <Button variant="outline" onClick={exportarExcel} className="ml-auto">
-            <FileSpreadsheet size={15} /> Exportar Excel
+            <FileSpreadsheet size={15} /> Excel
           </Button>
+          {vendas && (
+            <Button variant="outline" onClick={exportarPdf}>
+              <FileText size={15} /> PDF
+            </Button>
+          )}
           <Button
             onClick={compartilharWhats}
             className="bg-[#25D366] text-white hover:bg-[#1ebe5d]"

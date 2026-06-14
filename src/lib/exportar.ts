@@ -1,6 +1,8 @@
 // Exportação de relatórios para Excel (.xlsx) e compartilhamento via WhatsApp.
 
 import * as XLSX from "xlsx";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import { save } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { invoke } from "@tauri-apps/api/core";
@@ -8,18 +10,60 @@ import { brl } from "./format";
 import { CATEGORIAS } from "./types";
 import type { RelatorioEstoque, RelatorioVendas } from "./ipc";
 
-async function salvarPlanilha(wb: XLSX.WorkBook, nome: string): Promise<boolean> {
-  const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+async function salvarBytes(
+  nome: string,
+  bytes: Uint8Array,
+  filtro: string,
+  ext: string,
+): Promise<boolean> {
   const caminho = await save({
     defaultPath: nome,
-    filters: [{ name: "Excel", extensions: ["xlsx"] }],
+    filters: [{ name: filtro, extensions: [ext] }],
   });
   if (!caminho) return false;
-  await invoke("salvar_arquivo", {
-    caminho,
-    conteudo: Array.from(new Uint8Array(buf)),
-  });
+  await invoke("salvar_arquivo", { caminho, conteudo: Array.from(bytes) });
   return true;
+}
+
+async function salvarPlanilha(wb: XLSX.WorkBook, nome: string): Promise<boolean> {
+  const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+  return salvarBytes(nome, new Uint8Array(buf), "Excel", "xlsx");
+}
+
+export async function exportarVendasPdf(rel: RelatorioVendas): Promise<boolean> {
+  const doc = new jsPDF();
+  doc.setFontSize(14);
+  doc.text(`Relatório de Vendas — ${rel.data}`, 14, 16);
+  autoTable(doc, {
+    startY: 22,
+    styles: { fontSize: 8 },
+    head: [["Pedido", "Cliente", "Cartão", "Dinheiro", "PIX", "Min.", "Vale", "Total"]],
+    body: rel.pedidos.map((p) => [
+      p.numero,
+      p.cliente,
+      brl(p.cartao),
+      brl(p.dinheiro),
+      brl(p.pix),
+      brl(p.ministerio),
+      brl(p.vale),
+      brl(p.totalCentavos),
+    ]),
+  });
+  const r = rel.resumo;
+  autoTable(doc, {
+    styles: { fontSize: 9 },
+    head: [["Resumo das Vendas", "Valor"]],
+    body: [
+      ["Cartão", brl(r.cartao)],
+      ["Dinheiro", brl(r.dinheiro)],
+      ["PIX", brl(r.pix)],
+      ["Ministério", brl(r.ministerio)],
+      ["Vale Presente", brl(r.vale)],
+      ["TOTAL", brl(r.subtotalCentavos)],
+    ],
+  });
+  const bytes = new Uint8Array(doc.output("arraybuffer"));
+  return salvarBytes(`relatorio-vendas-${rel.data}.pdf`, bytes, "PDF", "pdf");
 }
 
 export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean> {
