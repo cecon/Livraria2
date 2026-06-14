@@ -85,6 +85,7 @@ export interface DashboardDia {
   vendasCentavos: number;
   itensVendidos: number;
   ticketMedioCentavos: number;
+  totalLivros: number;
   estoqueBaixo: Livro[];
 }
 

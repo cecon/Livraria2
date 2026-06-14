@@ -6,8 +6,8 @@ use crate::application::ports::{DashboardRepo, RepoErro, ResumoDia};
 use crate::domain::livro::Livro;
 use async_trait::async_trait;
 use sea_orm::{
-    ColumnTrait, ConnectionTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder,
-    QuerySelect, Statement,
+    ColumnTrait, ConnectionTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait,
+    QueryFilter, QueryOrder, QuerySelect, Statement,
 };
 
 pub struct SeaDashboardRepo {
@@ -78,5 +78,14 @@ impl DashboardRepo for SeaDashboardRepo {
             .await
             .map_err(erro)?;
         Ok(ms.into_iter().map(para_dominio).collect())
+    }
+
+    async fn total_livros(&self) -> Result<i64, RepoErro> {
+        let n = LivroEntity::find()
+            .filter(livro::Column::Ativo.eq(true))
+            .count(&self.db)
+            .await
+            .map_err(erro)?;
+        Ok(n as i64)
     }
 }

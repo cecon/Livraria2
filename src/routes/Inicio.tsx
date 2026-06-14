@@ -106,7 +106,7 @@ export default function Inicio() {
         <Stat rotulo="Vendas de hoje" valor={brl(dash?.vendasCentavos ?? 0)} />
         <Stat rotulo="Itens vendidos" valor={String(dash?.itensVendidos ?? 0)} />
         <Stat rotulo="Ticket médio" valor={brl(dash?.ticketMedioCentavos ?? 0)} />
-        <Stat rotulo="Estoque baixo" valor={String(baixoCount)} alerta={baixoCount > 0} />
+        <Stat rotulo="Livros no acervo" valor={String(dash?.totalLivros ?? 0)} />
       </div>
 
       <div className="mt-3 grid grid-cols-4 gap-3">
