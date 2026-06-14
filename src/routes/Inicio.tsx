@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { BookPlus, FileBarChart, RefreshCw, Search, ShoppingCart } from "lucide-react";
+import { open } from "@tauri-apps/plugin-dialog";
+import {
+  BookPlus,
+  FileBarChart,
+  FolderOpen,
+  RefreshCw,
+  Search,
+  ShoppingCart,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StockBadge } from "@/components/StockBadge";
@@ -24,9 +32,13 @@ const ACOES = [
   { to: "/relatorios", rotulo: "Relatórios", Icon: FileBarChart, destaque: false },
 ];
 
+const MDB_KEY = "eldl-mdb-path";
+
 export default function Inicio() {
   const [dash, setDash] = useState<DashboardDia | null>(null);
-  const [caminho, setCaminho] = useState("../Livraria/livraria.mdb");
+  const [caminho, setCaminho] = useState(
+    () => localStorage.getItem(MDB_KEY) ?? "../Livraria/livraria.mdb",
+  );
   const [ocupado, setOcupado] = useState(false);
   const [rel, setRel] = useState<RelatorioMigracao | null>(null);
 
@@ -38,11 +50,32 @@ export default function Inicio() {
     dashboardDoDia().then(setDash).catch(() => setDash(null));
   }
 
+  function lembrarCaminho(p: string) {
+    setCaminho(p);
+    localStorage.setItem(MDB_KEY, p);
+  }
+
+  async function procurar() {
+    try {
+      const sel = await open({
+        multiple: false,
+        directory: false,
+        filters: [{ name: "Banco Access", extensions: ["mdb", "accdb"] }],
+      });
+      if (typeof sel === "string") {
+        lembrarCaminho(sel);
+      }
+    } catch {
+      toast.error("Seletor de arquivo disponível só no app (não no navegador)");
+    }
+  }
+
   async function sincronizar() {
     setOcupado(true);
     try {
       const r = await migrarLegado(caminho.trim() || undefined);
       setRel(r);
+      lembrarCaminho(caminho.trim());
       toast.success(`${r.livrosImportados} livros, ${r.pedidosInseridos} pedidos novos`);
       carregar();
     } catch (e) {
@@ -124,9 +157,18 @@ export default function Inicio() {
           <div className="mt-3 flex gap-2">
             <Input
               value={caminho}
-              onChange={(e) => setCaminho(e.currentTarget.value)}
+              onChange={(e) => lembrarCaminho(e.currentTarget.value)}
               className="h-9 font-mono text-[12px]"
+              placeholder="Caminho do .mdb"
             />
+            <Button
+              variant="outline"
+              onClick={procurar}
+              className="h-9 shrink-0"
+              title="Procurar arquivo .mdb"
+            >
+              <FolderOpen size={15} />
+            </Button>
             <Button onClick={sincronizar} disabled={ocupado} className="h-9 shrink-0">
               <RefreshCw size={15} className={ocupado ? "animate-spin" : ""} />
             </Button>
