@@ -33,7 +33,13 @@ pub fn run() {
             app.manage(AppState { db });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![commands::inicializar_dados])
+        .invoke_handler(tauri::generate_handler![
+            commands::inicializar_dados,
+            commands::proximo_numero_pedido,
+            commands::registrar_venda,
+            commands::livro_por_codigo,
+            commands::salvar_livro,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

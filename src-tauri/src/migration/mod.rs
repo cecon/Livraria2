@@ -31,7 +31,8 @@ mod m_init {
             estoque INTEGER NOT NULL DEFAULT 0,
             descricao TEXT,
             busca_norm TEXT NOT NULL DEFAULT '',
-            ativo INTEGER NOT NULL DEFAULT 1
+            ativo INTEGER NOT NULL DEFAULT 1,
+            atualizado_em TEXT NOT NULL DEFAULT ''
         )",
         "CREATE INDEX IF NOT EXISTS idx_livro_busca ON livro(busca_norm)",
         "CREATE TABLE IF NOT EXISTS pedido (

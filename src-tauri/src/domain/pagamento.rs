@@ -69,6 +69,21 @@ impl Turno {
             Turno::Tarde => "Turma da Tarde",
         }
     }
+
+    /// Chave estável para persistência/filtro de relatórios.
+    pub fn chave(self) -> &'static str {
+        match self {
+            Turno::Manha => "manha",
+            Turno::Tarde => "tarde",
+        }
+    }
+
+    pub fn de_chave(chave: &str) -> Turno {
+        match chave {
+            "tarde" => Turno::Tarde,
+            _ => Turno::Manha,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -97,5 +112,12 @@ mod tests {
         assert_eq!(Turno::de_hora(12), Turno::Manha);
         assert_eq!(Turno::de_hora(13), Turno::Tarde);
         assert_eq!(Turno::de_hora(18), Turno::Tarde);
+    }
+
+    #[test]
+    fn turno_chave_ida_e_volta() {
+        for t in [Turno::Manha, Turno::Tarde] {
+            assert_eq!(Turno::de_chave(t.chave()), t);
+        }
     }
 }

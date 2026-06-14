@@ -1,6 +1,8 @@
 //! Adapter de persistência: conexão SQLite (SeaORM) e aplicação das migrations.
 
 pub mod entities;
+pub mod livro_repo;
+pub mod pedido_repo;
 
 use crate::migration::Migrator;
 use sea_orm::{Database, DatabaseConnection, DbErr};

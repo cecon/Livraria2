@@ -15,6 +15,7 @@ pub struct Model {
     pub descricao: Option<String>,
     pub busca_norm: String,
     pub ativo: bool,
+    pub atualizado_em: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

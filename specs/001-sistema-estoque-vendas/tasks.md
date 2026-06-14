@@ -83,10 +83,10 @@ estoque baixado, nº incrementado (quickstart cenário 3/4).
 
 - [X] T023 [P] [US1] Modelar `Pedido`/`ItemPedido` (snapshot título/preço, somar qtd, qtd ≥ 1) em `src-tauri/src/domain/pedido.rs` + testes
 - [X] T024 [P] [US1] Cálculo de pagamento (pago = Σ formas; restante = max(0,total−pago); troco) e derivação de turno em `src-tauri/src/domain/pedido.rs`/`pagamento.rs` + testes (FR-012)
-- [ ] T025 [US1] Implementar `PedidoRepo` (inserir pedido+itens em transação, baixar estoque por item piso 0, `MAX(numero)+1`) em `src-tauri/src/adapters/persistencia/pedido_repo.rs` (depende de T016)
-- [ ] T026 [US1] Caso de uso `registrar_venda` + `proximo_numero_pedido` (valida ≥1 item e pago ≥ total) em `src-tauri/src/application/venda.rs` + testes com repos fake (FR-014/015)
-- [ ] T027 [US1] Expor comandos `registrar_venda` e `proximo_numero_pedido` em `src-tauri/src/commands.rs` (contracts/)
-- [ ] T028 [US1] Teste de integração do `PedidoRepo` com SQLite temporário em `src-tauri/tests/pedido_repo.rs` (SC-002)
+- [X] T025 [US1] Implementar `PedidoRepo` (inserir pedido+itens em transação, baixar estoque por item piso 0, `MAX(numero)+1`) em `src-tauri/src/adapters/persistencia/pedido_repo.rs` (depende de T016)
+- [X] T026 [US1] Caso de uso `registrar_venda` + `proximo_numero_pedido` (valida ≥1 item e pago ≥ total) em `src-tauri/src/application/venda.rs` + testes com repos fake (FR-014/015)
+- [X] T027 [US1] Expor comandos `registrar_venda` e `proximo_numero_pedido` em `src-tauri/src/commands.rs` (contracts/)
+- [X] T028 [US1] Teste de integração do `PedidoRepo` com SQLite temporário em `src-tauri/tests/pedido_repo.rs` (SC-002)
 - [ ] T029 [P] [US1] Tela PDV `src/routes/Venda.tsx`: entrada de código (autofocus, Enter), busca/dropdown, tabela de itens com stepper, foco pós-conclusão (FR-010/011/052)
 - [ ] T030 [P] [US1] Componentes `src/components/PaymentRow.tsx` (formas na ordem exata + "Receber restante") e resumo com Total/Pago/Troco (FR-013)
 
@@ -102,7 +102,7 @@ estoque baixado, nº incrementado (quickstart cenário 3/4).
 aparece em "recentes" (quickstart cenário 5).
 
 - [X] T031 [P] [US2] Validações de `Livro` (campos, categoria, estoque ≥ 0) e cálculo de `busca_norm` em `src-tauri/src/domain/livro.rs` + testes
-- [ ] T032 [US2] Implementar `LivroRepo` (upsert por código, `livros_recentes`, soft-delete) em `src-tauri/src/adapters/persistencia/livro_repo.rs` (data-model: soft-delete)
+- [X] T032 [US2] Implementar `LivroRepo` (upsert por código, `livros_recentes`, soft-delete) em `src-tauri/src/adapters/persistencia/livro_repo.rs` (data-model: soft-delete)
 - [ ] T033 [US2] Caso de uso `cadastro` (incluir/alterar/excluir, lookup por código) em `src-tauri/src/application/cadastro.rs` + testes com repo fake (FR-001/002)
 - [ ] T034 [US2] Expor comandos `livro_por_codigo`, `salvar_livro`, `excluir_livro`, `livros_recentes` em `src-tauri/src/commands.rs`
 - [ ] T035 [US2] Teste de integração do `LivroRepo` (upsert idempotente, soft-delete) em `src-tauri/tests/livro_repo.rs`
