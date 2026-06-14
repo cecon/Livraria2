@@ -44,6 +44,24 @@ async fn migra_legado_real_idempotente() {
     assert!(r1.livros_importados > 400, "livros: {}", r1.livros_importados);
     assert!(r1.pedidos_inseridos > 100, "pedidos: {}", r1.pedidos_inseridos);
 
+    // As formas de pagamento NÃO podem vir todas como dinheiro: o legado grava
+    // cartão/pix nas colunas de valor do resumo (regressão corrigida).
+    use sea_orm::{ConnectionTrait, Statement};
+    let backend = db.get_database_backend();
+    let row = db
+        .query_one(Statement::from_string(
+            backend,
+            "SELECT COALESCE(SUM(val_cartao),0) c, COALESCE(SUM(val_pix),0) p FROM pedido"
+                .to_string(),
+        ))
+        .await
+        .unwrap()
+        .unwrap();
+    let cartao: i64 = row.try_get("", "c").unwrap();
+    let pix: i64 = row.try_get("", "p").unwrap();
+    assert!(cartao > 0, "deve haver vendas no cartão");
+    assert!(pix > 0, "deve haver vendas no PIX");
+
     // Idempotência (FR-069): re-rodar não insere pedidos novos.
     let r2 = migrar(&imp, &livros, &pedidos).await.unwrap();
     assert_eq!(r2.pedidos_inseridos, 0, "re-rodar não deve inserir pedidos");

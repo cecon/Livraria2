@@ -150,6 +150,27 @@ impl ImportadorLegado for MdbImportador {
                 continue;
             }
 
+            // Pagamentos: a fonte real são as colunas de valor da linha-resumo
+            // (vdcartao/vdpix/...). Só caímos no split derivado de `vdmetodo` quando
+            // o resumo não tem valores (dados antigos) — FR-067a.
+            let pag_resumo = resumo.map(|res| Pagamentos {
+                cartao: Dinheiro::de_centavos(valor_para_centavos(campo(res, &idx, "vdcartao"))),
+                dinheiro: Dinheiro::de_centavos(valor_para_centavos(campo(res, &idx, "vddinheiro"))),
+                pix: Dinheiro::de_centavos(valor_para_centavos(campo(res, &idx, "vdpix"))),
+                ministerio: Dinheiro::de_centavos(valor_para_centavos(campo(res, &idx, "vdministerio"))),
+                vale: Dinheiro::de_centavos(valor_para_centavos(campo(res, &idx, "vdvale"))),
+            });
+            let pagamentos = match pag_resumo {
+                Some(p) if p.pago().centavos() > 0 => p,
+                _ => Pagamentos {
+                    cartao: Dinheiro::de_centavos(acc[0]),
+                    dinheiro: Dinheiro::de_centavos(acc[1]),
+                    pix: Dinheiro::de_centavos(acc[2]),
+                    ministerio: Dinheiro::de_centavos(acc[3]),
+                    vale: Dinheiro::de_centavos(acc[4]),
+                },
+            };
+
             let nome = campo(fonte, &idx, "vdnome").trim();
             let pedido = Pedido {
                 numero,
@@ -157,13 +178,7 @@ impl ImportadorLegado for MdbImportador {
                 turno: turma_para_turno(campo(fonte, &idx, "vdturma")),
                 data: data_iso(campo(fonte, &idx, "vddata")),
                 itens,
-                pagamentos: Pagamentos {
-                    cartao: Dinheiro::de_centavos(acc[0]),
-                    dinheiro: Dinheiro::de_centavos(acc[1]),
-                    pix: Dinheiro::de_centavos(acc[2]),
-                    ministerio: Dinheiro::de_centavos(acc[3]),
-                    vale: Dinheiro::de_centavos(acc[4]),
-                },
+                pagamentos,
             };
 
             if let Some(res) = resumo {
