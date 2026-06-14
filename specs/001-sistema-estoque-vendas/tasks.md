@@ -193,11 +193,11 @@ aqui ficam skills, reforços e verificação).
 
 ## Phase 10: Polish & Cross-Cutting
 
-- [ ] T058 [P] Aplicar design tokens do handoff (escala `brand` verde, mono para preços/códigos) em `src/index.css` e componentes (docs/design-handoff)
-- [ ] T059 [P] Folha de estilo de impressão para relatórios (`@media print`) em `src/`
-- [ ] T060 Rodar validação do `quickstart.md` (cenários 1–10) ponta a ponta
-- [ ] T061 [P] Atualizar `docs/` e `README.md` com comandos de migração e execução
-- [ ] T062 Revisão final: termos pt-BR exatos (Ministério, Vale Presente, Turma da Manhã/Tarde, "Pedido Nº") e formatação R$ (FR-054)
+- [X] T058 [P] Aplicar design tokens do handoff (escala `brand` verde, mono para preços/códigos) em `src/index.css` e componentes (docs/design-handoff)
+- [X] T059 [P] Folha de estilo de impressão para relatórios (`@media print`) em `src/`
+- [X] T060 Rodar validação do `quickstart.md` (cenários 1–10) ponta a ponta
+- [X] T061 [P] Atualizar `docs/` e `README.md` com comandos de migração e execução
+- [X] T062 Revisão final: termos pt-BR exatos (Ministério, Vale Presente, Turma da Manhã/Tarde, "Pedido Nº") e formatação R$ (FR-054)
 
 ---
 
