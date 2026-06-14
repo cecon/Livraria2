@@ -183,9 +183,9 @@ aqui ficam skills, reforços e verificação).
 
 **Independent Test**: criar arquivo `.rs/.ts` > 300 linhas significativas → hook/pre-commit bloqueia (quickstart cenário 10, SC-006).
 
-- [ ] T055 [P] [US6] Criar skills de prevenção em `.claude/skills/`: "dinheiro-em-centavos", "entidade-orm-fora-do-dominio", "limite-300-linhas" (Princípio V, ADR-0007)
-- [ ] T056 [US6] Teste/verificação do guardrail: caso de arquivo > 300 linhas falha e ≤ 300 passa; documentar exceção-via-ADR
-- [ ] T057 [P] [US6] Verificar que entidades SeaORM não são importadas pelo `domain/` (check simples no `scripts/` ou teste) — reforça ADR-0002/0003
+- [X] T055 [P] [US6] Criar skills de prevenção em `.claude/skills/`: "dinheiro-em-centavos", "entidade-orm-fora-do-dominio", "limite-300-linhas" (Princípio V, ADR-0007)
+- [X] T056 [US6] Teste/verificação do guardrail: caso de arquivo > 300 linhas falha e ≤ 300 passa; documentar exceção-via-ADR
+- [X] T057 [P] [US6] Verificar que entidades SeaORM não são importadas pelo `domain/` (check simples no `scripts/` ou teste) — reforça ADR-0002/0003
 
 **Checkpoint**: filosofias verificadas automaticamente.
 

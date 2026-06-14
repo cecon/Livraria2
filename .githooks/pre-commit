@@ -15,4 +15,5 @@ if [ "${#staged[@]}" -eq 0 ]; then
   exit 0
 fi
 
-exec "$ROOT/scripts/check-file-size.sh" "${staged[@]}"
+"$ROOT/scripts/check-file-size.sh" "${staged[@]}"
+exec "$ROOT/scripts/check-domain-purity.sh"
