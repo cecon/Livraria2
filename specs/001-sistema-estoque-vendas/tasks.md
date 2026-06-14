@@ -53,7 +53,7 @@ Dinheiro = inteiro em centavos (i64). Todo arquivo de lógica ≤ 300 linhas sig
 
 ### Aplicação — portas (traits)
 
-- [ ] T013 Definir portas em `src-tauri/src/application/ports.rs`: `LivroRepo`, `PedidoRepo`, `UsuarioRepo`, `Relogio`, `ImportadorLegado`, `Impressora` (depende de T008–T012)
+- [X] T013 Definir portas em `src-tauri/src/application/ports.rs`: `LivroRepo`, `PedidoRepo`, `UsuarioRepo`, `Relogio`, `ImportadorLegado`, `Impressora` (depende de T008–T012)
 
 ### Persistência — conexão, migrations, entidades
 
@@ -81,8 +81,8 @@ Dinheiro = inteiro em centavos (i64). Todo arquivo de lógica ≤ 300 linhas sig
 **Independent Test**: com 1 livro cadastrado, adicionar item, pagar ≥ total, concluir → pedido gravado,
 estoque baixado, nº incrementado (quickstart cenário 3/4).
 
-- [ ] T023 [P] [US1] Modelar `Pedido`/`ItemPedido` (snapshot título/preço, somar qtd, qtd ≥ 1) em `src-tauri/src/domain/pedido.rs` + testes
-- [ ] T024 [P] [US1] Cálculo de pagamento (pago = Σ formas; restante = max(0,total−pago); troco) e derivação de turno em `src-tauri/src/domain/pedido.rs`/`pagamento.rs` + testes (FR-012)
+- [X] T023 [P] [US1] Modelar `Pedido`/`ItemPedido` (snapshot título/preço, somar qtd, qtd ≥ 1) em `src-tauri/src/domain/pedido.rs` + testes
+- [X] T024 [P] [US1] Cálculo de pagamento (pago = Σ formas; restante = max(0,total−pago); troco) e derivação de turno em `src-tauri/src/domain/pedido.rs`/`pagamento.rs` + testes (FR-012)
 - [ ] T025 [US1] Implementar `PedidoRepo` (inserir pedido+itens em transação, baixar estoque por item piso 0, `MAX(numero)+1`) em `src-tauri/src/adapters/persistencia/pedido_repo.rs` (depende de T016)
 - [ ] T026 [US1] Caso de uso `registrar_venda` + `proximo_numero_pedido` (valida ≥1 item e pago ≥ total) em `src-tauri/src/application/venda.rs` + testes com repos fake (FR-014/015)
 - [ ] T027 [US1] Expor comandos `registrar_venda` e `proximo_numero_pedido` em `src-tauri/src/commands.rs` (contracts/)
@@ -101,7 +101,7 @@ estoque baixado, nº incrementado (quickstart cenário 3/4).
 **Independent Test**: código novo → form vazio; código existente → form preenchido; salvar → upsert;
 aparece em "recentes" (quickstart cenário 5).
 
-- [ ] T031 [P] [US2] Validações de `Livro` (campos, categoria, estoque ≥ 0) e cálculo de `busca_norm` em `src-tauri/src/domain/livro.rs` + testes
+- [X] T031 [P] [US2] Validações de `Livro` (campos, categoria, estoque ≥ 0) e cálculo de `busca_norm` em `src-tauri/src/domain/livro.rs` + testes
 - [ ] T032 [US2] Implementar `LivroRepo` (upsert por código, `livros_recentes`, soft-delete) em `src-tauri/src/adapters/persistencia/livro_repo.rs` (data-model: soft-delete)
 - [ ] T033 [US2] Caso de uso `cadastro` (incluir/alterar/excluir, lookup por código) em `src-tauri/src/application/cadastro.rs` + testes com repo fake (FR-001/002)
 - [ ] T034 [US2] Expor comandos `livro_por_codigo`, `salvar_livro`, `excluir_livro`, `livros_recentes` em `src-tauri/src/commands.rs`

@@ -4,5 +4,7 @@
 pub mod categoria;
 pub mod dinheiro;
 pub mod erros;
+pub mod livro;
 pub mod pagamento;
+pub mod pedido;
 pub mod texto;
