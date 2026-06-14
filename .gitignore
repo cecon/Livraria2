@@ -25,3 +25,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Bancos Access do legado (dados reais — nunca versionar)
+*.mdb
+*.accdb
