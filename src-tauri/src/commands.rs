@@ -217,6 +217,12 @@ pub async fn relatorio_vendas(
     Ok(relatorios::vendas(&data, &periodo, &repo).await?)
 }
 
+/// Salva bytes num arquivo no caminho escolhido pelo usuário (ex.: exportar Excel).
+#[tauri::command]
+pub fn salvar_arquivo(caminho: String, conteudo: Vec<u8>) -> Result<(), String> {
+    std::fs::write(&caminho, &conteudo).map_err(|e| e.to_string())
+}
+
 /// Remove um item de um pedido e recalcula o total (correção de dados — US5).
 #[tauri::command]
 pub async fn excluir_item_pedido(
