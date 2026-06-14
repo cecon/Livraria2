@@ -4,6 +4,7 @@ use crate::application::erros::ErroApp;
 use crate::application::ports::LivroRepo;
 use crate::domain::erros::ErroDominio;
 use crate::domain::livro::Livro;
+use crate::domain::texto::caixa_alta_sem_acento;
 
 /// Lookup por código: existe → edição; não existe → novo (FR-002).
 pub async fn buscar(codigo: &str, livros: &dyn LivroRepo) -> Result<Option<Livro>, ErroApp> {
@@ -11,7 +12,14 @@ pub async fn buscar(codigo: &str, livros: &dyn LivroRepo) -> Result<Option<Livro
 }
 
 /// Inclui ou altera (upsert). Valida campos obrigatórios e não-negativos.
-pub async fn salvar(livro: Livro, livros: &dyn LivroRepo) -> Result<(), ErroApp> {
+/// Padroniza título e autor em CAIXA ALTA sem acento (controle de cadastro).
+pub async fn salvar(mut livro: Livro, livros: &dyn LivroRepo) -> Result<(), ErroApp> {
+    livro.titulo = caixa_alta_sem_acento(&livro.titulo);
+    livro.autor = livro
+        .autor
+        .as_deref()
+        .map(caixa_alta_sem_acento)
+        .filter(|s| !s.is_empty());
     if livro.codigo.trim().is_empty() {
         return Err(ErroDominio::CodigoInvalido.into());
     }

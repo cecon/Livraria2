@@ -10,6 +10,16 @@ pub fn normalize(entrada: &str) -> String {
         .to_lowercase()
 }
 
+/// Padroniza cadastro: CAIXA ALTA + sem acento, aparado. Ex.: "Bíblia" ⇒ "BIBLIA".
+pub fn caixa_alta_sem_acento(entrada: &str) -> String {
+    entrada
+        .trim()
+        .chars()
+        .map(remover_acento)
+        .collect::<String>()
+        .to_uppercase()
+}
+
 fn remover_acento(c: char) -> char {
     match c {
         'á' | 'à' | 'â' | 'ã' | 'ä' => 'a',
@@ -52,5 +62,12 @@ mod tests {
     #[test]
     fn texto_sem_acento_inalterado() {
         assert_eq!(normalize("Genesis 1"), "genesis 1");
+    }
+
+    #[test]
+    fn padroniza_cadastro_caixa_alta_sem_acento() {
+        assert_eq!(caixa_alta_sem_acento("Bíblia de Estudo"), "BIBLIA DE ESTUDO");
+        assert_eq!(caixa_alta_sem_acento("  João Calvino  "), "JOAO CALVINO");
+        assert_eq!(caixa_alta_sem_acento("Coração"), "CORACAO");
     }
 }

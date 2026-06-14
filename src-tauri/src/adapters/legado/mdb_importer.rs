@@ -7,6 +7,7 @@ use crate::domain::dinheiro::Dinheiro;
 use crate::domain::livro::Livro;
 use crate::domain::pagamento::FormaPagamento;
 use crate::domain::pedido::{ItemPedido, Pagamentos, Pedido};
+use crate::domain::texto::caixa_alta_sem_acento;
 use csv::StringRecord;
 use std::collections::{BTreeMap, HashMap};
 
@@ -26,7 +27,13 @@ impl MdbImportador {
             .arg(&self.caminho)
             .arg(tabela)
             .output()
-            .map_err(|e| RepoErro::Persistencia(format!("mdb-export indisponível: {e}")))?;
+            .map_err(|e| {
+                RepoErro::Persistencia(format!(
+                    "A ferramenta de leitura do Access (mdbtools/mdb-export) não está \
+                     instalada nesta máquina, então não é possível ler o .mdb aqui. \
+                     ({e})"
+                ))
+            })?;
         if !saida.status.success() {
             return Err(RepoErro::Persistencia(format!(
                 "mdb-export {tabela}: {}",
@@ -102,8 +109,8 @@ impl ImportadorLegado for MdbImportador {
             }
             livros.push(Livro {
                 codigo,
-                titulo: campo(r, &idx, "cdtitulo").trim().to_string(),
-                autor: opt(campo(r, &idx, "cdautor")),
+                titulo: caixa_alta_sem_acento(campo(r, &idx, "cdtitulo")),
+                autor: opt(campo(r, &idx, "cdautor")).map(|a| caixa_alta_sem_acento(&a)),
                 preco: Dinheiro::de_centavos(valor_para_centavos(campo(r, &idx, "cdvalor"))),
                 categoria: Categoria::de_legado(campo(r, &idx, "cdcategoria")),
                 estoque: double_para_i64(campo(r, &idx, "cdestoque")),

@@ -183,7 +183,9 @@ export default function Cadastro() {
             id="tit"
             value={form.titulo}
             autoFocus
-            onChange={(e) => setForm({ ...form, titulo: e.currentTarget.value })}
+            onChange={(e) =>
+              setForm({ ...form, titulo: e.currentTarget.value.toUpperCase() })
+            }
             className="mt-1 h-9"
           />
         </div>
@@ -192,7 +194,9 @@ export default function Cadastro() {
           <Input
             id="aut"
             value={form.autor}
-            onChange={(e) => setForm({ ...form, autor: e.currentTarget.value })}
+            onChange={(e) =>
+              setForm({ ...form, autor: e.currentTarget.value.toUpperCase() })
+            }
             className="mt-1 h-9"
           />
         </div>
