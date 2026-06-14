@@ -48,6 +48,10 @@ export async function livroPorCodigo(codigo: string): Promise<Livro | null> {
   return await invoke("livro_por_codigo", { codigo });
 }
 
+export async function buscarPorTexto(termo: string): Promise<Livro[]> {
+  return await invoke("buscar_por_texto", { termo });
+}
+
 export async function registrarVenda(
   input: VendaInput,
 ): Promise<PedidoResultado> {

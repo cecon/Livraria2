@@ -118,11 +118,11 @@ aparece em "recentes" (quickstart cenário 5).
 
 **Independent Test**: `buscar_por_texto("biblia")` retorna "Bíblia"; 1 resultado abre detalhes; copiar código (quickstart cenário 6).
 
-- [ ] T037 [US3] Caso de uso `pesquisa` (por código; por texto via `busca_norm`; 0/1/N resultados) em `src-tauri/src/application/pesquisa.rs` + testes (FR-020/021/022)
-- [ ] T038 [US3] Query de busca no `LivroRepo` (LIKE sobre `busca_norm`, ordenação por relevância) em `src-tauri/src/adapters/persistencia/livro_repo.rs`
-- [ ] T039 [US3] Expor comandos `buscar_por_codigo` e `buscar_por_texto` em `src-tauri/src/commands.rs`
-- [ ] T040 [P] [US3] Tela `src/routes/Pesquisa.tsx`: duas buscas, grid de resultados, view de Detalhes com copiar código + toast (FR-023)
-- [ ] T041 [P] [US3] Componentes reutilizáveis `src/components/StockBadge.tsx` e `src/components/Cover.tsx` (selo de estoque FR-051)
+- [X] T037 [US3] Caso de uso `pesquisa` (por código; por texto via `busca_norm`; 0/1/N resultados) em `src-tauri/src/application/pesquisa.rs` + testes (FR-020/021/022)
+- [X] T038 [US3] Query de busca no `LivroRepo` (LIKE sobre `busca_norm`, ordenação por relevância) em `src-tauri/src/adapters/persistencia/livro_repo.rs`
+- [X] T039 [US3] Expor comandos `buscar_por_codigo` e `buscar_por_texto` em `src-tauri/src/commands.rs`
+- [X] T040 [P] [US3] Tela `src/routes/Pesquisa.tsx`: duas buscas, grid de resultados, view de Detalhes com copiar código + toast (FR-023)
+- [X] T041 [P] [US3] Componentes reutilizáveis `src/components/StockBadge.tsx` e `src/components/Cover.tsx` (selo de estoque FR-051)
 
 **Checkpoint**: US1–US3 operáveis isoladamente.
 

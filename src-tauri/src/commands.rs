@@ -10,7 +10,7 @@ use crate::application::erros::ErroApp;
 use crate::application::migracao::{self, RelatorioMigracao};
 use crate::application::ports::LivroRepo;
 use crate::application::venda::VendaInput;
-use crate::application::{cadastro, venda};
+use crate::application::{cadastro, pesquisa, venda};
 use crate::domain::categoria::Categoria;
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::livro::Livro;
@@ -120,7 +120,18 @@ pub async fn registrar_venda(
     })
 }
 
-/// Busca um livro pelo código de barras (US1/US2).
+/// Pesquisa por título/autor, sem acento/caixa (US3, FR-021).
+#[tauri::command]
+pub async fn buscar_por_texto(
+    state: tauri::State<'_, AppState>,
+    termo: String,
+) -> Result<Vec<LivroDto>, ErroDto> {
+    let livros = SeaLivroRepo::new(state.db.clone());
+    let ls = pesquisa::por_texto(&termo, &livros).await?;
+    Ok(ls.into_iter().map(LivroDto::from).collect())
+}
+
+/// Busca um livro pelo código de barras (US1/US2/US3).
 #[tauri::command]
 pub async fn livro_por_codigo(
     state: tauri::State<'_, AppState>,

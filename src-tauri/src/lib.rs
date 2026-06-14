@@ -38,6 +38,7 @@ pub fn run() {
             commands::proximo_numero_pedido,
             commands::registrar_venda,
             commands::livro_por_codigo,
+            commands::buscar_por_texto,
             commands::salvar_livro,
             commands::excluir_livro,
             commands::livros_recentes,
