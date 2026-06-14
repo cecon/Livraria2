@@ -5,6 +5,7 @@
 use crate::domain::livro::Livro;
 use crate::domain::pedido::Pedido;
 use async_trait::async_trait;
+use serde::Serialize;
 
 /// Erro de infraestrutura (persistência/adapter). Distinto de ErroDominio.
 #[derive(Debug, thiserror::Error)]
@@ -61,6 +62,47 @@ pub struct ResumoDia {
 pub trait DashboardRepo: Send + Sync {
     async fn resumo_do_dia(&self, data: &str) -> Result<ResumoDia, RepoErro>;
     async fn estoque_baixo(&self, limite: i64) -> Result<Vec<Livro>, RepoErro>;
+}
+
+/// Linha de item num relatório de vendas.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ItemRelatorio {
+    pub titulo: String,
+    pub qtd: i64,
+    pub valor_centavos: i64,
+}
+
+/// Pedido detalhado num relatório de vendas (itens + valores por forma).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PedidoRelatorio {
+    pub numero: i64,
+    pub cliente: String,
+    pub itens: Vec<ItemRelatorio>,
+    pub cartao: i64,
+    pub dinheiro: i64,
+    pub pix: i64,
+    pub ministerio: i64,
+    pub vale: i64,
+    pub total_centavos: i64,
+}
+
+/// Porta de leitura para relatórios (US5).
+#[async_trait]
+pub trait RelatorioRepo: Send + Sync {
+    /// Pedidos do período: `periodo` = "dia" | "manha" | "tarde".
+    async fn vendas(&self, data: &str, periodo: &str) -> Result<Vec<PedidoRelatorio>, RepoErro>;
+    /// Todos os livros ativos, ordenados por estoque crescente (FR-043).
+    async fn estoque_completo(&self) -> Result<Vec<Livro>, RepoErro>;
+}
+
+/// Porta de autenticação simples (US5, gate de relatórios).
+#[async_trait]
+pub trait UsuarioRepo: Send + Sync {
+    async fn autenticar(&self, usuario: &str, senha: &str) -> Result<bool, RepoErro>;
+    /// Garante um admin padrão (adm/adm) se a tabela estiver vazia.
+    async fn garantir_admin(&self) -> Result<(), RepoErro>;
 }
 
 /// Relógio do sistema (porta) — permite testar turno/data sem depender do relógio real.

@@ -148,11 +148,11 @@ aparece em "recentes" (quickstart cenário 5).
 
 **Independent Test**: `relatorio_vendas` reconcilia (Σ formas = Σ totais, R$ 0,00) (quickstart cenário 8).
 
-- [ ] T045 [P] [US5] Implementar `UsuarioRepo` + verificação de senha (hash; rehash de legado em texto) em `src-tauri/src/adapters/persistencia/usuario_repo.rs` (ADR/D10)
-- [ ] T046 [US5] Caso de uso `relatorios` (vendas dia/manhã/tarde com resumo por forma e subtotal Din+Cartão+PIX; estoque ordenado asc + valor total; zerar caixa) em `src-tauri/src/application/relatorios.rs` + testes de reconciliação (FR-041/042/043/044, SC-004)
-- [ ] T047 [US5] Caso de uso `autenticar` em `src-tauri/src/application/relatorios.rs` (gate simples) (FR-040)
-- [ ] T048 [US5] Expor comandos `autenticar`, `relatorio_vendas`, `relatorio_estoque`, `zerar_caixa` em `src-tauri/src/commands.rs`
-- [ ] T049 [P] [US5] Tela `src/routes/Relatorios.tsx`: login (rádios de tipo, data, usuário/senha) + views de relatório com "Voltar"/"Imprimir" (`window.print`) (FR-045)
+- [X] T045 [P] [US5] Implementar `UsuarioRepo` + verificação de senha (hash; rehash de legado em texto) em `src-tauri/src/adapters/persistencia/usuario_repo.rs` (ADR/D10)
+- [X] T046 [US5] Caso de uso `relatorios` (vendas dia/manhã/tarde com resumo por forma e subtotal Din+Cartão+PIX; estoque ordenado asc + valor total; zerar caixa) em `src-tauri/src/application/relatorios.rs` + testes de reconciliação (FR-041/042/043/044, SC-004)
+- [X] T047 [US5] Caso de uso `autenticar` em `src-tauri/src/application/relatorios.rs` (gate simples) (FR-040)
+- [X] T048 [US5] Expor comandos `autenticar`, `relatorio_vendas`, `relatorio_estoque`, `zerar_caixa` em `src-tauri/src/commands.rs`
+- [X] T049 [P] [US5] Tela `src/routes/Relatorios.tsx`: login (rádios de tipo, data, usuário/senha) + views de relatório com "Voltar"/"Imprimir" (`window.print`) (FR-045)
 
 **Checkpoint**: US1–US5 operáveis isoladamente.
 

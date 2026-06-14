@@ -6,8 +6,11 @@ use crate::adapters::persistencia::inicializar_schema;
 use crate::adapters::persistencia::dashboard_repo::SeaDashboardRepo;
 use crate::adapters::persistencia::livro_repo::SeaLivroRepo;
 use crate::adapters::persistencia::pedido_repo::SeaPedidoRepo;
+use crate::adapters::persistencia::relatorio_repo::SeaRelatorioRepo;
+use crate::adapters::persistencia::usuario_repo::SeaUsuarioRepo;
 use crate::adapters::relogio::RelogioSistema;
 use crate::application::dashboard;
+use crate::application::relatorios::{self, RelatorioEstoque, RelatorioVendas};
 use crate::application::erros::ErroApp;
 use crate::application::migracao::{self, RelatorioMigracao};
 use crate::application::ports::{LivroRepo, Relogio};
@@ -190,6 +193,37 @@ pub async fn dashboard_do_dia(
         ticket_medio_centavos: ind.ticket_medio_centavos,
         estoque_baixo: ind.estoque_baixo.into_iter().map(LivroDto::from).collect(),
     })
+}
+
+/// Autentica o gate de relatórios (US5, FR-040). Default adm/adm.
+#[tauri::command]
+pub async fn autenticar(
+    state: tauri::State<'_, AppState>,
+    usuario: String,
+    senha: String,
+) -> Result<bool, ErroDto> {
+    let repo = SeaUsuarioRepo::new(state.db.clone());
+    Ok(relatorios::autenticar(&usuario, &senha, &repo).await?)
+}
+
+/// Relatório de vendas do período (US5, FR-041/042). `periodo` = dia|manha|tarde.
+#[tauri::command]
+pub async fn relatorio_vendas(
+    state: tauri::State<'_, AppState>,
+    data: String,
+    periodo: String,
+) -> Result<RelatorioVendas, ErroDto> {
+    let repo = SeaRelatorioRepo::new(state.db.clone());
+    Ok(relatorios::vendas(&data, &periodo, &repo).await?)
+}
+
+/// Relatório de estoque (US5, FR-043).
+#[tauri::command]
+pub async fn relatorio_estoque(
+    state: tauri::State<'_, AppState>,
+) -> Result<RelatorioEstoque, ErroDto> {
+    let repo = SeaRelatorioRepo::new(state.db.clone());
+    Ok(relatorios::estoque(&repo).await?)
 }
 
 /// Migra/sincroniza o legado Access (idempotente, FR-065..069). `caminho_mdb`

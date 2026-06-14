@@ -128,3 +128,13 @@
     @apply font-sans;
     }
 }
+
+/* Impressão de relatórios (FR-045): esconde a navegação, só o conteúdo. */
+@media print {
+  aside {
+    display: none !important;
+  }
+  main {
+    overflow: visible !important;
+  }
+}

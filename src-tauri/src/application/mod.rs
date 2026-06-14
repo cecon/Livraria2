@@ -7,4 +7,5 @@ pub mod erros;
 pub mod migracao;
 pub mod pesquisa;
 pub mod ports;
+pub mod relatorios;
 pub mod venda;

@@ -91,3 +91,62 @@ export interface DashboardDia {
 export async function dashboardDoDia(data?: string): Promise<DashboardDia> {
   return await invoke("dashboard_do_dia", { data: data ?? null });
 }
+
+export async function autenticar(usuario: string, senha: string): Promise<boolean> {
+  return await invoke("autenticar", { usuario, senha });
+}
+
+export interface ItemRelatorio {
+  titulo: string;
+  qtd: number;
+  valorCentavos: number;
+}
+export interface PedidoRelatorio {
+  numero: number;
+  cliente: string;
+  itens: ItemRelatorio[];
+  cartao: number;
+  dinheiro: number;
+  pix: number;
+  ministerio: number;
+  vale: number;
+  totalCentavos: number;
+}
+export interface ResumoVendas {
+  cartao: number;
+  dinheiro: number;
+  pix: number;
+  ministerio: number;
+  vale: number;
+  subtotalCentavos: number;
+}
+export interface RelatorioVendas {
+  periodo: string;
+  data: string;
+  pedidos: PedidoRelatorio[];
+  resumo: ResumoVendas;
+}
+export interface ItemEstoque {
+  codigo: string;
+  titulo: string;
+  categoria: number;
+  precoCentavos: number;
+  estoque: number;
+  valorCentavos: number;
+}
+export interface RelatorioEstoque {
+  titulos: number;
+  valorTotalCentavos: number;
+  itens: ItemEstoque[];
+}
+
+export async function relatorioVendas(
+  data: string,
+  periodo: string,
+): Promise<RelatorioVendas> {
+  return await invoke("relatorio_vendas", { data, periodo });
+}
+
+export async function relatorioEstoque(): Promise<RelatorioEstoque> {
+  return await invoke("relatorio_estoque");
+}

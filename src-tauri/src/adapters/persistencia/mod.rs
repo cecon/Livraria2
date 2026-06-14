@@ -4,6 +4,8 @@ pub mod dashboard_repo;
 pub mod entities;
 pub mod livro_repo;
 pub mod pedido_repo;
+pub mod relatorio_repo;
+pub mod usuario_repo;
 
 use crate::migration::Migrator;
 use sea_orm::{Database, DatabaseConnection, DbErr};

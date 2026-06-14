@@ -28,6 +28,12 @@ pub fn run() {
             let db: DatabaseConnection = tauri::async_runtime::block_on(async {
                 let db = adapters::persistencia::conectar(&url).await?;
                 adapters::persistencia::inicializar_schema(&db).await?;
+                // Gate de relatórios: garante o admin padrão (adm/adm).
+                use application::ports::UsuarioRepo;
+                adapters::persistencia::usuario_repo::SeaUsuarioRepo::new(db.clone())
+                    .garantir_admin()
+                    .await
+                    .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
                 Ok::<_, sea_orm::DbErr>(db)
             })?;
             app.manage(AppState { db });
@@ -44,6 +50,9 @@ pub fn run() {
             commands::livros_recentes,
             commands::migrar_legado,
             commands::dashboard_do_dia,
+            commands::autenticar,
+            commands::relatorio_vendas,
+            commands::relatorio_estoque,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
