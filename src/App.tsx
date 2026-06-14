@@ -22,20 +22,13 @@ function App() {
   useEffect(() => {
     function checar() {
       verificarAtualizacao((versao, instalar) => {
-        // evita avisar a mesma versão repetidamente
+        // compulsório: aplica automaticamente. Dedupe para não reinstalar a mesma versão.
         if (versaoAvisada.current === versao) return;
         versaoAvisada.current = versao;
-        toast(`Atualização ${versao} disponível`, {
-          description: "Baixar e reiniciar para aplicar?",
+        toast.loading(`Atualizando para ${versao}… o app vai reiniciar`, {
           duration: Infinity,
-          action: {
-            label: "Atualizar",
-            onClick: () => {
-              toast.loading("Baixando atualização…");
-              void instalar();
-            },
-          },
         });
+        void instalar();
       });
     }
 
