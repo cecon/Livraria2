@@ -29,12 +29,13 @@ jobs:
         with:
           workspaces: src-tauri
 
-      - name: Definir versão AAAA.M.N (N reinicia por mês — horário de Brasília)
+      - name: Definir versão AA.M.N (N reinicia por mês — horário de Brasília)
         shell: bash
         run: |
           git fetch --tags --force
-          # Data em America/Sao_Paulo (UTC-3, sem horário de verão desde 2019)
-          YEAR=$(node -e "console.log(new Date(Date.now()-3*3600*1000).getUTCFullYear())")
+          # Ano com 2 dígitos: o bundler do Windows exige major <= 255 (2026 estoura).
+          # Data em America/Sao_Paulo (UTC-3, sem horário de verão desde 2019).
+          YEAR=$(node -e "console.log(new Date(Date.now()-3*3600*1000).getUTCFullYear()%100)")
           MONTH=$(node -e "console.log(new Date(Date.now()-3*3600*1000).getUTCMonth()+1)")
           PREFIX="app-v${YEAR}.${MONTH}."
           COUNT=$(git tag -l "${PREFIX}*" | wc -l | tr -d ' ')
