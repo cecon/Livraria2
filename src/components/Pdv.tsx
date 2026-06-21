@@ -10,6 +10,15 @@ import { PaymentRow } from "@/components/PaymentRow";
 import { EntradaProduto } from "@/components/EntradaProduto";
 import { CarrinhoItens, type ItemCarrinho } from "@/components/CarrinhoItens";
 import { brl } from "@/lib/format";
+import {
+  PAG_VAZIO,
+  RASCUNHO_KEY,
+  pagamentosParaPayload,
+  paraCentavos,
+  parseRascunho,
+  type FormaKey,
+  type Pagamentos,
+} from "@/lib/venda";
 import type { Livro } from "@/lib/types";
 import {
   livroPorCodigo,
@@ -17,8 +26,6 @@ import {
   registrarVenda,
   type ErroIpc,
 } from "@/lib/ipc";
-
-type FormaKey = "cartao" | "dinheiro" | "pix" | "ministerio" | "vale";
 
 const FORMAS: { key: FormaKey; rotulo: string; Icon: typeof CreditCard }[] = [
   { key: "cartao", rotulo: "Cartão", Icon: CreditCard },
@@ -28,39 +35,14 @@ const FORMAS: { key: FormaKey; rotulo: string; Icon: typeof CreditCard }[] = [
   { key: "vale", rotulo: "Vale Presente", Icon: Gift },
 ];
 
-const PAG_VAZIO: Record<FormaKey, number> = {
-  cartao: 0,
-  dinheiro: 0,
-  pix: 0,
-  ministerio: 0,
-  vale: 0,
-};
-
-const RASCUNHO = "eldl-venda-rascunho";
-
-interface Rascunho {
-  cliente: string;
-  itens: ItemCarrinho[];
-  pag: Record<FormaKey, number>;
-}
-
-function carregarRascunho(): Rascunho | null {
-  try {
-    const s = localStorage.getItem(RASCUNHO);
-    return s ? (JSON.parse(s) as Rascunho) : null;
-  } catch {
-    return null;
-  }
-}
-
 export function Pdv() {
-  const inicial = carregarRascunho();
+  const inicial = parseRascunho(localStorage.getItem(RASCUNHO_KEY));
   const [numero, setNumero] = useState<number | null>(null);
   const [cliente, setCliente] = useState(inicial?.cliente ?? "CLIENTE");
   const [qtd, setQtd] = useState("1");
   const [codigo, setCodigo] = useState("");
   const [itens, setItens] = useState<ItemCarrinho[]>(inicial?.itens ?? []);
-  const [pag, setPag] = useState<Record<FormaKey, number>>(inicial?.pag ?? PAG_VAZIO);
+  const [pag, setPag] = useState<Pagamentos>(inicial?.pag ?? PAG_VAZIO);
   const [ocupado, setOcupado] = useState(false);
   const codigoRef = useRef<HTMLInputElement>(null);
 
@@ -71,7 +53,7 @@ export function Pdv() {
 
   // Salva o rascunho a cada mudança (sobrevive a reinício/atualização).
   useEffect(() => {
-    localStorage.setItem(RASCUNHO, JSON.stringify({ cliente, itens, pag }));
+    localStorage.setItem(RASCUNHO_KEY, JSON.stringify({ cliente, itens, pag }));
   }, [cliente, itens, pag]);
 
   const totalCentavos = useMemo(
@@ -166,14 +148,8 @@ export function Pdv() {
     try {
       const r = await registrarVenda({
         cliente,
-        itens: itens.map((i) => ({ codigo: i.codigo, qtd: i.qtd })),
-        pagamentos: {
-          cartao: pag.cartao,
-          dinheiro: pag.dinheiro,
-          pix: pag.pix,
-          ministerio: pag.ministerio,
-          vale: pag.vale,
-        },
+        itens: itens.map((i) => ({ codigo: i.codigo, qtd: paraCentavos(i.qtd) })),
+        pagamentos: pagamentosParaPayload(pag),
       });
       toast.success(
         `Pedido Nº ${r.numero} recebido` +
@@ -182,7 +158,12 @@ export function Pdv() {
       limpar();
       setNumero(await proximoNumeroPedido());
     } catch (e) {
-      toast.error((e as ErroIpc).mensagem ?? "Erro ao receber o pedido");
+      const msg =
+        typeof e === "string"
+          ? e
+          : ((e as ErroIpc)?.mensagem ??
+            (e instanceof Error ? e.message : JSON.stringify(e)));
+      toast.error(msg || "Erro ao receber o pedido");
     } finally {
       setOcupado(false);
       focarCodigo();
