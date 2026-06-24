@@ -9,6 +9,8 @@ import Inicio from "@/routes/Inicio";
 import Venda from "@/routes/Venda";
 import Cadastro from "@/routes/Cadastro";
 import Pesquisa from "@/routes/Pesquisa";
+import Entrada from "@/routes/Entrada";
+import Inventario from "@/routes/Inventario";
 import Relatorios from "@/routes/Relatorios";
 
 function App() {
@@ -54,6 +56,8 @@ function App() {
             <Route path="/venda" element={<Venda />} />
             <Route path="/cadastro" element={<Cadastro />} />
             <Route path="/pesquisa" element={<Pesquisa />} />
+            <Route path="/entrada" element={<Entrada />} />
+            <Route path="/inventario" element={<Inventario />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

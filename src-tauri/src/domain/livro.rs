@@ -13,6 +13,10 @@ pub struct Livro {
     pub categoria: Categoria,
     pub estoque: i64,
     pub descricao: Option<String>,
+    /// EAN/ISBN opcional, distinto do `codigo` interno (FR-022a). Chave de bipagem.
+    pub codigo_barras: Option<String>,
+    /// Custo médio ponderado (centavos), recalculado a cada entrada (ADR-0009).
+    pub custo_medio: Dinheiro,
 }
 
 /// Selo de estoque exibido na UI (FR-051).
@@ -65,6 +69,8 @@ mod tests {
             categoria: Categoria::EstudoTeologia,
             estoque,
             descricao: None,
+            codigo_barras: None,
+            custo_medio: Dinheiro::ZERO,
         }
     }
 

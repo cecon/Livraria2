@@ -172,6 +172,8 @@ mod tests {
                 categoria: Categoria::EstudoTeologia,
                 estoque: 10,
                 descricao: None,
+                codigo_barras: None,
+                custo_medio: Dinheiro::ZERO,
             }],
         }
     }

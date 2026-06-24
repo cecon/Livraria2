@@ -12,6 +12,9 @@ As decisões nascem do `/speckit-plan` (ver `specs/001-sistema-estoque-vendas/re
 | [0005](0005-dinheiro-em-centavos.md) | Dinheiro como inteiro em centavos | Aceito |
 | [0006](0006-import-legado-idempotente.md) | Import do legado Access via mdbtools (upsert) | Aceito |
 | [0007](0007-guardrails-hooks-skills.md) | Guardrails: hook de 300 linhas, skills, ADRs | Aceito |
+| [0008](0008-razao-movimentos-estoque.md) | Razão de movimentos como fonte da verdade do estoque | Aceito |
+| [0009](0009-custo-medio-ponderado.md) | Custo médio ponderado por livro | Aceito |
+| [0010](0010-inventario-reconciliacao.md) | Inventário: sessão parcial/total e reconciliação no fechamento | Aceito |
 
 **Versionamento**: um arquivo por decisão, numeração sequencial. Mudança de decisão → novo ADR que
 "supersedes" o anterior (não reescrever o histórico).

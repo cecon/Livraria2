@@ -29,3 +29,7 @@ dist-ssr
 # Bancos Access do legado (dados reais — nunca versionar)
 *.mdb
 *.accdb
+
+# Rust / Tauri
+target/
+**/*.rs.bk

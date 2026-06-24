@@ -174,6 +174,9 @@ impl ImportadorLegado for MdbImportador {
                 categoria: Categoria::de_legado(campo(r, &idx, "cdcategoria")),
                 estoque: double_para_i64(campo(r, &idx, "cdestoque")),
                 descricao: opt(campo(r, &idx, "cddescricao")),
+                // legado não tem código de barras separado nem custo; bipagem cai no `codigo`
+                codigo_barras: None,
+                custo_medio: Dinheiro::ZERO,
             });
         }
         Ok(livros)
