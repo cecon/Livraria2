@@ -16,6 +16,8 @@ pub struct Model {
     pub busca_norm: String,
     pub ativo: bool,
     pub atualizado_em: String,
+    pub codigo_barras: Option<String>,
+    pub custo_medio_centavos: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

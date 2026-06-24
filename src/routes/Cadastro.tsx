@@ -25,6 +25,7 @@ import {
 
 const FORM_VAZIO = {
   codigo: "",
+  codigoBarras: "",
   titulo: "",
   autor: "",
   valor: "",
@@ -53,6 +54,7 @@ export default function Cadastro() {
   function abrirLivro(l: Livro) {
     setForm({
       codigo: l.codigo,
+      codigoBarras: l.codigoBarras ?? "",
       titulo: l.titulo,
       autor: l.autor ?? "",
       valor: centavosParaInput(l.precoCentavos),
@@ -97,6 +99,7 @@ export default function Cadastro() {
       categoria: form.categoria,
       estoque: parseInt(form.estoque, 10) || 0,
       descricao: form.descricao.trim() || null,
+      codigoBarras: form.codigoBarras.trim() || null,
     };
     try {
       await salvarLivro(livro);
@@ -173,9 +176,23 @@ export default function Cadastro() {
         {editando ? "Alterar livro" : "Novo livro"}
       </h1>
       <div className="bg-card mt-4 space-y-4 rounded-xl border p-5">
-        <div>
-          <Label>Código de Barras</Label>
-          <Input value={form.codigo} disabled className="mt-1 h-9 font-mono" />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Código (interno)</Label>
+            <Input value={form.codigo} disabled className="mt-1 h-9 font-mono" />
+          </div>
+          <div>
+            <Label htmlFor="ean">Código de barras (EAN/ISBN)</Label>
+            <Input
+              id="ean"
+              value={form.codigoBarras}
+              onChange={(e) =>
+                setForm({ ...form, codigoBarras: e.currentTarget.value })
+              }
+              className="mt-1 h-9 font-mono"
+              placeholder="opcional"
+            />
+          </div>
         </div>
         <div>
           <Label htmlFor="tit">Título</Label>

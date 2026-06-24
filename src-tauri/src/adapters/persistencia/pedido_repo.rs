@@ -3,8 +3,10 @@
 
 use super::entities::{item_pedido, pedido};
 use crate::application::ports::{PedidoRepo, RepoErro};
+use crate::domain::estoque::TipoMovimento;
 use crate::domain::pedido::Pedido;
 use async_trait::async_trait;
+use chrono::Local;
 use sea_orm::{
     ActiveModelTrait,
     ActiveValue::{NotSet, Set},
@@ -84,15 +86,45 @@ impl PedidoRepo for SeaPedidoRepo {
 
         inserir_cabecalho_e_itens(&txn, pedido).await.map_err(erro)?;
 
+        let criado_em = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
         for it in &pedido.itens {
-            // Baixa de estoque com piso em zero (FR-015), na mesma transação.
-            txn.execute(Statement::from_sql_and_values(
-                backend,
-                "UPDATE livro SET estoque = MAX(0, estoque - ?) WHERE codigo = ?",
-                [it.qtd.into(), it.codigo.clone().into()],
-            ))
-            .await
-            .map_err(erro)?;
+            // Baixa real = min(estoque, qtd) — estoque nunca negativo (FR-003). O movimento
+            // `saida_venda` reflete a baixa efetivamente aplicada (invariante SC-001).
+            let estoque_atual: i64 = txn
+                .query_one(Statement::from_sql_and_values(
+                    backend,
+                    "SELECT estoque FROM livro WHERE codigo = ?",
+                    [it.codigo.clone().into()],
+                ))
+                .await
+                .map_err(erro)?
+                .and_then(|r| r.try_get::<i64>("", "estoque").ok())
+                .unwrap_or(0);
+            let baixa = it.qtd.min(estoque_atual).max(0);
+            if baixa > 0 {
+                txn.execute(Statement::from_sql_and_values(
+                    backend,
+                    "INSERT INTO movimento_estoque
+                        (livro_codigo, tipo, qtd, custo_unit_centavos, fornecedor, motivo, referencia, criado_em)
+                     VALUES (?, ?, ?, NULL, NULL, NULL, ?, ?)",
+                    [
+                        it.codigo.clone().into(),
+                        TipoMovimento::SaidaVenda.as_str().into(),
+                        (-baixa).into(),
+                        pedido.numero.to_string().into(),
+                        criado_em.clone().into(),
+                    ],
+                ))
+                .await
+                .map_err(erro)?;
+                txn.execute(Statement::from_sql_and_values(
+                    backend,
+                    "UPDATE livro SET estoque = estoque - ? WHERE codigo = ?",
+                    [baixa.into(), it.codigo.clone().into()],
+                ))
+                .await
+                .map_err(erro)?;
+            }
         }
 
         txn.commit().await.map_err(erro)?;

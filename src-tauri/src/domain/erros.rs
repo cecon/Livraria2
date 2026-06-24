@@ -23,6 +23,12 @@ pub enum ErroDominio {
 
     #[error("troco só pode sair do dinheiro recebido")]
     TrocoSemDinheiro,
+
+    #[error("o ajuste deixaria o estoque negativo")]
+    EstoqueNegativo,
+
+    #[error("motivo obrigatório")]
+    MotivoObrigatorio,
 }
 
 impl ErroDominio {
@@ -36,6 +42,8 @@ impl ErroDominio {
             ErroDominio::QuantidadeInvalida => "QUANTIDADE_INVALIDA",
             ErroDominio::DadosInvalidos(_) => "DADOS_INVALIDOS",
             ErroDominio::TrocoSemDinheiro => "TROCO_SEM_DINHEIRO",
+            ErroDominio::EstoqueNegativo => "ESTOQUE_NEGATIVO",
+            ErroDominio::MotivoObrigatorio => "MOTIVO_OBRIGATORIO",
         }
     }
 }

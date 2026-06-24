@@ -1,0 +1,90 @@
+//! Teste de integração do inventário (US2, T032): fechamento parcial ajusta só os
+//! contados (SC-004) e é idempotente; modo total zera os não bipados; pendências.
+
+use livraria_2_lib::adapters::persistencia::inventario_repo::SeaInventarioRepo;
+use livraria_2_lib::adapters::persistencia::estoque_repo::SeaEstoqueRepo;
+use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
+use livraria_2_lib::adapters::persistencia::{conectar, inicializar_schema};
+use livraria_2_lib::application::ports::LivroRepo;
+use livraria_2_lib::application::ports_estoque::EstoqueRepo;
+use livraria_2_lib::application::ports_inventario::InventarioRepo;
+use livraria_2_lib::domain::categoria::Categoria;
+use livraria_2_lib::domain::dinheiro::Dinheiro;
+use livraria_2_lib::domain::livro::Livro;
+
+fn url_temp() -> (String, std::path::PathBuf) {
+    let path = std::env::temp_dir().join(format!("livraria_inv_{}.db", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+    (format!("sqlite://{}?mode=rwc", path.display()), path)
+}
+
+fn livro(codigo: &str, barras: &str, estoque: i64) -> Livro {
+    Livro {
+        codigo: codigo.into(),
+        titulo: format!("Livro {codigo}"),
+        autor: None,
+        preco: Dinheiro::de_centavos(3000),
+        categoria: Categoria::Biblias,
+        estoque,
+        descricao: None,
+        codigo_barras: Some(barras.into()),
+        custo_medio: Dinheiro::ZERO,
+    }
+}
+
+async fn estoque_de(livros: &SeaLivroRepo, codigo: &str) -> i64 {
+    livros.por_codigo(codigo).await.unwrap().unwrap().estoque
+}
+
+#[tokio::test]
+async fn parcial_idempotente_e_total_zera() {
+    let (url, path) = url_temp();
+    let db = conectar(&url).await.unwrap();
+    inicializar_schema(&db).await.unwrap();
+    let livros = SeaLivroRepo::new(db.clone());
+    let estoque = SeaEstoqueRepo::new(db.clone());
+    let inv = SeaInventarioRepo::new(db.clone());
+
+    livros.salvar(&livro("A", "111", 5)).await.unwrap();
+    livros.salvar(&livro("B", "222", 3)).await.unwrap();
+    estoque.gerar_saldos_iniciais().await.unwrap();
+
+    // --- Sessão PARCIAL "Gaveta A": conta só A (bipa 4x). ---
+    let s = inv.abrir("parcial", Some("Gaveta A".into())).await.unwrap();
+    for _ in 0..4 {
+        inv.bipar(s.id, "111").await.unwrap();
+    }
+    let rev = inv.revisao(s.id).await.unwrap();
+    assert_eq!(rev.len(), 1);
+    assert_eq!(rev[0].diferenca, -1); // sistema 5, contado 4
+
+    let fech = inv.fechar(s.id, false).await.unwrap();
+    assert_eq!(fech.ajustados.len(), 1);
+    assert_eq!(estoque_de(&livros, "A").await, 4); // ajustado para o contado
+    assert_eq!(estoque_de(&livros, "B").await, 3); // SC-004: intacto
+
+    // Idempotente (FR-030): fechar de novo não reaplica.
+    let fech2 = inv.fechar(s.id, false).await.unwrap();
+    assert_eq!(fech2.ajustados.len(), 1);
+    assert_eq!(estoque_de(&livros, "A").await, 4);
+
+    // Divergências recuperáveis pós-fechamento (FR-029).
+    assert_eq!(inv.divergencias(s.id).await.unwrap()[0].diferenca, -1);
+
+    // --- Código desconhecido vira pendência (US5). ---
+    let s2 = inv.abrir("parcial", None).await.unwrap();
+    let r = inv.bipar(s2.id, "999-INEXISTENTE").await.unwrap();
+    assert!(r.livro.is_none() && r.pendencia.is_some());
+    assert_eq!(inv.pendencias(true).await.unwrap().len(), 1);
+    inv.cancelar(s2.id).await.unwrap();
+
+    // --- Sessão TOTAL: conta só A (1x); B não bipado deve zerar. ---
+    let s3 = inv.abrir("total", None).await.unwrap();
+    inv.bipar(s3.id, "111").await.unwrap(); // A contado 1 (sistema 4)
+    assert!(inv.fechar(s3.id, false).await.is_err()); // exige confirmação
+    inv.fechar(s3.id, true).await.unwrap();
+    assert_eq!(estoque_de(&livros, "A").await, 1);
+    assert_eq!(estoque_de(&livros, "B").await, 0); // não bipado → zerado
+
+    let _ = std::fs::remove_file(&path);
+}

@@ -46,6 +46,8 @@ async fn venda_persiste_e_baixa_estoque() {
             categoria: Categoria::EstudoTeologia,
             estoque: 10,
             descricao: None,
+            codigo_barras: None,
+            custo_medio: Dinheiro::ZERO,
         })
         .await
         .expect("semear");

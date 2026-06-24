@@ -21,6 +21,25 @@ impl SeaLivroRepo {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
     }
+
+    /// Bipagem (FR-022): casa o valor lido contra `codigo_barras` OU `codigo` (PK),
+    /// para achar tanto livros migrados (EAN no `codigo`) quanto os com EAN separado.
+    pub async fn por_codigo_barras_ou_codigo(
+        &self,
+        valor: &str,
+    ) -> Result<Option<Livro>, RepoErro> {
+        let m = LivroEntity::find()
+            .filter(livro::Column::Ativo.eq(true))
+            .filter(
+                Condition::any()
+                    .add(livro::Column::CodigoBarras.eq(valor))
+                    .add(livro::Column::Codigo.eq(valor)),
+            )
+            .one(&self.db)
+            .await
+            .map_err(erro)?;
+        Ok(m.map(para_dominio))
+    }
 }
 
 pub(crate) fn para_dominio(m: livro::Model) -> Livro {
@@ -32,6 +51,8 @@ pub(crate) fn para_dominio(m: livro::Model) -> Livro {
         categoria: Categoria::de_i64(m.categoria),
         estoque: m.estoque,
         descricao: m.descricao,
+        codigo_barras: m.codigo_barras,
+        custo_medio: Dinheiro::de_centavos(m.custo_medio_centavos),
     }
 }
 
@@ -63,6 +84,11 @@ impl LivroRepo for SeaLivroRepo {
             busca_norm: Set(l.busca_norm()),
             ativo: Set(true),
             atualizado_em: Set(agora),
+            codigo_barras: Set(l.codigo_barras.clone()),
+            // custo_medio é gerido pela entrada de mercadoria; no insert nasce com o valor
+            // do domínio (0 em cadastro novo) e NÃO entra no update_columns para não ser
+            // sobrescrito ao editar o livro.
+            custo_medio_centavos: Set(l.custo_medio.centavos()),
         };
         LivroEntity::insert(am)
             .on_conflict(
@@ -77,6 +103,7 @@ impl LivroRepo for SeaLivroRepo {
                         livro::Column::BuscaNorm,
                         livro::Column::Ativo,
                         livro::Column::AtualizadoEm,
+                        livro::Column::CodigoBarras,
                     ])
                     .to_owned(),
             )

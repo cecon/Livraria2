@@ -2,7 +2,15 @@
 // Erros chegam como { codigo, mensagem } (ErroDto do Rust).
 
 import { invoke } from "@tauri-apps/api/core";
-import type { Livro } from "./types";
+import type {
+  Bipagem,
+  Divergencia,
+  Fechamento,
+  Livro,
+  Movimento,
+  Pendencia,
+  Sessao,
+} from "./types";
 
 export interface ErroIpc {
   codigo: string;
@@ -164,4 +172,106 @@ export async function excluirItemPedido(id: number): Promise<void> {
 
 export async function excluirPedido(numero: number): Promise<void> {
   await invoke("excluir_pedido", { numero });
+}
+
+// --- Estoque: entrada, ajuste, extrato, fornecedores (feature 002) ---
+
+export interface EntradaInput {
+  codigo: string;
+  qtd: number;
+  fornecedor: string;
+  custoTotalCentavos?: number | null;
+  custoUnitCentavos?: number | null;
+}
+
+/** Registra entrada de mercadoria (compra). Retorna o livro atualizado. */
+export async function registrarEntrada(input: EntradaInput): Promise<Livro> {
+  return await invoke("registrar_entrada", { input });
+}
+
+export async function fornecedoresSugestoes(prefixo: string): Promise<string[]> {
+  return await invoke("fornecedores_sugestoes", { prefixo });
+}
+
+/** Ajuste avulso de estoque (± qtd) com motivo. Retorna o livro atualizado. */
+export async function registrarAjuste(
+  codigo: string,
+  qtd: number,
+  motivo: string,
+): Promise<Livro> {
+  return await invoke("registrar_ajuste", { codigo, qtd, motivo });
+}
+
+export async function extratoLivro(
+  codigo: string,
+  limite = 0,
+): Promise<Movimento[]> {
+  return await invoke("extrato_livro", { codigo, limite });
+}
+
+// --- Inventário (feature 002) ---
+
+export async function inventarioAbrir(
+  modo: "parcial" | "total",
+  rotulo?: string,
+): Promise<Sessao> {
+  return await invoke("inventario_abrir", { modo, rotulo: rotulo ?? null });
+}
+
+export async function inventarioSessaoAberta(): Promise<Sessao | null> {
+  return await invoke("inventario_sessao_aberta");
+}
+
+export async function inventarioBipar(
+  sessaoId: number,
+  codigoBarras: string,
+): Promise<Bipagem> {
+  return await invoke("inventario_bipar", { sessaoId, codigoBarras });
+}
+
+export async function inventarioAjustarItem(
+  sessaoId: number,
+  codigo: string,
+  qtdContada: number,
+): Promise<void> {
+  await invoke("inventario_ajustar_item", { sessaoId, codigo, qtdContada });
+}
+
+export async function inventarioRevisao(
+  sessaoId: number,
+): Promise<Divergencia[]> {
+  return await invoke("inventario_revisao", { sessaoId });
+}
+
+export async function inventarioFechar(
+  sessaoId: number,
+  confirmarTotal = false,
+): Promise<Fechamento> {
+  return await invoke("inventario_fechar", { sessaoId, confirmarTotal });
+}
+
+export async function inventarioCancelar(sessaoId: number): Promise<void> {
+  await invoke("inventario_cancelar", { sessaoId });
+}
+
+export async function inventarioDivergencias(
+  sessaoId: number,
+): Promise<Divergencia[]> {
+  return await invoke("inventario_divergencias", { sessaoId });
+}
+
+export async function inventarioPendencias(
+  apenasAbertas = true,
+): Promise<Pendencia[]> {
+  return await invoke("inventario_pendencias", { apenasAbertas });
+}
+
+export async function resolverPendencia(pendenciaId: number): Promise<void> {
+  await invoke("resolver_pendencia", { pendenciaId });
+}
+
+export async function buscarPorCodigoBarras(
+  codigoBarras: string,
+): Promise<Livro | null> {
+  return await invoke("buscar_por_codigo_barras", { codigoBarras });
 }

@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StockBadge } from "@/components/StockBadge";
 import { Cover } from "@/components/Cover";
+import { AjusteEstoque } from "@/components/AjusteEstoque";
+import { ExtratoMovimentos } from "@/components/ExtratoMovimentos";
 import { brl } from "@/lib/format";
 import { CATEGORIAS, type Livro } from "@/lib/types";
 import { buscarPorTexto, livroPorCodigo, type ErroIpc } from "@/lib/ipc";
@@ -17,6 +19,7 @@ export default function Pesquisa() {
   const [porTexto, setPorTexto] = useState("");
   const [resultados, setResultados] = useState<Livro[] | null>(null);
   const [detalhe, setDetalhe] = useState<Livro | null>(null);
+  const [refresh, setRefresh] = useState(0);
 
   async function buscarCodigo() {
     const cod = porCodigo.trim();
@@ -106,6 +109,16 @@ export default function Pesquisa() {
             </dl>
           </div>
         </div>
+        <div className="mt-4 flex justify-end">
+          <AjusteEstoque
+            livro={detalhe}
+            onAjustado={(l) => {
+              setDetalhe(l);
+              setRefresh((n) => n + 1);
+            }}
+          />
+        </div>
+        <ExtratoMovimentos codigo={detalhe.codigo} refresh={refresh} />
       </div>
     );
   }
