@@ -4,6 +4,7 @@
 use crate::adapters::legado::mdb_importer::MdbImportador;
 use crate::adapters::persistencia::inicializar_schema;
 use crate::adapters::persistencia::dashboard_repo::SeaDashboardRepo;
+use crate::adapters::persistencia::estoque_repo::SeaEstoqueRepo;
 use crate::adapters::persistencia::livro_repo::SeaLivroRepo;
 use crate::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use crate::adapters::persistencia::relatorio_repo::SeaRelatorioRepo;
@@ -162,6 +163,13 @@ pub async fn salvar_livro(
 ) -> Result<(), ErroDto> {
     let livros = SeaLivroRepo::new(state.db.clone());
     cadastro::salvar(livro.para_dominio(), &livros).await?;
+    // Livro novo recebe seu movimento `saldo_inicial` (idempotente; no-op se já tem
+    // movimento). Mantém a invariante Σ movimentos == estoque desde a criação (FR-006).
+    use crate::application::ports_estoque::EstoqueRepo;
+    SeaEstoqueRepo::new(state.db.clone())
+        .gerar_saldos_iniciais()
+        .await
+        .map_err(crate::application::erros::ErroApp::from)?;
     Ok(())
 }
 

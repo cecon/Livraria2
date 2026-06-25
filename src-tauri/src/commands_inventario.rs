@@ -60,6 +60,24 @@ pub async fn inventario_bipar(
 }
 
 #[tauri::command]
+pub async fn inventario_desbipar(
+    state: tauri::State<'_, AppState>,
+    sessao_id: i64,
+    codigo_barras: String,
+) -> Result<BipagemDto, ErroDto> {
+    let r = repo(&state)
+        .desbipar(sessao_id, codigo_barras.trim())
+        .await
+        .map_err(ErroApp::from)?;
+    Ok(BipagemDto {
+        encontrado: r.livro.is_some(),
+        livro: r.livro.map(LivroDto::from),
+        qtd_contada: r.qtd_contada,
+        pendencia: r.pendencia,
+    })
+}
+
+#[tauri::command]
 pub async fn inventario_ajustar_item(
     state: tauri::State<'_, AppState>,
     sessao_id: i64,

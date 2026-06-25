@@ -1,13 +1,50 @@
 //! Helpers SQL do inventário, extraídos de `inventario_repo.rs` para manter o
 //! limite de 300 linhas (Princípio III). Funções puras de consulta/escrita.
 
+use super::entities::livro::{self, Entity as LivroEntity, Model as LivroModel};
 use crate::application::ports_inventario::{DivergenciaView, PendenciaView, SessaoView};
 use crate::domain::estoque::TipoMovimento;
 use chrono::Local;
-use sea_orm::{ConnectionTrait, DatabaseTransaction, DbErr, QueryResult, Statement, Value};
+use sea_orm::{
+    ColumnTrait, Condition, ConnectionTrait, DatabaseTransaction, DbErr, EntityTrait, QueryFilter,
+    QueryResult, Statement, Value,
+};
 
 pub(crate) fn agora() -> String {
     Local::now().format("%Y-%m-%dT%H:%M:%S").to_string()
+}
+
+/// Acha o livro de uma bipagem: casa `codigo_barras` OU `codigo` (FR-022).
+pub(crate) async fn achar_por_bipagem(
+    db: &impl ConnectionTrait,
+    codigo_lido: &str,
+) -> Result<Option<LivroModel>, DbErr> {
+    LivroEntity::find()
+        .filter(livro::Column::Ativo.eq(true))
+        .filter(
+            Condition::any()
+                .add(livro::Column::CodigoBarras.eq(codigo_lido))
+                .add(livro::Column::Codigo.eq(codigo_lido)),
+        )
+        .one(db)
+        .await
+}
+
+/// Quantidade já contada de um livro na sessão (0 se não houver linha).
+pub(crate) async fn ler_qtd_contada(
+    db: &impl ConnectionTrait,
+    sessao_id: i64,
+    codigo: &str,
+) -> Result<i64, DbErr> {
+    Ok(db
+        .query_one(Statement::from_sql_and_values(
+            db.get_database_backend(),
+            "SELECT qtd_contada FROM item_contagem WHERE sessao_id = ? AND livro_codigo = ?",
+            [sessao_id.into(), codigo.into()],
+        ))
+        .await?
+        .and_then(|r| r.try_get::<i64>("", "qtd_contada").ok())
+        .unwrap_or(0))
 }
 
 pub(crate) fn sessao_de_row(r: &QueryResult) -> Result<SessaoView, DbErr> {

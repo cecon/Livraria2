@@ -12,8 +12,9 @@ use livraria_2_lib::domain::categoria::Categoria;
 use livraria_2_lib::domain::dinheiro::Dinheiro;
 use livraria_2_lib::domain::livro::Livro;
 
-fn url_temp() -> (String, std::path::PathBuf) {
-    let path = std::env::temp_dir().join(format!("livraria_inv_{}.db", std::process::id()));
+fn url_temp(tag: &str) -> (String, std::path::PathBuf) {
+    let path = std::env::temp_dir()
+        .join(format!("livraria_inv_{}_{tag}.db", std::process::id()));
     let _ = std::fs::remove_file(&path);
     (format!("sqlite://{}?mode=rwc", path.display()), path)
 }
@@ -38,7 +39,7 @@ async fn estoque_de(livros: &SeaLivroRepo, codigo: &str) -> i64 {
 
 #[tokio::test]
 async fn parcial_idempotente_e_total_zera() {
-    let (url, path) = url_temp();
+    let (url, path) = url_temp("parcial");
     let db = conectar(&url).await.unwrap();
     inicializar_schema(&db).await.unwrap();
     let livros = SeaLivroRepo::new(db.clone());
@@ -85,6 +86,39 @@ async fn parcial_idempotente_e_total_zera() {
     inv.fechar(s3.id, true).await.unwrap();
     assert_eq!(estoque_de(&livros, "A").await, 1);
     assert_eq!(estoque_de(&livros, "B").await, 0); // não bipado → zerado
+
+    let _ = std::fs::remove_file(&path);
+}
+
+#[tokio::test]
+async fn desbipar_decrementa_e_remove_ao_zerar() {
+    let (url, path) = url_temp("desbipar");
+    let db = conectar(&url).await.unwrap();
+    inicializar_schema(&db).await.unwrap();
+    let livros = SeaLivroRepo::new(db.clone());
+    let estoque = SeaEstoqueRepo::new(db.clone());
+    let inv = SeaInventarioRepo::new(db.clone());
+
+    livros.salvar(&livro("A", "111", 5)).await.unwrap();
+    estoque.gerar_saldos_iniciais().await.unwrap();
+
+    let s = inv.abrir("parcial", Some("Gaveta A".into())).await.unwrap();
+    inv.bipar(s.id, "111").await.unwrap();
+    let r = inv.bipar(s.id, "111").await.unwrap();
+    assert_eq!(r.qtd_contada, Some(2));
+
+    // desbipar volta para 1
+    let r = inv.desbipar(s.id, "111").await.unwrap();
+    assert_eq!(r.qtd_contada, Some(1));
+
+    // desbipar de novo zera → some da contagem (revisao não lista o livro)
+    let r = inv.desbipar(s.id, "111").await.unwrap();
+    assert_eq!(r.qtd_contada, Some(0));
+    assert!(inv.revisao(s.id).await.unwrap().is_empty());
+
+    // fechar parcial sem itens contados não altera o estoque (SC-004).
+    inv.fechar(s.id, false).await.unwrap();
+    assert_eq!(livros.por_codigo("A").await.unwrap().unwrap().estoque, 5);
 
     let _ = std::fs::remove_file(&path);
 }

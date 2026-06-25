@@ -98,7 +98,8 @@ impl LivroRepo for SeaLivroRepo {
                         livro::Column::Autor,
                         livro::Column::PrecoCentavos,
                         livro::Column::Categoria,
-                        livro::Column::Estoque,
+                        // Estoque NÃO entra: ao editar um livro, o saldo é preservado.
+                        // Estoque só muda por movimento (entrada/ajuste/venda/inventário).
                         livro::Column::Descricao,
                         livro::Column::BuscaNorm,
                         livro::Column::Ativo,
