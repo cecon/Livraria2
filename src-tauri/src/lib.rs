@@ -4,7 +4,9 @@ pub mod adapters;
 pub mod application;
 pub mod commands;
 pub mod commands_estoque;
+pub mod commands_fornecedor;
 pub mod commands_inventario;
+pub mod commands_lancamento;
 pub mod domain;
 pub mod migration;
 
@@ -45,6 +47,12 @@ pub fn run() {
                 application::estoque_setup::adotar(&estoque_repo)
                     .await
                     .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
+                // Fornecedores: semeia a partir dos textos de fornecedor da 002 (idempotente, FR-005).
+                let forn_repo =
+                    adapters::persistencia::fornecedor_repo::SeaFornecedorRepo::new(db.clone());
+                application::fornecedores::adotar(&forn_repo)
+                    .await
+                    .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
                 Ok::<_, sea_orm::DbErr>(db)
             })?;
             app.manage(AppState { db });
@@ -59,6 +67,7 @@ pub fn run() {
             commands::salvar_livro,
             commands::excluir_livro,
             commands::livros_recentes,
+            commands::livros_pagina,
             commands::migrar_legado,
             commands::dashboard_do_dia,
             commands::autenticar,
@@ -67,8 +76,6 @@ pub fn run() {
             commands::excluir_item_pedido,
             commands::excluir_pedido,
             commands::salvar_arquivo,
-            commands_estoque::registrar_entrada,
-            commands_estoque::fornecedores_sugestoes,
             commands_estoque::registrar_ajuste,
             commands_estoque::extrato_livro,
             commands_inventario::inventario_abrir,
@@ -83,6 +90,18 @@ pub fn run() {
             commands_inventario::inventario_pendencias,
             commands_inventario::resolver_pendencia,
             commands_inventario::buscar_por_codigo_barras,
+            commands_fornecedor::fornecedores_listar,
+            commands_fornecedor::fornecedor_salvar,
+            commands_fornecedor::fornecedor_excluir,
+            commands_lancamento::lancamentos_listar,
+            commands_lancamento::lancamento_obter,
+            commands_lancamento::lancamento_criar,
+            commands_lancamento::lancamento_definir_fornecedor,
+            commands_lancamento::lancamento_adicionar_item,
+            commands_lancamento::lancamento_remover_item,
+            commands_lancamento::lancamento_excluir,
+            commands_lancamento::lancamento_finalizar,
+            commands_lancamento::lancamento_cancelar,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

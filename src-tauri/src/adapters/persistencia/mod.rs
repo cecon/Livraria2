@@ -3,8 +3,12 @@
 pub mod dashboard_repo;
 pub mod entities;
 pub mod estoque_repo;
+pub mod estoque_sql;
+pub mod fornecedor_repo;
 pub mod inventario_repo;
 pub mod inventario_sql;
+pub mod lancamento_repo;
+pub mod lancamento_sql;
 pub mod livro_repo;
 pub mod pedido_repo;
 pub mod relatorio_repo;

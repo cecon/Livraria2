@@ -25,6 +25,7 @@ export function EntradaProduto({
   inputRef,
 }: Props) {
   const [resultados, setResultados] = useState<Livro[]>([]);
+  const [ativo, setAtivo] = useState(0);
   const timer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -37,6 +38,7 @@ export function EntradaProduto({
     timer.current = window.setTimeout(async () => {
       try {
         setResultados((await buscarPorTexto(t)).slice(0, 10));
+        setAtivo(0);
       } catch {
         setResultados([]);
       }
@@ -46,10 +48,15 @@ export function EntradaProduto({
 
   function aoEnter() {
     const t = value.trim();
-    if (/^\d+$/.test(t)) {
-      onCodigoExato(); // leitor de código de barras
-    } else if (resultados.length > 0) {
-      onSelecionar(resultados[0]); // texto → melhor match
+    // Código numérico (leitor de código de barras): resolve direto.
+    if (/^\d+$/.test(t) && resultados.length === 0) {
+      onCodigoExato();
+      return;
+    }
+    // Texto: seleciona o item destacado. Sem resultados, NÃO lança nada além de
+    // tentar resolver como código (texto solto não vira produto).
+    if (resultados.length > 0) {
+      onSelecionar(resultados[ativo] ?? resultados[0]);
     } else {
       onCodigoExato();
     }
@@ -66,6 +73,12 @@ export function EntradaProduto({
           if (e.key === "Enter") {
             e.preventDefault();
             aoEnter();
+          } else if (e.key === "ArrowDown" && resultados.length > 0) {
+            e.preventDefault();
+            setAtivo((a) => Math.min(a + 1, resultados.length - 1));
+          } else if (e.key === "ArrowUp" && resultados.length > 0) {
+            e.preventDefault();
+            setAtivo((a) => Math.max(a - 1, 0));
           }
         }}
         placeholder="Código, título ou autor"
@@ -73,11 +86,14 @@ export function EntradaProduto({
       />
       {resultados.length > 0 && (
         <div className="bg-popover absolute z-20 mt-1 max-h-96 w-full overflow-auto rounded-lg border shadow-lg">
-          {resultados.map((l) => (
+          {resultados.map((l, idx) => (
             <button
               key={l.codigo}
+              onMouseEnter={() => setAtivo(idx)}
               onClick={() => onSelecionar(l)}
-              className="hover:bg-muted/60 flex w-full items-center gap-2 border-b p-2 text-left last:border-b-0"
+              className={`flex w-full items-center gap-2 border-b p-2 text-left last:border-b-0 ${
+                idx === ativo ? "bg-muted" : "hover:bg-muted/60"
+              }`}
             >
               <Cover titulo={l.titulo} tamanho="sm" />
               <div className="min-w-0 flex-1">

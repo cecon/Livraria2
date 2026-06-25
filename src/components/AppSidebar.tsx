@@ -13,6 +13,7 @@ import {
   Search,
   ShoppingCart,
   Sun,
+  Truck,
 } from "lucide-react";
 import type { Tema } from "@/lib/theme";
 
@@ -21,7 +22,8 @@ const ITENS = [
   { to: "/venda", rotulo: "Venda", Icon: ShoppingCart, end: false },
   { to: "/cadastro", rotulo: "Cadastro", Icon: BookPlus, end: false },
   { to: "/pesquisa", rotulo: "Pesquisa", Icon: Search, end: false },
-  { to: "/entrada", rotulo: "Entrada", Icon: PackagePlus, end: false },
+  { to: "/lancamentos", rotulo: "Lançamentos", Icon: PackagePlus, end: false },
+  { to: "/fornecedores", rotulo: "Fornecedores", Icon: Truck, end: false },
   { to: "/inventario", rotulo: "Inventário", Icon: ClipboardList, end: false },
   { to: "/relatorios", rotulo: "Relatórios", Icon: FileBarChart, end: false },
 ];

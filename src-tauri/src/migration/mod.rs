@@ -10,7 +10,11 @@ pub struct Migrator;
 #[async_trait::async_trait]
 impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        vec![Box::new(m_init::Migration), Box::new(m_estoque::Migration)]
+        vec![
+            Box::new(m_init::Migration),
+            Box::new(m_estoque::Migration),
+            Box::new(m_fornecedores::Migration),
+        ]
     }
 }
 
@@ -175,6 +179,80 @@ mod m_estoque {
                     }
                 }
             }
+            for sql in UP {
+                db.execute(Statement::from_string(backend, String::from(*sql)))
+                    .await?;
+            }
+            Ok(())
+        }
+
+        async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+            let db = manager.get_connection();
+            let backend = db.get_database_backend();
+            for sql in DOWN {
+                db.execute(Statement::from_string(backend, String::from(*sql)))
+                    .await?;
+            }
+            Ok(())
+        }
+    }
+}
+
+/// Feature 003: fornecedores e lançamento de notas de entrada (ADR-0011).
+mod m_fornecedores {
+    use sea_orm_migration::prelude::*;
+    use sea_orm_migration::sea_orm::{ConnectionTrait, Statement};
+
+    pub struct Migration;
+
+    impl MigrationName for Migration {
+        fn name(&self) -> &str {
+            "m003_fornecedores_lancamentos"
+        }
+    }
+
+    const UP: &[&str] = &[
+        "CREATE TABLE IF NOT EXISTS fornecedor (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            nome_norm TEXT NOT NULL,
+            documento TEXT,
+            telefone TEXT,
+            email TEXT,
+            observacoes TEXT,
+            ativo INTEGER NOT NULL DEFAULT 1
+        )",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_fornecedor_norm ON fornecedor(nome_norm)",
+        "CREATE TABLE IF NOT EXISTS lancamento_entrada (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            fornecedor_id INTEGER REFERENCES fornecedor(id),
+            numero TEXT,
+            data TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'rascunho',
+            finalizada_em TEXT
+        )",
+        "CREATE TABLE IF NOT EXISTS item_lancamento (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lancamento_id INTEGER NOT NULL REFERENCES lancamento_entrada(id),
+            livro_codigo TEXT NOT NULL REFERENCES livro(codigo),
+            qtd INTEGER NOT NULL,
+            custo_unit_centavos INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(lancamento_id, livro_codigo)
+        )",
+        "CREATE INDEX IF NOT EXISTS idx_item_lanc ON item_lancamento(lancamento_id)",
+    ];
+
+    const DOWN: &[&str] = &[
+        "DROP TABLE IF EXISTS item_lancamento",
+        "DROP TABLE IF EXISTS lancamento_entrada",
+        "DROP TABLE IF EXISTS fornecedor",
+    ];
+
+    #[async_trait::async_trait]
+    impl MigrationTrait for Migration {
+        async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+            let db = manager.get_connection();
+            let backend = db.get_database_backend();
             for sql in UP {
                 db.execute(Statement::from_string(backend, String::from(*sql)))
                     .await?;

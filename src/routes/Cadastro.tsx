@@ -17,43 +17,40 @@ import { StockBadge } from "@/components/StockBadge";
 import { LivroForm } from "@/components/LivroForm";
 import { brl } from "@/lib/format";
 import type { Livro } from "@/lib/types";
-import {
-  buscarPorTexto,
-  excluirLivro,
-  livrosRecentes,
-  type ErroIpc,
-} from "@/lib/ipc";
+import { excluirLivro, livrosPagina, type ErroIpc } from "@/lib/ipc";
 
 const POR_PAGINA = 12;
 
 export default function Cadastro() {
   const [aberto, setAberto] = useState<Livro | "novo" | null>(null);
   const [termo, setTermo] = useState("");
-  const [lista, setLista] = useState<Livro[]>([]);
+  const [itens, setItens] = useState<Livro[]>([]);
+  const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(1);
 
-  async function carregar() {
-    const t = termo.trim();
+  async function carregar(t: string, p: number) {
     try {
-      const r = t.length >= 2 ? await buscarPorTexto(t) : await livrosRecentes(100);
-      setLista(r);
-      setPagina(1);
+      const r = await livrosPagina(t.trim(), p, POR_PAGINA);
+      setItens(r.itens);
+      setTotal(r.total);
     } catch {
-      setLista([]);
+      setItens([]);
+      setTotal(0);
     }
   }
 
+  // Busca paginada no banco (debounce). Trocar o termo volta à página 1.
   useEffect(() => {
-    const id = window.setTimeout(carregar, 160);
+    const id = window.setTimeout(() => void carregar(termo, pagina), 160);
     return () => window.clearTimeout(id);
-  }, [termo]);
+  }, [termo, pagina]);
 
   async function remover(l: Livro) {
     if (!window.confirm(`Excluir "${l.titulo}"?`)) return;
     try {
       await excluirLivro(l.codigo);
       toast.success("Livro excluído");
-      void carregar();
+      void carregar(termo, pagina);
     } catch (e) {
       toast.error((e as ErroIpc).mensagem ?? "Erro ao excluir");
     }
@@ -69,7 +66,7 @@ export default function Cadastro() {
           inicial={aberto === "novo" ? null : aberto}
           onSalvo={() => {
             setAberto(null);
-            void carregar();
+            void carregar(termo, pagina);
           }}
           onCancelar={() => setAberto(null)}
         />
@@ -77,9 +74,8 @@ export default function Cadastro() {
     );
   }
 
-  const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
+  const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
   const inicio = (pagina - 1) * POR_PAGINA;
-  const visiveis = lista.slice(inicio, inicio + POR_PAGINA);
 
   return (
     <div className="mx-auto max-w-4xl p-6">
@@ -92,7 +88,10 @@ export default function Cadastro() {
 
       <Input
         value={termo}
-        onChange={(e) => setTermo(e.currentTarget.value)}
+        onChange={(e) => {
+          setTermo(e.currentTarget.value);
+          setPagina(1);
+        }}
         className="mt-4 h-9"
         placeholder="Buscar por título, autor ou código…"
         autoFocus
@@ -109,7 +108,7 @@ export default function Cadastro() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {visiveis.map((l) => (
+            {itens.map((l) => (
               <TableRow key={l.codigo}>
                 <TableCell>
                   <div className="truncate font-medium">{l.titulo}</div>
@@ -150,7 +149,7 @@ export default function Cadastro() {
                 </TableCell>
               </TableRow>
             ))}
-            {visiveis.length === 0 && (
+            {itens.length === 0 && (
               <TableRow className="hover:bg-transparent">
                 <TableCell colSpan={4} className="text-muted-foreground py-10 text-center">
                   {termo.trim() ? "Nenhum livro encontrado." : "Nenhum livro cadastrado."}
@@ -161,10 +160,10 @@ export default function Cadastro() {
         </Table>
       </div>
 
-      {lista.length > 0 && (
+      {total > 0 && (
         <div className="text-muted-foreground mt-3 flex items-center justify-between text-sm">
           <span>
-            {inicio + 1}–{Math.min(inicio + POR_PAGINA, lista.length)} de {lista.length}
+            {inicio + 1}–{Math.min(inicio + POR_PAGINA, total)} de {total}
           </span>
           <div className="flex items-center gap-2">
             <Button

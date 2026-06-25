@@ -92,6 +92,14 @@ impl LivroDto {
     }
 }
 
+/// Página de livros (lista + total) para paginação no banco.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaginaLivros {
+    pub itens: Vec<LivroDto>,
+    pub total: i64,
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PedidoDto {
@@ -311,4 +319,25 @@ pub async fn livros_recentes(
     let livros = SeaLivroRepo::new(state.db.clone());
     let ls = cadastro::recentes(limite.unwrap_or(4), &livros).await?;
     Ok(ls.into_iter().map(LivroDto::from).collect())
+}
+
+/// Lista paginada de livros no banco (busca opcional) — Cadastro (feature 003).
+#[tauri::command]
+pub async fn livros_pagina(
+    state: tauri::State<'_, AppState>,
+    termo: Option<String>,
+    pagina: Option<i64>,
+    por_pagina: Option<i64>,
+) -> Result<PaginaLivros, ErroDto> {
+    let livros = SeaLivroRepo::new(state.db.clone());
+    let pp = por_pagina.unwrap_or(12).max(1) as u64;
+    let p = pagina.unwrap_or(1).max(1) as u64;
+    let (ls, total) = livros
+        .listar_pagina(termo.as_deref().unwrap_or(""), p, pp)
+        .await
+        .map_err(ErroApp::from)?;
+    Ok(PaginaLivros {
+        itens: ls.into_iter().map(LivroDto::from).collect(),
+        total,
+    })
 }

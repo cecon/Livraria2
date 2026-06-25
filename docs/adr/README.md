@@ -15,6 +15,7 @@ As decisões nascem do `/speckit-plan` (ver `specs/001-sistema-estoque-vendas/re
 | [0008](0008-razao-movimentos-estoque.md) | Razão de movimentos como fonte da verdade do estoque | Aceito |
 | [0009](0009-custo-medio-ponderado.md) | Custo médio ponderado por livro | Aceito |
 | [0010](0010-inventario-reconciliacao.md) | Inventário: sessão parcial/total e reconciliação no fechamento | Aceito |
+| [0011](0011-fornecedores-lancamento-notas.md) | Fornecedores e lançamento de entrada por nota | Aceito |
 
 **Versionamento**: um arquivo por decisão, numeração sequencial. Mudança de decisão → novo ADR que
 "supersedes" o anterior (não reescrever o histórico).
