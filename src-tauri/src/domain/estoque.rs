@@ -13,6 +13,7 @@ pub enum TipoMovimento {
     SaidaVenda,
     Ajuste,
     Contagem,
+    Estorno,
 }
 
 impl TipoMovimento {
@@ -23,6 +24,7 @@ impl TipoMovimento {
             TipoMovimento::SaidaVenda => "saida_venda",
             TipoMovimento::Ajuste => "ajuste",
             TipoMovimento::Contagem => "contagem",
+            TipoMovimento::Estorno => "estorno",
         }
     }
 
@@ -33,6 +35,7 @@ impl TipoMovimento {
             "saida_venda" => Some(TipoMovimento::SaidaVenda),
             "ajuste" => Some(TipoMovimento::Ajuste),
             "contagem" => Some(TipoMovimento::Contagem),
+            "estorno" => Some(TipoMovimento::Estorno),
             _ => None,
         }
     }

@@ -1,6 +1,54 @@
 // Tipos e constantes de domínio espelhados no front (contracts/tauri-commands.md).
 // Dinheiro em centavos (inteiro).
 
+// --- Fornecedores & lançamento de notas (feature 003) ---
+
+export interface Fornecedor {
+  id: number;
+  nome: string;
+  documento?: string | null;
+  telefone?: string | null;
+  email?: string | null;
+  observacoes?: string | null;
+  ativo: boolean;
+}
+
+export type StatusLancamento = "rascunho" | "finalizada" | "cancelada";
+
+export interface ItemNota {
+  itemId: number;
+  codigo: string;
+  titulo: string;
+  qtd: number;
+  custoUnitCentavos: number;
+  subtotalCentavos: number;
+}
+
+export interface LancamentoResumo {
+  id: number;
+  fornecedorNome?: string | null;
+  data: string;
+  status: StatusLancamento;
+  totalCentavos: number;
+  qtdItens: number;
+}
+
+export interface PaginaLancamentos {
+  itens: LancamentoResumo[];
+  total: number;
+}
+
+export interface LancamentoDetalhe {
+  id: number;
+  fornecedorId?: number | null;
+  fornecedorNome?: string | null;
+  numero?: string | null;
+  data: string;
+  status: StatusLancamento;
+  totalCentavos: number;
+  itens: ItemNota[];
+}
+
 export interface Livro {
   codigo: string;
   titulo: string;
@@ -13,13 +61,20 @@ export interface Livro {
   custoMedioCentavos?: number;
 }
 
+/** Página de livros (lista + total) para paginação no banco. */
+export interface PaginaLivros {
+  itens: Livro[];
+  total: number;
+}
+
 /** Tipos de movimento da razão de estoque (ADR-0008). */
 export type TipoMovimento =
   | "saldo_inicial"
   | "entrada"
   | "saida_venda"
   | "ajuste"
-  | "contagem";
+  | "contagem"
+  | "estorno";
 
 /** Rótulos pt-BR dos tipos de movimento. */
 export const ROTULO_MOVIMENTO: Record<TipoMovimento, string> = {
@@ -28,6 +83,7 @@ export const ROTULO_MOVIMENTO: Record<TipoMovimento, string> = {
   saida_venda: "Venda",
   ajuste: "Ajuste",
   contagem: "Inventário",
+  estorno: "Estorno",
 };
 
 /** Linha do extrato de movimentação (FR-050). */

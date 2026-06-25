@@ -23,6 +23,15 @@ livre** e a entrada aplicada imediatamente. Esta feature evolui isso em duas fre
 Esta feature **reaproveita** a razão de movimentos (`movimento_estoque`), o custo médio ponderado e a regra
 de custo total↔unitário já existentes na feature 002 — não os redefine.
 
+## Clarifications
+
+### Session 2026-06-24
+
+- Q: O que significa "entrada parcial"? → A: **Rascunho retomável** — a nota pode ser salva incompleta (status `rascunho`) e retomada/editada depois; o estoque só é afetado quando o usuário **finaliza** (dá entrada de tudo de uma vez). Não há recebimento parcial por item.
+- Q: Mesmo livro adicionado duas vezes na nota? → A: **Somar na mesma linha** — um livro = uma linha na nota (`UNIQUE(nota, livro)`); adicionar de novo soma à quantidade existente.
+- Q: A tela de Entrada de 1 livro (002) é substituída ou mantida? → A: **Substituída totalmente** pela lista de lançamentos; entrada avulsa vira uma nota de 1 item (sem atalho separado).
+- Q: De onde vem a data da nota e o número importa? → A: **Data automática** do sistema (criação/finalização); **número da nota opcional** (texto livre, quando houver NF).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Cadastrar e editar fornecedores (Priority: P1)
@@ -89,19 +98,25 @@ seus itens.
 
 ---
 
-### User Story 4 - Entrada parcial (Priority: P2)
+### User Story 4 - Entrada parcial: rascunho retomável (Priority: P2)
 
-O usuário deve poder fazer a entrada **de forma parcial** — não precisa concluir tudo de uma vez.
+O usuário pode **salvar uma nota incompleta como rascunho** e voltar a ela depois — lançar/ajustar itens em
+mais de um momento — **sem afetar o estoque**. O estoque só sobe quando ele **finaliza** (dá entrada de tudo
+de uma vez).
 
-[NEEDS CLARIFICATION: "entrada parcial" significa (A) **rascunho retomável** — salvar a nota incompleta e
-continuar/dar entrada depois, lançando tudo de uma vez quando finalizar; ou (B) **recebimento parcial** —
-dar entrada de parte dos itens/quantidades agora (estoque sobe só do recebido) e o restante fica pendente na
-mesma nota para receber depois, em mais de uma entrada?]
+**Why this priority**: Conforto operacional ("não preciso terminar agora"); o fluxo principal (US2/US3)
+funciona sem isso, mas o usuário pediu explicitamente.
 
-**Why this priority**: Conforto operacional; o fluxo principal (US2/US3) funciona sem isso, mas o usuário
-pediu explicitamente. Detalhar após a clarificação.
+**Independent Test**: Criar uma nota com fornecedor e 2 itens, salvar como rascunho, sair e confirmar que o
+estoque não mudou; reabrir o rascunho, adicionar mais 1 item e dar entrada; verificar que o estoque dos 3
+sobe de uma vez e a nota fica finalizada.
 
-**Independent Test**: A definir conforme a interpretação escolhida (rascunho retomável vs. recebimento parcial).
+**Acceptance Scenarios**:
+
+1. **Given** uma nota nova com fornecedor e 2 itens, **When** clico em "Salvar rascunho", **Then** a nota aparece na lista com status **rascunho** e nenhum estoque é alterado.
+2. **Given** um rascunho, **When** o reabro, adiciono/removo itens ou troco o fornecedor, **Then** as alterações são salvas e o estoque continua intacto.
+3. **Given** um rascunho válido (fornecedor + ≥1 item), **When** dou entrada, **Then** ele é **finalizado** e o estoque de todos os itens sobe de uma só vez (movimentos de entrada vinculados à nota).
+4. **Given** um rascunho, **When** o excluo, **Then** ele some da lista e nada foi lançado no estoque.
 
 ---
 
@@ -109,7 +124,7 @@ pediu explicitamente. Detalhar após a clarificação.
 
 - **Dar entrada duas vezes na mesma nota**: uma nota finalizada não pode gerar movimentos novamente (idempotente); a ação fica indisponível após finalizada.
 - **Fornecedor inativado com rascunho aberto**: a nota mantém o fornecedor já escolhido; novas notas não o listam.
-- **Item repetido na nota** (mesmo livro duas vezes): o sistema soma as quantidades ou impede duplicar (a definir na regra de item).
+- **Item repetido na nota** (mesmo livro duas vezes): o sistema **soma na mesma linha** — um livro = uma linha (`UNIQUE(nota, livro)`).
 - **Quantidade ou custo inválido** (≤ 0): impedido por item, com mensagem.
 - **Remover/editar nota finalizada**: bloqueado (preserva o histórico e a reconciliação); correções de estoque vão por Ajuste/Inventário (feature 002).
 - **Migração**: os fornecedores em texto livre já usados nas entradas da 002 devem aparecer como fornecedores cadastrados (sem perder o histórico).
@@ -130,7 +145,7 @@ pediu explicitamente. Detalhar após a clarificação.
 
 - **FR-010**: A tela de Entrada MUST ser uma **lista de lançamentos (notas)** com um botão **"Novo lançamento"**.
 - **FR-011**: A lista MUST exibir, por nota: fornecedor, data, status, total (centavos) e quantidade de itens; e MUST permitir abrir uma nota.
-- **FR-012**: Um lançamento MUST referenciar um **fornecedor** (obrigatório, selecionado da lista de cadastrados) e MAY registrar número da nota e data.
+- **FR-012**: Um lançamento MUST referenciar um **fornecedor** (obrigatório, selecionado da lista de cadastrados). A **data** é atribuída automaticamente pelo sistema (criação/finalização); o **número da nota** é **opcional** (texto livre).
 - **FR-013**: Usuários MUST poder **adicionar itens** ao lançamento — cada item é um **livro** (localizado por código de barras/código ou busca por título/autor) com **quantidade** (> 0) e **custo**.
 - **FR-014**: O item MUST aceitar o custo **total** OU **unitário**, derivando o outro (regra da feature 002); e MUST permitir **remover** itens enquanto a nota não estiver finalizada.
 - **FR-015**: Ao **dar entrada**, o sistema MUST, para cada item, **aumentar o estoque** do livro pela quantidade e **recalcular o custo médio**, gerando um **movimento de entrada** por item **vinculado à nota** (reusa a razão de movimentos da 002).
@@ -138,9 +153,12 @@ pediu explicitamente. Detalhar após a clarificação.
 - **FR-017**: Uma nota **finalizada** MUST ser **imutável** (não edita, não exclui, não dá entrada de novo); o lançamento é **idempotente** (dar entrada não pode aplicar o estoque duas vezes).
 - **FR-018**: O sistema MUST permitir **abrir/consultar** uma nota finalizada em modo somente leitura (itens e valores).
 
-#### Entrada parcial (US4)
+#### Entrada parcial — rascunho retomável (US4)
 
-- **FR-020**: O sistema MUST suportar **entrada parcial** conforme [NEEDS CLARIFICATION: rascunho retomável vs. recebimento parcial — ver US4]. Os requisitos detalhados desta seção dependem dessa decisão.
+- **FR-020**: O sistema MUST permitir **salvar uma nota como rascunho** (status `rascunho`) a qualquer momento, mesmo incompleta, **sem afetar o estoque**.
+- **FR-021**: Usuários MUST poder **retomar** um rascunho (editar fornecedor e itens) e **excluí-lo**; excluir um rascunho não lança nada no estoque.
+- **FR-022**: O estoque MUST ser afetado **somente ao finalizar** (dar entrada) — nunca ao salvar rascunho. Ao finalizar, aplicam-se as regras de FR-015/FR-016/FR-017.
+- **FR-023**: A lista de lançamentos MUST distinguir visualmente **rascunhos** de **notas finalizadas** e permitir continuar um rascunho.
 
 #### Localização e consistência
 
@@ -150,8 +168,8 @@ pediu explicitamente. Detalhar após a clarificação.
 ### Key Entities *(include if feature involves data)*
 
 - **Fornecedor**: origem de uma compra. Atributos: identificador, nome (único normalizado), documento (CNPJ/CPF) opcional, telefone, e-mail, observações, ativo/inativo. Referenciado por lançamentos.
-- **LançamentoEntrada (Nota)**: uma nota de entrada. Atributos: identificador, fornecedor (referência), número da nota (opcional), data, status (`rascunho` | `finalizada`), data de finalização. Agrega itens. Ao finalizar, gera os movimentos de entrada.
-- **ItemLançamento**: uma linha da nota. Atributos: lançamento (referência), livro (referência), quantidade (> 0), custo unitário (centavos). O custo total da linha é derivado.
+- **LançamentoEntrada (Nota)**: uma nota de entrada. Atributos: identificador, fornecedor (referência), número da nota (opcional, texto livre), data (automática do sistema), status (`rascunho` | `finalizada`), data de finalização. Agrega itens. Ao finalizar, gera os movimentos de entrada. O total é a soma dos itens.
+- **ItemLançamento**: uma linha da nota. Atributos: lançamento (referência), livro (referência), quantidade (> 0), custo unitário (centavos). **`UNIQUE(lançamento, livro)`** — um livro por linha; adicionar de novo soma a quantidade. O custo total da linha é derivado.
 - **MovimentoEstoque** (existente, feature 002): a entrada de cada item gera um movimento `entrada` cuja referência aponta para a nota; fonte da verdade do estoque.
 - **Livro** (existente): tem o estoque e o custo médio atualizados ao dar entrada.
 
@@ -170,9 +188,11 @@ pediu explicitamente. Detalhar após a clarificação.
 
 - **Reuso da feature 002**: razão de movimentos, custo médio ponderado e regra custo total↔unitário são reaproveitados; esta feature não os reimplementa.
 - **Fornecedor**: nome é a identidade de exibição; documento/telefone/e-mail são opcionais (livraria de igreja, cadastro leve). Sem integração fiscal/NF-e nesta versão.
-- **Substituição da Entrada da 002**: a tela de "Entrada de mercadoria" (um livro por vez) é substituída pela lista de lançamentos por nota; a entrada de um único livro vira uma nota de um item.
+- **Substituição da Entrada da 002**: a tela de "Entrada de mercadoria" (um livro por vez) é **removida** e substituída pela lista de lançamentos por nota; a entrada de um único livro vira uma nota de um item. Não há atalho de entrada rápida separado.
 - **Migração de fornecedores**: a lista inicial é semeada a partir dos textos de fornecedor distintos já gravados nos movimentos de entrada da 002 (idempotente).
 - **Imutabilidade**: correções após finalizar a nota são feitas por Ajuste/Inventário (002), não editando a nota.
+- **Total da nota = soma dos itens**: sem frete, desconto ou impostos rateados nesta versão (livraria de igreja, sem processo fiscal). Pode virar feature futura.
+- **Múltiplos rascunhos**: pode haver vários lançamentos em `rascunho` ao mesmo tempo (diferente da sessão única do inventário).
 - **Plataforma e localização**: app desktop offline, pt-BR, dinheiro em centavos, arquitetura Hexagonal e limite de 300 linhas por arquivo (constituição).
 
 ## Dependencies

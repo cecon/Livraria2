@@ -5,12 +5,13 @@ use crate::application::ports::{LivroRepo, RepoErro};
 use crate::domain::categoria::Categoria;
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::livro::Livro;
+use crate::domain::texto::normalize;
 use async_trait::async_trait;
 use chrono::Local;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::{
-    ActiveValue::Set, ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
-    QueryOrder, QuerySelect,
+    ActiveValue::Set, ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait,
+    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect,
 };
 
 pub struct SeaLivroRepo {
@@ -39,6 +40,38 @@ impl SeaLivroRepo {
             .await
             .map_err(erro)?;
         Ok(m.map(para_dominio))
+    }
+
+    /// Lista paginada de livros ativos (mais recentes primeiro), com busca opcional
+    /// por título/autor (sem acento), código ou código de barras. Retorna (itens, total).
+    /// `pagina` é 1-based.
+    pub async fn listar_pagina(
+        &self,
+        termo: &str,
+        pagina: u64,
+        por_pagina: u64,
+    ) -> Result<(Vec<Livro>, i64), RepoErro> {
+        let mut q = LivroEntity::find().filter(livro::Column::Ativo.eq(true));
+        let t = termo.trim();
+        if !t.is_empty() {
+            let norm = format!("%{}%", normalize(t));
+            let bruto = format!("%{}%", t);
+            q = q.filter(
+                Condition::any()
+                    .add(livro::Column::BuscaNorm.like(norm))
+                    .add(livro::Column::Codigo.like(bruto.clone()))
+                    .add(livro::Column::CodigoBarras.like(bruto)),
+            );
+        }
+        let pager = q
+            .order_by_desc(livro::Column::AtualizadoEm)
+            .paginate(&self.db, por_pagina.max(1));
+        let total = pager.num_items().await.map_err(erro)? as i64;
+        let ms = pager
+            .fetch_page(pagina.saturating_sub(1))
+            .await
+            .map_err(erro)?;
+        Ok((ms.into_iter().map(para_dominio).collect(), total))
     }
 }
 

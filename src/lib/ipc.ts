@@ -6,6 +6,7 @@ import type {
   Bipagem,
   Divergencia,
   Fechamento,
+  PaginaLivros,
   Livro,
   Movimento,
   Pendencia,
@@ -72,6 +73,15 @@ export async function salvarLivro(livro: Livro): Promise<void> {
 
 export async function excluirLivro(codigo: string): Promise<void> {
   await invoke("excluir_livro", { codigo });
+}
+
+/** Lista paginada de livros no banco (busca opcional) — Cadastro. */
+export async function livrosPagina(
+  termo = "",
+  pagina = 1,
+  porPagina = 12,
+): Promise<PaginaLivros> {
+  return await invoke("livros_pagina", { termo, pagina, porPagina });
 }
 
 export async function livrosRecentes(limite = 4): Promise<Livro[]> {
@@ -174,24 +184,7 @@ export async function excluirPedido(numero: number): Promise<void> {
   await invoke("excluir_pedido", { numero });
 }
 
-// --- Estoque: entrada, ajuste, extrato, fornecedores (feature 002) ---
-
-export interface EntradaInput {
-  codigo: string;
-  qtd: number;
-  fornecedor: string;
-  custoTotalCentavos?: number | null;
-  custoUnitCentavos?: number | null;
-}
-
-/** Registra entrada de mercadoria (compra). Retorna o livro atualizado. */
-export async function registrarEntrada(input: EntradaInput): Promise<Livro> {
-  return await invoke("registrar_entrada", { input });
-}
-
-export async function fornecedoresSugestoes(prefixo: string): Promise<string[]> {
-  return await invoke("fornecedores_sugestoes", { prefixo });
-}
+// --- Estoque: ajuste, extrato (feature 002) ---
 
 /** Ajuste avulso de estoque (± qtd) com motivo. Retorna o livro atualizado. */
 export async function registrarAjuste(
@@ -283,3 +276,6 @@ export async function buscarPorCodigoBarras(
 ): Promise<Livro | null> {
   return await invoke("buscar_por_codigo_barras", { codigoBarras });
 }
+
+// Fornecedores & lançamentos de nota (feature 003) — em módulo próprio.
+export * from "./ipc_compras";

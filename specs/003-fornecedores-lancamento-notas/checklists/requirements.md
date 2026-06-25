@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,7 +31,7 @@
 
 ## Notes
 
-- Resta **1 [NEEDS CLARIFICATION]**: o sentido de "entrada parcial" (US4 / FR-020) — rascunho retomável vs.
-  recebimento parcial. Decide a modelagem da nota; será resolvido com o usuário antes do `/speckit-plan`.
-- Demais ambiguidades foram resolvidas por padrões informados (ver Assumptions): fornecedor leve sem NF-e,
+- "Entrada parcial" resolvido na Sessão 2026-06-24: **rascunho retomável** (salvar incompleta, finalizar
+  depois; estoque só ao finalizar). US4/FR-020..023 atualizados. Sem markers pendentes.
+- Demais ambiguidades resolvidas por padrões informados (ver Assumptions): fornecedor leve sem NF-e,
   substituição da Entrada da 002 por notas multi-item, migração de fornecedores do texto livre.

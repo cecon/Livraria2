@@ -29,6 +29,18 @@ pub enum ErroDominio {
 
     #[error("motivo obrigatório")]
     MotivoObrigatorio,
+
+    #[error("nome obrigatório")]
+    NomeObrigatorio,
+
+    #[error("já existe um fornecedor com esse nome")]
+    FornecedorDuplicado,
+
+    #[error("a nota precisa de um fornecedor")]
+    SemFornecedor,
+
+    #[error("a nota já foi finalizada")]
+    NotaFinalizada,
 }
 
 impl ErroDominio {
@@ -44,6 +56,10 @@ impl ErroDominio {
             ErroDominio::TrocoSemDinheiro => "TROCO_SEM_DINHEIRO",
             ErroDominio::EstoqueNegativo => "ESTOQUE_NEGATIVO",
             ErroDominio::MotivoObrigatorio => "MOTIVO_OBRIGATORIO",
+            ErroDominio::NomeObrigatorio => "NOME_OBRIGATORIO",
+            ErroDominio::FornecedorDuplicado => "FORNECEDOR_DUPLICADO",
+            ErroDominio::SemFornecedor => "SEM_FORNECEDOR",
+            ErroDominio::NotaFinalizada => "NOTA_FINALIZADA",
         }
     }
 }

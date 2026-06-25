@@ -2,17 +2,15 @@
 //! movimento e atualiza o saldo materializado de `livro` na MESMA transação.
 
 use super::entities::livro::Entity as LivroEntity;
+use super::estoque_sql::{inserir_entrada_item, inserir_movimento};
 use super::livro_repo::para_dominio;
 use crate::application::ports::RepoErro;
 use crate::application::ports_estoque::{EntradaCmd, EstoqueRepo, MovimentoView};
-use crate::domain::dinheiro::Dinheiro;
-use crate::domain::estoque::{custo_medio_apos_entrada, TipoMovimento};
+use crate::domain::estoque::TipoMovimento;
 use crate::domain::livro::Livro;
 use async_trait::async_trait;
-use chrono::Local;
 use sea_orm::{
-    ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait, Statement,
-    TransactionTrait,
+    ConnectionTrait, DatabaseConnection, DbErr, EntityTrait, Statement, TransactionTrait,
 };
 
 pub struct SeaEstoqueRepo {
@@ -29,57 +27,6 @@ fn erro(e: DbErr) -> RepoErro {
     RepoErro::Persistencia(e.to_string())
 }
 
-fn agora() -> String {
-    Local::now().format("%Y-%m-%dT%H:%M:%S").to_string()
-}
-
-/// Insere uma linha no ledger (append-only). Não há caminho de update/delete (FR-005).
-#[allow(clippy::too_many_arguments)]
-async fn inserir_movimento(
-    txn: &DatabaseTransaction,
-    livro_codigo: &str,
-    tipo: TipoMovimento,
-    qtd: i64,
-    custo_unit: Option<i64>,
-    fornecedor: Option<String>,
-    motivo: Option<String>,
-    referencia: Option<String>,
-) -> Result<(), DbErr> {
-    let backend = txn.get_database_backend();
-    txn.execute(Statement::from_sql_and_values(
-        backend,
-        "INSERT INTO movimento_estoque
-            (livro_codigo, tipo, qtd, custo_unit_centavos, fornecedor, motivo, referencia, criado_em)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        [
-            livro_codigo.into(),
-            tipo.as_str().into(),
-            qtd.into(),
-            custo_unit.into(),
-            fornecedor.into(),
-            motivo.into(),
-            referencia.into(),
-            agora().into(),
-        ],
-    ))
-    .await?;
-    Ok(())
-}
-
-/// Lê (estoque, custo_medio_centavos) do livro dentro da transação.
-async fn ler_saldo(txn: &DatabaseTransaction, codigo: &str) -> Result<(i64, i64), DbErr> {
-    let backend = txn.get_database_backend();
-    let row = txn
-        .query_one(Statement::from_sql_and_values(
-            backend,
-            "SELECT estoque, custo_medio_centavos FROM livro WHERE codigo = ?",
-            [codigo.into()],
-        ))
-        .await?
-        .ok_or_else(|| DbErr::Custom("livro não encontrado".into()))?;
-    Ok((row.try_get("", "estoque")?, row.try_get("", "custo_medio_centavos")?))
-}
-
 async fn buscar_livro(db: &DatabaseConnection, codigo: &str) -> Result<Livro, RepoErro> {
     let m = LivroEntity::find_by_id(codigo.to_string())
         .one(db)
@@ -93,31 +40,15 @@ async fn buscar_livro(db: &DatabaseConnection, codigo: &str) -> Result<Livro, Re
 impl EstoqueRepo for SeaEstoqueRepo {
     async fn registrar_entrada(&self, cmd: EntradaCmd) -> Result<Livro, RepoErro> {
         let txn = self.db.begin().await.map_err(erro)?;
-        let backend = txn.get_database_backend();
-        let (estoque, medio) = ler_saldo(&txn, &cmd.livro_codigo).await.map_err(erro)?;
-        let novo_medio = custo_medio_apos_entrada(
-            estoque,
-            Dinheiro::de_centavos(medio),
-            cmd.qtd,
-            Dinheiro::de_centavos(cmd.custo_unit_centavos),
-        );
-        inserir_movimento(
+        // Delega ao helper compartilhado (D3a) — mesma mecânica usada pela finalização de nota.
+        inserir_entrada_item(
             &txn,
             &cmd.livro_codigo,
-            TipoMovimento::Entrada,
             cmd.qtd,
-            Some(cmd.custo_unit_centavos),
+            cmd.custo_unit_centavos,
             Some(cmd.fornecedor.clone()),
             None,
-            None,
         )
-        .await
-        .map_err(erro)?;
-        txn.execute(Statement::from_sql_and_values(
-            backend,
-            "UPDATE livro SET estoque = estoque + ?, custo_medio_centavos = ? WHERE codigo = ?",
-            [cmd.qtd.into(), novo_medio.centavos().into(), cmd.livro_codigo.clone().into()],
-        ))
         .await
         .map_err(erro)?;
         txn.commit().await.map_err(erro)?;
