@@ -60,6 +60,9 @@ mod tests {
         async fn bipar(&self, _s: i64, _c: &str) -> Result<BipagemResultado, RepoErro> {
             unreachable!()
         }
+        async fn desbipar(&self, _s: i64, _c: &str) -> Result<BipagemResultado, RepoErro> {
+            unreachable!()
+        }
         async fn ajustar_item(&self, _s: i64, _c: &str, _q: i64) -> Result<(), RepoErro> {
             Ok(())
         }

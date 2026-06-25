@@ -36,13 +36,15 @@ async fn upsert_soft_delete_e_busca() {
 
     // Insere.
     repo.salvar(&livro("111", "Bíblia NVI", 5)).await.unwrap();
-    // Upsert: mesmo código, dados alterados — não duplica, atualiza.
+    // Upsert: mesmo código, dados alterados — não duplica, atualiza os campos editáveis.
     repo.salvar(&livro("111", "Bíblia NVI Capa Dura", 8))
         .await
         .unwrap();
     let l = repo.por_codigo("111").await.unwrap().unwrap();
     assert_eq!(l.titulo, "Bíblia NVI Capa Dura");
-    assert_eq!(l.estoque, 8);
+    // Estoque é governado pela razão de movimentos (feature 002): editar o livro
+    // NÃO sobrescreve o saldo — permanece o valor original (5), não o 8 enviado.
+    assert_eq!(l.estoque, 5);
 
     // Busca sem acento encontra o título acentuado.
     let achados = repo.buscar_texto("biblia", 10).await.unwrap();

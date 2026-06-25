@@ -229,6 +229,14 @@ export async function inventarioBipar(
   return await invoke("inventario_bipar", { sessaoId, codigoBarras });
 }
 
+/** Desfaz uma bipagem (−1). Se zerar, remove o livro da contagem. */
+export async function inventarioDesbipar(
+  sessaoId: number,
+  codigoBarras: string,
+): Promise<Bipagem> {
+  return await invoke("inventario_desbipar", { sessaoId, codigoBarras });
+}
+
 export async function inventarioAjustarItem(
   sessaoId: number,
   codigo: string,

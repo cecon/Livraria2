@@ -74,6 +74,7 @@ pub fn run() {
             commands_inventario::inventario_abrir,
             commands_inventario::inventario_sessao_aberta,
             commands_inventario::inventario_bipar,
+            commands_inventario::inventario_desbipar,
             commands_inventario::inventario_ajustar_item,
             commands_inventario::inventario_revisao,
             commands_inventario::inventario_fechar,

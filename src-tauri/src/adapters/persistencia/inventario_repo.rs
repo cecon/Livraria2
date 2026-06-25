@@ -1,9 +1,9 @@
 //! Implementação SeaORM da porta `InventarioRepo` (ADR-0010). Bipagem, revisão e
 //! fechamento com reconciliação no fechamento. Helpers SQL em `inventario_sql`.
 
-use super::entities::livro::{self, Entity as LivroEntity};
 use super::inventario_sql::{
-    agora, aplicar_fechamento, divergencias_query, exec, pendencias_query, sessao_de_row,
+    achar_por_bipagem, agora, aplicar_fechamento, divergencias_query, exec, ler_qtd_contada,
+    pendencias_query, sessao_de_row,
 };
 use super::livro_repo::para_dominio;
 use crate::application::ports::RepoErro;
@@ -12,8 +12,7 @@ use crate::application::ports_inventario::{
 };
 use async_trait::async_trait;
 use sea_orm::{
-    ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
-    Statement, TransactionTrait,
+    ConnectionTrait, DatabaseConnection, DbErr, Statement, TransactionTrait,
 };
 
 pub struct SeaInventarioRepo {
@@ -84,17 +83,7 @@ impl InventarioRepo for SeaInventarioRepo {
     }
 
     async fn bipar(&self, sessao_id: i64, codigo_lido: &str) -> Result<BipagemResultado, RepoErro> {
-        let achado = LivroEntity::find()
-            .filter(livro::Column::Ativo.eq(true))
-            .filter(
-                Condition::any()
-                    .add(livro::Column::CodigoBarras.eq(codigo_lido))
-                    .add(livro::Column::Codigo.eq(codigo_lido)),
-            )
-            .one(&self.db)
-            .await
-            .map_err(erro)?;
-        if let Some(m) = achado {
+        if let Some(m) = achar_por_bipagem(&self.db, codigo_lido).await.map_err(erro)? {
             let codigo = m.codigo.clone();
             let afetou = self
                 .db
@@ -116,17 +105,9 @@ impl InventarioRepo for SeaInventarioRepo {
                 .await
                 .map_err(erro)?;
             }
-            let qtd = self
-                .db
-                .query_one(Statement::from_sql_and_values(
-                    self.db.get_database_backend(),
-                    "SELECT qtd_contada FROM item_contagem WHERE sessao_id = ? AND livro_codigo = ?",
-                    [sessao_id.into(), codigo.into()],
-                ))
+            let qtd = ler_qtd_contada(&self.db, sessao_id, &codigo)
                 .await
-                .map_err(erro)?
-                .and_then(|r| r.try_get::<i64>("", "qtd_contada").ok())
-                .unwrap_or(1);
+                .map_err(erro)?;
             return Ok(BipagemResultado {
                 livro: Some(para_dominio(m)),
                 qtd_contada: Some(qtd),
@@ -166,6 +147,45 @@ impl InventarioRepo for SeaInventarioRepo {
             livro: None,
             qtd_contada: None,
             pendencia,
+        })
+    }
+
+    async fn desbipar(
+        &self,
+        sessao_id: i64,
+        codigo_lido: &str,
+    ) -> Result<BipagemResultado, RepoErro> {
+        let Some(m) = achar_por_bipagem(&self.db, codigo_lido).await.map_err(erro)? else {
+            return Ok(BipagemResultado {
+                livro: None,
+                qtd_contada: None,
+                pendencia: None,
+            });
+        };
+        let codigo = m.codigo.clone();
+        exec(
+            &self.db,
+            "UPDATE item_contagem SET qtd_contada = qtd_contada - 1
+             WHERE sessao_id = ? AND livro_codigo = ?",
+            vec![sessao_id.into(), codigo.clone().into()],
+        )
+        .await
+        .map_err(erro)?;
+        // Se zerou, remove da contagem (não vira "contado = 0").
+        exec(
+            &self.db,
+            "DELETE FROM item_contagem WHERE sessao_id = ? AND livro_codigo = ? AND qtd_contada <= 0",
+            vec![sessao_id.into(), codigo.clone().into()],
+        )
+        .await
+        .map_err(erro)?;
+        let qtd = ler_qtd_contada(&self.db, sessao_id, &codigo)
+            .await
+            .map_err(erro)?;
+        Ok(BipagemResultado {
+            livro: Some(para_dominio(m)),
+            qtd_contada: Some(qtd),
+            pendencia: None,
         })
     }
 

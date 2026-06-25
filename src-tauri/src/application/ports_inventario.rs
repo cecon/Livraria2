@@ -58,6 +58,10 @@ pub trait InventarioRepo: Send + Sync {
     async fn abrir(&self, modo: &str, rotulo: Option<String>) -> Result<SessaoView, RepoErro>;
     /// Bipagem: casa por `codigo_barras` OU `codigo`; senão acumula pendência.
     async fn bipar(&self, sessao_id: i64, codigo_lido: &str) -> Result<BipagemResultado, RepoErro>;
+    /// Desfaz uma bipagem (decrementa 1). Se a contagem chegar a 0, remove o livro
+    /// da contagem (não vira "contado = 0"). Não mexe em pendências.
+    async fn desbipar(&self, sessao_id: i64, codigo_lido: &str)
+        -> Result<BipagemResultado, RepoErro>;
     /// Ajuste manual da quantidade contada de um livro na sessão.
     async fn ajustar_item(&self, sessao_id: i64, codigo: &str, qtd: i64) -> Result<(), RepoErro>;
     /// Divergências ao vivo (sistema atual vs contado) antes do fechamento.

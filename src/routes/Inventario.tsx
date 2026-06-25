@@ -1,14 +1,15 @@
-// Tela de Inventário por bipagem (US2, FR-020..030).
+// Tela de Inventário por bipagem (US2, FR-020..030). O card de bipagem/busca
+// vive em InventarioScanner; aqui ficam a sessão e a revisão.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Pendencias } from "@/components/Pendencias";
+import { InventarioScanner } from "@/components/InventarioScanner";
 import {
   inventarioAbrir,
-  inventarioBipar,
   inventarioCancelar,
   inventarioFechar,
   inventarioRevisao,
@@ -21,20 +22,15 @@ export default function Inventario() {
   const [sessao, setSessao] = useState<Sessao | null>(null);
   const [modo, setModo] = useState<"parcial" | "total">("parcial");
   const [rotulo, setRotulo] = useState("");
-  const [codigo, setCodigo] = useState("");
   const [linhas, setLinhas] = useState<Divergencia[]>([]);
   const [pend, setPend] = useState(0);
-  const scanRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inventarioSessaoAberta().then(setSessao).catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (sessao) {
-      void atualizar();
-      scanRef.current?.focus();
-    }
+    if (sessao) void atualizar();
   }, [sessao]);
 
   async function atualizar() {
@@ -53,26 +49,6 @@ export default function Inventario() {
       toast.success(`Sessão ${modo} aberta`);
     } catch (e) {
       toast.error((e as ErroIpc).mensagem ?? "Erro ao abrir sessão");
-    }
-  }
-
-  async function bipar() {
-    const v = codigo.trim();
-    if (!v || !sessao) return;
-    setCodigo("");
-    try {
-      const r = await inventarioBipar(sessao.id, v);
-      if (r.encontrado) {
-        toast.success(`${r.livro?.titulo} — contados: ${r.qtdContada}`);
-        void atualizar();
-      } else {
-        toast.warning(`Código ${v} desconhecido → pendência`);
-        setPend((n) => n + 1);
-      }
-    } catch (e) {
-      toast.error((e as ErroIpc).mensagem ?? "Erro ao bipar");
-    } finally {
-      scanRef.current?.focus();
     }
   }
 
@@ -171,18 +147,11 @@ export default function Inventario() {
         </div>
       </div>
 
-      <div className="bg-card mt-4 rounded-xl border p-5">
-        <Label>Bipe o livro</Label>
-        <Input
-          ref={scanRef}
-          value={codigo}
-          onChange={(e) => setCodigo(e.currentTarget.value)}
-          onKeyDown={(e) => e.key === "Enter" && bipar()}
-          className="mt-1 h-10 font-mono"
-          placeholder="Leitor de código de barras…"
-          autoFocus
-        />
-      </div>
+      <InventarioScanner
+        sessaoId={sessao.id}
+        onConta={atualizar}
+        onPendencia={() => setPend((n) => n + 1)}
+      />
 
       <div className="mt-4">
         <div className="text-muted-foreground mb-2 flex items-center justify-between text-sm">

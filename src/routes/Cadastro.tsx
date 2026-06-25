@@ -1,297 +1,194 @@
-// Tela Cadastro de livro (US2): lookup por código → incluir/alterar/excluir.
+// Tela Cadastro (US2): lista de livros com busca, estoque, ações e paginação.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { CATEGORIAS, type Livro } from "@/lib/types";
-import { centavosParaInput, parseBrlParaCentavos } from "@/lib/format";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { StockBadge } from "@/components/StockBadge";
+import { LivroForm } from "@/components/LivroForm";
+import { brl } from "@/lib/format";
+import type { Livro } from "@/lib/types";
 import {
+  buscarPorTexto,
   excluirLivro,
-  livroPorCodigo,
   livrosRecentes,
-  salvarLivro,
   type ErroIpc,
 } from "@/lib/ipc";
 
-const FORM_VAZIO = {
-  codigo: "",
-  codigoBarras: "",
-  titulo: "",
-  autor: "",
-  valor: "",
-  estoque: "0",
-  categoria: 0,
-  descricao: "",
-};
+const POR_PAGINA = 12;
 
 export default function Cadastro() {
-  const [modo, setModo] = useState<"lookup" | "form">("lookup");
-  const [editando, setEditando] = useState(false);
-  const [codigoLookup, setCodigoLookup] = useState("");
-  const [form, setForm] = useState({ ...FORM_VAZIO });
-  const [recentes, setRecentes] = useState<Livro[]>([]);
-  const lookupRef = useRef<HTMLInputElement>(null);
+  const [aberto, setAberto] = useState<Livro | "novo" | null>(null);
+  const [termo, setTermo] = useState("");
+  const [lista, setLista] = useState<Livro[]>([]);
+  const [pagina, setPagina] = useState(1);
+
+  async function carregar() {
+    const t = termo.trim();
+    try {
+      const r = t.length >= 2 ? await buscarPorTexto(t) : await livrosRecentes(100);
+      setLista(r);
+      setPagina(1);
+    } catch {
+      setLista([]);
+    }
+  }
 
   useEffect(() => {
-    carregarRecentes();
-    lookupRef.current?.focus();
-  }, []);
+    const id = window.setTimeout(carregar, 160);
+    return () => window.clearTimeout(id);
+  }, [termo]);
 
-  function carregarRecentes() {
-    livrosRecentes(4).then(setRecentes).catch(() => setRecentes([]));
-  }
-
-  function abrirLivro(l: Livro) {
-    setForm({
-      codigo: l.codigo,
-      codigoBarras: l.codigoBarras ?? "",
-      titulo: l.titulo,
-      autor: l.autor ?? "",
-      valor: centavosParaInput(l.precoCentavos),
-      estoque: String(l.estoque),
-      categoria: l.categoria,
-      descricao: l.descricao ?? "",
-    });
-    setEditando(true);
-    setModo("form");
-  }
-
-  async function buscar() {
-    const cod = codigoLookup.trim();
-    if (!cod) return;
+  async function remover(l: Livro) {
+    if (!window.confirm(`Excluir "${l.titulo}"?`)) return;
     try {
-      const l = await livroPorCodigo(cod);
-      if (l) {
-        abrirLivro(l);
-      } else {
-        setForm({ ...FORM_VAZIO, codigo: cod });
-        setEditando(false);
-        setModo("form");
-      }
-    } catch (e) {
-      toast.error((e as ErroIpc).mensagem ?? "Erro ao buscar");
-    }
-  }
-
-  function voltarLookup() {
-    setModo("lookup");
-    setCodigoLookup("");
-    setTimeout(() => lookupRef.current?.focus(), 0);
-  }
-
-  async function salvar() {
-    const precoCentavos = parseBrlParaCentavos(form.valor) ?? 0;
-    const livro: Livro = {
-      codigo: form.codigo.trim(),
-      titulo: form.titulo.trim(),
-      autor: form.autor.trim() || null,
-      precoCentavos,
-      categoria: form.categoria,
-      estoque: parseInt(form.estoque, 10) || 0,
-      descricao: form.descricao.trim() || null,
-      codigoBarras: form.codigoBarras.trim() || null,
-    };
-    try {
-      await salvarLivro(livro);
-      toast.success(editando ? "Livro alterado" : "Livro cadastrado");
-      carregarRecentes();
-      voltarLookup();
-    } catch (e) {
-      toast.error((e as ErroIpc).mensagem ?? "Erro ao salvar");
-    }
-  }
-
-  async function excluir() {
-    try {
-      await excluirLivro(form.codigo);
+      await excluirLivro(l.codigo);
       toast.success("Livro excluído");
-      carregarRecentes();
-      voltarLookup();
+      void carregar();
     } catch (e) {
       toast.error((e as ErroIpc).mensagem ?? "Erro ao excluir");
     }
   }
 
-  if (modo === "lookup") {
+  if (aberto !== null) {
     return (
       <div className="mx-auto max-w-2xl p-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Cadastro</h1>
-        <div className="bg-card mt-4 rounded-xl border p-5">
-          <Label htmlFor="cod">Código de Barras</Label>
-          <div className="mt-1 flex gap-2">
-            <Input
-              id="cod"
-              ref={lookupRef}
-              value={codigoLookup}
-              autoFocus
-              onChange={(e) => setCodigoLookup(e.currentTarget.value)}
-              onKeyDown={(e) => e.key === "Enter" && buscar()}
-              className="h-9 font-mono"
-              placeholder="Escaneie ou digite o código"
-            />
-            <Button onClick={buscar} className="h-9">
-              Cadastrar / Alterar
-            </Button>
-          </div>
-        </div>
-
-        {recentes.length > 0 && (
-          <div className="mt-6">
-            <div className="text-muted-foreground text-[11px] uppercase">
-              Cadastrados recentemente
-            </div>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {recentes.map((l) => (
-                <button
-                  key={l.codigo}
-                  onClick={() => abrirLivro(l)}
-                  className="bg-card hover:bg-muted/50 rounded-lg border p-3 text-left"
-                >
-                  <div className="truncate text-sm font-medium">{l.titulo}</div>
-                  <div className="text-muted-foreground font-mono text-[11px]">
-                    {l.codigo}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {aberto === "novo" ? "Novo livro" : "Alterar livro"}
+        </h1>
+        <LivroForm
+          inicial={aberto === "novo" ? null : aberto}
+          onSalvo={() => {
+            setAberto(null);
+            void carregar();
+          }}
+          onCancelar={() => setAberto(null)}
+        />
       </div>
     );
   }
 
-  return (
-    <div className="mx-auto max-w-2xl p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {editando ? "Alterar livro" : "Novo livro"}
-      </h1>
-      <div className="bg-card mt-4 space-y-4 rounded-xl border p-5">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Código (interno)</Label>
-            <Input value={form.codigo} disabled className="mt-1 h-9 font-mono" />
-          </div>
-          <div>
-            <Label htmlFor="ean">Código de barras (EAN/ISBN)</Label>
-            <Input
-              id="ean"
-              value={form.codigoBarras}
-              onChange={(e) =>
-                setForm({ ...form, codigoBarras: e.currentTarget.value })
-              }
-              className="mt-1 h-9 font-mono"
-              placeholder="opcional"
-            />
-          </div>
-        </div>
-        <div>
-          <Label htmlFor="tit">Título</Label>
-          <Input
-            id="tit"
-            value={form.titulo}
-            autoFocus
-            onChange={(e) =>
-              setForm({ ...form, titulo: e.currentTarget.value.toUpperCase() })
-            }
-            className="mt-1 h-9"
-          />
-        </div>
-        <div>
-          <Label htmlFor="aut">Autor</Label>
-          <Input
-            id="aut"
-            value={form.autor}
-            onChange={(e) =>
-              setForm({ ...form, autor: e.currentTarget.value.toUpperCase() })
-            }
-            className="mt-1 h-9"
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="val">Valor (R$)</Label>
-            <Input
-              id="val"
-              value={form.valor}
-              inputMode="decimal"
-              placeholder="0,00"
-              onChange={(e) => setForm({ ...form, valor: e.currentTarget.value })}
-              className="mt-1 h-9 font-mono"
-            />
-          </div>
-          <div>
-            <Label htmlFor="est">Estoque</Label>
-            <Input
-              id="est"
-              value={form.estoque}
-              inputMode="numeric"
-              onChange={(e) => setForm({ ...form, estoque: e.currentTarget.value })}
-              className="mt-1 h-9 font-mono"
-            />
-          </div>
-        </div>
-        <div>
-          <Label>Categoria</Label>
-          <Select
-            value={String(form.categoria)}
-            onValueChange={(v) => setForm({ ...form, categoria: Number(v) })}
-          >
-            <SelectTrigger className="mt-1 h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORIAS.map((c) => (
-                <SelectItem key={c.id} value={String(c.id)}>
-                  {c.id} — {c.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="text-muted-foreground mt-1 text-[11px]">
-            0 = Não Categorizado
-          </div>
-        </div>
-        <div>
-          <Label htmlFor="desc">Descrição</Label>
-          <Textarea
-            id="desc"
-            value={form.descricao}
-            onChange={(e) => setForm({ ...form, descricao: e.currentTarget.value })}
-            className="mt-1"
-          />
-        </div>
+  const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
+  const inicio = (pagina - 1) * POR_PAGINA;
+  const visiveis = lista.slice(inicio, inicio + POR_PAGINA);
 
-        <div className="flex gap-2 pt-2">
-          <Button
-            onClick={salvar}
-            className="h-9 bg-[#1f7a4d] text-white hover:bg-[#1a6a43]"
-          >
-            {editando ? "Alterar" : "Cadastrar"}
-          </Button>
-          {editando && (
-            <Button
-              variant="ghost"
-              onClick={excluir}
-              className="h-9 text-rose-500 hover:text-rose-600"
-            >
-              Excluir
-            </Button>
-          )}
-          <Button variant="outline" onClick={voltarLookup} className="ml-auto h-9">
-            Cancelar
-          </Button>
-        </div>
+  return (
+    <div className="mx-auto max-w-4xl p-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold tracking-tight">Cadastro</h1>
+        <Button onClick={() => setAberto("novo")} className="h-9">
+          <Plus size={16} className="mr-1" /> Novo livro
+        </Button>
       </div>
+
+      <Input
+        value={termo}
+        onChange={(e) => setTermo(e.currentTarget.value)}
+        className="mt-4 h-9"
+        placeholder="Buscar por título, autor ou código…"
+        autoFocus
+      />
+
+      <div className="bg-card mt-4 rounded-xl border">
+        <Table className="table-fixed">
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-[48%]">Livro</TableHead>
+              <TableHead className="w-[18%] text-right">Preço</TableHead>
+              <TableHead className="w-[18%] text-center">Estoque</TableHead>
+              <TableHead className="w-[16%] text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {visiveis.map((l) => (
+              <TableRow key={l.codigo}>
+                <TableCell>
+                  <div className="truncate font-medium">{l.titulo}</div>
+                  <div className="text-muted-foreground truncate text-[11px]">
+                    {l.autor ? `${l.autor} · ` : ""}
+                    <span className="font-mono">{l.codigo}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right font-mono whitespace-nowrap">
+                  {brl(l.precoCentavos)}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="font-mono">{l.estoque}</span>
+                    <StockBadge estoque={l.estoque} />
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setAberto(l)}
+                      title="Editar"
+                    >
+                      <Pencil size={15} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => remover(l)}
+                      title="Remover"
+                      className="text-rose-500 hover:text-rose-600"
+                    >
+                      <Trash2 size={15} />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+            {visiveis.length === 0 && (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={4} className="text-muted-foreground py-10 text-center">
+                  {termo.trim() ? "Nenhum livro encontrado." : "Nenhum livro cadastrado."}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {lista.length > 0 && (
+        <div className="text-muted-foreground mt-3 flex items-center justify-between text-sm">
+          <span>
+            {inicio + 1}–{Math.min(inicio + POR_PAGINA, lista.length)} de {lista.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pagina <= 1}
+              onClick={() => setPagina((p) => p - 1)}
+            >
+              <ChevronLeft size={15} />
+            </Button>
+            <span className="tabular-nums">
+              {pagina} / {totalPaginas}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pagina >= totalPaginas}
+              onClick={() => setPagina((p) => p + 1)}
+            >
+              <ChevronRight size={15} />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

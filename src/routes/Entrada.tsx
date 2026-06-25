@@ -1,11 +1,12 @@
 // Tela de Entrada de mercadoria (compra) — US1, FR-010..015.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StockBadge } from "@/components/StockBadge";
+import { EntradaProduto } from "@/components/EntradaProduto";
 import { brl, parseBrlParaCentavos } from "@/lib/format";
 import type { Livro } from "@/lib/types";
 import {
@@ -24,6 +25,7 @@ export default function Entrada() {
   const [modoCusto, setModoCusto] = useState<"unit" | "total">("unit");
   const [custo, setCusto] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const buscaRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fornecedoresSugestoes("").then(setSugestoes).catch(() => {});
@@ -91,19 +93,18 @@ export default function Entrada() {
       </p>
 
       <div className="bg-card mt-4 rounded-xl border p-5">
-        <Label>Código de barras ou código interno</Label>
-        <div className="mt-1 flex gap-2">
-          <Input
+        <Label>Código, título ou autor</Label>
+        <div className="mt-1">
+          <EntradaProduto
             value={busca}
-            onChange={(e) => setBusca(e.currentTarget.value)}
-            onKeyDown={(e) => e.key === "Enter" && localizar()}
-            className="h-9 font-mono"
-            placeholder="Bipe ou digite o código"
-            autoFocus
+            onChange={setBusca}
+            inputRef={buscaRef}
+            onCodigoExato={localizar}
+            onSelecionar={(l) => {
+              setLivro(l);
+              setBusca("");
+            }}
           />
-          <Button onClick={localizar} className="h-9">
-            Localizar
-          </Button>
         </div>
       </div>
 
