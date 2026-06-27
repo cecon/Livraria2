@@ -102,6 +102,8 @@ pub trait InventarioRepo: Send + Sync {
     async fn pendencias(&self, apenas_abertas: bool) -> Result<Vec<PendenciaView>, RepoErro>;
     /// Marca uma pendência como resolvida (ao cadastrar o livro).
     async fn resolver_pendencia(&self, pendencia_id: i64) -> Result<(), RepoErro>;
+    /// Reabre uma pendência resolvida, devolvendo-a à lista ativa (US5, FR-007).
+    async fn reabrir_pendencia(&self, pendencia_id: i64) -> Result<(), RepoErro>;
     /// Sessões já realizadas (fechadas/canceladas), mais recentes primeiro (US3, FR-010).
     async fn sessoes_realizadas(&self) -> Result<Vec<SessaoView>, RepoErro>;
     /// Relatório só-leitura de uma sessão: sessão + agregados + itens + pendências (FR-011/012/015).

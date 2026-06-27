@@ -127,8 +127,8 @@ description: "Task list — 004 Melhorias de inventário + identidade do livro (
 
 **Independent Test**: clicar "Cadastrar livro" → cadastro abre com `codigo` preenchido; ao salvar, a pendência some da lista ativa.
 
-- [ ] T035 [US4] `src/routes/Cadastro.tsx`: aceitar um **seed de `codigo`** (via state de rota / param) e abrir `LivroForm` "novo" pré-preenchido
-- [ ] T036 [US4] `src/components/Pendencias.tsx`: o botão "Cadastrar livro" navega ao Cadastro semeando `codigo` + `pendenciaId`; ao salvar com sucesso, chamar `resolverPendencia(pendenciaId)` (FR-003/004)
+- [X] T035 [US4] `src/routes/Cadastro.tsx`: aceitar um **seed de `codigo`** (via state de rota / param) e abrir `LivroForm` "novo" pré-preenchido
+- [X] T036 [US4] `src/components/Pendencias.tsx`: o botão "Cadastrar livro" navega ao Cadastro semeando `codigo` + `pendenciaId`; ao salvar com sucesso, chamar `resolverPendencia(pendenciaId)` (FR-003/004)
 - [ ] T037 [US4] Validar [quickstart.md](quickstart.md) §2.5
 
 **Checkpoint**: cadastro a partir da pendência fechando o ciclo.
@@ -141,9 +141,9 @@ description: "Task list — 004 Melhorias de inventário + identidade do livro (
 
 **Independent Test**: marcar "Já resolvido", ver resolvidas, reabrir → volta à lista ativa com os mesmos dados.
 
-- [ ] T038 [US5] `src-tauri/src/application/ports_inventario.rs` + `src-tauri/src/adapters/persistencia/inventario_repo.rs`: método `reabrir_pendencia(id)` (`UPDATE pendencia_cadastro SET resolvida = 0 WHERE id = ?`) (FR-007)
-- [ ] T039 [US5] `src-tauri/src/commands_inventario.rs` + `lib.rs`: comando `reabrir_pendencia`; binding em `src/lib/ipc.ts`
-- [ ] T040 [US5] `src/components/Pendencias.tsx`: visão de **resolvidas** (`inventarioPendencias(false)` filtrando `resolvida=1`) com botão "Reabrir" (FR-006)
+- [X] T038 [US5] `src-tauri/src/application/ports_inventario.rs` + `src-tauri/src/adapters/persistencia/inventario_repo.rs`: método `reabrir_pendencia(id)` (`UPDATE pendencia_cadastro SET resolvida = 0 WHERE id = ?`) (FR-007)
+- [X] T039 [US5] `src-tauri/src/commands_inventario.rs` + `lib.rs`: comando `reabrir_pendencia`; binding em `src/lib/ipc.ts`
+- [X] T040 [US5] `src/components/Pendencias.tsx`: visão de **resolvidas** (`inventarioPendencias(false)` filtrando `resolvida=1`) com botão "Reabrir" (FR-006)
 - [ ] T041 [US5] Validar [quickstart.md](quickstart.md) §2.4
 
 **Checkpoint**: rede de segurança da dispensa pronta.

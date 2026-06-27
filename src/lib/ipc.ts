@@ -282,6 +282,10 @@ export async function resolverPendencia(pendenciaId: number): Promise<void> {
   await invoke("resolver_pendencia", { pendenciaId });
 }
 
+export async function reabrirPendencia(pendenciaId: number): Promise<void> {
+  await invoke("reabrir_pendencia", { pendenciaId });
+}
+
 export async function buscarPorCodigoBarras(
   codigoBarras: string,
 ): Promise<Livro | null> {

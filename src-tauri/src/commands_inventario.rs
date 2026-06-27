@@ -176,6 +176,18 @@ pub async fn resolver_pendencia(
 }
 
 #[tauri::command]
+pub async fn reabrir_pendencia(
+    state: tauri::State<'_, AppState>,
+    pendencia_id: i64,
+) -> Result<(), ErroDto> {
+    repo(&state)
+        .reabrir_pendencia(pendencia_id)
+        .await
+        .map_err(ErroApp::from)?;
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn buscar_por_codigo_barras(
     state: tauri::State<'_, AppState>,
     codigo_barras: String,

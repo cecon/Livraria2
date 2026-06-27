@@ -4,7 +4,7 @@
 use super::inventario_relatorio_sql::{montar_relatorio, sessoes_realizadas_query};
 use super::inventario_sql::{
     achar_por_bipagem, agora, aplicar_fechamento, divergencias_query, exec, ler_qtd_contada,
-    pendencias_query, sessao_de_row,
+    pendencias_query, sessao_de_row, set_pendencia_resolvida,
 };
 use super::livro_repo::para_dominio;
 use crate::application::ports::RepoErro;
@@ -304,12 +304,10 @@ impl InventarioRepo for SeaInventarioRepo {
     }
 
     async fn resolver_pendencia(&self, pendencia_id: i64) -> Result<(), RepoErro> {
-        exec(
-            &self.db,
-            "UPDATE pendencia_cadastro SET resolvida = 1 WHERE id = ?",
-            vec![pendencia_id.into()],
-        )
-        .await
-        .map_err(erro)
+        set_pendencia_resolvida(&self.db, pendencia_id, true).await.map_err(erro)
+    }
+
+    async fn reabrir_pendencia(&self, pendencia_id: i64) -> Result<(), RepoErro> {
+        set_pendencia_resolvida(&self.db, pendencia_id, false).await.map_err(erro)
     }
 }

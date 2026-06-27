@@ -86,6 +86,9 @@ mod tests {
         async fn resolver_pendencia(&self, _id: i64) -> Result<(), RepoErro> {
             Ok(())
         }
+        async fn reabrir_pendencia(&self, _id: i64) -> Result<(), RepoErro> {
+            Ok(())
+        }
         async fn sessoes_realizadas(&self) -> Result<Vec<SessaoView>, RepoErro> {
             Ok(vec![])
         }

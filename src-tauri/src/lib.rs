@@ -91,6 +91,7 @@ pub fn run() {
             commands_inventario::inventario_relatorio,
             commands_inventario::inventario_pendencias,
             commands_inventario::resolver_pendencia,
+            commands_inventario::reabrir_pendencia,
             commands_inventario::buscar_por_codigo_barras,
             commands_fornecedor::fornecedores_listar,
             commands_fornecedor::fornecedor_salvar,

@@ -20,13 +20,14 @@ import { excluirLivro, salvarLivro, type ErroIpc } from "@/lib/ipc";
 
 interface Props {
   inicial: Livro | null; // null = novo livro
+  codigoInicial?: string; // semeia o código num livro novo (US4, a partir da pendência)
   onSalvo: () => void;
   onCancelar: () => void;
 }
 
-function doLivro(l: Livro | null) {
+function doLivro(l: Livro | null, codigoInicial?: string) {
   return {
-    codigo: l?.codigo ?? "",
+    codigo: l?.codigo ?? codigoInicial ?? "",
     titulo: l?.titulo ?? "",
     autor: l?.autor ?? "",
     valor: l ? centavosParaInput(l.precoCentavos) : "",
@@ -36,9 +37,9 @@ function doLivro(l: Livro | null) {
   };
 }
 
-export function LivroForm({ inicial, onSalvo, onCancelar }: Props) {
+export function LivroForm({ inicial, codigoInicial, onSalvo, onCancelar }: Props) {
   const editando = inicial !== null;
-  const [form, setForm] = useState(() => doLivro(inicial));
+  const [form, setForm] = useState(() => doLivro(inicial, codigoInicial));
   const [ajuda, setAjuda] = useState(false);
 
   async function salvar() {

@@ -117,6 +117,21 @@ pub(crate) async fn divergencias_query(
     Ok(out)
 }
 
+/// Marca (US5) uma pendência como resolvida (`true`) ou reaberta (`false`).
+pub(crate) async fn set_pendencia_resolvida(
+    db: &impl ConnectionTrait,
+    pendencia_id: i64,
+    resolvida: bool,
+) -> Result<(), DbErr> {
+    let v: i64 = resolvida.into();
+    exec(
+        db,
+        "UPDATE pendencia_cadastro SET resolvida = ? WHERE id = ?",
+        vec![v.into(), pendencia_id.into()],
+    )
+    .await
+}
+
 pub(crate) async fn pendencias_query(
     db: &impl ConnectionTrait,
     filtro: &str,
