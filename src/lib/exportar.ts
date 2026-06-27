@@ -48,7 +48,7 @@ export async function exportarVendasPdf(rel: RelatorioVendas): Promise<boolean> 
   doc.text(`Relatório de Vendas — ${rel.data}`, 14, 14);
   let y = 20;
 
-  for (const p of rel.pedidos) {
+  for (const p of rel.pedidos.filter((x) => !x.cancelado)) {
     if (y > 262) {
       doc.addPage();
       y = 14;
@@ -98,6 +98,20 @@ export async function exportarVendasPdf(rel: RelatorioVendas): Promise<boolean> 
     ],
     columnStyles: { 1: { halign: "right" } },
   });
+
+  // Seção de canceladas (não somadas), para conferência do ajuste.
+  const canceladas = rel.pedidos.filter((p) => p.cancelado);
+  if (canceladas.length > 0) {
+    autoTable(doc, {
+      startY: finalY() + 6,
+      margin: { left: 14, right: 14 },
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [120, 120, 120] },
+      head: [["Canceladas (não somadas)", "Cliente", "Total"]],
+      body: canceladas.map((p) => [`Nº ${p.numero}`, p.cliente, brl(p.totalCentavos)]),
+      columnStyles: { 2: { halign: "right" } },
+    });
+  }
 
   const bytes = new Uint8Array(doc.output("arraybuffer"));
   return salvarBytes(`relatorio-vendas-${rel.data}.pdf`, bytes, "PDF", "pdf");
@@ -173,7 +187,9 @@ export async function exportarInventarioPdf(rel: RelatorioSessao): Promise<boole
 }
 
 export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean> {
-  const pagamentos = rel.pedidos.map((p) => ({
+  const ativos = rel.pedidos.filter((p) => !p.cancelado);
+  const canceladas = rel.pedidos.filter((p) => p.cancelado);
+  const pagamentos = ativos.map((p) => ({
     Pedido: p.numero,
     Cliente: p.cliente,
     Cartão: p.cartao / 100,
@@ -183,7 +199,7 @@ export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean
     "Vale Presente": p.vale / 100,
     Total: p.totalCentavos / 100,
   }));
-  const itens = rel.pedidos.flatMap((p) =>
+  const itens = ativos.flatMap((p) =>
     p.itens.map((i) => ({
       Pedido: p.numero,
       Item: i.titulo,
@@ -201,7 +217,7 @@ export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean
   ];
   // Aba "Detalhado": cada pedido com seus livros + formas + total (igual à tela).
   const det: (string | number)[][] = [];
-  for (const p of rel.pedidos) {
+  for (const p of ativos) {
     det.push([`Pedido Nº ${p.numero} · ${p.cliente}`]);
     det.push(["Qtd", "Título", "Valor"]);
     for (const i of p.itens) det.push([i.qtd, i.titulo, i.valorCentavos / 100]);
@@ -215,6 +231,14 @@ export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pagamentos), "Pagamentos");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(itens), "Itens");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumo), "Resumo");
+  if (canceladas.length > 0) {
+    const canc = canceladas.map((p) => ({
+      Pedido: p.numero,
+      Cliente: p.cliente,
+      Total: p.totalCentavos / 100,
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(canc), "Canceladas");
+  }
   return salvarPlanilha(wb, `relatorio-vendas-${rel.data}.xlsx`);
 }
 

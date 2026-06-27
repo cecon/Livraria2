@@ -73,7 +73,7 @@ export default function Inicio() {
         ))}
       </div>
 
-      <div className="mt-3 grid grid-cols-5 gap-3">
+      <div className="mt-3 grid grid-cols-4 gap-3">
         <Stat rotulo="Vendas" sub={periodoRotulo} valor={brl(dash?.vendasCentavos ?? 0)} />
         <Stat
           rotulo="Itens vendidos"
@@ -89,12 +89,6 @@ export default function Inicio() {
           rotulo="Livros / estoque"
           sub="atual"
           valor={`${dash?.totalLivros ?? 0} / ${(dash?.totalEstoque ?? 0).toLocaleString("pt-BR")}`}
-        />
-        <Stat
-          rotulo="Canceladas"
-          sub={`${dash?.canceladasQtd ?? 0} venda(s) · ${periodoRotulo}`}
-          valor={brl(dash?.canceladasCentavos ?? 0)}
-          alerta
         />
       </div>
 
@@ -113,8 +107,8 @@ export default function Inicio() {
         ))}
       </div>
 
-      <div className="mt-5">
-        <div className="bg-card rounded-xl border p-5">
+      <div className="mt-5 grid grid-cols-3 gap-4">
+        <div className="bg-card col-span-2 rounded-xl border p-5">
           <h2 className="text-sm font-semibold">Estoque baixo</h2>
           <div className="mt-3 space-y-2">
             {baixoCount === 0 ? (
@@ -135,6 +129,19 @@ export default function Inicio() {
                 </div>
               ))
             )}
+          </div>
+        </div>
+
+        <div className="bg-card rounded-xl border p-5">
+          <h2 className="text-sm font-semibold">Vendas canceladas</h2>
+          <p className="text-muted-foreground text-[12px] capitalize">{periodoRotulo}</p>
+          <div className="mt-3">
+            <div className="font-mono text-3xl font-bold text-amber-600">
+              {dash?.canceladasQtd ?? 0}
+            </div>
+            <div className="text-muted-foreground mt-1 text-sm">
+              venda(s) · {brl(dash?.canceladasCentavos ?? 0)}
+            </div>
           </div>
         </div>
       </div>

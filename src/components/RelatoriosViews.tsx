@@ -17,16 +17,18 @@ interface VendasProps {
 }
 
 export function VendasView({ rel, onExcluirItem }: VendasProps) {
+  const ativos = rel.pedidos.filter((p) => !p.cancelado);
+  const canceladas = rel.pedidos.filter((p) => p.cancelado);
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">
         Relatório de Vendas — {PERIODO_ROTULO[rel.periodo] ?? rel.periodo} — {rel.data}
       </h2>
 
-      {rel.pedidos.length === 0 ? (
+      {ativos.length === 0 ? (
         <p className="text-muted-foreground text-sm">Nenhuma venda no período.</p>
       ) : (
-        rel.pedidos.map((p) => {
+        ativos.map((p) => {
           const pago = p.cartao + p.dinheiro + p.pix + p.ministerio + p.vale;
           const divergente = pago !== p.totalCentavos;
           return (
@@ -74,6 +76,24 @@ export function VendasView({ rel, onExcluirItem }: VendasProps) {
           </div>
           );
         })
+      )}
+
+      {canceladas.length > 0 && (
+        <div className="rounded-lg border border-dashed p-3 text-sm">
+          <div className="text-muted-foreground mb-2 text-[11px] font-semibold uppercase">
+            Canceladas (não somadas) — {canceladas.length}
+          </div>
+          <ul className="space-y-1 font-mono text-[12px]">
+            {canceladas.map((p) => (
+              <li key={p.numero} className="text-muted-foreground flex justify-between">
+                <span>
+                  Nº {p.numero} · {p.cliente}
+                </span>
+                <span className="line-through">{brl(p.totalCentavos)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <div className="bg-muted/40 rounded-lg p-4">
