@@ -103,6 +103,8 @@ async fn inserir_cabecalho_e_itens(
         val_pix: Set(pag.pix.centavos()),
         val_ministerio: Set(pag.ministerio.centavos()),
         val_vale: Set(pag.vale.centavos()),
+        cancelado: Set(false),
+        cancelado_em: Set(None),
     };
     pedido::Entity::insert(pm).exec(txn).await?;
 
@@ -251,19 +253,22 @@ impl PedidoRepo for SeaPedidoRepo {
         Ok(())
     }
 
+    /// Cancela a venda (soft delete): devolve o estoque (estorno) e marca o pedido
+    /// como `cancelado` — preserva o registro para auditoria/relatórios. Idempotente.
     async fn excluir_pedido(&self, numero: i64) -> Result<(), RepoErro> {
         let txn = self.db.begin().await.map_err(erro)?;
-        // Devolve ao estoque o que a venda baixou (estorno no ledger) antes de apagar.
+        // Devolve ao estoque o que a venda baixou (estorno no ledger).
         estornar_saidas(&txn, numero, None).await.map_err(erro)?;
-        item_pedido::Entity::delete_many()
-            .filter(item_pedido::Column::PedidoNumero.eq(numero))
-            .exec(&txn)
-            .await
-            .map_err(erro)?;
-        pedido::Entity::delete_by_id(numero)
-            .exec(&txn)
-            .await
-            .map_err(erro)?;
+        txn.execute(Statement::from_sql_and_values(
+            txn.get_database_backend(),
+            "UPDATE pedido SET cancelado = 1, cancelado_em = ? WHERE numero = ? AND cancelado = 0",
+            [
+                Local::now().format("%Y-%m-%dT%H:%M:%S").to_string().into(),
+                numero.into(),
+            ],
+        ))
+        .await
+        .map_err(erro)?;
         txn.commit().await.map_err(erro)?;
         Ok(())
     }

@@ -68,7 +68,10 @@ export function ListaVendas() {
           <h1 className="text-xl font-semibold tracking-tight">Vendas do dia</h1>
           {rel && (
             <p className="text-muted-foreground text-sm">
-              {rel.pedidos.length} vendas · Total {brl(rel.resumo.subtotalCentavos)}
+              {rel.pedidos.filter((p) => !p.cancelado).length} vendas · Total{" "}
+              {brl(rel.resumo.subtotalCentavos)}
+              {rel.pedidos.some((p) => p.cancelado) &&
+                ` · ${rel.pedidos.filter((p) => p.cancelado).length} cancelada(s)`}
             </p>
           )}
         </div>
@@ -95,30 +98,45 @@ export function ListaVendas() {
               <div
                 key={p.numero}
                 className={`bg-card rounded-lg border p-3 text-sm ${
-                  divergente ? "border-rose-500 ring-1 ring-rose-500" : ""
+                  p.cancelado
+                    ? "opacity-60"
+                    : divergente
+                      ? "border-rose-500 ring-1 ring-rose-500"
+                      : ""
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <span className="font-medium">
                     Pedido Nº {p.numero} · {p.cliente}
                   </span>
-                  {divergente && (
+                  {p.cancelado && (
+                    <span className="text-muted-foreground bg-muted rounded px-1.5 py-0.5 text-[10px] uppercase">
+                      cancelada
+                    </span>
+                  )}
+                  {divergente && !p.cancelado && (
                     <span className="text-[11px] text-rose-600">
                       ⚠ Pago {brl(pago)} ≠ Total {brl(p.totalCentavos)}
                     </span>
                   )}
-                  <span className="ml-auto font-mono font-semibold">
+                  <span
+                    className={`ml-auto font-mono font-semibold ${
+                      p.cancelado ? "text-muted-foreground line-through" : ""
+                    }`}
+                  >
                     {brl(p.totalCentavos)}
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-rose-500 hover:text-rose-600"
-                    title="Cancelar venda inteira"
-                    onClick={() => delPedido(p.numero)}
-                  >
-                    <Trash2 size={15} />
-                  </Button>
+                  {!p.cancelado && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-rose-500 hover:text-rose-600"
+                      title="Cancelar venda inteira"
+                      onClick={() => delPedido(p.numero)}
+                    >
+                      <Trash2 size={15} />
+                    </Button>
+                  )}
                 </div>
                 <ul className="text-muted-foreground mt-1">
                   {p.itens.map((i) => (
@@ -127,13 +145,15 @@ export function ListaVendas() {
                         {i.qtd}× {i.titulo}
                       </span>
                       <span>{brl(i.valorCentavos)}</span>
-                      <button
-                        onClick={() => delItem(i.id)}
-                        className="text-rose-500 hover:text-rose-600"
-                        title="Excluir item"
-                      >
-                        <X size={13} />
-                      </button>
+                      {!p.cancelado && (
+                        <button
+                          onClick={() => delItem(i.id)}
+                          className="text-rose-500 hover:text-rose-600"
+                          title="Excluir item"
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>

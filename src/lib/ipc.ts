@@ -107,6 +107,8 @@ export interface DashboardDia {
   totalLivros: number;
   totalEstoque: number;
   estoqueBaixo: Livro[];
+  canceladasQtd: number;
+  canceladasCentavos: number;
 }
 
 export type PeriodoDash = "hoje" | "7dias" | "mes" | "ano";
@@ -137,6 +139,7 @@ export interface PedidoRelatorio {
   ministerio: number;
   vale: number;
   totalCentavos: number;
+  cancelado: boolean;
 }
 export interface ResumoVendas {
   cartao: number;

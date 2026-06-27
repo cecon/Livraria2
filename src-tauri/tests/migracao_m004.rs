@@ -175,6 +175,8 @@ async fn boot_real_inicializa_schema() {
 
     assert!(colunas(&db, "livro").await.contains(&"id".to_string()));
     assert!(!colunas(&db, "livro").await.contains(&"codigo_barras".to_string()));
+    // m005: soft-delete de venda
+    assert!(colunas(&db, "pedido").await.contains(&"cancelado".to_string()));
     assert!(n(&db, "SELECT count(*) AS n FROM livro").await >= 1);
     let viol = db
         .query_all(Statement::from_string(

@@ -11,6 +11,8 @@ pub struct Indicadores {
     pub total_livros: i64,
     pub total_estoque: i64,
     pub estoque_baixo: Vec<Livro>,
+    pub canceladas_qtd: i64,
+    pub canceladas_centavos: i64,
 }
 
 /// Indicadores do período [inicio, fim]: vendas (Σ totais), itens, ticket médio,
@@ -36,6 +38,8 @@ pub async fn do_periodo(
         total_livros,
         total_estoque,
         estoque_baixo,
+        canceladas_qtd: r.num_canceladas,
+        canceladas_centavos: r.total_canceladas_centavos,
     })
 }
 
@@ -53,6 +57,8 @@ mod tests {
                 total_centavos: 9000,
                 num_pedidos: 3,
                 itens_vendidos: 7,
+                num_canceladas: 0,
+                total_canceladas_centavos: 0,
             })
         }
         async fn estoque_baixo(&self, _l: i64) -> Result<Vec<Livro>, RepoErro> {

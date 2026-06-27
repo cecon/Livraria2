@@ -65,6 +65,7 @@ impl RelatorioRepo for SeaRelatorioRepo {
                 ministerio: p.val_ministerio,
                 vale: p.val_vale,
                 total_centavos: p.total_centavos,
+                cancelado: p.cancelado,
             });
         }
         Ok(saida)

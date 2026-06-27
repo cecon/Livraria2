@@ -59,6 +59,9 @@ pub struct ResumoDia {
     pub total_centavos: i64,
     pub num_pedidos: i64,
     pub itens_vendidos: i64,
+    /// Vendas canceladas no período (não entram nos totais acima).
+    pub num_canceladas: i64,
+    pub total_canceladas_centavos: i64,
 }
 
 /// Porta de leitura para o dashboard (US4).
@@ -96,6 +99,7 @@ pub struct PedidoRelatorio {
     pub ministerio: i64,
     pub vale: i64,
     pub total_centavos: i64,
+    pub cancelado: bool,
 }
 
 /// Porta de leitura para relatórios (US5).

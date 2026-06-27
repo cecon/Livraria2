@@ -73,7 +73,7 @@ export default function Inicio() {
         ))}
       </div>
 
-      <div className="mt-3 grid grid-cols-4 gap-3">
+      <div className="mt-3 grid grid-cols-5 gap-3">
         <Stat rotulo="Vendas" sub={periodoRotulo} valor={brl(dash?.vendasCentavos ?? 0)} />
         <Stat
           rotulo="Itens vendidos"
@@ -89,6 +89,12 @@ export default function Inicio() {
           rotulo="Livros / estoque"
           sub="atual"
           valor={`${dash?.totalLivros ?? 0} / ${(dash?.totalEstoque ?? 0).toLocaleString("pt-BR")}`}
+        />
+        <Stat
+          rotulo="Canceladas"
+          sub={`${dash?.canceladasQtd ?? 0} venda(s) · ${periodoRotulo}`}
+          valor={brl(dash?.canceladasCentavos ?? 0)}
+          alerta
         />
       </div>
 

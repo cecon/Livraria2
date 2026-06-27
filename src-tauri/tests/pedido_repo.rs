@@ -77,6 +77,16 @@ async fn excluir_pedido_devolve_estoque() {
         n(&db, "SELECT count(*) AS n FROM movimento_estoque WHERE tipo='estorno' AND referencia='50'").await,
         1
     );
+    // soft delete: o pedido permanece, marcado como cancelado.
+    assert_eq!(n(&db, "SELECT count(*) AS n FROM pedido WHERE numero=50").await, 1);
+    assert_eq!(n(&db, "SELECT cancelado AS n FROM pedido WHERE numero=50").await, 1);
+    // idempotente: cancelar de novo não duplica estorno nem muda o estoque.
+    SeaPedidoRepo::new(db.clone()).excluir_pedido(50).await.unwrap();
+    assert_eq!(estoque(&db, "L1").await, 10);
+    assert_eq!(
+        n(&db, "SELECT count(*) AS n FROM movimento_estoque WHERE tipo='estorno' AND referencia='50'").await,
+        1
+    );
     let _ = std::fs::remove_file(&path);
 }
 

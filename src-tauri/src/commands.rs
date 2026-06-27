@@ -198,6 +198,8 @@ pub struct DashboardDto {
     pub total_livros: i64,
     pub total_estoque: i64,
     pub estoque_baixo: Vec<LivroDto>,
+    pub canceladas_qtd: i64,
+    pub canceladas_centavos: i64,
 }
 
 /// Intervalo de datas (ISO) para o período: "hoje" | "7dias" | "mes".
@@ -231,6 +233,8 @@ pub async fn dashboard_do_dia(
         total_livros: ind.total_livros,
         total_estoque: ind.total_estoque,
         estoque_baixo: ind.estoque_baixo.into_iter().map(LivroDto::from).collect(),
+        canceladas_qtd: ind.canceladas_qtd,
+        canceladas_centavos: ind.canceladas_centavos,
     })
 }
 
