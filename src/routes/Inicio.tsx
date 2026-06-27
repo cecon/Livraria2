@@ -1,30 +1,14 @@
-// Tela Início / Dashboard (US4, FR-030/031) + card de Migração do legado.
+// Tela Início / Dashboard (US4, FR-030/031).
+// Nota (004/US6): o card "Migração / Sincronização do legado" foi removido da UI;
+// o comando de backend `migrar_legado` permanece registrado (ver git para o card).
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { toast } from "sonner";
-import { open } from "@tauri-apps/plugin-dialog";
-import {
-  BookPlus,
-  FileBarChart,
-  FolderOpen,
-  RefreshCw,
-  Search,
-  ShoppingCart,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { BookPlus, FileBarChart, Search, ShoppingCart } from "lucide-react";
 import { StockBadge } from "@/components/StockBadge";
 import { Cover } from "@/components/Cover";
 import { brl } from "@/lib/format";
-import {
-  dashboardDoDia,
-  migrarLegado,
-  type DashboardDia,
-  type ErroIpc,
-  type PeriodoDash,
-  type RelatorioMigracao,
-} from "@/lib/ipc";
+import { dashboardDoDia, type DashboardDia, type PeriodoDash } from "@/lib/ipc";
 
 const PERIODOS: { id: PeriodoDash; rotulo: string }[] = [
   { id: "hoje", rotulo: "Hoje" },
@@ -40,16 +24,9 @@ const ACOES = [
   { to: "/relatorios", rotulo: "Relatórios", Icon: FileBarChart, destaque: false },
 ];
 
-const MDB_KEY = "eldl-mdb-path";
-
 export default function Inicio() {
   const [dash, setDash] = useState<DashboardDia | null>(null);
   const [periodo, setPeriodo] = useState<PeriodoDash>("hoje");
-  const [caminho, setCaminho] = useState(
-    () => localStorage.getItem(MDB_KEY) ?? "../Livraria/livraria.mdb",
-  );
-  const [ocupado, setOcupado] = useState(false);
-  const [rel, setRel] = useState<RelatorioMigracao | null>(null);
 
   useEffect(() => {
     carregar();
@@ -62,41 +39,6 @@ export default function Inicio() {
 
   const periodoRotulo =
     PERIODOS.find((p) => p.id === periodo)?.rotulo.toLowerCase() ?? "hoje";
-
-  function lembrarCaminho(p: string) {
-    setCaminho(p);
-    localStorage.setItem(MDB_KEY, p);
-  }
-
-  async function procurar() {
-    try {
-      const sel = await open({
-        multiple: false,
-        directory: false,
-        filters: [{ name: "Banco Access", extensions: ["mdb", "accdb"] }],
-      });
-      if (typeof sel === "string") {
-        lembrarCaminho(sel);
-      }
-    } catch {
-      toast.error("Seletor de arquivo disponível só no app (não no navegador)");
-    }
-  }
-
-  async function sincronizar() {
-    setOcupado(true);
-    try {
-      const r = await migrarLegado(caminho.trim() || undefined);
-      setRel(r);
-      lembrarCaminho(caminho.trim());
-      toast.success(`${r.livrosImportados} livros, ${r.pedidosInseridos} pedidos novos`);
-      carregar();
-    } catch (e) {
-      toast.error((e as ErroIpc).mensagem ?? "Erro na migração");
-    } finally {
-      setOcupado(false);
-    }
-  }
 
   const baixoCount = dash?.estoqueBaixo.length ?? 0;
   const hoje = new Date().toLocaleDateString("pt-BR", {
@@ -165,7 +107,7 @@ export default function Inicio() {
         ))}
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-4">
+      <div className="mt-5">
         <div className="bg-card rounded-xl border p-5">
           <h2 className="text-sm font-semibold">Estoque baixo</h2>
           <div className="mt-3 space-y-2">
@@ -188,38 +130,6 @@ export default function Inicio() {
               ))
             )}
           </div>
-        </div>
-
-        <div className="bg-card rounded-xl border p-5">
-          <h2 className="text-sm font-semibold">Migração / Sincronização do legado</h2>
-          <p className="text-muted-foreground mt-1 text-[12px]">
-            Importa acervo e vendas do Access. Idempotente — pode repetir.
-          </p>
-          <div className="mt-3 flex gap-2">
-            <Input
-              value={caminho}
-              onChange={(e) => lembrarCaminho(e.currentTarget.value)}
-              className="h-9 font-mono text-[12px]"
-              placeholder="Caminho do .mdb"
-            />
-            <Button
-              variant="outline"
-              onClick={procurar}
-              className="h-9 shrink-0"
-              title="Procurar arquivo .mdb"
-            >
-              <FolderOpen size={15} />
-            </Button>
-            <Button onClick={sincronizar} disabled={ocupado} className="h-9 shrink-0">
-              <RefreshCw size={15} className={ocupado ? "animate-spin" : ""} />
-            </Button>
-          </div>
-          {rel && (
-            <div className="text-muted-foreground mt-3 text-[12px]">
-              {rel.livrosImportados} livros · {rel.pedidosInseridos} pedidos novos ·{" "}
-              {rel.pedidosExistentes} já existentes · {rel.divergencias.length} divergências
-            </div>
-          )}
         </div>
       </div>
     </div>

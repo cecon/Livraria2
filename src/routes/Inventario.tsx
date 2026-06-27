@@ -200,6 +200,9 @@ export default function Inventario() {
           </table>
         </div>
       </div>
+
+      {/* FR-005: pendências acionáveis também DURANTE a sessão aberta. */}
+      <Pendencias recarregar={pend} />
     </div>
   );
 }

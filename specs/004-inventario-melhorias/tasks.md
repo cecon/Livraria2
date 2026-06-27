@@ -82,8 +82,8 @@ description: "Task list — 004 Melhorias de inventário + identidade do livro (
 
 **Independent Test**: clicar "Já resolvido" → sai da lista ativa, 0 livros criados, estoque inalterado.
 
-- [ ] T021 [US2] `src/components/Pendencias.tsx`: substituir o botão único por **dois botões distintos** — "Cadastrar livro" (placeholder até US4) e "Já resolvido" (chama `resolverPendencia` existente, FR-002); ajustar textos/ajuda
-- [ ] T021a [US2] **FR-005** — `src/routes/Inventario.tsx`: renderizar `<Pendencias>` **também na visão de sessão aberta** (hoje só aparece no branch sem sessão, linha ~126), para que "Já resolvido"/"Cadastrar livro" fiquem disponíveis **durante** a contagem; reusar o contador `pend` já existente para recarregar
+- [X] T021 [US2] `src/components/Pendencias.tsx`: substituir o botão único por **dois botões distintos** — "Cadastrar livro" (placeholder até US4) e "Já resolvido" (chama `resolverPendencia` existente, FR-002); ajustar textos/ajuda
+- [X] T021a [US2] **FR-005** — `src/routes/Inventario.tsx`: renderizar `<Pendencias>` **também na visão de sessão aberta** (hoje só aparece no branch sem sessão, linha ~126), para que "Já resolvido"/"Cadastrar livro" fiquem disponíveis **durante** a contagem; reusar o contador `pend` já existente para recarregar
 - [ ] T022 [US2] Validar [quickstart.md](quickstart.md) §2.3 (dispensa tira da lista ativa; estoque/custo inalterados; idempotente) **e** que as ações de pendência aparecem durante e após a sessão (FR-005)
 
 **Checkpoint**: "Já resolvido" funcional (primeiro ganho visível pós-fundação).
@@ -156,7 +156,7 @@ description: "Task list — 004 Melhorias de inventário + identidade do livro (
 
 **Independent Test**: nenhum caminho na UI para importar; `migrar_legado` segue registrado; demais fluxos intactos.
 
-- [ ] T042 [US6] `src/routes/Inicio.tsx`: comentar/remover o card "Migração / Sincronização do legado" e o estado/handlers/imports associados (`migrarLegado`, `RelatorioMigracao`, `FolderOpen`, `RefreshCw`, `open`, `MDB_KEY`, `caminho`/`ocupado`/`rel`); **não** mexer no backend (FR-020/021/022)
+- [X] T042 [US6] `src/routes/Inicio.tsx`: comentar/remover o card "Migração / Sincronização do legado" e o estado/handlers/imports associados (`migrarLegado`, `RelatorioMigracao`, `FolderOpen`, `RefreshCw`, `open`, `MDB_KEY`, `caminho`/`ocupado`/`rel`); **não** mexer no backend (FR-020/021/022)
 - [ ] T043 [US6] Validar [quickstart.md](quickstart.md) §4 (sem acesso na UI; `migrar_legado` intacto; dados preservados)
 
 **Checkpoint**: importação fora da UI.
