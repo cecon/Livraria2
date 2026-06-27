@@ -84,28 +84,28 @@ impl InventarioRepo for SeaInventarioRepo {
 
     async fn bipar(&self, sessao_id: i64, codigo_lido: &str) -> Result<BipagemResultado, RepoErro> {
         if let Some(m) = achar_por_bipagem(&self.db, codigo_lido).await.map_err(erro)? {
-            let codigo = m.codigo.clone();
+            let livro_id = m.id;
             let afetou = self
                 .db
                 .execute(Statement::from_sql_and_values(
                     self.db.get_database_backend(),
                     "UPDATE item_contagem SET qtd_contada = qtd_contada + 1
-                     WHERE sessao_id = ? AND livro_codigo = ?",
-                    [sessao_id.into(), codigo.clone().into()],
+                     WHERE sessao_id = ? AND livro_id = ?",
+                    [sessao_id.into(), livro_id.into()],
                 ))
                 .await
                 .map_err(erro)?;
             if afetou.rows_affected() == 0 {
                 exec(
                     &self.db,
-                    "INSERT INTO item_contagem (sessao_id, livro_codigo, qtd_contada)
+                    "INSERT INTO item_contagem (sessao_id, livro_id, qtd_contada)
                      VALUES (?, ?, 1)",
-                    vec![sessao_id.into(), codigo.clone().into()],
+                    vec![sessao_id.into(), livro_id.into()],
                 )
                 .await
                 .map_err(erro)?;
             }
-            let qtd = ler_qtd_contada(&self.db, sessao_id, &codigo)
+            let qtd = ler_qtd_contada(&self.db, sessao_id, livro_id)
                 .await
                 .map_err(erro)?;
             return Ok(BipagemResultado {
@@ -162,24 +162,24 @@ impl InventarioRepo for SeaInventarioRepo {
                 pendencia: None,
             });
         };
-        let codigo = m.codigo.clone();
+        let livro_id = m.id;
         exec(
             &self.db,
             "UPDATE item_contagem SET qtd_contada = qtd_contada - 1
-             WHERE sessao_id = ? AND livro_codigo = ?",
-            vec![sessao_id.into(), codigo.clone().into()],
+             WHERE sessao_id = ? AND livro_id = ?",
+            vec![sessao_id.into(), livro_id.into()],
         )
         .await
         .map_err(erro)?;
         // Se zerou, remove da contagem (não vira "contado = 0").
         exec(
             &self.db,
-            "DELETE FROM item_contagem WHERE sessao_id = ? AND livro_codigo = ? AND qtd_contada <= 0",
-            vec![sessao_id.into(), codigo.clone().into()],
+            "DELETE FROM item_contagem WHERE sessao_id = ? AND livro_id = ? AND qtd_contada <= 0",
+            vec![sessao_id.into(), livro_id.into()],
         )
         .await
         .map_err(erro)?;
-        let qtd = ler_qtd_contada(&self.db, sessao_id, &codigo)
+        let qtd = ler_qtd_contada(&self.db, sessao_id, livro_id)
             .await
             .map_err(erro)?;
         Ok(BipagemResultado {
@@ -194,7 +194,8 @@ impl InventarioRepo for SeaInventarioRepo {
             .db
             .execute(Statement::from_sql_and_values(
                 self.db.get_database_backend(),
-                "UPDATE item_contagem SET qtd_contada = ? WHERE sessao_id = ? AND livro_codigo = ?",
+                "UPDATE item_contagem SET qtd_contada = ?
+                 WHERE sessao_id = ? AND livro_id = (SELECT id FROM livro WHERE codigo = ?)",
                 [qtd.into(), sessao_id.into(), codigo.into()],
             ))
             .await
@@ -202,7 +203,8 @@ impl InventarioRepo for SeaInventarioRepo {
         if afetou.rows_affected() == 0 {
             exec(
                 &self.db,
-                "INSERT INTO item_contagem (sessao_id, livro_codigo, qtd_contada) VALUES (?, ?, ?)",
+                "INSERT INTO item_contagem (sessao_id, livro_id, qtd_contada)
+                 VALUES (?, (SELECT id FROM livro WHERE codigo = ?), ?)",
                 vec![sessao_id.into(), codigo.into(), qtd.into()],
             )
             .await
@@ -249,9 +251,9 @@ impl InventarioRepo for SeaInventarioRepo {
         if modo == "total" {
             exec(
                 &txn,
-                "INSERT INTO item_contagem (sessao_id, livro_codigo, qtd_contada)
-                 SELECT ?, codigo, 0 FROM livro WHERE ativo = 1
-                 AND codigo NOT IN (SELECT livro_codigo FROM item_contagem WHERE sessao_id = ?)",
+                "INSERT INTO item_contagem (sessao_id, livro_id, qtd_contada)
+                 SELECT ?, id, 0 FROM livro WHERE ativo = 1
+                 AND id NOT IN (SELECT livro_id FROM item_contagem WHERE sessao_id = ?)",
                 vec![sessao_id.into(), sessao_id.into()],
             )
             .await

@@ -93,7 +93,6 @@ mod tests {
             categoria: Categoria::NaoCategorizado,
             estoque,
             descricao: None,
-            codigo_barras: None,
             custo_medio: Dinheiro::ZERO,
         }
     }

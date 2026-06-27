@@ -105,8 +105,8 @@ impl PedidoRepo for SeaPedidoRepo {
                 txn.execute(Statement::from_sql_and_values(
                     backend,
                     "INSERT INTO movimento_estoque
-                        (livro_codigo, tipo, qtd, custo_unit_centavos, fornecedor, motivo, referencia, criado_em)
-                     VALUES (?, ?, ?, NULL, NULL, NULL, ?, ?)",
+                        (livro_id, tipo, qtd, custo_unit_centavos, fornecedor, motivo, referencia, criado_em)
+                     VALUES ((SELECT id FROM livro WHERE codigo = ?), ?, ?, NULL, NULL, NULL, ?, ?)",
                     [
                         it.codigo.clone().into(),
                         TipoMovimento::SaidaVenda.as_str().into(),

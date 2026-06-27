@@ -62,7 +62,6 @@ mod tests {
                 categoria: Categoria::Biblias,
                 estoque: 5,
                 descricao: None,
-                codigo_barras: None,
                 custo_medio: Dinheiro::ZERO,
             }])
         }

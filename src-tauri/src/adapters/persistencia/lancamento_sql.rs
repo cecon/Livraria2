@@ -16,9 +16,9 @@ pub(crate) async fn itens(
     let rows = db
         .query_all(Statement::from_sql_and_values(
             db.get_database_backend(),
-            "SELECT i.id AS item_id, i.livro_codigo AS codigo, lv.titulo AS titulo,
+            "SELECT i.id AS item_id, lv.codigo AS codigo, lv.titulo AS titulo,
                     i.qtd AS qtd, i.custo_unit_centavos AS custo
-             FROM item_lancamento i JOIN livro lv ON lv.codigo = i.livro_codigo
+             FROM item_lancamento i JOIN livro lv ON lv.id = i.livro_id
              WHERE i.lancamento_id = ? ORDER BY i.id",
             [id.into()],
         ))
@@ -128,8 +128,9 @@ pub(crate) async fn aplicar_finalizacao(
     let itens = txn
         .query_all(Statement::from_sql_and_values(
             txn.get_database_backend(),
-            "SELECT livro_codigo, qtd, custo_unit_centavos FROM item_lancamento
-             WHERE lancamento_id = ?",
+            "SELECT lv.codigo AS livro_codigo, i.qtd AS qtd, i.custo_unit_centavos AS custo_unit_centavos
+             FROM item_lancamento i JOIN livro lv ON lv.id = i.livro_id
+             WHERE i.lancamento_id = ?",
             [id.into()],
         ))
         .await?;
@@ -157,7 +158,9 @@ pub(crate) async fn aplicar_cancelamento(
     let itens = txn
         .query_all(Statement::from_sql_and_values(
             txn.get_database_backend(),
-            "SELECT livro_codigo, qtd FROM item_lancamento WHERE lancamento_id = ?",
+            "SELECT lv.codigo AS livro_codigo, i.qtd AS qtd
+             FROM item_lancamento i JOIN livro lv ON lv.id = i.livro_id
+             WHERE i.lancamento_id = ?",
             [id.into()],
         ))
         .await?;

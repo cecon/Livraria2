@@ -27,7 +27,6 @@ interface Props {
 function doLivro(l: Livro | null) {
   return {
     codigo: l?.codigo ?? "",
-    codigoBarras: l?.codigoBarras ?? "",
     titulo: l?.titulo ?? "",
     autor: l?.autor ?? "",
     valor: l ? centavosParaInput(l.precoCentavos) : "",
@@ -44,7 +43,7 @@ export function LivroForm({ inicial, onSalvo, onCancelar }: Props) {
 
   async function salvar() {
     if (!form.codigo.trim()) {
-      toast.error("Informe o código (interno) do livro");
+      toast.error("Informe o código (de barras) do livro");
       return;
     }
     const livro: Livro = {
@@ -55,7 +54,6 @@ export function LivroForm({ inicial, onSalvo, onCancelar }: Props) {
       categoria: form.categoria,
       estoque: parseInt(form.estoque, 10) || 0,
       descricao: form.descricao.trim() || null,
-      codigoBarras: form.codigoBarras.trim() || null,
     };
     try {
       await salvarLivro(livro);
@@ -79,28 +77,16 @@ export function LivroForm({ inicial, onSalvo, onCancelar }: Props) {
 
   return (
     <div className="bg-card mt-4 space-y-4 rounded-xl border p-5">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="cod">Código (interno)</Label>
-          <Input
-            id="cod"
-            value={form.codigo}
-            disabled={editando}
-            onChange={(e) => setForm({ ...form, codigo: e.currentTarget.value })}
-            className="mt-1 h-9 font-mono"
-            placeholder="ex.: 9788573671469"
-          />
-        </div>
-        <div>
-          <Label htmlFor="ean">Código de barras (EAN/ISBN)</Label>
-          <Input
-            id="ean"
-            value={form.codigoBarras}
-            onChange={(e) => setForm({ ...form, codigoBarras: e.currentTarget.value })}
-            className="mt-1 h-9 font-mono"
-            placeholder="opcional"
-          />
-        </div>
+      <div>
+        <Label htmlFor="cod">Código de barras (EAN/ISBN)</Label>
+        <Input
+          id="cod"
+          value={form.codigo}
+          disabled={editando}
+          onChange={(e) => setForm({ ...form, codigo: e.currentTarget.value })}
+          className="mt-1 h-9 font-mono"
+          placeholder="ex.: 9788573671469"
+        />
       </div>
       <div>
         <Label htmlFor="tit">Título</Label>

@@ -28,7 +28,10 @@ fn erro(e: DbErr) -> RepoErro {
 }
 
 async fn buscar_livro(db: &DatabaseConnection, codigo: &str) -> Result<Livro, RepoErro> {
-    let m = LivroEntity::find_by_id(codigo.to_string())
+    use super::entities::livro;
+    use sea_orm::{ColumnTrait, QueryFilter};
+    let m = LivroEntity::find()
+        .filter(livro::Column::Codigo.eq(codigo))
         .one(db)
         .await
         .map_err(erro)?
@@ -87,10 +90,20 @@ impl EstoqueRepo for SeaEstoqueRepo {
     }
 
     async fn extrato(&self, codigo: &str, limite: i64) -> Result<Vec<MovimentoView>, RepoErro> {
+        use super::entities::livro;
         use super::entities::movimento_estoque::{Column, Entity as MovEntity};
         use sea_orm::{ColumnTrait, QueryFilter, QueryOrder};
+        // Resolve o id do livro a partir do `codigo` (identidade passou a ser `id`).
+        let Some(l) = LivroEntity::find()
+            .filter(livro::Column::Codigo.eq(codigo))
+            .one(&self.db)
+            .await
+            .map_err(erro)?
+        else {
+            return Ok(vec![]);
+        };
         let movs = MovEntity::find()
-            .filter(Column::LivroCodigo.eq(codigo))
+            .filter(Column::LivroId.eq(l.id))
             .order_by_asc(Column::Id)
             .all(&self.db)
             .await
@@ -129,7 +142,7 @@ impl EstoqueRepo for SeaEstoqueRepo {
             .query_all(Statement::from_string(
                 backend,
                 "SELECT codigo, estoque FROM livro
-                 WHERE codigo NOT IN (SELECT DISTINCT livro_codigo FROM movimento_estoque)"
+                 WHERE id NOT IN (SELECT DISTINCT livro_id FROM movimento_estoque)"
                     .to_string(),
             ))
             .await

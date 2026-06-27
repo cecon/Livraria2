@@ -3,9 +3,9 @@
 //! rebuild: `id` PK, `codigo` único, sem `codigo_barras`, FKs→`livro_id`,
 //! preservação das linhas válidas, descarte das órfãs e `foreign_key_check` limpo.
 
-use livraria_2_lib::adapters::persistencia::inicializar_schema;
-use livraria_2_lib::migration::m004;
+use livraria_2_lib::migration::{m004, Migrator};
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseConnection, Statement};
+use sea_orm_migration::MigratorTrait;
 
 fn url_temp() -> (String, std::path::PathBuf) {
     let path = std::env::temp_dir().join(format!("livraria_m004_{}.db", std::process::id()));
@@ -49,7 +49,9 @@ async fn m004_migra_sem_perder_validas_e_descarta_orfas() {
     opt.max_connections(1);
     let db = Database::connect(opt).await.unwrap();
     run(&db, "PRAGMA foreign_keys = OFF").await;
-    inicializar_schema(&db).await.unwrap(); // esquema 002/003 (codigo PK, codigo_barras, livro_codigo)
+    // Apenas as migrations versionadas (002/003) — esquema antigo, SEM a m004
+    // (que o boot aplica automaticamente, mas aqui queremos exercê-la à mão).
+    Migrator::up(&db, None).await.unwrap();
 
     // Livros válidos.
     run(&db, "INSERT INTO livro (codigo,titulo,busca_norm) VALUES ('A1','LIVRO A1','livro a1')").await;

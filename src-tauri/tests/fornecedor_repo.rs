@@ -54,8 +54,8 @@ async fn dedup_soft_delete_e_semear() {
     for nome in ["Editora Vida", "Editora Vida", "EDITORA SBB"] {
         db.execute(Statement::from_sql_and_values(
             db.get_database_backend(),
-            "INSERT INTO movimento_estoque (livro_codigo, tipo, qtd, fornecedor, criado_em)
-             VALUES ('x', 'entrada', 1, ?, '')",
+            "INSERT INTO movimento_estoque (livro_id, tipo, qtd, fornecedor, criado_em)
+             VALUES ((SELECT id FROM livro WHERE codigo = 'x'), 'entrada', 1, ?, '')",
             [nome.into()],
         ))
         .await

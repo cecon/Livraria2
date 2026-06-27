@@ -57,7 +57,6 @@ export interface Livro {
   categoria: number;
   estoque: number;
   descricao?: string | null;
-  codigoBarras?: string | null;
   custoMedioCentavos?: number;
 }
 

@@ -6,7 +6,7 @@ use crate::application::ports_inventario::{DivergenciaView, PendenciaView, Sessa
 use crate::domain::estoque::TipoMovimento;
 use chrono::Local;
 use sea_orm::{
-    ColumnTrait, Condition, ConnectionTrait, DatabaseTransaction, DbErr, EntityTrait, QueryFilter,
+    ColumnTrait, ConnectionTrait, DatabaseTransaction, DbErr, EntityTrait, QueryFilter,
     QueryResult, Statement, Value,
 };
 
@@ -14,18 +14,14 @@ pub(crate) fn agora() -> String {
     Local::now().format("%Y-%m-%dT%H:%M:%S").to_string()
 }
 
-/// Acha o livro de uma bipagem: casa `codigo_barras` OU `codigo` (FR-022).
+/// Acha o livro de uma bipagem: casa `codigo` (o código de barras EAN/ISBN, FR-042).
 pub(crate) async fn achar_por_bipagem(
     db: &impl ConnectionTrait,
     codigo_lido: &str,
 ) -> Result<Option<LivroModel>, DbErr> {
     LivroEntity::find()
         .filter(livro::Column::Ativo.eq(true))
-        .filter(
-            Condition::any()
-                .add(livro::Column::CodigoBarras.eq(codigo_lido))
-                .add(livro::Column::Codigo.eq(codigo_lido)),
-        )
+        .filter(livro::Column::Codigo.eq(codigo_lido))
         .one(db)
         .await
 }
@@ -34,13 +30,13 @@ pub(crate) async fn achar_por_bipagem(
 pub(crate) async fn ler_qtd_contada(
     db: &impl ConnectionTrait,
     sessao_id: i64,
-    codigo: &str,
+    livro_id: i64,
 ) -> Result<i64, DbErr> {
     Ok(db
         .query_one(Statement::from_sql_and_values(
             db.get_database_backend(),
-            "SELECT qtd_contada FROM item_contagem WHERE sessao_id = ? AND livro_codigo = ?",
-            [sessao_id.into(), codigo.into()],
+            "SELECT qtd_contada FROM item_contagem WHERE sessao_id = ? AND livro_id = ?",
+            [sessao_id.into(), livro_id.into()],
         ))
         .await?
         .and_then(|r| r.try_get::<i64>("", "qtd_contada").ok())
@@ -89,9 +85,9 @@ pub(crate) async fn divergencias_query(
         ""
     };
     let sql = format!(
-        "SELECT i.livro_codigo AS codigo, l.titulo AS titulo, {sistema} AS sistema,
+        "SELECT l.codigo AS codigo, l.titulo AS titulo, {sistema} AS sistema,
                 i.qtd_contada AS contada
-         FROM item_contagem i JOIN livro l ON l.codigo = i.livro_codigo
+         FROM item_contagem i JOIN livro l ON l.id = i.livro_id
          WHERE i.sessao_id = ? {extra} ORDER BY l.titulo"
     );
     let rows = db
@@ -156,21 +152,21 @@ pub(crate) async fn aplicar_fechamento(
     let itens = txn
         .query_all(Statement::from_sql_and_values(
             txn.get_database_backend(),
-            "SELECT i.livro_codigo AS codigo, i.qtd_contada AS contada, l.estoque AS sistema
-             FROM item_contagem i JOIN livro l ON l.codigo = i.livro_codigo
+            "SELECT i.livro_id AS livro_id, i.qtd_contada AS contada, l.estoque AS sistema
+             FROM item_contagem i JOIN livro l ON l.id = i.livro_id
              WHERE i.sessao_id = ?",
             [sessao_id.into()],
         ))
         .await?;
     let criado_em = agora();
     for r in &itens {
-        let codigo: String = r.try_get("", "codigo")?;
+        let livro_id: i64 = r.try_get("", "livro_id")?;
         let contada: i64 = r.try_get("", "contada")?;
         let sistema: i64 = r.try_get("", "sistema")?;
         exec(
             txn,
-            "UPDATE item_contagem SET qtd_sistema = ? WHERE sessao_id = ? AND livro_codigo = ?",
-            vec![sistema.into(), sessao_id.into(), codigo.clone().into()],
+            "UPDATE item_contagem SET qtd_sistema = ? WHERE sessao_id = ? AND livro_id = ?",
+            vec![sistema.into(), sessao_id.into(), livro_id.into()],
         )
         .await?;
         let diff = contada - sistema;
@@ -178,10 +174,10 @@ pub(crate) async fn aplicar_fechamento(
             exec(
                 txn,
                 "INSERT INTO movimento_estoque
-                    (livro_codigo, tipo, qtd, custo_unit_centavos, fornecedor, motivo, referencia, criado_em)
+                    (livro_id, tipo, qtd, custo_unit_centavos, fornecedor, motivo, referencia, criado_em)
                  VALUES (?, ?, ?, NULL, NULL, 'inventário', ?, ?)",
                 vec![
-                    codigo.clone().into(),
+                    livro_id.into(),
                     TipoMovimento::Contagem.as_str().into(),
                     diff.into(),
                     sessao_id.to_string().into(),
@@ -191,8 +187,8 @@ pub(crate) async fn aplicar_fechamento(
             .await?;
             exec(
                 txn,
-                "UPDATE livro SET estoque = estoque + ? WHERE codigo = ?",
-                vec![diff.into(), codigo.into()],
+                "UPDATE livro SET estoque = estoque + ? WHERE id = ?",
+                vec![diff.into(), livro_id.into()],
             )
             .await?;
         }

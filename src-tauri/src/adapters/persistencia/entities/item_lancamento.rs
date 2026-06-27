@@ -8,7 +8,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
     pub lancamento_id: i64,
-    pub livro_codigo: String,
+    pub livro_id: i64,
     pub qtd: i64,
     pub custo_unit_centavos: i64,
 }

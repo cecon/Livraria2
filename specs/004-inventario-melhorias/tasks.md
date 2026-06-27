@@ -22,7 +22,7 @@ description: "Task list — 004 Melhorias de inventário + identidade do livro (
 
 **Purpose**: andaime para a refatoração e o teste de migração
 
-- [ ] T001 [P] Criar ADR-0012 (stub) em `docs/adr/0012-identidade-livro-id.md` com a decisão de PK/identidade e a estratégia de migração (resumir de [research.md](research.md) D1–D3)
+- [X] T001 [P] Criar ADR-0012 (stub) em `docs/adr/0012-identidade-livro-id.md` com a decisão de PK/identidade e a estratégia de migração (resumir de [research.md](research.md) D1–D3)
 - [X] T002 [P] Criar o arquivo de teste de migração `src-tauri/tests/migracao_m004.rs` com um helper que cria um SQLite temporário no esquema atual (002/003) e popula `livro` + `movimento_estoque` + `item_contagem` + `item_lancamento` (apenas o fixture; asserts entram em T006)
 
 ---
@@ -50,27 +50,27 @@ description: "Task list — 004 Melhorias de inventário + identidade do livro (
 
 ### Entidades / domínio / DTO
 
-- [ ] T007 [P] [US1] `src-tauri/src/adapters/persistencia/entities/livro.rs`: adicionar `id` (PK), tornar `codigo` único, **remover `codigo_barras`**
-- [ ] T008 [P] [US1] `src-tauri/src/domain/livro.rs`: remover o campo `codigo_barras` (e seus usos em construtores/`#[cfg(test)]`)
-- [ ] T009 [US1] `src-tauri/src/commands.rs`: `LivroDto` perde `codigo_barras` (opcional: expor `id` em leitura) — ajustar `From`/serialização
+- [X] T007 [P] [US1] `src-tauri/src/adapters/persistencia/entities/livro.rs`: adicionar `id` (PK), tornar `codigo` único, **remover `codigo_barras`**
+- [X] T008 [P] [US1] `src-tauri/src/domain/livro.rs`: remover o campo `codigo_barras` (e seus usos em construtores/`#[cfg(test)]`)
+- [X] T009 [US1] `src-tauri/src/commands.rs`: `LivroDto` perde `codigo_barras` (opcional: expor `id` em leitura) — ajustar `From`/serialização
 
 ### Rewiring `livro_codigo → livro_id` (persistência)
 
-- [ ] T010 [US1] `src-tauri/src/adapters/persistencia/livro_repo.rs`: upsert/salvar por `codigo` mapeando `id`; remover `Set(codigo_barras)`; busca/`por_codigo_barras_ou_codigo` casa **só `codigo`**
-- [ ] T011 [US1] `src-tauri/src/adapters/persistencia/inventario_sql.rs`: `achar_por_bipagem` casa só `codigo`; `divergencias_query` / `aplicar_fechamento` / `ler_qtd_contada` passam a usar `item_contagem.livro_id` (join `livro.id`) selecionando `livro.codigo` para a `DivergenciaView`
-- [ ] T012 [US1] `src-tauri/src/adapters/persistencia/inventario_repo.rs`: `bipar`/`desbipar`/`ajustar_item`/`fechar` operam por `livro_id` (resolver o id do livro a partir do `codigo` lido)
-- [ ] T013 [US1] `src-tauri/src/adapters/persistencia/estoque_repo.rs` + `estoque_sql.rs` (helper `inserir_entrada_item`) + extrato de movimentos: `movimento_estoque.livro_codigo → livro_id` (resolver id)
-- [ ] T014 [P] [US1] `src-tauri/src/application/venda.rs` e `src-tauri/src/application/ajuste.rs`: inserir movimento por `livro_id`
-- [ ] T015 [P] [US1] `src-tauri/src/adapters/persistencia/lancamento_repo.rs`: `item_lancamento.livro_codigo → livro_id`; finalização insere movimento por `livro_id`
-- [ ] T016 [US1] Varrer referências remanescentes a `livro_codigo` (`grep -rn "livro_codigo" src-tauri/src`) em relatórios/dashboard/extrato e migrar para `livro_id` mantendo `codigo` na saída
-- [ ] T016a [US1] **Sweep de `codigo_barras`** (FR-042/FR-045): remover o campo nos sites de construção de `Livro` ainda **não cobertos** por T008/T014/T019 — `src-tauri/src/application/cadastro.rs:96`, `src-tauri/src/application/migracao.rs:65`, `src-tauri/src/adapters/legado/mdb_importer.rs:178`; ao final `grep -rn "codigo_barras" src-tauri/src` deve **zerar**. Confirmar que o upsert do legado usa `ON CONFLICT(codigo)` (codigo agora UNIQUE) e que `migrar_legado` continua idempotente por `codigo`
+- [X] T010 [US1] `src-tauri/src/adapters/persistencia/livro_repo.rs`: upsert/salvar por `codigo` mapeando `id`; remover `Set(codigo_barras)`; busca/`por_codigo_barras_ou_codigo` casa **só `codigo`**
+- [X] T011 [US1] `src-tauri/src/adapters/persistencia/inventario_sql.rs`: `achar_por_bipagem` casa só `codigo`; `divergencias_query` / `aplicar_fechamento` / `ler_qtd_contada` passam a usar `item_contagem.livro_id` (join `livro.id`) selecionando `livro.codigo` para a `DivergenciaView`
+- [X] T012 [US1] `src-tauri/src/adapters/persistencia/inventario_repo.rs`: `bipar`/`desbipar`/`ajustar_item`/`fechar` operam por `livro_id` (resolver o id do livro a partir do `codigo` lido)
+- [X] T013 [US1] `src-tauri/src/adapters/persistencia/estoque_repo.rs` + `estoque_sql.rs` (helper `inserir_entrada_item`) + extrato de movimentos: `movimento_estoque.livro_codigo → livro_id` (resolver id)
+- [X] T014 [P] [US1] `src-tauri/src/application/venda.rs` e `src-tauri/src/application/ajuste.rs`: inserir movimento por `livro_id`
+- [X] T015 [P] [US1] `src-tauri/src/adapters/persistencia/lancamento_repo.rs`: `item_lancamento.livro_codigo → livro_id`; finalização insere movimento por `livro_id`
+- [X] T016 [US1] Varrer referências remanescentes a `livro_codigo` (`grep -rn "livro_codigo" src-tauri/src`) em relatórios/dashboard/extrato e migrar para `livro_id` mantendo `codigo` na saída
+- [X] T016a [US1] **Sweep de `codigo_barras`** (FR-042/FR-045): remover o campo nos sites de construção de `Livro` ainda **não cobertos** por T008/T014/T019 — `src-tauri/src/application/cadastro.rs:96`, `src-tauri/src/application/migracao.rs:65`, `src-tauri/src/adapters/legado/mdb_importer.rs:178`; ao final `grep -rn "codigo_barras" src-tauri/src` deve **zerar**. Confirmar que o upsert do legado usa `ON CONFLICT(codigo)` (codigo agora UNIQUE) e que `migrar_legado` continua idempotente por `codigo`
 
 ### UI e testes
 
-- [ ] T017 [P] [US1] `src/components/LivroForm.tsx`: remover o campo "Código de barras (EAN/ISBN)"; `codigo` é o único campo de código; manter possibilidade de seed inicial (preparar US4)
-- [ ] T018 [P] [US1] `src/lib/types.ts` (remover `codigoBarras` de `Livro`) e `src/lib/ipc.ts` (remover `codigoBarras` de `salvarLivro`/DTO); `LancamentoEditor.tsx`/`buscarPorCodigoBarras` seguem (buscam `codigo`)
-- [ ] T019 [US1] Atualizar testes Rust existentes para o esquema novo (sem `codigo_barras`, `livro_id`): `src-tauri/tests/estoque_repo.rs`, `venda.rs`, `lancamento_repo.rs`, `inventario_repo.rs`, `livro_repo.rs`
-- [ ] T020 [US1] `cargo test` + `npm run build`/typecheck verdes; rodar `scripts/check-file-size.sh` e `scripts/check-domain-purity.sh` (Princ. III/I) nos arquivos tocados; rodar [quickstart.md](quickstart.md) §0 e §1
+- [X] T017 [P] [US1] `src/components/LivroForm.tsx`: remover o campo "Código de barras (EAN/ISBN)"; `codigo` é o único campo de código; manter possibilidade de seed inicial (preparar US4)
+- [X] T018 [P] [US1] `src/lib/types.ts` (remover `codigoBarras` de `Livro`) e `src/lib/ipc.ts` (remover `codigoBarras` de `salvarLivro`/DTO); `LancamentoEditor.tsx`/`buscarPorCodigoBarras` seguem (buscam `codigo`)
+- [X] T019 [US1] Atualizar testes Rust existentes para o esquema novo (sem `codigo_barras`, `livro_id`): `src-tauri/tests/estoque_repo.rs`, `venda.rs`, `lancamento_repo.rs`, `inventario_repo.rs`, `livro_repo.rs`
+- [X] T020 [US1] `cargo test` + `npm run build`/typecheck verdes; rodar `scripts/check-file-size.sh` e `scripts/check-domain-purity.sh` (Princ. III/I) nos arquivos tocados; rodar [quickstart.md](quickstart.md) §0 e §1
 
 **Checkpoint**: esquema migrado sem perda, build/testes verdes → US2–US6 podem começar.
 

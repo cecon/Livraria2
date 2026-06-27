@@ -5,7 +5,9 @@ use sea_orm::entity::prelude::*;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "livro")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
+    #[sea_orm(primary_key)]
+    pub id: i64,
+    #[sea_orm(unique)]
     pub codigo: String,
     pub titulo: String,
     pub autor: Option<String>,
@@ -16,7 +18,6 @@ pub struct Model {
     pub busca_norm: String,
     pub ativo: bool,
     pub atualizado_em: String,
-    pub codigo_barras: Option<String>,
     pub custo_medio_centavos: i64,
 }
 
