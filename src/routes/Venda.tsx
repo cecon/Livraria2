@@ -20,7 +20,7 @@ export default function Venda() {
         </TabBtn>
       </div>
       <div className="min-h-0 flex-1 overflow-auto">
-        {aba === "pdv" ? <Pdv /> : <ListaVendas />}
+        {aba === "pdv" ? <Pdv /> : <ListaVendas onClonar={() => setAba("pdv")} />}
       </div>
     </div>
   );

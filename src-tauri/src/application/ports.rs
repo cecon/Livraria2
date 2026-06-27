@@ -81,6 +81,7 @@ pub trait DashboardRepo: Send + Sync {
 #[serde(rename_all = "camelCase")]
 pub struct ItemRelatorio {
     pub id: i64,
+    pub codigo: String,
     pub titulo: String,
     pub qtd: i64,
     pub valor_centavos: i64,

@@ -118,6 +118,7 @@ mod tests {
                     cliente: "A".into(),
                     itens: vec![ItemRelatorio {
                         id: 1,
+                        codigo: "L1".into(),
                         titulo: "L1".into(),
                         qtd: 1,
                         valor_centavos: 3000,

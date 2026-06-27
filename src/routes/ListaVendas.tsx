@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Trash2, X } from "lucide-react";
+import { RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { brl } from "@/lib/format";
+import { PAG_VAZIO, RASCUNHO_KEY } from "@/lib/venda";
 import {
-  excluirItemPedido,
   excluirPedido,
   relatorioVendas,
   type ErroIpc,
@@ -22,7 +22,7 @@ function hojeIso(): string {
   ).padStart(2, "0")}`;
 }
 
-export function ListaVendas() {
+export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
   const [data, setData] = useState(hojeIso());
   const [rel, setRel] = useState<RelatorioVendas | null>(null);
 
@@ -39,14 +39,33 @@ export function ListaVendas() {
     }
   }
 
-  async function delItem(id: number) {
-    if (!window.confirm("Excluir este item? O total da venda será recalculado.")) return;
+  // Reabrir = cancela a venda (devolve estoque) e reabre um CLONE no PDV para
+  // edição. Evita editar item de venda finalizada (quebraria as formas de pagamento).
+  async function reabrir(p: RelatorioVendas["pedidos"][number]) {
+    if (
+      !window.confirm(
+        `Reabrir a venda Nº ${p.numero}? Ela será cancelada (estoque devolvido) e reaberta no PDV para edição.`,
+      )
+    ) {
+      return;
+    }
     try {
-      await excluirItemPedido(id);
-      toast.success("Item removido");
-      carregar();
+      await excluirPedido(p.numero);
+      const rascunho = {
+        cliente: p.cliente,
+        itens: p.itens.map((i) => ({
+          codigo: i.codigo,
+          titulo: i.titulo,
+          precoCentavos: Math.round(i.valorCentavos / i.qtd),
+          qtd: i.qtd,
+        })),
+        pag: PAG_VAZIO,
+      };
+      localStorage.setItem(RASCUNHO_KEY, JSON.stringify(rascunho));
+      toast.success(`Venda Nº ${p.numero} cancelada e reaberta para edição`);
+      onClonar?.();
     } catch (e) {
-      toast.error((e as ErroIpc).mensagem ?? "Erro ao excluir item");
+      toast.error((e as ErroIpc).mensagem ?? "Erro ao reabrir a venda");
     }
   }
 
@@ -127,15 +146,26 @@ export function ListaVendas() {
                     {brl(p.totalCentavos)}
                   </span>
                   {!p.cancelado && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-rose-500 hover:text-rose-600"
-                      title="Cancelar venda inteira"
-                      onClick={() => delPedido(p.numero)}
-                    >
-                      <Trash2 size={15} />
-                    </Button>
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Reabrir venda (cancela e reabre no PDV para editar)"
+                        onClick={() => reabrir(p)}
+                      >
+                        <RotateCcw size={15} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-rose-500 hover:text-rose-600"
+                        title="Cancelar venda inteira"
+                        onClick={() => delPedido(p.numero)}
+                      >
+                        <Trash2 size={15} />
+                      </Button>
+                    </>
                   )}
                 </div>
                 <ul className="text-muted-foreground mt-1">
@@ -145,15 +175,6 @@ export function ListaVendas() {
                         {i.qtd}× {i.titulo}
                       </span>
                       <span>{brl(i.valorCentavos)}</span>
-                      {!p.cancelado && (
-                        <button
-                          onClick={() => delItem(i.id)}
-                          className="text-rose-500 hover:text-rose-600"
-                          title="Excluir item"
-                        >
-                          <X size={13} />
-                        </button>
-                      )}
                     </li>
                   ))}
                 </ul>

@@ -1,6 +1,5 @@
 // Visualizações dos relatórios emitidos (US5, FR-042/043).
 
-import { X } from "lucide-react";
 import { brl } from "@/lib/format";
 import { CATEGORIAS } from "@/lib/types";
 import type { RelatorioEstoque, RelatorioVendas } from "@/lib/ipc";
@@ -13,10 +12,9 @@ const PERIODO_ROTULO: Record<string, string> = {
 
 interface VendasProps {
   rel: RelatorioVendas;
-  onExcluirItem: (id: number) => void;
 }
 
-export function VendasView({ rel, onExcluirItem }: VendasProps) {
+export function VendasView({ rel }: VendasProps) {
   const ativos = rel.pedidos.filter((p) => !p.cancelado);
   const canceladas = rel.pedidos.filter((p) => p.cancelado);
   return (
@@ -55,13 +53,6 @@ export function VendasView({ rel, onExcluirItem }: VendasProps) {
                     {i.qtd}× {i.titulo}
                   </span>
                   <span>{brl(i.valorCentavos)}</span>
-                  <button
-                    onClick={() => onExcluirItem(i.id)}
-                    className="text-rose-500 hover:text-rose-600 print:hidden"
-                    title="Excluir este item"
-                  >
-                    <X size={13} />
-                  </button>
                 </li>
               ))}
             </ul>

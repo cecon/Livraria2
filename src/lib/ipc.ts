@@ -125,6 +125,7 @@ export async function autenticar(usuario: string, senha: string): Promise<boolea
 
 export interface ItemRelatorio {
   id: number;
+  codigo: string;
   titulo: string;
   qtd: number;
   valorCentavos: number;
