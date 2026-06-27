@@ -165,10 +165,10 @@ description: "Task list — 004 Melhorias de inventário + identidade do livro (
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T044 [P] Rodar `scripts/check-file-size.sh` (limite de 300 linhas) nos arquivos tocados; extrair módulo/componente onde estourar (candidatos: `inventario_repo.rs`/`inventario_sql.rs`, `Inventario.tsx`, `Pendencias.tsx`)
-- [ ] T045 [P] Finalizar `docs/adr/0012-identidade-livro-id.md` com a estratégia de migração efetivamente implementada (T003–T006)
+- [X] T044 [P] Rodar `scripts/check-file-size.sh` (limite de 300 linhas) nos arquivos tocados; extrair módulo/componente onde estourar (candidatos: `inventario_repo.rs`/`inventario_sql.rs`, `Inventario.tsx`, `Pendencias.tsx`)
+- [X] T045 [P] Finalizar `docs/adr/0012-identidade-livro-id.md` com a estratégia de migração efetivamente implementada (T003–T006)
 - [ ] T046 Rodar [quickstart.md](quickstart.md) completo + `cargo test` + `npm run build` (regressão geral)
-- [ ] T047 [P] Atualizar memória/contexto se algo não-óbvio surgir na migração (ex.: ordem de drop, FK off)
+- [X] T047 [P] Atualizar memória/contexto se algo não-óbvio surgir na migração (ex.: ordem de drop, FK off)
 
 ---
 

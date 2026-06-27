@@ -3,6 +3,7 @@
 //! rebuild: `id` PK, `codigo` único, sem `codigo_barras`, FKs→`livro_id`,
 //! preservação das linhas válidas, descarte das órfãs e `foreign_key_check` limpo.
 
+use livraria_2_lib::adapters::persistencia::inicializar_schema;
 use livraria_2_lib::migration::{m004, Migrator};
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseConnection, Statement};
 use sea_orm_migration::MigratorTrait;
@@ -150,6 +151,39 @@ async fn m004_base_real() {
     assert!(viol.is_empty(), "foreign_key_check limpo na base real");
     // Idempotência na base real.
     assert!(m004::aplicar(&db).await.unwrap().is_none());
+
+    let _ = std::fs::remove_file(&dest);
+}
+
+/// Caminho REAL de boot: `inicializar_schema` (Migrator 002/003 + m004) sobre a
+/// cópia de produção, com a conexão padrão (pool/FK como no app). Rodar com:
+/// `M004_REAL_DB=/tmp/livraria_pre_m004.db cargo test --test migracao_m004 -- --ignored`
+#[tokio::test]
+#[ignore]
+async fn boot_real_inicializa_schema() {
+    let Ok(origem) = std::env::var("M004_REAL_DB") else {
+        return;
+    };
+    let dest = std::env::temp_dir().join(format!("livraria_boot_{}.db", std::process::id()));
+    let _ = std::fs::remove_file(&dest);
+    std::fs::copy(&origem, &dest).unwrap();
+    let url = format!("sqlite://{}?mode=rwc", dest.display());
+    let db = Database::connect(url).await.unwrap();
+
+    inicializar_schema(&db).await.unwrap(); // 002/003 (no-op) + m004
+    inicializar_schema(&db).await.unwrap(); // idempotente: nada muda
+
+    assert!(colunas(&db, "livro").await.contains(&"id".to_string()));
+    assert!(!colunas(&db, "livro").await.contains(&"codigo_barras".to_string()));
+    assert!(n(&db, "SELECT count(*) AS n FROM livro").await >= 1);
+    let viol = db
+        .query_all(Statement::from_string(
+            db.get_database_backend(),
+            "PRAGMA foreign_key_check".to_string(),
+        ))
+        .await
+        .unwrap();
+    assert!(viol.is_empty(), "boot real: foreign_key_check limpo");
 
     let _ = std::fs::remove_file(&dest);
 }
