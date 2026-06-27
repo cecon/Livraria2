@@ -5,6 +5,8 @@
 
 use sea_orm_migration::prelude::*;
 
+pub mod m004;
+
 pub struct Migrator;
 
 #[async_trait::async_trait]

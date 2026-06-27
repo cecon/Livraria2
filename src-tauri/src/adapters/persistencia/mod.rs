@@ -25,6 +25,12 @@ pub async fn conectar(db_url: &str) -> Result<DatabaseConnection, DbErr> {
 }
 
 /// Aplica as migrations idempotentes (FR-061). Seguro re-executar.
+///
+/// NOTA (US1, em andamento): a **m004** (identidade do livro — `id` PK, `codigo`
+/// único, remoção de `codigo_barras`, FKs→`livro_id`, ADR-0012) já está
+/// implementada e testada em `crate::migration::m004`, mas **ainda não é aplicada
+/// aqui** porque depende do refactor das entidades/repos (T007–T019). A ativação
+/// (`crate::migration::m004::aplicar(db)`) entra junto com esse refactor.
 pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     Migrator::up(db, None).await
 }
