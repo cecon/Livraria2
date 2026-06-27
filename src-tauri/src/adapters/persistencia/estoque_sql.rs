@@ -27,8 +27,8 @@ pub(crate) async fn inserir_movimento(
     txn.execute(Statement::from_sql_and_values(
         backend,
         "INSERT INTO movimento_estoque
-            (livro_codigo, tipo, qtd, custo_unit_centavos, fornecedor, motivo, referencia, criado_em)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (livro_id, tipo, qtd, custo_unit_centavos, fornecedor, motivo, referencia, criado_em)
+         VALUES ((SELECT id FROM livro WHERE codigo = ?), ?, ?, ?, ?, ?, ?, ?)",
         [
             livro_codigo.into(),
             tipo.as_str().into(),

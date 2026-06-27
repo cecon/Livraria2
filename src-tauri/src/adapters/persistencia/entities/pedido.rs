@@ -16,6 +16,8 @@ pub struct Model {
     pub val_pix: i64,
     pub val_ministerio: i64,
     pub val_vale: i64,
+    pub cancelado: bool,
+    pub cancelado_em: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

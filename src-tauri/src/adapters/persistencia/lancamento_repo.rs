@@ -90,7 +90,7 @@ impl LancamentoRepo for SeaLancamentoRepo {
             .execute(Statement::from_sql_and_values(
                 self.db.get_database_backend(),
                 "UPDATE item_lancamento SET qtd = qtd + ?, custo_unit_centavos = ?
-                 WHERE lancamento_id = ? AND livro_codigo = ?",
+                 WHERE lancamento_id = ? AND livro_id = (SELECT id FROM livro WHERE codigo = ?)",
                 [
                     qtd.into(),
                     custo_unit_centavos.into(),
@@ -103,8 +103,8 @@ impl LancamentoRepo for SeaLancamentoRepo {
         if afetou.rows_affected() == 0 {
             exec(
                 &self.db,
-                "INSERT INTO item_lancamento (lancamento_id, livro_codigo, qtd, custo_unit_centavos)
-                 VALUES (?, ?, ?, ?)",
+                "INSERT INTO item_lancamento (lancamento_id, livro_id, qtd, custo_unit_centavos)
+                 VALUES (?, (SELECT id FROM livro WHERE codigo = ?), ?, ?)",
                 vec![id.into(), livro_codigo.into(), qtd.into(), custo_unit_centavos.into()],
             )
             .await

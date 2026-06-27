@@ -10,6 +10,7 @@ import type {
   Livro,
   Movimento,
   Pendencia,
+  RelatorioSessao,
   Sessao,
 } from "./types";
 
@@ -106,6 +107,8 @@ export interface DashboardDia {
   totalLivros: number;
   totalEstoque: number;
   estoqueBaixo: Livro[];
+  canceladasQtd: number;
+  canceladasCentavos: number;
 }
 
 export type PeriodoDash = "hoje" | "7dias" | "mes" | "ano";
@@ -122,6 +125,7 @@ export async function autenticar(usuario: string, senha: string): Promise<boolea
 
 export interface ItemRelatorio {
   id: number;
+  codigo: string;
   titulo: string;
   qtd: number;
   valorCentavos: number;
@@ -136,6 +140,7 @@ export interface PedidoRelatorio {
   ministerio: number;
   vale: number;
   totalCentavos: number;
+  cancelado: boolean;
 }
 export interface ResumoVendas {
   cartao: number;
@@ -261,6 +266,16 @@ export async function inventarioDivergencias(
   return await invoke("inventario_divergencias", { sessaoId });
 }
 
+export async function inventarioRealizados(): Promise<Sessao[]> {
+  return await invoke("inventario_realizados");
+}
+
+export async function inventarioRelatorio(
+  sessaoId: number,
+): Promise<RelatorioSessao> {
+  return await invoke("inventario_relatorio", { sessaoId });
+}
+
 export async function inventarioPendencias(
   apenasAbertas = true,
 ): Promise<Pendencia[]> {
@@ -269,6 +284,10 @@ export async function inventarioPendencias(
 
 export async function resolverPendencia(pendenciaId: number): Promise<void> {
   await invoke("resolver_pendencia", { pendenciaId });
+}
+
+export async function reabrirPendencia(pendenciaId: number): Promise<void> {
+  await invoke("reabrir_pendencia", { pendenciaId });
 }
 
 export async function buscarPorCodigoBarras(

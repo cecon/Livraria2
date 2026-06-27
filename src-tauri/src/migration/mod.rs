@@ -5,6 +5,8 @@
 
 use sea_orm_migration::prelude::*;
 
+pub mod m004;
+
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -14,6 +16,7 @@ impl MigratorTrait for Migrator {
             Box::new(m_init::Migration),
             Box::new(m_estoque::Migration),
             Box::new(m_fornecedores::Migration),
+            Box::new(m005_pedido_cancelado::Migration),
         ]
     }
 }
@@ -193,6 +196,48 @@ mod m_estoque {
                 db.execute(Statement::from_string(backend, String::from(*sql)))
                     .await?;
             }
+            Ok(())
+        }
+    }
+}
+
+/// Vendas: soft-delete de pedido (cancelamento). Colunas idempotentes (ignora
+/// "duplicate column" ao re-aplicar), no mesmo padrão da m_estoque.
+mod m005_pedido_cancelado {
+    use sea_orm_migration::prelude::*;
+    use sea_orm_migration::sea_orm::{ConnectionTrait, Statement};
+
+    pub struct Migration;
+    impl MigrationName for Migration {
+        fn name(&self) -> &str {
+            "m005_pedido_cancelado"
+        }
+    }
+
+    const ALTERS: &[&str] = &[
+        "ALTER TABLE pedido ADD COLUMN cancelado INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE pedido ADD COLUMN cancelado_em TEXT",
+    ];
+
+    #[async_trait::async_trait]
+    impl MigrationTrait for Migration {
+        async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+            let db = manager.get_connection();
+            let backend = db.get_database_backend();
+            for sql in ALTERS {
+                if let Err(e) = db
+                    .execute(Statement::from_string(backend, String::from(*sql)))
+                    .await
+                {
+                    if !e.to_string().to_lowercase().contains("duplicate column") {
+                        return Err(e);
+                    }
+                }
+            }
+            Ok(())
+        }
+
+        async fn down(&self, _manager: &SchemaManager) -> Result<(), DbErr> {
             Ok(())
         }
     }

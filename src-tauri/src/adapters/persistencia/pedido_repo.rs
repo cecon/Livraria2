@@ -28,6 +28,64 @@ fn erro(e: DbErr) -> RepoErro {
     RepoErro::Persistencia(e.to_string())
 }
 
+/// Estorna (devolve ao estoque) o que ainda está baixado de uma venda. Para cada
+/// livro com saldo de saída pendente no `referencia` do pedido (Σ de `saida_venda`
+/// + `estorno` < 0), gera um movimento `estorno` (+qtd) e soma o estoque de volta.
+/// `apenas_livro` limita a um único livro (ao excluir um item). Idempotente: se o
+/// net já é 0 (nada baixado/já estornado), não faz nada — evita estorno duplicado.
+async fn estornar_saidas(
+    txn: &DatabaseTransaction,
+    numero: i64,
+    apenas_livro: Option<i64>,
+) -> Result<(), DbErr> {
+    let mut sql = String::from(
+        "SELECT livro_id, SUM(qtd) AS net FROM movimento_estoque
+         WHERE referencia = ? AND tipo IN ('saida_venda','estorno')",
+    );
+    let mut vals: Vec<sea_orm::Value> = vec![numero.to_string().into()];
+    if let Some(id) = apenas_livro {
+        sql.push_str(" AND livro_id = ?");
+        vals.push(id.into());
+    }
+    sql.push_str(" GROUP BY livro_id HAVING net < 0");
+    let rows = txn
+        .query_all(Statement::from_sql_and_values(
+            txn.get_database_backend(),
+            &sql,
+            vals,
+        ))
+        .await?;
+    let criado_em = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
+    let motivo = format!("exclusão da venda #{numero}");
+    for r in &rows {
+        let livro_id: i64 = r.try_get("", "livro_id")?;
+        let net: i64 = r.try_get("", "net")?; // negativo (ainda baixado)
+        let reverter = -net; // positivo
+        txn.execute(Statement::from_sql_and_values(
+            txn.get_database_backend(),
+            "INSERT INTO movimento_estoque
+                (livro_id, tipo, qtd, custo_unit_centavos, fornecedor, motivo, referencia, criado_em)
+             VALUES (?, ?, ?, NULL, NULL, ?, ?, ?)",
+            [
+                livro_id.into(),
+                TipoMovimento::Estorno.as_str().into(),
+                reverter.into(),
+                motivo.clone().into(),
+                numero.to_string().into(),
+                criado_em.clone().into(),
+            ],
+        ))
+        .await?;
+        txn.execute(Statement::from_sql_and_values(
+            txn.get_database_backend(),
+            "UPDATE livro SET estoque = estoque + ? WHERE id = ?",
+            [reverter.into(), livro_id.into()],
+        ))
+        .await?;
+    }
+    Ok(())
+}
+
 /// Insere o cabeçalho do pedido e seus itens na transação (sem mexer no estoque).
 async fn inserir_cabecalho_e_itens(
     txn: &DatabaseTransaction,
@@ -45,6 +103,8 @@ async fn inserir_cabecalho_e_itens(
         val_pix: Set(pag.pix.centavos()),
         val_ministerio: Set(pag.ministerio.centavos()),
         val_vale: Set(pag.vale.centavos()),
+        cancelado: Set(false),
+        cancelado_em: Set(None),
     };
     pedido::Entity::insert(pm).exec(txn).await?;
 
@@ -105,8 +165,8 @@ impl PedidoRepo for SeaPedidoRepo {
                 txn.execute(Statement::from_sql_and_values(
                     backend,
                     "INSERT INTO movimento_estoque
-                        (livro_codigo, tipo, qtd, custo_unit_centavos, fornecedor, motivo, referencia, criado_em)
-                     VALUES (?, ?, ?, NULL, NULL, NULL, ?, ?)",
+                        (livro_id, tipo, qtd, custo_unit_centavos, fornecedor, motivo, referencia, criado_em)
+                     VALUES ((SELECT id FROM livro WHERE codigo = ?), ?, ?, NULL, NULL, NULL, ?, ?)",
                     [
                         it.codigo.clone().into(),
                         TipoMovimento::SaidaVenda.as_str().into(),
@@ -154,6 +214,21 @@ impl PedidoRepo for SeaPedidoRepo {
             .map_err(erro)?;
         if let Some(it) = item {
             let numero = it.pedido_numero;
+            // Devolve ao estoque o que este item baixou (estorno), pelo livro do item.
+            let livro = txn
+                .query_one(Statement::from_sql_and_values(
+                    txn.get_database_backend(),
+                    "SELECT id FROM livro WHERE codigo = ?",
+                    [it.codigo.clone().into()],
+                ))
+                .await
+                .map_err(erro)?;
+            if let Some(l) = livro {
+                let livro_id: i64 = l.try_get("", "id").map_err(erro)?;
+                estornar_saidas(&txn, numero, Some(livro_id))
+                    .await
+                    .map_err(erro)?;
+            }
             item_pedido::Entity::delete_by_id(item_id)
                 .exec(&txn)
                 .await
@@ -178,17 +253,22 @@ impl PedidoRepo for SeaPedidoRepo {
         Ok(())
     }
 
+    /// Cancela a venda (soft delete): devolve o estoque (estorno) e marca o pedido
+    /// como `cancelado` — preserva o registro para auditoria/relatórios. Idempotente.
     async fn excluir_pedido(&self, numero: i64) -> Result<(), RepoErro> {
         let txn = self.db.begin().await.map_err(erro)?;
-        item_pedido::Entity::delete_many()
-            .filter(item_pedido::Column::PedidoNumero.eq(numero))
-            .exec(&txn)
-            .await
-            .map_err(erro)?;
-        pedido::Entity::delete_by_id(numero)
-            .exec(&txn)
-            .await
-            .map_err(erro)?;
+        // Devolve ao estoque o que a venda baixou (estorno no ledger).
+        estornar_saidas(&txn, numero, None).await.map_err(erro)?;
+        txn.execute(Statement::from_sql_and_values(
+            txn.get_database_backend(),
+            "UPDATE pedido SET cancelado = 1, cancelado_em = ? WHERE numero = ? AND cancelado = 0",
+            [
+                Local::now().format("%Y-%m-%dT%H:%M:%S").to_string().into(),
+                numero.into(),
+            ],
+        ))
+        .await
+        .map_err(erro)?;
         txn.commit().await.map_err(erro)?;
         Ok(())
     }

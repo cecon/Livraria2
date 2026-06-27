@@ -1,6 +1,7 @@
 // Tela Cadastro (US2): lista de livros com busca, estoque, ações e paginação.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ import { StockBadge } from "@/components/StockBadge";
 import { LivroForm } from "@/components/LivroForm";
 import { brl } from "@/lib/format";
 import type { Livro } from "@/lib/types";
-import { excluirLivro, livrosPagina, type ErroIpc } from "@/lib/ipc";
+import { excluirLivro, livrosPagina, resolverPendencia, type ErroIpc } from "@/lib/ipc";
 
 const POR_PAGINA = 12;
 
@@ -27,6 +28,23 @@ export default function Cadastro() {
   const [itens, setItens] = useState<Livro[]>([]);
   const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(1);
+
+  // US4: vindo de uma pendência, abre "novo livro" semeando o código lido e
+  // resolve a pendência ao salvar com sucesso.
+  const location = useLocation();
+  const [codigoSeed, setCodigoSeed] = useState<string | undefined>();
+  const pendenciaRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const st = location.state as { novoCodigo?: string; pendenciaId?: number } | null;
+    if (st?.novoCodigo) {
+      setCodigoSeed(st.novoCodigo);
+      pendenciaRef.current = st.pendenciaId ?? null;
+      setAberto("novo");
+      // limpa o state da navegação para não reabrir ao voltar.
+      window.history.replaceState({}, "");
+    }
+  }, [location.state]);
 
   async function carregar(t: string, p: number) {
     try {
@@ -64,11 +82,27 @@ export default function Cadastro() {
         </h1>
         <LivroForm
           inicial={aberto === "novo" ? null : aberto}
-          onSalvo={() => {
+          codigoInicial={aberto === "novo" ? codigoSeed : undefined}
+          onSalvo={async () => {
+            // US4: se veio de uma pendência, marca-a resolvida ao salvar.
+            const pid = pendenciaRef.current;
+            if (pid != null) {
+              try {
+                await resolverPendencia(pid);
+              } catch {
+                /* a pendência permanece se falhar */
+              }
+            }
+            pendenciaRef.current = null;
+            setCodigoSeed(undefined);
             setAberto(null);
             void carregar(termo, pagina);
           }}
-          onCancelar={() => setAberto(null)}
+          onCancelar={() => {
+            pendenciaRef.current = null;
+            setCodigoSeed(undefined);
+            setAberto(null);
+          }}
         />
       </div>
     );
@@ -81,7 +115,14 @@ export default function Cadastro() {
     <div className="mx-auto max-w-4xl p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Cadastro</h1>
-        <Button onClick={() => setAberto("novo")} className="h-9">
+        <Button
+          onClick={() => {
+            setCodigoSeed(undefined);
+            pendenciaRef.current = null;
+            setAberto("novo");
+          }}
+          className="h-9"
+        >
           <Plus size={16} className="mr-1" /> Novo livro
         </Button>
       </div>

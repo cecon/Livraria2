@@ -13,6 +13,28 @@ pub struct SessaoView {
     pub rotulo: Option<String>,
     pub status: String,
     pub aberta_em: String,
+    pub fechada_em: Option<String>,
+}
+
+/// Agregados de uma sessão para exibição (US3, FR-012).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResumoView {
+    pub total: i64,
+    pub bateram: i64,
+    pub faltaram: i64,
+    pub sobraram: i64,
+    pub soma_diferencas: i64,
+}
+
+/// Relatório só-leitura de um inventário realizado (FR-011/012/015).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RelatorioView {
+    pub sessao: SessaoView,
+    pub resumo: ResumoView,
+    pub itens: Vec<DivergenciaView>,
+    pub pendencias: Vec<PendenciaView>,
 }
 
 #[derive(Debug, Serialize)]
@@ -80,4 +102,10 @@ pub trait InventarioRepo: Send + Sync {
     async fn pendencias(&self, apenas_abertas: bool) -> Result<Vec<PendenciaView>, RepoErro>;
     /// Marca uma pendência como resolvida (ao cadastrar o livro).
     async fn resolver_pendencia(&self, pendencia_id: i64) -> Result<(), RepoErro>;
+    /// Reabre uma pendência resolvida, devolvendo-a à lista ativa (US5, FR-007).
+    async fn reabrir_pendencia(&self, pendencia_id: i64) -> Result<(), RepoErro>;
+    /// Sessões já realizadas (fechadas/canceladas), mais recentes primeiro (US3, FR-010).
+    async fn sessoes_realizadas(&self) -> Result<Vec<SessaoView>, RepoErro>;
+    /// Relatório só-leitura de uma sessão: sessão + agregados + itens + pendências (FR-011/012/015).
+    async fn relatorio_sessao(&self, sessao_id: i64) -> Result<RelatorioView, RepoErro>;
 }

@@ -29,7 +29,7 @@ mod tests {
     use super::*;
     use crate::application::ports::RepoErro;
     use crate::application::ports_inventario::{
-        BipagemResultado, DivergenciaView, FechamentoView, PendenciaView,
+        BipagemResultado, DivergenciaView, FechamentoView, PendenciaView, RelatorioView,
     };
     use async_trait::async_trait;
 
@@ -46,6 +46,7 @@ mod tests {
                 rotulo: None,
                 status: "aberta".into(),
                 aberta_em: "x".into(),
+                fechada_em: None,
             }))
         }
         async fn abrir(&self, modo: &str, rotulo: Option<String>) -> Result<SessaoView, RepoErro> {
@@ -55,6 +56,7 @@ mod tests {
                 rotulo,
                 status: "aberta".into(),
                 aberta_em: "x".into(),
+                fechada_em: None,
             })
         }
         async fn bipar(&self, _s: i64, _c: &str) -> Result<BipagemResultado, RepoErro> {
@@ -83,6 +85,15 @@ mod tests {
         }
         async fn resolver_pendencia(&self, _id: i64) -> Result<(), RepoErro> {
             Ok(())
+        }
+        async fn reabrir_pendencia(&self, _id: i64) -> Result<(), RepoErro> {
+            Ok(())
+        }
+        async fn sessoes_realizadas(&self) -> Result<Vec<SessaoView>, RepoErro> {
+            Ok(vec![])
+        }
+        async fn relatorio_sessao(&self, _s: i64) -> Result<RelatorioView, RepoErro> {
+            unreachable!()
         }
     }
 

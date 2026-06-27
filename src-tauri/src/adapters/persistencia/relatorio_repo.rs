@@ -50,6 +50,7 @@ impl RelatorioRepo for SeaRelatorioRepo {
                 .into_iter()
                 .map(|i| ItemRelatorio {
                     id: i.id,
+                    codigo: i.codigo,
                     titulo: i.titulo,
                     qtd: i.qtd,
                     valor_centavos: i.preco_centavos * i.qtd,
@@ -65,6 +66,7 @@ impl RelatorioRepo for SeaRelatorioRepo {
                 ministerio: p.val_ministerio,
                 vale: p.val_vale,
                 total_centavos: p.total_centavos,
+                cancelado: p.cancelado,
             });
         }
         Ok(saida)

@@ -19,7 +19,7 @@ fn url_temp(tag: &str) -> (String, std::path::PathBuf) {
     (format!("sqlite://{}?mode=rwc", path.display()), path)
 }
 
-fn livro(codigo: &str, barras: &str, estoque: i64) -> Livro {
+fn livro(codigo: &str, estoque: i64) -> Livro {
     Livro {
         codigo: codigo.into(),
         titulo: format!("Livro {codigo}"),
@@ -28,7 +28,6 @@ fn livro(codigo: &str, barras: &str, estoque: i64) -> Livro {
         categoria: Categoria::Biblias,
         estoque,
         descricao: None,
-        codigo_barras: Some(barras.into()),
         custo_medio: Dinheiro::ZERO,
     }
 }
@@ -46,14 +45,14 @@ async fn parcial_idempotente_e_total_zera() {
     let estoque = SeaEstoqueRepo::new(db.clone());
     let inv = SeaInventarioRepo::new(db.clone());
 
-    livros.salvar(&livro("A", "111", 5)).await.unwrap();
-    livros.salvar(&livro("B", "222", 3)).await.unwrap();
+    livros.salvar(&livro("A", 5)).await.unwrap();
+    livros.salvar(&livro("B", 3)).await.unwrap();
     estoque.gerar_saldos_iniciais().await.unwrap();
 
     // --- Sessão PARCIAL "Gaveta A": conta só A (bipa 4x). ---
     let s = inv.abrir("parcial", Some("Gaveta A".into())).await.unwrap();
     for _ in 0..4 {
-        inv.bipar(s.id, "111").await.unwrap();
+        inv.bipar(s.id, "A").await.unwrap();
     }
     let rev = inv.revisao(s.id).await.unwrap();
     assert_eq!(rev.len(), 1);
@@ -72,6 +71,15 @@ async fn parcial_idempotente_e_total_zera() {
     // Divergências recuperáveis pós-fechamento (FR-029).
     assert_eq!(inv.divergencias(s.id).await.unwrap()[0].diferenca, -1);
 
+    // US3: a sessão aparece nos realizados e o relatório traz os agregados.
+    let realizadas = inv.sessoes_realizadas().await.unwrap();
+    assert!(realizadas.iter().any(|x| x.id == s.id && x.status == "fechada"));
+    let rel = inv.relatorio_sessao(s.id).await.unwrap();
+    assert_eq!(rel.resumo.total, 1); // só A foi contado
+    assert_eq!(rel.resumo.faltaram, 1); // A: sistema 5, contado 4
+    assert_eq!(rel.resumo.sobraram, 0);
+    assert_eq!(rel.itens.len(), 1);
+
     // --- Código desconhecido vira pendência (US5). ---
     let s2 = inv.abrir("parcial", None).await.unwrap();
     let r = inv.bipar(s2.id, "999-INEXISTENTE").await.unwrap();
@@ -81,7 +89,7 @@ async fn parcial_idempotente_e_total_zera() {
 
     // --- Sessão TOTAL: conta só A (1x); B não bipado deve zerar. ---
     let s3 = inv.abrir("total", None).await.unwrap();
-    inv.bipar(s3.id, "111").await.unwrap(); // A contado 1 (sistema 4)
+    inv.bipar(s3.id, "A").await.unwrap(); // A contado 1 (sistema 4)
     assert!(inv.fechar(s3.id, false).await.is_err()); // exige confirmação
     inv.fechar(s3.id, true).await.unwrap();
     assert_eq!(estoque_de(&livros, "A").await, 1);
@@ -99,20 +107,20 @@ async fn desbipar_decrementa_e_remove_ao_zerar() {
     let estoque = SeaEstoqueRepo::new(db.clone());
     let inv = SeaInventarioRepo::new(db.clone());
 
-    livros.salvar(&livro("A", "111", 5)).await.unwrap();
+    livros.salvar(&livro("A", 5)).await.unwrap();
     estoque.gerar_saldos_iniciais().await.unwrap();
 
     let s = inv.abrir("parcial", Some("Gaveta A".into())).await.unwrap();
-    inv.bipar(s.id, "111").await.unwrap();
-    let r = inv.bipar(s.id, "111").await.unwrap();
+    inv.bipar(s.id, "A").await.unwrap();
+    let r = inv.bipar(s.id, "A").await.unwrap();
     assert_eq!(r.qtd_contada, Some(2));
 
     // desbipar volta para 1
-    let r = inv.desbipar(s.id, "111").await.unwrap();
+    let r = inv.desbipar(s.id, "A").await.unwrap();
     assert_eq!(r.qtd_contada, Some(1));
 
     // desbipar de novo zera → some da contagem (revisao não lista o livro)
-    let r = inv.desbipar(s.id, "111").await.unwrap();
+    let r = inv.desbipar(s.id, "A").await.unwrap();
     assert_eq!(r.qtd_contada, Some(0));
     assert!(inv.revisao(s.id).await.unwrap().is_empty());
 

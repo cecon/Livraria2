@@ -8,10 +8,11 @@ use crate::domain::livro::Livro;
 use crate::domain::texto::normalize;
 use async_trait::async_trait;
 use chrono::Local;
-use sea_orm::sea_query::OnConflict;
+use sea_orm::sea_query::{Expr, OnConflict};
 use sea_orm::{
-    ActiveValue::Set, ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait,
-    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect,
+    ActiveValue::{NotSet, Set},
+    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, QuerySelect,
 };
 
 pub struct SeaLivroRepo {
@@ -23,19 +24,15 @@ impl SeaLivroRepo {
         Self { db }
     }
 
-    /// Bipagem (FR-022): casa o valor lido contra `codigo_barras` OU `codigo` (PK),
-    /// para achar tanto livros migrados (EAN no `codigo`) quanto os com EAN separado.
+    /// Bipagem (FR-042): casa o valor lido contra `codigo` (o código de barras
+    /// EAN/ISBN, agora a chave única do livro).
     pub async fn por_codigo_barras_ou_codigo(
         &self,
         valor: &str,
     ) -> Result<Option<Livro>, RepoErro> {
         let m = LivroEntity::find()
             .filter(livro::Column::Ativo.eq(true))
-            .filter(
-                Condition::any()
-                    .add(livro::Column::CodigoBarras.eq(valor))
-                    .add(livro::Column::Codigo.eq(valor)),
-            )
+            .filter(livro::Column::Codigo.eq(valor))
             .one(&self.db)
             .await
             .map_err(erro)?;
@@ -59,8 +56,7 @@ impl SeaLivroRepo {
             q = q.filter(
                 Condition::any()
                     .add(livro::Column::BuscaNorm.like(norm))
-                    .add(livro::Column::Codigo.like(bruto.clone()))
-                    .add(livro::Column::CodigoBarras.like(bruto)),
+                    .add(livro::Column::Codigo.like(bruto)),
             );
         }
         let pager = q
@@ -84,7 +80,6 @@ pub(crate) fn para_dominio(m: livro::Model) -> Livro {
         categoria: Categoria::de_i64(m.categoria),
         estoque: m.estoque,
         descricao: m.descricao,
-        codigo_barras: m.codigo_barras,
         custo_medio: Dinheiro::de_centavos(m.custo_medio_centavos),
     }
 }
@@ -96,7 +91,8 @@ fn erro(e: DbErr) -> RepoErro {
 #[async_trait]
 impl LivroRepo for SeaLivroRepo {
     async fn por_codigo(&self, codigo: &str) -> Result<Option<Livro>, RepoErro> {
-        let m = LivroEntity::find_by_id(codigo.to_string())
+        let m = LivroEntity::find()
+            .filter(livro::Column::Codigo.eq(codigo))
             .filter(livro::Column::Ativo.eq(true))
             .one(&self.db)
             .await
@@ -107,6 +103,7 @@ impl LivroRepo for SeaLivroRepo {
     async fn salvar(&self, l: &Livro) -> Result<(), RepoErro> {
         let agora = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
         let am = ActiveModel {
+            id: NotSet, // auto-increment; o upsert casa por `codigo` (único)
             codigo: Set(l.codigo.clone()),
             titulo: Set(l.titulo.clone()),
             autor: Set(l.autor.clone()),
@@ -117,7 +114,6 @@ impl LivroRepo for SeaLivroRepo {
             busca_norm: Set(l.busca_norm()),
             ativo: Set(true),
             atualizado_em: Set(agora),
-            codigo_barras: Set(l.codigo_barras.clone()),
             // custo_medio é gerido pela entrada de mercadoria; no insert nasce com o valor
             // do domínio (0 em cadastro novo) e NÃO entra no update_columns para não ser
             // sobrescrito ao editar o livro.
@@ -137,7 +133,6 @@ impl LivroRepo for SeaLivroRepo {
                         livro::Column::BuscaNorm,
                         livro::Column::Ativo,
                         livro::Column::AtualizadoEm,
-                        livro::Column::CodigoBarras,
                     ])
                     .to_owned(),
             )
@@ -148,12 +143,13 @@ impl LivroRepo for SeaLivroRepo {
     }
 
     async fn inativar(&self, codigo: &str) -> Result<(), RepoErro> {
-        let am = ActiveModel {
-            codigo: Set(codigo.to_string()),
-            ativo: Set(false),
-            ..Default::default()
-        };
-        LivroEntity::update(am).exec(&self.db).await.map_err(erro)?;
+        // PK passou a ser `id`; o soft-delete continua endereçando o livro por `codigo`.
+        LivroEntity::update_many()
+            .col_expr(livro::Column::Ativo, Expr::value(false))
+            .filter(livro::Column::Codigo.eq(codigo))
+            .exec(&self.db)
+            .await
+            .map_err(erro)?;
         Ok(())
     }
 

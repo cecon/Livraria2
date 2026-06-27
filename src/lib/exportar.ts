@@ -7,7 +7,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { invoke } from "@tauri-apps/api/core";
 import { brl } from "./format";
-import { CATEGORIAS } from "./types";
+import { CATEGORIAS, type RelatorioSessao } from "./types";
 import type { RelatorioEstoque, RelatorioVendas } from "./ipc";
 
 async function salvarBytes(
@@ -48,7 +48,7 @@ export async function exportarVendasPdf(rel: RelatorioVendas): Promise<boolean> 
   doc.text(`Relatório de Vendas — ${rel.data}`, 14, 14);
   let y = 20;
 
-  for (const p of rel.pedidos) {
+  for (const p of rel.pedidos.filter((x) => !x.cancelado)) {
     if (y > 262) {
       doc.addPage();
       y = 14;
@@ -99,12 +99,97 @@ export async function exportarVendasPdf(rel: RelatorioVendas): Promise<boolean> 
     columnStyles: { 1: { halign: "right" } },
   });
 
+  // Seção de canceladas (não somadas), para conferência do ajuste.
+  const canceladas = rel.pedidos.filter((p) => p.cancelado);
+  if (canceladas.length > 0) {
+    autoTable(doc, {
+      startY: finalY() + 6,
+      margin: { left: 14, right: 14 },
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [120, 120, 120] },
+      head: [["Canceladas (não somadas)", "Cliente", "Total"]],
+      body: canceladas.map((p) => [`Nº ${p.numero}`, p.cliente, brl(p.totalCentavos)]),
+      columnStyles: { 2: { halign: "right" } },
+    });
+  }
+
   const bytes = new Uint8Array(doc.output("arraybuffer"));
   return salvarBytes(`relatorio-vendas-${rel.data}.pdf`, bytes, "PDF", "pdf");
 }
 
+/** PDF imprimível de um inventário realizado (US3): resumo + itens + pendências. */
+export async function exportarInventarioPdf(rel: RelatorioSessao): Promise<boolean> {
+  const { sessao: s, resumo: r, itens, pendencias } = rel;
+  const doc = new jsPDF();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const finalY = () => (doc as any).lastAutoTable.finalY as number;
+  const sinal = (n: number) => (n > 0 ? `+${n}` : String(n));
+
+  doc.setFontSize(14);
+  doc.text(
+    `Inventário ${s.modo === "total" ? "total" : "parcial"}${s.rotulo ? ` · ${s.rotulo}` : ""}`,
+    14,
+    14,
+  );
+  doc.setFontSize(9);
+  doc.setTextColor(110);
+  doc.text(
+    `Status: ${s.status} · Aberto: ${s.abertaEm}${s.fechadaEm ? ` · Fechado: ${s.fechadaEm}` : ""}`,
+    14,
+    20,
+  );
+  doc.setTextColor(0);
+
+  autoTable(doc, {
+    startY: 26,
+    margin: { left: 14, right: 14 },
+    styles: { fontSize: 9, halign: "center" },
+    headStyles: { fillColor: [31, 122, 77] },
+    head: [["Inventariados", "Bateram", "Faltaram", "Sobraram", "Soma das dif."]],
+    body: [[r.total, r.bateram, r.faltaram, r.sobraram, sinal(r.somaDiferencas)]],
+  });
+
+  autoTable(doc, {
+    startY: finalY() + 4,
+    margin: { left: 14, right: 14 },
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [31, 122, 77] },
+    head: [["Código", "Livro", "Sistema", "Contado", "Diferença"]],
+    body: itens.map((i) => [
+      i.codigo,
+      i.titulo,
+      i.qtdSistema,
+      i.qtdContada,
+      sinal(i.diferenca),
+    ]),
+    columnStyles: {
+      0: { cellWidth: 30 },
+      2: { halign: "right", cellWidth: 22 },
+      3: { halign: "right", cellWidth: 22 },
+      4: { halign: "right", cellWidth: 24 },
+    },
+  });
+
+  if (pendencias.length > 0) {
+    autoTable(doc, {
+      startY: finalY() + 4,
+      margin: { left: 14, right: 14 },
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [120, 120, 120] },
+      head: [["Pendência — código lido", "Qtd", "Situação"]],
+      body: pendencias.map((p) => [p.codigoLido, p.qtd, p.resolvida ? "resolvida" : "pendente"]),
+      columnStyles: { 1: { halign: "right", cellWidth: 20 } },
+    });
+  }
+
+  const bytes = new Uint8Array(doc.output("arraybuffer"));
+  return salvarBytes(`inventario-${s.id}.pdf`, bytes, "PDF", "pdf");
+}
+
 export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean> {
-  const pagamentos = rel.pedidos.map((p) => ({
+  const ativos = rel.pedidos.filter((p) => !p.cancelado);
+  const canceladas = rel.pedidos.filter((p) => p.cancelado);
+  const pagamentos = ativos.map((p) => ({
     Pedido: p.numero,
     Cliente: p.cliente,
     Cartão: p.cartao / 100,
@@ -114,7 +199,7 @@ export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean
     "Vale Presente": p.vale / 100,
     Total: p.totalCentavos / 100,
   }));
-  const itens = rel.pedidos.flatMap((p) =>
+  const itens = ativos.flatMap((p) =>
     p.itens.map((i) => ({
       Pedido: p.numero,
       Item: i.titulo,
@@ -132,7 +217,7 @@ export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean
   ];
   // Aba "Detalhado": cada pedido com seus livros + formas + total (igual à tela).
   const det: (string | number)[][] = [];
-  for (const p of rel.pedidos) {
+  for (const p of ativos) {
     det.push([`Pedido Nº ${p.numero} · ${p.cliente}`]);
     det.push(["Qtd", "Título", "Valor"]);
     for (const i of p.itens) det.push([i.qtd, i.titulo, i.valorCentavos / 100]);
@@ -146,6 +231,14 @@ export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pagamentos), "Pagamentos");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(itens), "Itens");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumo), "Resumo");
+  if (canceladas.length > 0) {
+    const canc = canceladas.map((p) => ({
+      Pedido: p.numero,
+      Cliente: p.cliente,
+      Total: p.totalCentavos / 100,
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(canc), "Canceladas");
+  }
   return salvarPlanilha(wb, `relatorio-vendas-${rel.data}.xlsx`);
 }
 

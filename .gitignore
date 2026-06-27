@@ -30,6 +30,11 @@ dist-ssr
 *.mdb
 *.accdb
 
+# Bancos SQLite (cópia de produção p/ testes — nunca versionar)
+*.db
+*.sqlite
+*.sqlite3
+
 # Rust / Tauri
 target/
 **/*.rs.bk

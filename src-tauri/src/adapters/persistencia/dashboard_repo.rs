@@ -33,7 +33,7 @@ impl DashboardRepo for SeaDashboardRepo {
             .query_one(Statement::from_sql_and_values(
                 backend,
                 "SELECT COALESCE(SUM(total_centavos),0) AS total, COUNT(*) AS n \
-                 FROM pedido WHERE data BETWEEN ? AND ?",
+                 FROM pedido WHERE data BETWEEN ? AND ? AND cancelado = 0",
                 [inicio.into(), fim.into()],
             ))
             .await
@@ -51,7 +51,8 @@ impl DashboardRepo for SeaDashboardRepo {
             .query_one(Statement::from_sql_and_values(
                 backend,
                 "SELECT COALESCE(SUM(ip.qtd),0) AS itens FROM item_pedido ip \
-                 JOIN pedido p ON ip.pedido_numero = p.numero WHERE p.data BETWEEN ? AND ?",
+                 JOIN pedido p ON ip.pedido_numero = p.numero \
+                 WHERE p.data BETWEEN ? AND ? AND p.cancelado = 0",
                 [inicio.into(), fim.into()],
             ))
             .await
@@ -61,10 +62,31 @@ impl DashboardRepo for SeaDashboardRepo {
             None => 0,
         };
 
+        // Vendas canceladas no período (card do dashboard; fora dos totais acima).
+        let canc = self
+            .db
+            .query_one(Statement::from_sql_and_values(
+                backend,
+                "SELECT COUNT(*) AS n, COALESCE(SUM(total_centavos),0) AS total \
+                 FROM pedido WHERE data BETWEEN ? AND ? AND cancelado = 1",
+                [inicio.into(), fim.into()],
+            ))
+            .await
+            .map_err(erro)?;
+        let (num_canceladas, total_canceladas_centavos) = match canc {
+            Some(r) => (
+                r.try_get::<i64>("", "n").map_err(erro)?,
+                r.try_get::<i64>("", "total").map_err(erro)?,
+            ),
+            None => (0, 0),
+        };
+
         Ok(ResumoDia {
             total_centavos,
             num_pedidos,
             itens_vendidos,
+            num_canceladas,
+            total_canceladas_centavos,
         })
     }
 

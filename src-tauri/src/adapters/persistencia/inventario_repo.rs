@@ -1,14 +1,16 @@
 //! Implementação SeaORM da porta `InventarioRepo` (ADR-0010). Bipagem, revisão e
 //! fechamento com reconciliação no fechamento. Helpers SQL em `inventario_sql`.
 
+use super::inventario_relatorio_sql::{montar_relatorio, sessoes_realizadas_query};
 use super::inventario_sql::{
     achar_por_bipagem, agora, aplicar_fechamento, divergencias_query, exec, ler_qtd_contada,
-    pendencias_query, sessao_de_row,
+    pendencias_query, sessao_de_row, set_pendencia_resolvida,
 };
 use super::livro_repo::para_dominio;
 use crate::application::ports::RepoErro;
 use crate::application::ports_inventario::{
-    BipagemResultado, DivergenciaView, FechamentoView, InventarioRepo, PendenciaView, SessaoView,
+    BipagemResultado, DivergenciaView, FechamentoView, InventarioRepo, PendenciaView, RelatorioView,
+    SessaoView,
 };
 use async_trait::async_trait;
 use sea_orm::{
@@ -26,7 +28,7 @@ impl SeaInventarioRepo {
 
     /// Monta o relatório de uma sessão fechada (divergências persistidas + pendências).
     async fn relatorio_fechada(&self, sessao_id: i64) -> Result<FechamentoView, RepoErro> {
-        let ajustados = divergencias_query(&self.db, sessao_id, true)
+        let ajustados = divergencias_query(&self.db, sessao_id, true, false)
             .await
             .map_err(erro)?;
         let pendencias = pendencias_query(
@@ -56,7 +58,7 @@ impl InventarioRepo for SeaInventarioRepo {
             .db
             .query_one(Statement::from_string(
                 self.db.get_database_backend(),
-                "SELECT id, modo, rotulo, status, aberta_em FROM sessao_inventario
+                "SELECT id, modo, rotulo, status, aberta_em, fechada_em FROM sessao_inventario
                  WHERE status = 'aberta' ORDER BY id DESC LIMIT 1"
                     .to_string(),
             ))
@@ -84,28 +86,28 @@ impl InventarioRepo for SeaInventarioRepo {
 
     async fn bipar(&self, sessao_id: i64, codigo_lido: &str) -> Result<BipagemResultado, RepoErro> {
         if let Some(m) = achar_por_bipagem(&self.db, codigo_lido).await.map_err(erro)? {
-            let codigo = m.codigo.clone();
+            let livro_id = m.id;
             let afetou = self
                 .db
                 .execute(Statement::from_sql_and_values(
                     self.db.get_database_backend(),
                     "UPDATE item_contagem SET qtd_contada = qtd_contada + 1
-                     WHERE sessao_id = ? AND livro_codigo = ?",
-                    [sessao_id.into(), codigo.clone().into()],
+                     WHERE sessao_id = ? AND livro_id = ?",
+                    [sessao_id.into(), livro_id.into()],
                 ))
                 .await
                 .map_err(erro)?;
             if afetou.rows_affected() == 0 {
                 exec(
                     &self.db,
-                    "INSERT INTO item_contagem (sessao_id, livro_codigo, qtd_contada)
+                    "INSERT INTO item_contagem (sessao_id, livro_id, qtd_contada)
                      VALUES (?, ?, 1)",
-                    vec![sessao_id.into(), codigo.clone().into()],
+                    vec![sessao_id.into(), livro_id.into()],
                 )
                 .await
                 .map_err(erro)?;
             }
-            let qtd = ler_qtd_contada(&self.db, sessao_id, &codigo)
+            let qtd = ler_qtd_contada(&self.db, sessao_id, livro_id)
                 .await
                 .map_err(erro)?;
             return Ok(BipagemResultado {
@@ -162,24 +164,24 @@ impl InventarioRepo for SeaInventarioRepo {
                 pendencia: None,
             });
         };
-        let codigo = m.codigo.clone();
+        let livro_id = m.id;
         exec(
             &self.db,
             "UPDATE item_contagem SET qtd_contada = qtd_contada - 1
-             WHERE sessao_id = ? AND livro_codigo = ?",
-            vec![sessao_id.into(), codigo.clone().into()],
+             WHERE sessao_id = ? AND livro_id = ?",
+            vec![sessao_id.into(), livro_id.into()],
         )
         .await
         .map_err(erro)?;
         // Se zerou, remove da contagem (não vira "contado = 0").
         exec(
             &self.db,
-            "DELETE FROM item_contagem WHERE sessao_id = ? AND livro_codigo = ? AND qtd_contada <= 0",
-            vec![sessao_id.into(), codigo.clone().into()],
+            "DELETE FROM item_contagem WHERE sessao_id = ? AND livro_id = ? AND qtd_contada <= 0",
+            vec![sessao_id.into(), livro_id.into()],
         )
         .await
         .map_err(erro)?;
-        let qtd = ler_qtd_contada(&self.db, sessao_id, &codigo)
+        let qtd = ler_qtd_contada(&self.db, sessao_id, livro_id)
             .await
             .map_err(erro)?;
         Ok(BipagemResultado {
@@ -194,7 +196,8 @@ impl InventarioRepo for SeaInventarioRepo {
             .db
             .execute(Statement::from_sql_and_values(
                 self.db.get_database_backend(),
-                "UPDATE item_contagem SET qtd_contada = ? WHERE sessao_id = ? AND livro_codigo = ?",
+                "UPDATE item_contagem SET qtd_contada = ?
+                 WHERE sessao_id = ? AND livro_id = (SELECT id FROM livro WHERE codigo = ?)",
                 [qtd.into(), sessao_id.into(), codigo.into()],
             ))
             .await
@@ -202,7 +205,8 @@ impl InventarioRepo for SeaInventarioRepo {
         if afetou.rows_affected() == 0 {
             exec(
                 &self.db,
-                "INSERT INTO item_contagem (sessao_id, livro_codigo, qtd_contada) VALUES (?, ?, ?)",
+                "INSERT INTO item_contagem (sessao_id, livro_id, qtd_contada)
+                 VALUES (?, (SELECT id FROM livro WHERE codigo = ?), ?)",
                 vec![sessao_id.into(), codigo.into(), qtd.into()],
             )
             .await
@@ -212,7 +216,7 @@ impl InventarioRepo for SeaInventarioRepo {
     }
 
     async fn revisao(&self, sessao_id: i64) -> Result<Vec<DivergenciaView>, RepoErro> {
-        divergencias_query(&self.db, sessao_id, false)
+        divergencias_query(&self.db, sessao_id, false, false)
             .await
             .map_err(erro)
     }
@@ -249,9 +253,9 @@ impl InventarioRepo for SeaInventarioRepo {
         if modo == "total" {
             exec(
                 &txn,
-                "INSERT INTO item_contagem (sessao_id, livro_codigo, qtd_contada)
-                 SELECT ?, codigo, 0 FROM livro WHERE ativo = 1
-                 AND codigo NOT IN (SELECT livro_codigo FROM item_contagem WHERE sessao_id = ?)",
+                "INSERT INTO item_contagem (sessao_id, livro_id, qtd_contada)
+                 SELECT ?, id, 0 FROM livro WHERE ativo = 1
+                 AND id NOT IN (SELECT livro_id FROM item_contagem WHERE sessao_id = ?)",
                 vec![sessao_id.into(), sessao_id.into()],
             )
             .await
@@ -281,9 +285,17 @@ impl InventarioRepo for SeaInventarioRepo {
     }
 
     async fn divergencias(&self, sessao_id: i64) -> Result<Vec<DivergenciaView>, RepoErro> {
-        divergencias_query(&self.db, sessao_id, true)
+        divergencias_query(&self.db, sessao_id, true, false)
             .await
             .map_err(erro)
+    }
+
+    async fn sessoes_realizadas(&self) -> Result<Vec<SessaoView>, RepoErro> {
+        sessoes_realizadas_query(&self.db).await.map_err(erro)
+    }
+
+    async fn relatorio_sessao(&self, sessao_id: i64) -> Result<RelatorioView, RepoErro> {
+        montar_relatorio(&self.db, sessao_id).await.map_err(erro)
     }
 
     async fn pendencias(&self, apenas_abertas: bool) -> Result<Vec<PendenciaView>, RepoErro> {
@@ -292,12 +304,10 @@ impl InventarioRepo for SeaInventarioRepo {
     }
 
     async fn resolver_pendencia(&self, pendencia_id: i64) -> Result<(), RepoErro> {
-        exec(
-            &self.db,
-            "UPDATE pendencia_cadastro SET resolvida = 1 WHERE id = ?",
-            vec![pendencia_id.into()],
-        )
-        .await
-        .map_err(erro)
+        set_pendencia_resolvida(&self.db, pendencia_id, true).await.map_err(erro)
+    }
+
+    async fn reabrir_pendencia(&self, pendencia_id: i64) -> Result<(), RepoErro> {
+        set_pendencia_resolvida(&self.db, pendencia_id, false).await.map_err(erro)
     }
 }

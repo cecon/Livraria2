@@ -60,6 +60,9 @@ pub async fn vendas(
     let pedidos = repo.vendas(data, periodo).await?;
     let mut r = ResumoVendas::default();
     for p in &pedidos {
+        if p.cancelado {
+            continue; // canceladas aparecem na lista, mas não entram no resumo
+        }
         r.cartao += p.cartao;
         r.dinheiro += p.dinheiro;
         r.pix += p.pix;
@@ -115,6 +118,7 @@ mod tests {
                     cliente: "A".into(),
                     itens: vec![ItemRelatorio {
                         id: 1,
+                        codigo: "L1".into(),
                         titulo: "L1".into(),
                         qtd: 1,
                         valor_centavos: 3000,
@@ -125,6 +129,7 @@ mod tests {
                     ministerio: 0,
                     vale: 0,
                     total_centavos: 3000,
+                    cancelado: false,
                 },
                 PedidoRelatorio {
                     numero: 2,
@@ -136,6 +141,7 @@ mod tests {
                     ministerio: 1000,
                     vale: 0,
                     total_centavos: 3500,
+                    cancelado: false,
                 },
             ])
         }

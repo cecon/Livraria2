@@ -29,7 +29,6 @@ fn livro(codigo: &str, estoque: i64) -> Livro {
         categoria: Categoria::Biblias,
         estoque,
         descricao: None,
-        codigo_barras: None,
         custo_medio: Dinheiro::ZERO,
     }
 }

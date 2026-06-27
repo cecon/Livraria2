@@ -55,7 +55,6 @@ pub struct LivroDto {
     pub categoria: i64,
     pub estoque: i64,
     pub descricao: Option<String>,
-    pub codigo_barras: Option<String>,
     #[serde(default)]
     pub custo_medio_centavos: i64,
 }
@@ -70,7 +69,6 @@ impl From<Livro> for LivroDto {
             categoria: l.categoria.to_i64(),
             estoque: l.estoque,
             descricao: l.descricao,
-            codigo_barras: l.codigo_barras,
             custo_medio_centavos: l.custo_medio.centavos(),
         }
     }
@@ -86,7 +84,6 @@ impl LivroDto {
             categoria: Categoria::de_i64(self.categoria),
             estoque: self.estoque,
             descricao: self.descricao,
-            codigo_barras: self.codigo_barras,
             custo_medio: Dinheiro::de_centavos(self.custo_medio_centavos),
         }
     }
@@ -201,6 +198,8 @@ pub struct DashboardDto {
     pub total_livros: i64,
     pub total_estoque: i64,
     pub estoque_baixo: Vec<LivroDto>,
+    pub canceladas_qtd: i64,
+    pub canceladas_centavos: i64,
 }
 
 /// Intervalo de datas (ISO) para o período: "hoje" | "7dias" | "mes".
@@ -234,6 +233,8 @@ pub async fn dashboard_do_dia(
         total_livros: ind.total_livros,
         total_estoque: ind.total_estoque,
         estoque_baixo: ind.estoque_baixo.into_iter().map(LivroDto::from).collect(),
+        canceladas_qtd: ind.canceladas_qtd,
+        canceladas_centavos: ind.canceladas_centavos,
     })
 }
 

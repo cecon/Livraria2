@@ -6,7 +6,7 @@ use crate::adapters::persistencia::livro_repo::SeaLivroRepo;
 use crate::application::erros::ErroApp;
 use crate::application::inventario;
 use crate::application::ports_inventario::{
-    DivergenciaView, FechamentoView, InventarioRepo, PendenciaView, SessaoView,
+    DivergenciaView, FechamentoView, InventarioRepo, PendenciaView, RelatorioView, SessaoView,
 };
 use crate::commands::{AppState, ErroDto, LivroDto};
 use serde::Serialize;
@@ -132,6 +132,27 @@ pub async fn inventario_divergencias(
 }
 
 #[tauri::command]
+pub async fn inventario_realizados(
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<SessaoView>, ErroDto> {
+    Ok(repo(&state)
+        .sessoes_realizadas()
+        .await
+        .map_err(ErroApp::from)?)
+}
+
+#[tauri::command]
+pub async fn inventario_relatorio(
+    state: tauri::State<'_, AppState>,
+    sessao_id: i64,
+) -> Result<RelatorioView, ErroDto> {
+    Ok(repo(&state)
+        .relatorio_sessao(sessao_id)
+        .await
+        .map_err(ErroApp::from)?)
+}
+
+#[tauri::command]
 pub async fn inventario_pendencias(
     state: tauri::State<'_, AppState>,
     apenas_abertas: Option<bool>,
@@ -149,6 +170,18 @@ pub async fn resolver_pendencia(
 ) -> Result<(), ErroDto> {
     repo(&state)
         .resolver_pendencia(pendencia_id)
+        .await
+        .map_err(ErroApp::from)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn reabrir_pendencia(
+    state: tauri::State<'_, AppState>,
+    pendencia_id: i64,
+) -> Result<(), ErroDto> {
+    repo(&state)
+        .reabrir_pendencia(pendencia_id)
         .await
         .map_err(ErroApp::from)?;
     Ok(())

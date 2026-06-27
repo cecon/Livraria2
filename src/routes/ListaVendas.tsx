@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Trash2, X } from "lucide-react";
+import { RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { brl } from "@/lib/format";
+import { PAG_VAZIO, RASCUNHO_KEY } from "@/lib/venda";
 import {
-  excluirItemPedido,
   excluirPedido,
   relatorioVendas,
   type ErroIpc,
@@ -22,7 +22,7 @@ function hojeIso(): string {
   ).padStart(2, "0")}`;
 }
 
-export function ListaVendas() {
+export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
   const [data, setData] = useState(hojeIso());
   const [rel, setRel] = useState<RelatorioVendas | null>(null);
 
@@ -39,14 +39,33 @@ export function ListaVendas() {
     }
   }
 
-  async function delItem(id: number) {
-    if (!window.confirm("Excluir este item? O total da venda será recalculado.")) return;
+  // Reabrir = cancela a venda (devolve estoque) e reabre um CLONE no PDV para
+  // edição. Evita editar item de venda finalizada (quebraria as formas de pagamento).
+  async function reabrir(p: RelatorioVendas["pedidos"][number]) {
+    if (
+      !window.confirm(
+        `Reabrir a venda Nº ${p.numero}? Ela será cancelada (estoque devolvido) e reaberta no PDV para edição.`,
+      )
+    ) {
+      return;
+    }
     try {
-      await excluirItemPedido(id);
-      toast.success("Item removido");
-      carregar();
+      await excluirPedido(p.numero);
+      const rascunho = {
+        cliente: p.cliente,
+        itens: p.itens.map((i) => ({
+          codigo: i.codigo,
+          titulo: i.titulo,
+          precoCentavos: Math.round(i.valorCentavos / i.qtd),
+          qtd: i.qtd,
+        })),
+        pag: PAG_VAZIO,
+      };
+      localStorage.setItem(RASCUNHO_KEY, JSON.stringify(rascunho));
+      toast.success(`Venda Nº ${p.numero} cancelada e reaberta para edição`);
+      onClonar?.();
     } catch (e) {
-      toast.error((e as ErroIpc).mensagem ?? "Erro ao excluir item");
+      toast.error((e as ErroIpc).mensagem ?? "Erro ao reabrir a venda");
     }
   }
 
@@ -68,7 +87,10 @@ export function ListaVendas() {
           <h1 className="text-xl font-semibold tracking-tight">Vendas do dia</h1>
           {rel && (
             <p className="text-muted-foreground text-sm">
-              {rel.pedidos.length} vendas · Total {brl(rel.resumo.subtotalCentavos)}
+              {rel.pedidos.filter((p) => !p.cancelado).length} vendas · Total{" "}
+              {brl(rel.resumo.subtotalCentavos)}
+              {rel.pedidos.some((p) => p.cancelado) &&
+                ` · ${rel.pedidos.filter((p) => p.cancelado).length} cancelada(s)`}
             </p>
           )}
         </div>
@@ -95,30 +117,56 @@ export function ListaVendas() {
               <div
                 key={p.numero}
                 className={`bg-card rounded-lg border p-3 text-sm ${
-                  divergente ? "border-rose-500 ring-1 ring-rose-500" : ""
+                  p.cancelado
+                    ? "opacity-60"
+                    : divergente
+                      ? "border-rose-500 ring-1 ring-rose-500"
+                      : ""
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <span className="font-medium">
                     Pedido Nº {p.numero} · {p.cliente}
                   </span>
-                  {divergente && (
+                  {p.cancelado && (
+                    <span className="text-muted-foreground bg-muted rounded px-1.5 py-0.5 text-[10px] uppercase">
+                      cancelada
+                    </span>
+                  )}
+                  {divergente && !p.cancelado && (
                     <span className="text-[11px] text-rose-600">
                       ⚠ Pago {brl(pago)} ≠ Total {brl(p.totalCentavos)}
                     </span>
                   )}
-                  <span className="ml-auto font-mono font-semibold">
+                  <span
+                    className={`ml-auto font-mono font-semibold ${
+                      p.cancelado ? "text-muted-foreground line-through" : ""
+                    }`}
+                  >
                     {brl(p.totalCentavos)}
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-rose-500 hover:text-rose-600"
-                    title="Cancelar venda inteira"
-                    onClick={() => delPedido(p.numero)}
-                  >
-                    <Trash2 size={15} />
-                  </Button>
+                  {!p.cancelado && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Reabrir venda (cancela e reabre no PDV para editar)"
+                        onClick={() => reabrir(p)}
+                      >
+                        <RotateCcw size={15} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-rose-500 hover:text-rose-600"
+                        title="Cancelar venda inteira"
+                        onClick={() => delPedido(p.numero)}
+                      >
+                        <Trash2 size={15} />
+                      </Button>
+                    </>
+                  )}
                 </div>
                 <ul className="text-muted-foreground mt-1">
                   {p.itens.map((i) => (
@@ -127,16 +175,18 @@ export function ListaVendas() {
                         {i.qtd}× {i.titulo}
                       </span>
                       <span>{brl(i.valorCentavos)}</span>
-                      <button
-                        onClick={() => delItem(i.id)}
-                        className="text-rose-500 hover:text-rose-600"
-                        title="Excluir item"
-                      >
-                        <X size={13} />
-                      </button>
                     </li>
                   ))}
                 </ul>
+                {pago > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t pt-2 font-mono text-[11px] text-[#1f7a4d]">
+                    {p.cartao > 0 && <span>Cartão {brl(p.cartao)}</span>}
+                    {p.pix > 0 && <span>PIX {brl(p.pix)}</span>}
+                    {p.dinheiro > 0 && <span>Dinheiro {brl(p.dinheiro)}</span>}
+                    {p.ministerio > 0 && <span>Ministério {brl(p.ministerio)}</span>}
+                    {p.vale > 0 && <span>Vale {brl(p.vale)}</span>}
+                  </div>
+                )}
               </div>
             );
           })

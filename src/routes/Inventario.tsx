@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Pendencias } from "@/components/Pendencias";
+import { InventariosRealizados } from "@/components/InventariosRealizados";
 import { InventarioScanner } from "@/components/InventarioScanner";
 import {
   inventarioAbrir,
@@ -124,6 +125,7 @@ export default function Inventario() {
           <Button onClick={abrir}>Abrir sessão</Button>
         </div>
         <Pendencias recarregar={pend} />
+        <InventariosRealizados />
       </div>
     );
   }
@@ -200,6 +202,9 @@ export default function Inventario() {
           </table>
         </div>
       </div>
+
+      {/* FR-005: pendências acionáveis também DURANTE a sessão aberta. */}
+      <Pendencias recarregar={pend} />
     </div>
   );
 }

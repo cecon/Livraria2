@@ -16,7 +16,6 @@ import { Label } from "@/components/ui/label";
 import { EstoqueView, VendasView } from "@/components/RelatoriosViews";
 import {
   autenticar,
-  excluirItemPedido,
   relatorioEstoque,
   relatorioVendas,
   type ErroIpc,
@@ -79,19 +78,6 @@ export default function Relatorios() {
     }
   }
 
-  async function excluirItem(id: number) {
-    if (!window.confirm("Excluir este item da venda? O total será recalculado.")) {
-      return;
-    }
-    try {
-      await excluirItemPedido(id);
-      toast.success("Item removido");
-      setVendas(await relatorioVendas(data, tipo));
-    } catch (e) {
-      toast.error((e as ErroIpc).mensagem ?? "Erro ao excluir item");
-    }
-  }
-
   async function emitir() {
     setOcupado(true);
     try {
@@ -143,7 +129,7 @@ export default function Relatorios() {
             <Printer size={15} /> Imprimir
           </Button>
         </div>
-        {vendas && <VendasView rel={vendas} onExcluirItem={excluirItem} />}
+        {vendas && <VendasView rel={vendas} />}
         {estoque && <EstoqueView rel={estoque} />}
       </div>
     );
