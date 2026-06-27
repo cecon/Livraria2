@@ -105,6 +105,24 @@ export interface Sessao {
   rotulo?: string | null;
   status: "aberta" | "fechada" | "cancelada";
   abertaEm: string;
+  fechadaEm?: string | null;
+}
+
+/** Agregados de um inventário realizado (US3). */
+export interface ResumoInventario {
+  total: number;
+  bateram: number;
+  faltaram: number;
+  sobraram: number;
+  somaDiferencas: number;
+}
+
+/** Relatório só-leitura de um inventário realizado (US3). */
+export interface RelatorioSessao {
+  sessao: Sessao;
+  resumo: ResumoInventario;
+  itens: Divergencia[];
+  pendencias: Pendencia[];
 }
 
 export interface Divergencia {

@@ -5,6 +5,7 @@ pub mod entities;
 pub mod estoque_repo;
 pub mod estoque_sql;
 pub mod fornecedor_repo;
+pub mod inventario_relatorio_sql;
 pub mod inventario_repo;
 pub mod inventario_sql;
 pub mod lancamento_repo;

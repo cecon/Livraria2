@@ -50,6 +50,7 @@ pub(crate) fn sessao_de_row(r: &QueryResult) -> Result<SessaoView, DbErr> {
         rotulo: r.try_get("", "rotulo")?,
         status: r.try_get("", "status")?,
         aberta_em: r.try_get("", "aberta_em")?,
+        fechada_em: r.try_get("", "fechada_em")?,
     })
 }
 
@@ -73,6 +74,7 @@ pub(crate) async fn divergencias_query(
     db: &impl ConnectionTrait,
     sessao_id: i64,
     apenas_snapshot: bool,
+    incluir_iguais: bool,
 ) -> Result<Vec<DivergenciaView>, DbErr> {
     let sistema = if apenas_snapshot {
         "i.qtd_sistema"
@@ -101,7 +103,7 @@ pub(crate) async fn divergencias_query(
     for r in &rows {
         let sistema: i64 = r.try_get("", "sistema")?;
         let contada: i64 = r.try_get("", "contada")?;
-        if apenas_snapshot && sistema == contada {
+        if apenas_snapshot && !incluir_iguais && sistema == contada {
             continue;
         }
         out.push(DivergenciaView {

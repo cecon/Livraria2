@@ -1,6 +1,7 @@
 //! Implementação SeaORM da porta `InventarioRepo` (ADR-0010). Bipagem, revisão e
 //! fechamento com reconciliação no fechamento. Helpers SQL em `inventario_sql`.
 
+use super::inventario_relatorio_sql::{montar_relatorio, sessoes_realizadas_query};
 use super::inventario_sql::{
     achar_por_bipagem, agora, aplicar_fechamento, divergencias_query, exec, ler_qtd_contada,
     pendencias_query, sessao_de_row,
@@ -8,7 +9,8 @@ use super::inventario_sql::{
 use super::livro_repo::para_dominio;
 use crate::application::ports::RepoErro;
 use crate::application::ports_inventario::{
-    BipagemResultado, DivergenciaView, FechamentoView, InventarioRepo, PendenciaView, SessaoView,
+    BipagemResultado, DivergenciaView, FechamentoView, InventarioRepo, PendenciaView, RelatorioView,
+    SessaoView,
 };
 use async_trait::async_trait;
 use sea_orm::{
@@ -26,7 +28,7 @@ impl SeaInventarioRepo {
 
     /// Monta o relatório de uma sessão fechada (divergências persistidas + pendências).
     async fn relatorio_fechada(&self, sessao_id: i64) -> Result<FechamentoView, RepoErro> {
-        let ajustados = divergencias_query(&self.db, sessao_id, true)
+        let ajustados = divergencias_query(&self.db, sessao_id, true, false)
             .await
             .map_err(erro)?;
         let pendencias = pendencias_query(
@@ -56,7 +58,7 @@ impl InventarioRepo for SeaInventarioRepo {
             .db
             .query_one(Statement::from_string(
                 self.db.get_database_backend(),
-                "SELECT id, modo, rotulo, status, aberta_em FROM sessao_inventario
+                "SELECT id, modo, rotulo, status, aberta_em, fechada_em FROM sessao_inventario
                  WHERE status = 'aberta' ORDER BY id DESC LIMIT 1"
                     .to_string(),
             ))
@@ -214,7 +216,7 @@ impl InventarioRepo for SeaInventarioRepo {
     }
 
     async fn revisao(&self, sessao_id: i64) -> Result<Vec<DivergenciaView>, RepoErro> {
-        divergencias_query(&self.db, sessao_id, false)
+        divergencias_query(&self.db, sessao_id, false, false)
             .await
             .map_err(erro)
     }
@@ -283,9 +285,17 @@ impl InventarioRepo for SeaInventarioRepo {
     }
 
     async fn divergencias(&self, sessao_id: i64) -> Result<Vec<DivergenciaView>, RepoErro> {
-        divergencias_query(&self.db, sessao_id, true)
+        divergencias_query(&self.db, sessao_id, true, false)
             .await
             .map_err(erro)
+    }
+
+    async fn sessoes_realizadas(&self) -> Result<Vec<SessaoView>, RepoErro> {
+        sessoes_realizadas_query(&self.db).await.map_err(erro)
+    }
+
+    async fn relatorio_sessao(&self, sessao_id: i64) -> Result<RelatorioView, RepoErro> {
+        montar_relatorio(&self.db, sessao_id).await.map_err(erro)
     }
 
     async fn pendencias(&self, apenas_abertas: bool) -> Result<Vec<PendenciaView>, RepoErro> {

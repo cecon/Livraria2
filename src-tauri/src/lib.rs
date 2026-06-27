@@ -87,6 +87,8 @@ pub fn run() {
             commands_inventario::inventario_fechar,
             commands_inventario::inventario_cancelar,
             commands_inventario::inventario_divergencias,
+            commands_inventario::inventario_realizados,
+            commands_inventario::inventario_relatorio,
             commands_inventario::inventario_pendencias,
             commands_inventario::resolver_pendencia,
             commands_inventario::buscar_por_codigo_barras,

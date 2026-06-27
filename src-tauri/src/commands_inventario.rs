@@ -6,7 +6,7 @@ use crate::adapters::persistencia::livro_repo::SeaLivroRepo;
 use crate::application::erros::ErroApp;
 use crate::application::inventario;
 use crate::application::ports_inventario::{
-    DivergenciaView, FechamentoView, InventarioRepo, PendenciaView, SessaoView,
+    DivergenciaView, FechamentoView, InventarioRepo, PendenciaView, RelatorioView, SessaoView,
 };
 use crate::commands::{AppState, ErroDto, LivroDto};
 use serde::Serialize;
@@ -127,6 +127,27 @@ pub async fn inventario_divergencias(
 ) -> Result<Vec<DivergenciaView>, ErroDto> {
     Ok(repo(&state)
         .divergencias(sessao_id)
+        .await
+        .map_err(ErroApp::from)?)
+}
+
+#[tauri::command]
+pub async fn inventario_realizados(
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<SessaoView>, ErroDto> {
+    Ok(repo(&state)
+        .sessoes_realizadas()
+        .await
+        .map_err(ErroApp::from)?)
+}
+
+#[tauri::command]
+pub async fn inventario_relatorio(
+    state: tauri::State<'_, AppState>,
+    sessao_id: i64,
+) -> Result<RelatorioView, ErroDto> {
+    Ok(repo(&state)
+        .relatorio_sessao(sessao_id)
         .await
         .map_err(ErroApp::from)?)
 }

@@ -71,6 +71,15 @@ async fn parcial_idempotente_e_total_zera() {
     // Divergências recuperáveis pós-fechamento (FR-029).
     assert_eq!(inv.divergencias(s.id).await.unwrap()[0].diferenca, -1);
 
+    // US3: a sessão aparece nos realizados e o relatório traz os agregados.
+    let realizadas = inv.sessoes_realizadas().await.unwrap();
+    assert!(realizadas.iter().any(|x| x.id == s.id && x.status == "fechada"));
+    let rel = inv.relatorio_sessao(s.id).await.unwrap();
+    assert_eq!(rel.resumo.total, 1); // só A foi contado
+    assert_eq!(rel.resumo.faltaram, 1); // A: sistema 5, contado 4
+    assert_eq!(rel.resumo.sobraram, 0);
+    assert_eq!(rel.itens.len(), 1);
+
     // --- Código desconhecido vira pendência (US5). ---
     let s2 = inv.abrir("parcial", None).await.unwrap();
     let r = inv.bipar(s2.id, "999-INEXISTENTE").await.unwrap();

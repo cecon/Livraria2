@@ -98,23 +98,23 @@ description: "Task list — 004 Melhorias de inventário + identidade do livro (
 
 ### Domínio (regra pura)
 
-- [ ] T023 [P] [US3] `src-tauri/src/domain/inventario.rs`: adicionar `ResumoInventario { total, bateram, faltaram, sobraram, soma_diferencas }` e a função pura `resumir(itens: &[(i64, i64)]) -> ResumoInventario` com testes (`#[cfg(test)]`: bateram/faltaram/sobraram/soma; identidade total)
+- [X] T023 [P] [US3] `src-tauri/src/domain/inventario.rs`: adicionar `ResumoInventario { total, bateram, faltaram, sobraram, soma_diferencas }` e a função pura `resumir(itens: &[(i64, i64)]) -> ResumoInventario` com testes (`#[cfg(test)]`: bateram/faltaram/sobraram/soma; identidade total)
 
 ### Aplicação / portas / adapter
 
-- [ ] T024 [US3] `src-tauri/src/application/ports_inventario.rs`: `SessaoView` ganha `fechada_em: Option<String>`; adicionar `ResumoView` e os métodos de trait `sessoes_realizadas`, `itens_fechada`
-- [ ] T025 [US3] `src-tauri/src/adapters/persistencia/inventario_sql.rs` (ou novo `inventario_relatorio_sql.rs` se passar de 300 linhas): query `sessoes_realizadas` (status `fechada`/`cancelada`, com `fechada_em`) e `itens_fechada` (todos os itens do snapshot, **incluindo diferença 0**); atualizar `sessao_de_row` para `fechada_em`
-- [ ] T026 [US3] `src-tauri/src/adapters/persistencia/inventario_repo.rs`: implementar `sessoes_realizadas` e `itens_fechada` **thin** (toda a SQL em `inventario_relatorio_sql.rs`, T025) — `inventario_repo.rs` já está em ~303 linhas; se passar de 300 **significativas**, extrair antes de prosseguir (Princípio III)
-- [ ] T027 [US3] `src-tauri/src/application/inventario.rs`: caso de uso `relatorio(sessao_id)` que compõe sessão + `resumir(itens)` + itens + pendências da sessão (FR-011/012/014/015)
-- [ ] T028 [US3] `src-tauri/src/commands_inventario.rs`: comandos `inventario_realizados` e `inventario_relatorio`; registrar handlers em `src-tauri/src/lib.rs`
+- [X] T024 [US3] `src-tauri/src/application/ports_inventario.rs`: `SessaoView` ganha `fechada_em: Option<String>`; adicionar `ResumoView` e os métodos de trait `sessoes_realizadas`, `itens_fechada`
+- [X] T025 [US3] `src-tauri/src/adapters/persistencia/inventario_sql.rs` (ou novo `inventario_relatorio_sql.rs` se passar de 300 linhas): query `sessoes_realizadas` (status `fechada`/`cancelada`, com `fechada_em`) e `itens_fechada` (todos os itens do snapshot, **incluindo diferença 0**); atualizar `sessao_de_row` para `fechada_em`
+- [X] T026 [US3] `src-tauri/src/adapters/persistencia/inventario_repo.rs`: implementar `sessoes_realizadas` e `itens_fechada` **thin** (toda a SQL em `inventario_relatorio_sql.rs`, T025) — `inventario_repo.rs` já está em ~303 linhas; se passar de 300 **significativas**, extrair antes de prosseguir (Princípio III)
+- [X] T027 [US3] `src-tauri/src/application/inventario.rs`: caso de uso `relatorio(sessao_id)` que compõe sessão + `resumir(itens)` + itens + pendências da sessão (FR-011/012/014/015)
+- [X] T028 [US3] `src-tauri/src/commands_inventario.rs`: comandos `inventario_realizados` e `inventario_relatorio`; registrar handlers em `src-tauri/src/lib.rs`
 
 ### Frontend
 
-- [ ] T029 [P] [US3] `src/lib/ipc.ts` + `src/lib/types.ts`: bindings e tipos `SessaoRealizada`, `ResumoInventario`, `RelatorioSessao` (conforme [contracts/tauri-commands.md](contracts/tauri-commands.md))
-- [ ] T030 [P] [US3] `src/components/ResumoCard.tsx`: card de agregados (total/bateram/faltaram/sobraram/soma)
-- [ ] T031 [P] [US3] `src/components/InventarioDetalhe.tsx`: detalhe **somente-leitura** (ResumoCard + tabela sistema×contado×diferença + pendências da sessão; sem ações de edição)
-- [ ] T032 [P] [US3] `src/components/InventariosRealizados.tsx`: lista de sessões realizadas (modo, rótulo, datas, status) com seleção
-- [ ] T033 [US3] `src/routes/Inventario.tsx`: quando não há sessão aberta, renderizar `<InventariosRealizados/>` (abaixo do form de abertura); selecionar → `<InventarioDetalhe/>`
+- [X] T029 [P] [US3] `src/lib/ipc.ts` + `src/lib/types.ts`: bindings e tipos `SessaoRealizada`, `ResumoInventario`, `RelatorioSessao` (conforme [contracts/tauri-commands.md](contracts/tauri-commands.md))
+- [X] T030 [P] [US3] `src/components/ResumoCard.tsx`: card de agregados (total/bateram/faltaram/sobraram/soma)
+- [X] T031 [P] [US3] `src/components/InventarioDetalhe.tsx`: detalhe **somente-leitura** (ResumoCard + tabela sistema×contado×diferença + pendências da sessão; sem ações de edição)
+- [X] T032 [P] [US3] `src/components/InventariosRealizados.tsx`: lista de sessões realizadas (modo, rótulo, datas, status) com seleção
+- [X] T033 [US3] `src/routes/Inventario.tsx`: quando não há sessão aberta, renderizar `<InventariosRealizados/>` (abaixo do form de abertura); selecionar → `<InventarioDetalhe/>`
 - [ ] T034 [US3] Rodar `scripts/check-file-size.sh` nos arquivos tocados (Princ. III — atenção a `inventario_repo.rs`/`inventario_sql.rs`/`Inventario.tsx`) e validar [quickstart.md](quickstart.md) §3 (agregados consistentes; nenhuma edição/reabrir/reaplicar)
 
 **Checkpoint**: inventários realizados visíveis e auditáveis.

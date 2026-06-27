@@ -10,6 +10,7 @@ import type {
   Livro,
   Movimento,
   Pendencia,
+  RelatorioSessao,
   Sessao,
 } from "./types";
 
@@ -259,6 +260,16 @@ export async function inventarioDivergencias(
   sessaoId: number,
 ): Promise<Divergencia[]> {
   return await invoke("inventario_divergencias", { sessaoId });
+}
+
+export async function inventarioRealizados(): Promise<Sessao[]> {
+  return await invoke("inventario_realizados");
+}
+
+export async function inventarioRelatorio(
+  sessaoId: number,
+): Promise<RelatorioSessao> {
+  return await invoke("inventario_relatorio", { sessaoId });
 }
 
 export async function inventarioPendencias(
