@@ -7,7 +7,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { invoke } from "@tauri-apps/api/core";
 import { brl } from "./format";
-import { CATEGORIAS } from "./types";
+import { CATEGORIAS, type RelatorioSessao } from "./types";
 import type { RelatorioEstoque, RelatorioVendas } from "./ipc";
 
 async function salvarBytes(
@@ -101,6 +101,75 @@ export async function exportarVendasPdf(rel: RelatorioVendas): Promise<boolean> 
 
   const bytes = new Uint8Array(doc.output("arraybuffer"));
   return salvarBytes(`relatorio-vendas-${rel.data}.pdf`, bytes, "PDF", "pdf");
+}
+
+/** PDF imprimível de um inventário realizado (US3): resumo + itens + pendências. */
+export async function exportarInventarioPdf(rel: RelatorioSessao): Promise<boolean> {
+  const { sessao: s, resumo: r, itens, pendencias } = rel;
+  const doc = new jsPDF();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const finalY = () => (doc as any).lastAutoTable.finalY as number;
+  const sinal = (n: number) => (n > 0 ? `+${n}` : String(n));
+
+  doc.setFontSize(14);
+  doc.text(
+    `Inventário ${s.modo === "total" ? "total" : "parcial"}${s.rotulo ? ` · ${s.rotulo}` : ""}`,
+    14,
+    14,
+  );
+  doc.setFontSize(9);
+  doc.setTextColor(110);
+  doc.text(
+    `Status: ${s.status} · Aberto: ${s.abertaEm}${s.fechadaEm ? ` · Fechado: ${s.fechadaEm}` : ""}`,
+    14,
+    20,
+  );
+  doc.setTextColor(0);
+
+  autoTable(doc, {
+    startY: 26,
+    margin: { left: 14, right: 14 },
+    styles: { fontSize: 9, halign: "center" },
+    headStyles: { fillColor: [31, 122, 77] },
+    head: [["Inventariados", "Bateram", "Faltaram", "Sobraram", "Soma das dif."]],
+    body: [[r.total, r.bateram, r.faltaram, r.sobraram, sinal(r.somaDiferencas)]],
+  });
+
+  autoTable(doc, {
+    startY: finalY() + 4,
+    margin: { left: 14, right: 14 },
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [31, 122, 77] },
+    head: [["Código", "Livro", "Sistema", "Contado", "Diferença"]],
+    body: itens.map((i) => [
+      i.codigo,
+      i.titulo,
+      i.qtdSistema,
+      i.qtdContada,
+      sinal(i.diferenca),
+    ]),
+    columnStyles: {
+      0: { cellWidth: 30 },
+      2: { halign: "right", cellWidth: 22 },
+      3: { halign: "right", cellWidth: 22 },
+      4: { halign: "right", cellWidth: 24 },
+    },
+  });
+
+  if (pendencias.length > 0) {
+    autoTable(doc, {
+      startY: finalY() + 4,
+      margin: { left: 14, right: 14 },
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [120, 120, 120] },
+      head: [["Pendência — código lido", "Qtd", "Situação"]],
+      body: pendencias.map((p) => [p.codigoLido, p.qtd, p.resolvida ? "resolvida" : "pendente"]),
+      columnStyles: { 1: { halign: "right", cellWidth: 20 } },
+    });
+  }
+
+  const bytes = new Uint8Array(doc.output("arraybuffer"));
+  return salvarBytes(`inventario-${s.id}.pdf`, bytes, "PDF", "pdf");
 }
 
 export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean> {

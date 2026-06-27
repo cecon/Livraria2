@@ -3,9 +3,12 @@
 // Não há nenhuma ação de edição/reabertura/reaplicação.
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResumoCard } from "@/components/ResumoCard";
 import { inventarioRelatorio } from "@/lib/ipc";
+import { exportarInventarioPdf } from "@/lib/exportar";
 import type { RelatorioSessao } from "@/lib/types";
 
 export function InventarioDetalhe({
@@ -23,6 +26,20 @@ export function InventarioDetalhe({
       .catch(() => setRel(null));
   }, [sessaoId]);
 
+  const [gerando, setGerando] = useState(false);
+
+  async function gerarPdf() {
+    if (!rel) return;
+    setGerando(true);
+    try {
+      if (await exportarInventarioPdf(rel)) toast.success("PDF gerado");
+    } catch {
+      toast.error("Erro ao gerar PDF");
+    } finally {
+      setGerando(false);
+    }
+  }
+
   if (!rel) return null;
   const { sessao, resumo, itens, pendencias } = rel;
 
@@ -39,9 +56,14 @@ export function InventarioDetalhe({
             {sessao.fechadaEm ? ` · fechado ${sessao.fechadaEm}` : ""}
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={onVoltar}>
-          Voltar
-        </Button>
+        <div className="flex gap-1">
+          <Button variant="outline" size="sm" onClick={gerarPdf} disabled={gerando}>
+            <FileDown size={15} className="mr-1" /> Gerar PDF
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onVoltar}>
+            Voltar
+          </Button>
+        </div>
       </div>
 
       <ResumoCard resumo={resumo} />
