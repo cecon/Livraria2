@@ -178,6 +178,15 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
                     </li>
                   ))}
                 </ul>
+                {pago > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t pt-2 font-mono text-[11px] text-[#1f7a4d]">
+                    {p.cartao > 0 && <span>Cartão {brl(p.cartao)}</span>}
+                    {p.pix > 0 && <span>PIX {brl(p.pix)}</span>}
+                    {p.dinheiro > 0 && <span>Dinheiro {brl(p.dinheiro)}</span>}
+                    {p.ministerio > 0 && <span>Ministério {brl(p.ministerio)}</span>}
+                    {p.vale > 0 && <span>Vale {brl(p.vale)}</span>}
+                  </div>
+                )}
               </div>
             );
           })
