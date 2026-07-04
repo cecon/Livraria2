@@ -1,10 +1,11 @@
 //! Teste de integração da venda (US1, SC-002): persiste pedido e baixa estoque.
 
+use livraria_2_lib::adapters::persistencia::forma_pagamento_repo::SeaFormaPagamentoRepo;
 use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
 use livraria_2_lib::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use livraria_2_lib::adapters::persistencia::{conectar, inicializar_schema};
-use livraria_2_lib::application::ports::LivroRepo;
-use livraria_2_lib::application::venda::{registrar_venda, ItemInput, PagamentosInput, VendaInput};
+use livraria_2_lib::application::ports::{FormaPagamentoRepo, LivroRepo};
+use livraria_2_lib::application::venda::{registrar_venda, ItemInput, RecebimentoInput, VendaInput};
 use livraria_2_lib::domain::categoria::Categoria;
 use livraria_2_lib::domain::dinheiro::Dinheiro;
 use livraria_2_lib::domain::livro::Livro;
@@ -35,6 +36,10 @@ async fn venda_persiste_e_baixa_estoque() {
 
     let livros = SeaLivroRepo::new(db.clone());
     let pedidos = SeaPedidoRepo::new(db.clone());
+    let formas = SeaFormaPagamentoRepo::new(db.clone());
+
+    // m006 semeou o cadastro no boot: resolve a forma Dinheiro pela chave.
+    let dinheiro = formas.por_chave("dinheiro").await.unwrap().unwrap();
 
     // Semeia um livro com estoque 10.
     livros
@@ -57,13 +62,13 @@ async fn venda_persiste_e_baixa_estoque() {
             codigo: "9788573671469".into(),
             qtd: 3,
         }],
-        pagamentos: PagamentosInput {
-            dinheiro: 9000,
-            ..Default::default()
-        },
+        pagamentos: vec![RecebimentoInput {
+            forma_id: dinheiro.id,
+            valor_centavos: 9000,
+        }],
     };
 
-    let pedido = registrar_venda(input, &livros, &pedidos, &RelogioFixo)
+    let pedido = registrar_venda(input, &livros, &pedidos, &formas, &RelogioFixo)
         .await
         .expect("registrar venda");
 

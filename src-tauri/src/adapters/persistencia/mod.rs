@@ -4,6 +4,7 @@ pub mod dashboard_repo;
 pub mod entities;
 pub mod estoque_repo;
 pub mod estoque_sql;
+pub mod forma_pagamento_repo;
 pub mod fornecedor_repo;
 pub mod inventario_relatorio_sql;
 pub mod inventario_repo;
@@ -11,6 +12,7 @@ pub mod inventario_sql;
 pub mod lancamento_repo;
 pub mod lancamento_sql;
 pub mod livro_repo;
+pub mod pagamento_pedido_sql;
 pub mod pedido_repo;
 pub mod relatorio_repo;
 pub mod usuario_repo;
@@ -28,8 +30,9 @@ pub async fn conectar(db_url: &str) -> Result<DatabaseConnection, DbErr> {
 /// Aplica as migrations idempotentes (FR-061). Seguro re-executar.
 ///
 /// Após as migrations versionadas (002/003), aplica a **m004** (identidade do
-/// livro — `id` PK, `codigo` único, remoção de `codigo_barras`, FKs→`livro_id`,
-/// ADR-0012) de forma idempotente: só roda se ainda não foi aplicada (FR-044).
+/// livro, ADR-0012) e a **m006** (cadastro de formas de pagamento, ADR-0013),
+/// idempotentes por estado. Um `Err` aqui DEVE bloquear o boot para operação
+/// (FR-016a): a migração já sofreu rollback e os dados originais estão intactos.
 pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     Migrator::up(db, None).await?;
     if let Some(rel) = crate::migration::m004::aplicar(db).await? {
@@ -39,6 +42,12 @@ pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
                 rel.livros, rel.mov_orfaos, rel.contagem_orfaos, rel.lancamento_orfaos
             );
         }
+    }
+    if let Some(rel) = crate::migration::m006::aplicar(db).await? {
+        eprintln!(
+            "m006: formas de pagamento migradas (formas={}, pedidos={}, linhas={}, soma={})",
+            rel.formas_semeadas, rel.pedidos, rel.linhas_pagamento, rel.soma_total_centavos
+        );
     }
     Ok(())
 }

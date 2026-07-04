@@ -2,6 +2,7 @@
 //! Pula automaticamente se o `.mdb` ou o `mdb-export` não estiverem disponíveis.
 
 use livraria_2_lib::adapters::legado::mdb_importer::MdbImportador;
+use livraria_2_lib::adapters::persistencia::forma_pagamento_repo::SeaFormaPagamentoRepo;
 use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
 use livraria_2_lib::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use livraria_2_lib::adapters::persistencia::{conectar, inicializar_schema};
@@ -33,8 +34,9 @@ async fn migra_legado_real_idempotente() {
     let imp = MdbImportador::new(mdb);
     let livros = SeaLivroRepo::new(db.clone());
     let pedidos = SeaPedidoRepo::new(db.clone());
+    let formas = SeaFormaPagamentoRepo::new(db.clone());
 
-    let r1 = migrar(&imp, &livros, &pedidos).await.unwrap();
+    let r1 = migrar(&imp, &livros, &pedidos, &formas).await.unwrap();
     eprintln!(
         "MIGRAÇÃO: {} livros, {} pedidos inseridos, {} divergências",
         r1.livros_importados,
@@ -45,25 +47,29 @@ async fn migra_legado_real_idempotente() {
     assert!(r1.pedidos_inseridos > 100, "pedidos: {}", r1.pedidos_inseridos);
 
     // As formas de pagamento NÃO podem vir todas como dinheiro: o legado grava
-    // cartão/pix nas colunas de valor do resumo (regressão corrigida).
+    // cartão/pix nas colunas de valor do resumo, agora vinculadas por CHAVE ao
+    // cadastro (`pagamento_pedido` — FR-018; cartão do legado → credito).
     use sea_orm::{ConnectionTrait, Statement};
     let backend = db.get_database_backend();
     let row = db
         .query_one(Statement::from_string(
             backend,
-            "SELECT COALESCE(SUM(val_cartao),0) c, COALESCE(SUM(val_pix),0) p FROM pedido"
+            "SELECT
+                COALESCE(SUM(CASE WHEN f.chave='credito' THEN pp.valor_centavos END),0) c,
+                COALESCE(SUM(CASE WHEN f.chave='pix' THEN pp.valor_centavos END),0) p
+             FROM pagamento_pedido pp JOIN forma_pagamento f ON f.id = pp.forma_id"
                 .to_string(),
         ))
         .await
         .unwrap()
         .unwrap();
-    let cartao: i64 = row.try_get("", "c").unwrap();
+    let credito: i64 = row.try_get("", "c").unwrap();
     let pix: i64 = row.try_get("", "p").unwrap();
-    assert!(cartao > 0, "deve haver vendas no cartão");
+    assert!(credito > 0, "deve haver vendas no crédito (ex-cartão)");
     assert!(pix > 0, "deve haver vendas no PIX");
 
     // Idempotência (FR-069): re-rodar não insere pedidos novos.
-    let r2 = migrar(&imp, &livros, &pedidos).await.unwrap();
+    let r2 = migrar(&imp, &livros, &pedidos, &formas).await.unwrap();
     assert_eq!(r2.pedidos_inseridos, 0, "re-rodar não deve inserir pedidos");
     assert_eq!(r2.pedidos_existentes, r1.pedidos_inseridos);
 

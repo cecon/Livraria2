@@ -111,7 +111,7 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
           <p className="text-muted-foreground text-sm">Nenhuma venda nesta data.</p>
         ) : (
           rel.pedidos.map((p) => {
-            const pago = p.cartao + p.dinheiro + p.pix + p.ministerio + p.vale;
+            const pago = p.recebimentos.reduce((s, r) => s + r.valorCentavos, 0);
             const divergente = pago !== p.totalCentavos;
             return (
               <div
@@ -180,11 +180,11 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
                 </ul>
                 {pago > 0 && (
                   <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t pt-2 font-mono text-[11px] text-[#1f7a4d]">
-                    {p.cartao > 0 && <span>Cartão {brl(p.cartao)}</span>}
-                    {p.pix > 0 && <span>PIX {brl(p.pix)}</span>}
-                    {p.dinheiro > 0 && <span>Dinheiro {brl(p.dinheiro)}</span>}
-                    {p.ministerio > 0 && <span>Ministério {brl(p.ministerio)}</span>}
-                    {p.vale > 0 && <span>Vale {brl(p.vale)}</span>}
+                    {p.recebimentos.map((r) => (
+                      <span key={r.formaId}>
+                        {r.rotulo} {brl(r.valorCentavos)}
+                      </span>
+                    ))}
                   </div>
                 )}
               </div>

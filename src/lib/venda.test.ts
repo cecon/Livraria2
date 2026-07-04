@@ -4,6 +4,8 @@ import {
   paraCentavos,
   pagamentosParaPayload,
   parseRascunho,
+  somaPagamentos,
+  type Pagamentos,
 } from "./venda";
 
 describe("paraCentavos", () => {
@@ -31,27 +33,36 @@ describe("paraCentavos", () => {
 });
 
 describe("pagamentosParaPayload", () => {
+  it("produz lista esparsa por formaId com valores inteiros", () => {
+    // formas do cadastro: 1=Crédito, 2=Débito, 3=Dinheiro (ids dinâmicos).
+    const pag: Pagamentos = { 1: 4500, 2: 0, 3: 1000 };
+    expect(pagamentosParaPayload(pag)).toEqual([
+      { formaId: 1, valorCentavos: 4500 },
+      { formaId: 3, valorCentavos: 1000 },
+    ]);
+  });
+
   it("força todo valor a inteiro (nunca manda string ao backend)", () => {
-    // Esta é a causa raiz: string "4500" cruzando a fronteira Tauri quebrava
+    // Causa raiz histórica: string "4500" cruzando a fronteira Tauri quebrava
     // com `invalid type: string "4500", expected i64`.
-    const sujo = {
-      cartao: "4500",
-      dinheiro: 0,
-      pix: 1000,
-      ministerio: 0,
-      vale: 0,
-    } as unknown as typeof PAG_VAZIO;
+    const sujo = { 1: "4500", 3: "x", 4: 999.9 } as unknown as Pagamentos;
     const payload = pagamentosParaPayload(sujo);
-    expect(payload).toEqual({
-      cartao: 4500,
-      dinheiro: 0,
-      pix: 1000,
-      ministerio: 0,
-      vale: 0,
-    });
-    for (const v of Object.values(payload)) {
-      expect(Number.isInteger(v)).toBe(true);
+    expect(payload).toEqual([
+      { formaId: 1, valorCentavos: 4500 },
+      { formaId: 4, valorCentavos: 999 },
+    ]);
+    for (const r of payload) {
+      expect(Number.isInteger(r.valorCentavos)).toBe(true);
+      expect(Number.isInteger(r.formaId)).toBe(true);
     }
+  });
+});
+
+describe("somaPagamentos", () => {
+  it("soma coagindo a inteiro", () => {
+    expect(somaPagamentos({ 1: 4500, 3: 1000 })).toBe(5500);
+    expect(somaPagamentos({ 1: "4500", 3: "x" } as unknown as Pagamentos)).toBe(4500);
+    expect(somaPagamentos({})).toBe(0);
   });
 });
 
@@ -72,14 +83,14 @@ describe("parseRascunho", () => {
   });
 
   it("NUNCA restaura pagamento antigo — sempre zera (regressão)", () => {
-    // Rascunho salvo por versão antiga com pagamento string/garbage.
+    // Rascunho salvo por versão antiga com pagamento por chaves fixas.
     const antigo = JSON.stringify({
       cliente: "CLIENTE",
       itens: [],
-      pag: { cartao: "4500", dinheiro: "x", pix: 999, ministerio: 0, vale: 0 },
+      pag: { cartao: "4500", dinheiro: "x", pix: 999 },
     });
     const r = parseRascunho(antigo);
-    expect(r?.pag).toEqual(PAG_VAZIO);
+    expect(r?.pag).toEqual({});
   });
 
   it("tolera itens ausentes ou inválidos", () => {

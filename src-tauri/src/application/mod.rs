@@ -7,6 +7,7 @@ pub mod dashboard;
 pub mod erros;
 pub mod estoque_setup;
 pub mod extrato;
+pub mod formas_pagamento;
 pub mod fornecedores;
 pub mod lancamentos;
 pub mod migracao;

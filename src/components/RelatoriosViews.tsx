@@ -27,7 +27,7 @@ export function VendasView({ rel }: VendasProps) {
         <p className="text-muted-foreground text-sm">Nenhuma venda no período.</p>
       ) : (
         ativos.map((p) => {
-          const pago = p.cartao + p.dinheiro + p.pix + p.ministerio + p.vale;
+          const pago = p.recebimentos.reduce((s, r) => s + r.valorCentavos, 0);
           const divergente = pago !== p.totalCentavos;
           return (
           <div
@@ -57,11 +57,11 @@ export function VendasView({ rel }: VendasProps) {
               ))}
             </ul>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 border-t pt-2 font-mono text-[12px] text-[#1f7a4d]">
-              {p.cartao > 0 && <span>Cartão {brl(p.cartao)}</span>}
-              {p.pix > 0 && <span>PIX {brl(p.pix)}</span>}
-              {p.dinheiro > 0 && <span>Dinheiro {brl(p.dinheiro)}</span>}
-              {p.ministerio > 0 && <span>Ministério {brl(p.ministerio)}</span>}
-              {p.vale > 0 && <span>Vale {brl(p.vale)}</span>}
+              {p.recebimentos.map((r) => (
+                <span key={r.formaId}>
+                  {r.rotulo} {brl(r.valorCentavos)}
+                </span>
+              ))}
               <span className="ml-auto font-semibold">Total {brl(p.totalCentavos)}</span>
             </div>
           </div>
@@ -90,11 +90,9 @@ export function VendasView({ rel }: VendasProps) {
       <div className="bg-muted/40 rounded-lg p-4">
         <div className="mb-2 text-sm font-semibold">Resumo das Vendas</div>
         <div className="space-y-1 font-mono text-sm">
-          <Linha rotulo="Total Cartão" v={rel.resumo.cartao} />
-          <Linha rotulo="Total Dinheiro" v={rel.resumo.dinheiro} />
-          <Linha rotulo="Total PIX" v={rel.resumo.pix} />
-          <Linha rotulo="Total Ministério" v={rel.resumo.ministerio} />
-          <Linha rotulo="Total Vale Presente" v={rel.resumo.vale} />
+          {rel.resumo.formas.map((f) => (
+            <Linha key={f.formaId} rotulo={`Total ${f.rotulo}`} v={f.totalCentavos} />
+          ))}
         </div>
         <div className="mt-2 flex justify-between border-t pt-2 font-mono text-base font-bold">
           <span>Total das Vendas (todas as formas)</span>

@@ -4,6 +4,7 @@ use super::entities::item_pedido::{self, Entity as ItemEntity};
 use super::entities::livro::{self, Entity as LivroEntity};
 use super::entities::pedido::{self, Entity as PedidoEntity};
 use super::livro_repo::para_dominio;
+use super::pagamento_pedido_sql;
 use crate::application::ports::{ItemRelatorio, PedidoRelatorio, RelatorioRepo, RepoErro};
 use crate::domain::livro::Livro;
 use async_trait::async_trait;
@@ -56,15 +57,14 @@ impl RelatorioRepo for SeaRelatorioRepo {
                     valor_centavos: i.preco_centavos * i.qtd,
                 })
                 .collect();
+            let recebimentos = pagamento_pedido_sql::por_pedido(&self.db, p.numero)
+                .await
+                .map_err(erro)?;
             saida.push(PedidoRelatorio {
                 numero: p.numero,
                 cliente: p.cliente,
                 itens,
-                cartao: p.val_cartao,
-                dinheiro: p.val_dinheiro,
-                pix: p.val_pix,
-                ministerio: p.val_ministerio,
-                vale: p.val_vale,
+                recebimentos,
                 total_centavos: p.total_centavos,
                 cancelado: p.cancelado,
             });

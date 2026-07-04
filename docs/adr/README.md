@@ -16,6 +16,8 @@ As decisões nascem do `/speckit-plan` (ver `specs/001-sistema-estoque-vendas/re
 | [0009](0009-custo-medio-ponderado.md) | Custo médio ponderado por livro | Aceito |
 | [0010](0010-inventario-reconciliacao.md) | Inventário: sessão parcial/total e reconciliação no fechamento | Aceito |
 | [0011](0011-fornecedores-lancamento-notas.md) | Fornecedores e lançamento de entrada por nota | Aceito |
+| [0012](0012-identidade-livro-id.md) | Identidade do livro: `id` numérico e `codigo` (barcode) único | Aceito |
+| [0013](0013-cadastro-formas-pagamento.md) | Cadastro de formas de pagamento: registro + junção e migração m006 | Aceito |
 
 **Versionamento**: um arquivo por decisão, numeração sequencial. Mudança de decisão → novo ADR que
 "supersedes" o anterior (não reescrever o histórico).

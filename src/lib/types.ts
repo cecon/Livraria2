@@ -165,14 +165,25 @@ export const CATEGORIAS: readonly { id: number; nome: string }[] = [
   { id: 6, nome: "Ficção" },
 ] as const;
 
-/** Ordem e rótulos exatos das formas de pagamento (FR-013). */
-export const FORMAS_PAGAMENTO = [
-  "Cartão",
-  "Dinheiro",
-  "PIX",
-  "Ministério",
-  "Vale Presente",
-] as const;
+/** Forma de pagamento do cadastro gerenciável (feature 005, ADR-0013). */
+export interface FormaPagamento {
+  id: number;
+  /** Identidade estável (snake_case, imutável) — troco/legado prendem-se a ela. */
+  chave: string;
+  rotulo: string;
+  /** De sistema: não pode ser excluída nem desativada (FR-001a). */
+  deSistema: boolean;
+  ativa: boolean;
+  ordem: number;
+}
+
+/** Valor recebido numa forma, com rótulo para exibição (relatórios — FR-019). */
+export interface Recebimento {
+  formaId: number;
+  chave: string;
+  rotulo: string;
+  valorCentavos: number;
+}
 
 export type SeloEstoque = "esgotado" | "baixo" | "normal";
 

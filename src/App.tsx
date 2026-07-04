@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { toast } from "sonner";
 import { AppSidebar } from "@/components/AppSidebar";
+import { ErroMigracao } from "@/components/ErroMigracao";
 import { Toaster } from "@/components/ui/sonner";
+import { estadoBoot, type EstadoBoot } from "@/lib/ipc";
 import { aplicarTema, temaInicial, type Tema } from "@/lib/theme";
 import { verificarAtualizacao } from "@/lib/updater";
 import Inicio from "@/routes/Inicio";
@@ -11,16 +13,25 @@ import Cadastro from "@/routes/Cadastro";
 import Pesquisa from "@/routes/Pesquisa";
 import Lancamentos from "@/routes/Lancamentos";
 import Fornecedores from "@/routes/Fornecedores";
+import FormasPagamento from "@/routes/FormasPagamento";
 import Inventario from "@/routes/Inventario";
 import Relatorios from "@/routes/Relatorios";
 
 function App() {
   const [tema, setTema] = useState<Tema>(temaInicial);
+  const [boot, setBoot] = useState<EstadoBoot | null>(null);
   const versaoAvisada = useRef<string | null>(null);
 
   useEffect(() => {
     aplicarTema(tema);
   }, [tema]);
+
+  // FR-016a: se a migração de dados falhou no boot, bloqueia toda a operação.
+  useEffect(() => {
+    estadoBoot()
+      .then(setBoot)
+      .catch(() => setBoot({ ok: true })); // comando indisponível: segue normal
+  }, []);
 
   useEffect(() => {
     function checar() {
@@ -44,6 +55,10 @@ function App() {
     };
   }, []);
 
+  if (boot && !boot.ok) {
+    return <ErroMigracao detalhe={boot.erroMigracao} />;
+  }
+
   return (
     <BrowserRouter>
       <div className="bg-background text-foreground flex h-screen overflow-hidden">
@@ -59,6 +74,7 @@ function App() {
             <Route path="/pesquisa" element={<Pesquisa />} />
             <Route path="/lancamentos" element={<Lancamentos />} />
             <Route path="/fornecedores" element={<Fornecedores />} />
+            <Route path="/formas-pagamento" element={<FormasPagamento />} />
             <Route path="/inventario" element={<Inventario />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="*" element={<Navigate to="/" replace />} />

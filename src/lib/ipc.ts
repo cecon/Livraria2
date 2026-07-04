@@ -10,6 +10,7 @@ import type {
   Livro,
   Movimento,
   Pendencia,
+  Recebimento,
   RelatorioSessao,
   Sessao,
 } from "./types";
@@ -24,18 +25,17 @@ export interface ItemVenda {
   qtd: number;
 }
 
-export interface PagamentosInput {
-  cartao: number;
-  dinheiro: number;
-  pix: number;
-  ministerio: number;
-  vale: number;
+/** Recebimento do payload de venda: forma do cadastro + valor em centavos. */
+export interface RecebimentoInput {
+  formaId: number;
+  valorCentavos: number;
 }
 
 export interface VendaInput {
   cliente: string;
   itens: ItemVenda[];
-  pagamentos: PagamentosInput;
+  /** Lista esparsa: só formas com valor > 0 (FR-012). */
+  pagamentos: RecebimentoInput[];
 }
 
 export interface PedidoResultado {
@@ -134,20 +134,19 @@ export interface PedidoRelatorio {
   numero: number;
   cliente: string;
   itens: ItemRelatorio[];
-  cartao: number;
-  dinheiro: number;
-  pix: number;
-  ministerio: number;
-  vale: number;
+  /** Recebido por forma do cadastro, na ordem (FR-019). */
+  recebimentos: Recebimento[];
   totalCentavos: number;
   cancelado: boolean;
 }
+/** Total por forma do cadastro (inclui zeros, na ordem). */
+export interface TotalForma {
+  formaId: number;
+  rotulo: string;
+  totalCentavos: number;
+}
 export interface ResumoVendas {
-  cartao: number;
-  dinheiro: number;
-  pix: number;
-  ministerio: number;
-  vale: number;
+  formas: TotalForma[];
   subtotalCentavos: number;
 }
 export interface RelatorioVendas {
@@ -298,3 +297,5 @@ export async function buscarPorCodigoBarras(
 
 // Fornecedores & lançamentos de nota (feature 003) — em módulo próprio.
 export * from "./ipc_compras";
+// Cadastro de formas de pagamento & estado do boot (feature 005).
+export * from "./ipc_formas";

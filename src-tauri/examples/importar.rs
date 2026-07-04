@@ -3,6 +3,7 @@
 //! Sem o 2º arg, usa o banco do app (app_data_dir do Tauri).
 
 use livraria_2_lib::adapters::legado::mdb_importer::MdbImportador;
+use livraria_2_lib::adapters::persistencia::forma_pagamento_repo::SeaFormaPagamentoRepo;
 use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
 use livraria_2_lib::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use livraria_2_lib::adapters::persistencia::usuario_repo::SeaUsuarioRepo;
@@ -38,7 +39,8 @@ async fn main() {
     let imp = MdbImportador::new(mdb);
     let livros = SeaLivroRepo::new(db.clone());
     let pedidos = SeaPedidoRepo::new(db.clone());
-    let r = migrar(&imp, &livros, &pedidos).await.expect("migrar");
+    let formas = SeaFormaPagamentoRepo::new(db.clone());
+    let r = migrar(&imp, &livros, &pedidos, &formas).await.expect("migrar");
 
     println!("---");
     println!("Livros importados:     {}", r.livros_importados);

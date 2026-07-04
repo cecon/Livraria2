@@ -31,13 +31,9 @@ async function salvarPlanilha(wb: XLSX.WorkBook, nome: string): Promise<boolean>
 }
 
 function formasDoPedido(p: RelatorioVendas["pedidos"][number]): string {
-  const fs: string[] = [];
-  if (p.cartao > 0) fs.push(`Cartão ${brl(p.cartao)}`);
-  if (p.pix > 0) fs.push(`PIX ${brl(p.pix)}`);
-  if (p.dinheiro > 0) fs.push(`Dinheiro ${brl(p.dinheiro)}`);
-  if (p.ministerio > 0) fs.push(`Ministério ${brl(p.ministerio)}`);
-  if (p.vale > 0) fs.push(`Vale ${brl(p.vale)}`);
-  return fs.join("   ");
+  return p.recebimentos
+    .map((r) => `${r.rotulo} ${brl(r.valorCentavos)}`)
+    .join("   ");
 }
 
 export async function exportarVendasPdf(rel: RelatorioVendas): Promise<boolean> {
@@ -89,11 +85,7 @@ export async function exportarVendasPdf(rel: RelatorioVendas): Promise<boolean> 
     styles: { fontSize: 9 },
     head: [["Resumo das Vendas", "Valor"]],
     body: [
-      ["Cartão", brl(r.cartao)],
-      ["Dinheiro", brl(r.dinheiro)],
-      ["PIX", brl(r.pix)],
-      ["Ministério", brl(r.ministerio)],
-      ["Vale Presente", brl(r.vale)],
+      ...r.formas.map((f) => [f.rotulo, brl(f.totalCentavos)]),
       ["TOTAL DAS VENDAS", brl(r.subtotalCentavos)],
     ],
     columnStyles: { 1: { halign: "right" } },
@@ -189,16 +181,19 @@ export async function exportarInventarioPdf(rel: RelatorioSessao): Promise<boole
 export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean> {
   const ativos = rel.pedidos.filter((p) => !p.cancelado);
   const canceladas = rel.pedidos.filter((p) => p.cancelado);
-  const pagamentos = ativos.map((p) => ({
-    Pedido: p.numero,
-    Cliente: p.cliente,
-    Cartão: p.cartao / 100,
-    Dinheiro: p.dinheiro / 100,
-    PIX: p.pix / 100,
-    Ministério: p.ministerio / 100,
-    "Vale Presente": p.vale / 100,
-    Total: p.totalCentavos / 100,
-  }));
+  // Uma coluna por forma do cadastro (na ordem do resumo), zeros incluídos.
+  const pagamentos = ativos.map((p) => {
+    const linha: Record<string, number | string> = {
+      Pedido: p.numero,
+      Cliente: p.cliente,
+    };
+    for (const f of rel.resumo.formas) {
+      const r = p.recebimentos.find((x) => x.formaId === f.formaId);
+      linha[f.rotulo] = (r?.valorCentavos ?? 0) / 100;
+    }
+    linha.Total = p.totalCentavos / 100;
+    return linha;
+  });
   const itens = ativos.flatMap((p) =>
     p.itens.map((i) => ({
       Pedido: p.numero,
@@ -208,11 +203,7 @@ export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean
     })),
   );
   const resumo = [
-    { Forma: "Cartão", Valor: rel.resumo.cartao / 100 },
-    { Forma: "Dinheiro", Valor: rel.resumo.dinheiro / 100 },
-    { Forma: "PIX", Valor: rel.resumo.pix / 100 },
-    { Forma: "Ministério", Valor: rel.resumo.ministerio / 100 },
-    { Forma: "Vale Presente", Valor: rel.resumo.vale / 100 },
+    ...rel.resumo.formas.map((f) => ({ Forma: f.rotulo, Valor: f.totalCentavos / 100 })),
     { Forma: "TOTAL", Valor: rel.resumo.subtotalCentavos / 100 },
   ];
   // Aba "Detalhado": cada pedido com seus livros + formas + total (igual à tela).
@@ -262,11 +253,7 @@ export async function whatsappVendas(rel: RelatorioVendas): Promise<void> {
   const r = rel.resumo;
   const texto = [
     `*Relatório de Vendas* — ${rel.data}`,
-    `Cartão: ${brl(r.cartao)}`,
-    `Dinheiro: ${brl(r.dinheiro)}`,
-    `PIX: ${brl(r.pix)}`,
-    `Ministério: ${brl(r.ministerio)}`,
-    `Vale Presente: ${brl(r.vale)}`,
+    ...r.formas.map((f) => `${f.rotulo}: ${brl(f.totalCentavos)}`),
     `*Total: ${brl(r.subtotalCentavos)}*`,
   ].join("\n");
   await openUrl(`https://wa.me/?text=${encodeURIComponent(texto)}`);

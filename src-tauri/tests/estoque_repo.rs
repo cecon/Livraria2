@@ -12,7 +12,7 @@ use livraria_2_lib::domain::categoria::Categoria;
 use livraria_2_lib::domain::dinheiro::Dinheiro;
 use livraria_2_lib::domain::livro::Livro;
 use livraria_2_lib::domain::pagamento::Turno;
-use livraria_2_lib::domain::pedido::{ItemPedido, Pagamentos, Pedido};
+use livraria_2_lib::domain::pedido::{ItemPedido, Pedido, Recebimento};
 
 fn url_temp() -> (String, std::path::PathBuf) {
     let path = std::env::temp_dir().join(format!("livraria_estoquerepo_{}.db", std::process::id()));
@@ -45,13 +45,11 @@ fn venda_de(codigo: &str, qtd: i64) -> Pedido {
             preco: Dinheiro::de_centavos(3000),
             qtd,
         }],
-        pagamentos: Pagamentos {
-            cartao: Dinheiro::ZERO,
-            dinheiro: Dinheiro::de_centavos(qtd * 3000),
-            pix: Dinheiro::ZERO,
-            ministerio: Dinheiro::ZERO,
-            vale: Dinheiro::ZERO,
-        },
+        // id 3 = "dinheiro" (seed determinístico da m006 em base nova)
+        pagamentos: vec![Recebimento {
+            forma_id: 3,
+            valor: Dinheiro::de_centavos(qtd * 3000),
+        }],
     }
 }
 

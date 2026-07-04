@@ -4,6 +4,7 @@ pub mod adapters;
 pub mod application;
 pub mod commands;
 pub mod commands_estoque;
+pub mod commands_formas;
 pub mod commands_fornecedor;
 pub mod commands_inventario;
 pub mod commands_lancamento;
@@ -11,6 +12,7 @@ pub mod domain;
 pub mod migration;
 
 use commands::AppState;
+use commands_formas::BootState;
 use sea_orm::DatabaseConnection;
 use tauri::Manager;
 
@@ -32,33 +34,56 @@ pub fn run() {
         .setup(|app| {
             let url = db_url(app)?;
             // Conecta e aplica as migrations idempotentes na subida (FR-061).
-            let db: DatabaseConnection = tauri::async_runtime::block_on(async {
-                let db = adapters::persistencia::conectar(&url).await?;
-                adapters::persistencia::inicializar_schema(&db).await?;
-                // Gate de relatórios: garante o admin padrão (adm/adm).
-                use application::ports::UsuarioRepo;
-                adapters::persistencia::usuario_repo::SeaUsuarioRepo::new(db.clone())
-                    .garantir_admin()
-                    .await
-                    .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
-                // Razão de movimentos: gera saldo inicial por livro (idempotente, FR-006).
-                let estoque_repo =
-                    adapters::persistencia::estoque_repo::SeaEstoqueRepo::new(db.clone());
-                application::estoque_setup::adotar(&estoque_repo)
-                    .await
-                    .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
-                // Fornecedores: semeia a partir dos textos de fornecedor da 002 (idempotente, FR-005).
-                let forn_repo =
-                    adapters::persistencia::fornecedor_repo::SeaFornecedorRepo::new(db.clone());
-                application::fornecedores::adotar(&forn_repo)
-                    .await
-                    .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
-                Ok::<_, sea_orm::DbErr>(db)
-            })?;
-            app.manage(AppState { db });
+            let resultado: Result<DatabaseConnection, sea_orm::DbErr> =
+                tauri::async_runtime::block_on(async {
+                    let db = adapters::persistencia::conectar(&url).await?;
+                    adapters::persistencia::inicializar_schema(&db).await?;
+                    // Gate de relatórios: garante o admin padrão (adm/adm).
+                    use application::ports::UsuarioRepo;
+                    adapters::persistencia::usuario_repo::SeaUsuarioRepo::new(db.clone())
+                        .garantir_admin()
+                        .await
+                        .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
+                    // Razão de movimentos: gera saldo inicial por livro (idempotente, FR-006).
+                    let estoque_repo =
+                        adapters::persistencia::estoque_repo::SeaEstoqueRepo::new(db.clone());
+                    application::estoque_setup::adotar(&estoque_repo)
+                        .await
+                        .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
+                    // Fornecedores: semeia a partir dos textos de fornecedor da 002 (idempotente, FR-005).
+                    let forn_repo =
+                        adapters::persistencia::fornecedor_repo::SeaFornecedorRepo::new(db.clone());
+                    application::fornecedores::adotar(&forn_repo)
+                        .await
+                        .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
+                    Ok(db)
+                });
+            // FR-016a: falha de migração NÃO derruba o app — ele abre apenas para
+            // exibir o erro (a migração sofreu rollback; nenhum dado foi perdido).
+            // O frontend consulta `estado_boot` e bloqueia a operação.
+            match resultado {
+                Ok(db) => {
+                    app.manage(AppState { db });
+                    app.manage(BootState { erro_migracao: None });
+                }
+                Err(e) => {
+                    eprintln!("boot: migração falhou — app bloqueado para operação: {e}");
+                    app.manage(BootState {
+                        erro_migracao: Some(e.to_string()),
+                    });
+                }
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands_formas::estado_boot,
+            commands_formas::listar_formas,
+            commands_formas::listar_formas_ativas,
+            commands_formas::criar_forma,
+            commands_formas::renomear_forma,
+            commands_formas::definir_forma_ativa,
+            commands_formas::reordenar_formas,
+            commands_formas::excluir_forma,
             commands::inicializar_dados,
             commands::proximo_numero_pedido,
             commands::registrar_venda,

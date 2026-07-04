@@ -1,28 +1,13 @@
-// Lógica pura do PDV (sem React/IPC): formas de pagamento, rascunho e a
-// coerção de valores para centavos inteiros — o que cruza a fronteira Tauri.
-// Mantido puro de propósito para ser testável (ver venda.test.ts).
+// Lógica pura do PDV (sem React/IPC): pagamentos parametrizados pelas formas
+// carregadas do cadastro (forma_id → centavos), rascunho e a coerção de valores
+// para centavos inteiros. Mantido puro de propósito (ver venda.test.ts).
 
 import type { ItemCarrinho } from "@/components/CarrinhoItens";
 
-export type FormaKey = "cartao" | "dinheiro" | "pix" | "ministerio" | "vale";
+/** Pagamentos do PDV: mapa `formaId → centavos` (formas vêm do cadastro). */
+export type Pagamentos = Record<number, number>;
 
-export const FORMA_KEYS: FormaKey[] = [
-  "cartao",
-  "dinheiro",
-  "pix",
-  "ministerio",
-  "vale",
-];
-
-export type Pagamentos = Record<FormaKey, number>;
-
-export const PAG_VAZIO: Pagamentos = {
-  cartao: 0,
-  dinheiro: 0,
-  pix: 0,
-  ministerio: 0,
-  vale: 0,
-};
+export const PAG_VAZIO: Pagamentos = {};
 
 export const RASCUNHO_KEY = "eldl-venda-rascunho";
 
@@ -38,15 +23,19 @@ export function paraCentavos(v: unknown): number {
   return Math.trunc(Number(v)) || 0;
 }
 
-/** Pagamentos prontos para o payload IPC: toda forma vira inteiro. */
-export function pagamentosParaPayload(pag: Pagamentos): Pagamentos {
-  return {
-    cartao: paraCentavos(pag.cartao),
-    dinheiro: paraCentavos(pag.dinheiro),
-    pix: paraCentavos(pag.pix),
-    ministerio: paraCentavos(pag.ministerio),
-    vale: paraCentavos(pag.vale),
-  };
+/** Soma dos pagamentos lançados (centavos, sempre inteiro). */
+export function somaPagamentos(pag: Pagamentos): number {
+  return Object.values(pag).reduce((s, v) => s + paraCentavos(v), 0);
+}
+
+/** Pagamentos prontos para o payload IPC: lista esparsa `{formaId, valorCentavos}`
+ *  só com formas de valor > 0, todo valor coagido a inteiro. */
+export function pagamentosParaPayload(
+  pag: Pagamentos,
+): { formaId: number; valorCentavos: number }[] {
+  return Object.entries(pag)
+    .map(([id, v]) => ({ formaId: Number(id), valorCentavos: paraCentavos(v) }))
+    .filter((r) => r.valorCentavos > 0);
 }
 
 /** Lê o JSON do rascunho. O pagamento NUNCA é restaurado (é transitório da
@@ -59,7 +48,7 @@ export function parseRascunho(json: string | null): Rascunho | null {
     return {
       cliente: r.cliente ?? "CLIENTE",
       itens: Array.isArray(r.itens) ? r.itens : [],
-      pag: { ...PAG_VAZIO },
+      pag: {},
     };
   } catch {
     return null;

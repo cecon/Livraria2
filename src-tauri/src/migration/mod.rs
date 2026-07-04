@@ -6,6 +6,7 @@
 use sea_orm_migration::prelude::*;
 
 pub mod m004;
+pub mod m006;
 
 pub struct Migrator;
 
