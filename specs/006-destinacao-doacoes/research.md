@@ -3,21 +3,29 @@
 Decisões da Phase 0. Nenhum NEEDS CLARIFICATION restou na spec; este documento registra as
 decisões de modelagem que sustentam o plano (base do futuro ADR-0014).
 
-## D1. "Custos" como resíduo, não como carimbo
+## D1. "Loja" é o padrão e o livre é o resíduo; carimbos têm prioridade de venda
 
-**Decision**: apenas destinações especiais têm saldo carimbado (`destinacao_saldo`); o saldo
-livre de um livro é `estoque físico − Σ carimbos` e pertence a "Custos" por definição.
+*(revisada em 2026-07-04: o usuário definiu que carimbos vendem ANTES do saldo livre, e que a
+própria Loja — antes "Custos" — pode ser carimbada.)*
 
-**Rationale**: (a) zero migração de dados — todo o estoque atual e compras futuras já são
-Custos; (b) "custo primeiro" emerge da regra de consumo (livre antes dos carimbos) sem ordem
-especial; (c) impossível o total carimbado divergir do físico por deriva de contagem — o
-resíduo absorve; (d) menos linhas (esparso, mesmo racional do `pagamento_pedido` da 005).
+**Decision**: "Loja" é a destinação de sistema (padrão). O **saldo livre** de um livro é
+`estoque físico − Σ carimbos` e pertence à Loja por definição — não é armazenado. A ordem de
+baixa na **venda** é: carimbos na ordem do cadastro (**Loja sempre primeiro**), depois o
+livre. Qualquer destinação pode ser carimbada, inclusive a Loja (ex.: "10 para cobrir custos"
+numa doação vendem antes de tudo).
 
-**Alternatives considered**: carimbar TODAS as unidades (incl. Custos) — exigiria backfill de
-todo o estoque na migração, manutenção do invariante Σ carimbos = físico em todos os fluxos
-(incl. contagem, que hoje força o estoque a um valor arbitrário) e não traz benefício;
-**almoxarifados físicos** (multi-estoque) — resolveria localização, não contabilidade; tocaria
-PDV, inventário e transferências (violaria SC-002 e KISS/YAGNI).
+**Rationale**: (a) zero migração de dados — estoque atual e compras futuras são livre = Loja;
+(b) a doação é um **compromisso com o doador**: com 1.000 livres em prateleira e uma doação
+10 Loja / 20 Missões, o valor de Missões deve entrar após as 10 primeiras vendas, não após
+1.020 — carimbo antes do livre garante isso; (c) impossível o total carimbado divergir do
+físico por deriva de contagem — o resíduo absorve; (d) sem carimbo, sem linha (esparso, mesmo
+racional do `pagamento_pedido` da 005).
+
+**Alternatives considered**: **livre antes dos carimbos** (desenho anterior) — adiaria o
+compromisso com o doador indefinidamente quando há estoque pré-existente do mesmo título;
+**carimbar TODAS as unidades** — backfill de todo o estoque na migração e invariante rígido
+Σ = físico em todos os fluxos, sem benefício; **almoxarifados físicos** — resolveria
+localização, não contabilidade; tocaria PDV e inventário (violaria SC-002 e KISS/YAGNI).
 
 ## D2. Saldo denormalizado + alocação por venda (sem razão próprio de carimbos)
 
@@ -36,29 +44,34 @@ consistente; derivar saldo on-the-fly de rateios − alocações − perdas — 
 perdas por destinação (que hoje não têm razão próprio) e torna cada leitura uma agregação
 de 3 fontes.
 
-## D3. Alocação grava apenas destinações especiais; Custos derivado
+## D3. Alocação grava consumo de carimbo (inclusive Loja); o livre é derivado
 
-**Decision**: `alocacao_venda` só tem linhas para destinações especiais. No relatório e no
-detalhe da venda, o valor/quantidade de Custos = total do item/período − Σ alocações especiais.
-Vendas de períodos anteriores à feature aparecem 100% em Custos naturalmente.
+**Decision**: `alocacao_venda` tem uma linha para **cada carimbo consumido** — inclusive
+carimbo Loja (sem ela o estorno não saberia recompor o carimbo). Consumo do saldo **livre**
+não gera linha. No relatório, Loja = total do período − Σ alocações de destinações ≠ Loja
+(cobre livre + carimbo Loja); no detalhe da venda, a parte do livre é derivada por item.
+Vendas de períodos anteriores à feature aparecem 100% em Loja naturalmente.
 
-**Rationale**: coerência com D1 (resíduo em todo lugar); mantém a tabela esparsa e o caminho
-quente da venda (livros sem carimbo — a maioria) com **zero linhas extras**.
+**Rationale**: o caminho quente (livros sem carimbo — a maioria) continua com **zero linhas
+extras**; o estorno devolve cada unidade exatamente ao carimbo de origem; e o número da Loja
+tem uma única fonte (derivação), sem risco de divergência entre Σ linhas e total.
 
-**Alternatives considered**: gravar também a linha de Custos — mais "explícito", mas infla a
-tabela em todas as vendas e cria duas fontes para o mesmo número (Σ linhas vs. total), que
-podem divergir.
+**Alternatives considered**: gravar também o consumo do livre — infla a tabela em todas as
+vendas e cria duas fontes para o mesmo número; não gravar o carimbo Loja — estorno devolveria
+ao livre, corroendo silenciosamente a prioridade de venda do lote doado.
 
 ## D4. Consumo e estorno na mesma transação, helper único
 
-**Decision**: um helper `consumir_carimbos(txn, livro_id, qtd)` em `destinacao_sql.rs` aplica
-a regra (livre primeiro, depois carimbos na ordem do cadastro) e devolve as alocações
-efetuadas; é chamado pelos três caminhos de saída (venda em `pedido_repo.registrar`, ajuste,
-diferença negativa de contagem) dentro da transação existente de cada fluxo. Estornos usam o
-inverso: venda cancelada devolve pelos registros de `alocacao_venda`; nota de doação cancelada
-subtrai os carimbos criados pelos rateios.
+**Decision**: um helper `consumir_carimbos(txn, livro_id, qtd, modo)` em `destinacao_sql.rs`
+aplica a regra de ordem conforme o fluxo — **venda**: carimbos na ordem do cadastro (Loja 1º)
+e depois o livre; **perda/ajuste**: livre primeiro e depois os carimbos (inverso — protege o
+compromisso com o doador) — e devolve as alocações efetuadas; é chamado pelos três caminhos
+de saída (venda em `pedido_repo.registrar`, ajuste, diferença negativa de contagem) dentro da
+transação existente de cada fluxo. Estornos usam o inverso: venda cancelada devolve pelos
+registros de `alocacao_venda`; nota de doação cancelada subtrai os carimbos criados pelos
+rateios.
 
-**Rationale**: a regra de ordem existe em UM lugar (DRY); consistência garantida pela
+**Rationale**: as duas ordens existem em UM lugar (DRY); consistência garantida pela
 transação já existente em cada fluxo (a venda já grava pedido + movimentos + pagamentos numa
 transação — carimbos e alocações entram nela).
 
@@ -124,8 +137,9 @@ o usuário e irrelevante na escala (sobras de 1–2 unidades, sempre editáveis)
 
 **Decision**: `m007_destinacoes` como módulo do `Migrator` (estilo `m005_pedido_cancelado`):
 `CREATE TABLE IF NOT EXISTS` (destinacao, destinacao_saldo, alocacao_venda,
-item_lancamento_destinacao), `ALTER TABLE lancamento_entrada ADD COLUMN` tolerantes a
-"duplicate column" (tipo/doador/padrao_json) e seed de "Custos" com `WHERE NOT EXISTS`.
+item_lancamento_destinacao, transferencia_destinacao), `ALTER TABLE lancamento_entrada ADD
+COLUMN` tolerantes a "duplicate column" (tipo/doador/padrao_json) e seed de "Loja" com
+`WHERE NOT EXISTS`.
 
 **Rationale**: não há transformação de dados existentes (D1), logo não precisa do aparato da
 `m006` (transação com verificação de Σ, rollback com bloqueio de boot). Idempotência trivial.

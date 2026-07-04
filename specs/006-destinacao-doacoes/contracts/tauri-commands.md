@@ -12,8 +12,8 @@ destinacoes_listar(): Destinacao[]                    // todas, ordenadas por `o
 destinacoes_listar_ativas(): Destinacao[]             // para selects de doação
 destinacao_criar({ nome }): Destinacao                // erro: nome vazio/duplicado (norm.)
 destinacao_renomear({ id, nome }): void               // erro: duplicado entre ativas
-destinacao_definir_ativa({ id, ativa }): void         // erro: Custos (de_sistema)
-destinacao_reordenar({ ids }): void                   // ids das ESPECIAIS na nova ordem; Custos fixa
+destinacao_definir_ativa({ id, ativa }): void         // erro: Loja (de_sistema)
+destinacao_reordenar({ ids }): void                   // ids das ESPECIAIS na nova ordem; Loja fixa no topo
 destinacao_excluir({ id }): void                      // erro: de_sistema OU em_uso → oferecer desativar
 
 interface Destinacao {
@@ -29,8 +29,8 @@ relatorio_destinacoes({ inicio, fim }): RelatorioDestinacoes   // datas ISO (YYY
 interface RelatorioDestinacoes {
   inicio: string; fim: string;
   totalCentavos: number;                    // total vendido no período (pedidos não cancelados)
-  linhas: { destinacaoId: number | null;    // null = Custos (resíduo derivado)
-            nome: string;
+  linhas: { destinacaoId: number;           // Loja vem com o id real; seu valor é derivado
+            nome: string;                    //   (total − Σ demais) e cobre livre + carimbo Loja
             qtd: number;
             valorCentavos: number }[];      // Σ linhas === totalCentavos (SC-003)
 }
@@ -45,7 +45,7 @@ interface SaldoLivro {
 ## Novos — destinar estoque existente (US4)
 
 ```ts
-// null = Livre (Custos). Guards: de !== para; origem com saldo suficiente
+// null = saldo livre. Guards: de !== para; origem com saldo suficiente
 // (erro 'saldo_insuficiente' com o disponível na mensagem); destino especial ativo.
 destinacao_transferir({
   livroId, deDestinacaoId: number | null, paraDestinacaoId: number | null,
@@ -73,7 +73,7 @@ type PadraoDestinacao = { destinacaoId: number; pct: number }[]   // pct inteiro
 // (default: aplica o padrão da nota via ratear_percentual)
 lancamento_adicionar_item({ id, codigo, qtd, rateio?: RateioItem }): LancamentoDetalhe
 lancamento_definir_rateio_item({ id, itemId, rateio: RateioItem }): LancamentoDetalhe
-type RateioItem = { destinacaoId: number; qtd: number }[]  // só especiais; resto = Custos
+type RateioItem = { destinacaoId: number; qtd: number }[]  // inclui Loja; Σ = qtd do item (tudo carimba)
 
 // Finalizar/cancelar: mesmos comandos, novas regras
 lancamento_finalizar({ id })   // doação: valida rateios (Σ ≤ qtd), entrada custo 0 + carimbos
@@ -86,11 +86,11 @@ lancamento_cancelar({ id })    // doação: guard adicional — saldo carimbado 
 ## Alterados — vendas (US2, leitura)
 
 ```ts
-// Detalhe da venda (ListaVendas): cada item passa a incluir a distribuição
-// (parte de Custos derivada no backend para a UI não fazer conta)
+// Detalhe da venda (ListaVendas): cada item passa a incluir a distribuição.
+// Backend consolida carimbo Loja + livre numa única entrada "Loja" (a UI não faz conta).
 interface ItemVendaDetalhe {
   /* campos atuais */
-  alocacoes?: { destinacaoId: number | null; nome: string;   // null = Custos
+  alocacoes?: { destinacaoId: number; nome: string;
                 qtd: number; valorCentavos: number }[];
 }
 ```
@@ -100,4 +100,4 @@ interface ItemVendaDetalhe {
 - `registrar_venda` — payload e resposta **idênticos** (SC-002); consumo de carimbos e gravação
   de alocações são efeitos internos da transação.
 - PDV, inventário e ajuste: nenhum comando muda de assinatura; a regra de consumo é interna.
-- Importador do legado: intocado (vendas antigas = Custos por definição — D1/D3).
+- Importador do legado: intocado (vendas antigas = Loja por definição — D1/D3).

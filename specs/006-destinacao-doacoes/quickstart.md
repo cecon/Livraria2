@@ -12,22 +12,22 @@ cargo test --manifest-path src-tauri/Cargo.toml   # domínio + repos verdes
 ```
 
 Base de teste: usar uma cópia de `livraria.db` (nunca a de produção). Re-abrir o app duas
-vezes valida a idempotência da m007 (sem erro, sem seed duplicado de "Custos").
+vezes valida a idempotência da m007 (sem erro, sem seed duplicado de "Loja").
 
 ## Cenário 1 — Cadastro (US3)
 
-1. Abrir a tela **Destinações**: deve existir apenas **Custos** (fixa, sem excluir/desativar/arrastar).
+1. Abrir a tela **Destinações**: deve existir apenas **Loja** (fixa, sem excluir/desativar/arrastar).
 2. Criar **Missões** e **Espaço**. Tentar criar " missões " → bloqueado (nome duplicado normalizado).
 3. Reordenar Espaço acima de Missões → ordem persiste ao reabrir a tela.
 
 ## Cenário 2 — Doação com rateio (US1, o caso dos 220)
 
 1. Lançamentos → Nova nota → **Doação**; doador "Ana Souza (autora)".
-2. Bipar um livro com qtd **220**; abrir o rateio do item: **10 Custos / 210 Missões**.
+2. Bipar um livro com qtd **220**; abrir o rateio do item: **10 Loja / 210 Missões**.
    - Conferir validação: rateio somando ≠ 220 impede finalizar com mensagem clara.
 3. **Dar entrada** e conferir:
    - Estoque do livro subiu 220; extrato mostra `entrada` a custo R$ 0,00 (custo médio caiu).
-   - `destinacao_saldo` do livro: Missões = 210 (livre = anterior + 10).
+   - `destinacao_saldo` do livro: Loja = 10 e Missões = 210 (saldo livre pré-existente inalterado).
 4. Cancelar a nota (antes de qualquer venda) → estoque e carimbo voltam ao estado anterior.
    Relançar a nota para os próximos cenários.
 
@@ -39,19 +39,21 @@ vezes valida a idempotência da m007 (sem erro, sem seed duplicado de "Custos").
 
 ## Cenário 4 — Venda na fronteira (US2 — badge só no detalhe)
 
-Preparação: livro com saldo livre 1 e carimbo Missões 210 (cenário 2 com estoque inicial 1... 
-ou ajustar para o estado desejado). Preço R$ 50,00.
+Preparação: livro com carimbo **Loja 1** e **Missões 210** (doação rateada 1 Loja / 210 Missões,
+sem estoque anterior). Preço R$ 50,00.
 
 1. PDV: vender **2 unidades** — o carrinho mostra **uma linha** ("2×"), nenhum passo novo (SC-002).
-2. Detalhe da venda (Lista de vendas): item exibe **1 un. Custos · 1 un. Missões**, R$ 50,00 cada.
-3. `destinacao_saldo`: Missões caiu para 209; estoque físico caiu 2.
-4. **Cancelar a venda**: estoque +2 e Missões volta a 210 (devolução pelo registro de alocação).
+2. Detalhe da venda (Lista de vendas): item exibe **1 un. Loja · 1 un. Missões**, R$ 50,00 cada
+   (carimbos na ordem: Loja primeiro, depois Missões).
+3. `destinacao_saldo`: Loja caiu para 0 e Missões para 209; estoque físico caiu 2.
+4. **Cancelar a venda**: estoque +2, Loja volta a 1 e Missões a 210 (devolução pelo registro
+   de alocação — inclusive o carimbo Loja).
 
 ## Cenário 5 — Relatório do período (US2)
 
 1. Registrar mais 2 vendas: uma só de livro sem carimbo, outra consumindo Espaço.
 2. Relatórios → **Por destinação**, intervalo de hoje:
-   - Linhas: Custos, Missões, Espaço com qtd e R$; **Σ linhas = total vendido do dia** (SC-003).
+   - Linhas: Loja, Missões, Espaço com qtd e R$; **Σ linhas = total vendido do dia** (SC-003).
    - Cancelar uma das vendas e reconferir: relatório reflete o estorno.
 
 ## Cenário 6 — Inventário protege carimbos
@@ -70,8 +72,8 @@ ou ajustar para o estado desejado). Preço R$ 50,00.
    - Histórico do livro mostra a transferência (de → para, qtd, motivo, data).
 4. Transferir 10 de Missões → Livre (correção): Livre 40, Missões 40.
 5. Tentar transferir 100 de Livre (só há 40) → bloqueado com o disponível na mensagem.
-6. Vender 45 unidades: consome 40 do livre e 5 de Missões (ordem preservada — o carimbo
-   criado por transferência se comporta igual ao criado por nota).
+6. Vender 45 unidades: consome os **40 de Missões primeiro** e 5 do livre (carimbo antes do
+   livre — o carimbo criado por transferência se comporta igual ao criado por nota).
 
 ## Cenário 8 — Guards
 

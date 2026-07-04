@@ -31,5 +31,5 @@
 
 ## Notes
 
-- Decisões acordadas em conversa (2026-07-04) já incorporadas: "Custos" como resíduo do sistema (custo primeiro), doação a custo zero, perdas de inventário na mesma ordem da venda, PDV inalterado (uma linha por item, distribuição visível no detalhe da venda), sobra de arredondamento para a primeira destinação do rateio.
+- Decisões acordadas em conversa (2026-07-04) já incorporadas: "Loja" como destinação padrão do sistema (saldo livre = resíduo da Loja), **carimbos com prioridade de venda sobre o livre** (Loja primeiro na ordem; a própria Loja é carimbável), doação a custo zero, perdas de inventário na ordem inversa (livre primeiro, protegendo carimbos), transferência de destinação para estoque existente (US4), PDV inalterado (uma linha por item, distribuição visível no detalhe da venda), sobra de arredondamento para a primeira destinação do rateio.
 - O termo "razão de movimentos" nos FRs refere-se ao conceito de negócio já existente (histórico de movimentos de estoque), não a uma tecnologia.
