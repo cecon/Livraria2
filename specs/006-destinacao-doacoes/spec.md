@@ -76,6 +76,24 @@ O responsável acessa um **cadastro de destinações** e pode criar, renomear, r
 
 ---
 
+### User Story 4 - Definir destino de estoque já existente (Priority: P2)
+
+Nem toda destinação chega junto com livros novos: às vezes o livro **já está no estoque** e o responsável só precisa definir (ou corrigir) o destino de parte dele — ex.: o doador avisa depois que 50 exemplares já em prateleira devem ir para Missões, ou um lote entrou por engano sem destinação. O responsável abre o livro, vê os saldos por destinação (livre + carimbos) e **transfere quantidades** entre eles ("mover 50 de Livre para Missões"), sem mexer no estoque físico e sem lançar nota.
+
+**Why this priority**: cobre o caso real de destinação a posteriori e é também o mecanismo de correção de erros (mover de volta para Livre, ou entre destinações) — sem ele, qualquer engano exigiria cancelar e relançar notas.
+
+**Independent Test**: Com um livro de estoque 80 todo livre, transferir 50 para Missões e conferir: estoque físico continua 80, livre 30, Missões 50; transferir 10 de Missões de volta para Livre e conferir 40/40; tentar transferir 100 de Livre (só há 30) é bloqueado.
+
+**Acceptance Scenarios**:
+
+1. **Given** um livro com 80 unidades livres, **When** o responsável transfere 50 de Livre para Missões, **Then** o estoque físico permanece 80, o saldo livre cai para 30 e o carimbo de Missões passa a 50.
+2. **Given** um carimbo de Missões com 50 unidades, **When** o responsável transfere 10 de Missões para Espaço (ou de volta para Livre), **Then** os saldos refletem a mudança e o físico não se altera.
+3. **Given** um saldo de origem insuficiente (livre 30), **When** o responsável tenta transferir 100, **Then** o sistema bloqueia com mensagem clara indicando o disponível.
+4. **Given** qualquer transferência concluída, **When** o responsável consulta o histórico do livro, **Then** vê o registro da transferência (de → para, quantidade, motivo opcional, data).
+5. **Given** uma destinação desativada, **When** o responsável abre a transferência, **Then** ela não aparece como destino de novas transferências (mas aparece como origem, se tiver saldo).
+
+---
+
 ### Edge Cases
 
 - **Venda maior que o saldo livre**: consome o livre e avança pelos carimbos na ordem do cadastro; um mesmo item de venda pode gerar alocações em várias destinações.
@@ -85,6 +103,7 @@ O responsável acessa um **cadastro de destinações** e pode criar, renomear, r
 - **Rateio percentual com sobra de arredondamento**: unidades restantes vão para a primeira destinação do rateio; o responsável pode ajustar manualmente por item antes de finalizar.
 - **Carimbo nunca excede o físico**: como toda saída (venda, perda) consome livre primeiro e os carimbos só nascem em entradas de doação, o total carimbado de um livro nunca ultrapassa seu estoque físico.
 - **Doação sem destinação especial** (tudo para custos): a nota de doação é aceita com destinação padrão "Custos" — entra estoque a custo zero e nenhum carimbo é criado.
+- **Lote que entrou sem destinação** (ex.: como compra, ou doação lançada sem rateio): o destino se corrige com uma transferência de Livre → destinação (US4), sem cancelar a nota; se o **custo** também estiver errado (era doação e entrou com custo), aí sim cancela-se e relança-se a nota.
 
 ## Requirements *(mandatory)*
 
@@ -114,6 +133,11 @@ O responsável acessa um **cadastro de destinações** e pode criar, renomear, r
 - **FR-014**: Perdas e acertos negativos de inventário MUST consumir os saldos na mesma ordem das vendas (livre primeiro, depois carimbos na ordem); acertos positivos MUST entrar como saldo livre.
 - **FR-015**: O detalhe da venda MUST exibir a distribuição das unidades de cada item por destinação; o carrinho do PDV MUST permanecer com uma linha por item (sem explodir linhas).
 
+**Destinação de estoque existente**
+
+- **FR-015a**: O sistema MUST permitir transferir quantidades de um livro entre destinações (Livre/Custos ↔ destinação especial, ou entre especiais) sem alterar o estoque físico, bloqueando quando a origem não tem saldo suficiente.
+- **FR-015b**: Toda transferência MUST ficar registrada (livro, origem, destino, quantidade, motivo opcional, data) e consultável, e MUST contar como "uso" da destinação para fins do bloqueio de exclusão (FR-004).
+
 **Apuração**
 
 - **FR-016**: O sistema MUST oferecer um relatório por intervalo de datas com o valor arrecadado por destinação, calculado exclusivamente a partir das alocações gravadas nas vendas (não estimado a partir de saldos).
@@ -126,6 +150,7 @@ O responsável acessa um **cadastro de destinações** e pode criar, renomear, r
 - **Rateio de item**: divisão da quantidade de um item da nota entre destinações (quantidades exatas cuja soma é a quantidade do item).
 - **Saldo carimbado**: quantidade de um livro reservada a uma destinação especial; o saldo livre (físico menos carimbos) pertence a Custos por definição.
 - **Alocação de venda**: registro, por item de venda, de quantas unidades saíram de qual destinação e com que valor; fonte única do relatório e do estorno.
+- **Transferência de destinação**: remanejamento de quantidades de um livro entre destinações (incluindo o saldo livre), sem efeito no estoque físico; registro auditável com motivo opcional.
 
 ## Success Criteria *(mandatory)*
 
@@ -136,6 +161,7 @@ O responsável acessa um **cadastro de destinações** e pode criar, renomear, r
 - **SC-003**: O relatório por destinação de qualquer período fecha com diferença zero em relação ao total vendido do período.
 - **SC-004**: Estornos (de venda e de nota de doação íntegra) restauram estoque e carimbos ao estado anterior com diferença zero.
 - **SC-005**: 100% das unidades vendidas de livros carimbados têm alocação registrada com destinação e valor, consultável no detalhe da venda.
+- **SC-006**: Definir o destino de estoque já existente (uma transferência) leva menos de 30 segundos a partir da busca do livro, sem lançar nota nem alterar o estoque físico.
 
 ## Assumptions
 
