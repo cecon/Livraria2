@@ -72,8 +72,8 @@ interface ItemVendaDetalhe {
                 qtd: number; valorCentavos: number }[];
 }
 
-// Cancelamento de venda: mesmo comando, novo guard (FR-011)
-venda_cancelar({ numero })   // erro 'venda_antiga' quando > 5 dias corridos da venda
+// Cancelamento de venda: comando existente `excluir_pedido` (commands.rs), novo guard (FR-011)
+excluir_pedido({ numero })   // erro 'venda_antiga' quando > 5 dias corridos da venda
 ```
 
 ## Sem alteração (garantias)

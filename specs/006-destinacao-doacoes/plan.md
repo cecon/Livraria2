@@ -77,17 +77,19 @@ src-tauri/src/
 │   └── mod.rs                        # ALTERADO — + mod m007_destinacoes (estilo m005: CREATE IF NOT
 │                                     #   EXISTS × 4 + seed "Loja"; sem ALTERs)
 ├── domain/
-│   ├── destinacao.rs                 # NOVO — Destinacao {id,nome,de_sistema,ativa,ordem}; validações puras
-│   │                                 #   (nome, pode_excluir/desativar/reordenar); alocar_venda (carimbos em
-│   │                                 #   ordem, Loja 1º → livre); alocar_perda (livre → carimbos);
-│   │                                 #   validar_transferencia; inversos p/ estorno
+│   ├── destinacao.rs                 # NOVO — Destinacao {id,nome,de_sistema,ativa,ordem} + validações puras
+│   │                                 #   (nome, pode_excluir/desativar/reordenar — Loja: nunca)
+│   ├── alocacao.rs                   # NOVO — alocar_venda (carimbos em ordem, Loja 1º → livre); alocar_perda
+│   │                                 #   (livre → carimbos); validar_transferencia; inversos p/ estorno
+│   │                                 #   (arquivo próprio p/ caber no limite de 300 com testes inline)
 │   └── pedido.rs                     # ALTERADO (mínimo) — pode_cancelar_venda(data_venda, hoje) ≤ 5 dias
 ├── application/
 │   ├── ports_destinacao.rs           # NOVO — trait DestinacaoRepo (CRUD, em_uso, saldos, transferir,
 │   │                                 #   relatório+posição) + tipos de alocação
 │   ├── destinacoes.rs                # NOVO — casos de uso: CRUD com guards (Loja protegida, nome
 │   │                                 #   normalizado, excluir só sem uso), transferir, relatório por período
-│   └── venda.rs / (cancelamento)     # ALTERADO — guard dos 5 dias no cancelamento de venda
+│   └── (fluxo de cancelamento)       # ALTERADO — guard dos 5 dias (domain pode_cancelar_venda) aplicado na
+│                                     #   camada de aplicação do comando existente excluir_pedido
 ├── adapters/persistencia/
 │   ├── entities/destinacao.rs        # NOVO (SeaORM: destinacao, destinacao_saldo, alocacao_venda,
 │   │                                 #   transferencia_destinacao — módulos pequenos)
@@ -102,7 +104,7 @@ src-tauri/src/
 │   └── relatorio_repo.rs             # ALTERADO — detalhe da venda inclui alocações por item
 ├── commands_destinacao.rs            # NOVO — CRUD destinações + transferir/saldos/histórico +
 │                                     #   relatorio_destinacoes(inicio, fim) com posição atual
-├── commands.rs                       # ALTERADO — venda_cancelar com erro 'venda_antiga'
+├── commands.rs                       # ALTERADO — excluir_pedido com erro 'venda_antiga' (guard 5 dias)
 └── lib.rs                            # ALTERADO — registra handlers novos
 
 src/ (UI React)

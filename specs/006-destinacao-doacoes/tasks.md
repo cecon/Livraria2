@@ -66,7 +66,7 @@
 
 - [ ] T017 [US2] Adicionar em src-tauri/src/adapters/persistencia/destinacao_sql.rs: `consumir_carimbos(txn, livro_id, qtd, modo)` (modo Venda: carimbos em ordem → livre, retorna alocações; modo Perda: livre → carimbos), `devolver_alocacoes(txn, pedido_numero)` e `gravar_alocacoes(txn, …)` + testes SQLite temporário dos dois modos e do estorno
 - [ ] T018 [US2] Integrar consumo na venda em src-tauri/src/adapters/persistencia/pedido_repo.rs: `registrar` chama consumir_carimbos (modo Venda) + grava alocacao_venda (valor = qtd × preço do item) na MESMA transação dos movimentos; testes: venda na fronteira (Loja 1 + Missões 210, vende 2), livro sem carimbo (zero linhas)
-- [ ] T019 [US2] Cancelamento de venda: guard dos 5 dias (domain `pode_cancelar_venda`) no caso de uso/comando (src-tauri/src/commands.rs, erro `venda_antiga`) e devolução pelas alocações em pedido_repo `cancelar`; testes: cancela dia 5 ok, dia 6 bloqueia, carimbo Loja restaurado
+- [ ] T019 [US2] Cancelamento de venda: guard dos 5 dias (domain `pode_cancelar_venda`) aplicado na camada de aplicação do comando existente `excluir_pedido` (src-tauri/src/commands.rs, erro `venda_antiga`) e devolução pelas alocações em pedido_repo `cancelar`; testes: cancela dia 5 ok, dia 6 bloqueia, carimbo Loja restaurado
 - [ ] T020 [P] [US2] Ajuste negativo consome modo Perda em src-tauri/src/adapters/persistencia/estoque_repo.rs (mesma transação do movimento) + testes (livre primeiro, carimbo protegido)
 - [ ] T021 [P] [US2] Diferença negativa de contagem consome modo Perda em src-tauri/src/adapters/persistencia/inventario_repo.rs + testes (quickstart cenário 6)
 - [ ] T022 [P] [US2] Estorno de lançamento de entrada consome modo Perda em src-tauri/src/adapters/persistencia/lancamento_sql.rs (`aplicar_cancelamento`) + teste (entrada 10, carimba 8, cancela → 2 do livre + 8 do carimbo, sem erro)
@@ -115,7 +115,8 @@
 
 - [ ] T037 [P] Escrever docs/adr/0014-destinacao-doacoes.md (resíduo + carimbos com prioridade de venda; transferência como origem única; estorno de entrada como perda; janela de 5 dias; base: research.md D1–D9) e listar no docs/adr/README.md se existir índice
 - [ ] T038 Validação manual completa do quickstart.md (cenários 1–8 + regressão) em cópia da base real
-- [ ] T039 Gates finais: `cargo test` completo, `npm run build`, `bash scripts/check-file-size.sh` (≤300 linhas), revisão de termos pt-BR ("Destinação", "Destinar estoque", "Loja", "Caixa livre")
+- [ ] T039 [P] Testes Vitest de UI (padrão de src/lib/venda.test.ts): DestinarEstoque (validação de saldo e mensagens), distribuição por destinação no detalhe da venda, estado "Caixa livre" e VendaConcluida (auto-dispensa e dispensa por bipagem) em src/components/*.test.tsx
+- [ ] T040 Gates finais: `cargo test` completo, `npm run build` + Vitest, `bash scripts/check-file-size.sh` (≤300 linhas), revisão de termos pt-BR ("Destinação", "Destinar estoque", "Loja", "Livre", "Caixa livre")
 
 ---
 

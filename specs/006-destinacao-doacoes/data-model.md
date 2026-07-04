@@ -110,19 +110,22 @@ Regra de consumo (helper único `consumir_carimbos` — D4), parametrizada pelo 
 
 ## Alterações em fluxos existentes (sem mudança de schema)
 
-- **Cancelamento de venda**: ganha o guard dos **5 dias corridos** (FR-011) — comparação da
-  data da venda com a data atual, bloqueio com mensagem clara. Vale para toda venda.
+- **Cancelamento de venda** (comando existente `excluir_pedido`): ganha o guard dos **5 dias
+  corridos** (FR-011) — comparação da data da venda com a data atual, bloqueio com mensagem
+  clara (erro `venda_antiga`). Vale para toda venda.
 
-## Domínio puro (`domain/destinacao.rs`)
+## Domínio puro (`domain/destinacao.rs` e `domain/alocacao.rs`)
 
-- `Destinacao { id, nome, de_sistema, ativa, ordem }` + validações: nome não-vazio,
-  `pode_excluir(em_uso)`, `pode_desativar`, `pode_reordenar` (Loja: nunca).
-- `alocar_venda(&[(id, saldo)], livre, qtd) -> Vec<(Option<id>, qtd)>` — carimbos em ordem,
-  depois livre (`None`); erro se `qtd > livre + Σ saldos` (nunca deve ocorrer: físico barra).
-- `alocar_perda(livre, &[(id, saldo)], qtd) -> Vec<(Option<id>, qtd)>` — livre primeiro,
-  depois carimbos em ordem (inverso da venda).
-- `validar_transferencia(origem_saldo, qtd)`; `pode_cancelar_venda(data_venda, hoje)` (≤ 5
-  dias corridos); inversos triviais para estorno (devolver por lista de alocações).
+- **`destinacao.rs`**: `Destinacao { id, nome, de_sistema, ativa, ordem }` + validações: nome
+  não-vazio, `pode_excluir(em_uso)`, `pode_desativar`, `pode_reordenar` (Loja: nunca).
+- **`alocacao.rs`** (arquivo próprio p/ o limite de 300 linhas com testes inline):
+  - `alocar_venda(&[(id, saldo)], livre, qtd) -> Vec<(Option<id>, qtd)>` — carimbos em ordem,
+    depois livre (`None`); erro se `qtd > livre + Σ saldos` (nunca deve ocorrer: físico barra).
+  - `alocar_perda(livre, &[(id, saldo)], qtd) -> Vec<(Option<id>, qtd)>` — livre primeiro,
+    depois carimbos em ordem (inverso da venda).
+  - `validar_transferencia(origem_saldo, qtd)`; inversos triviais para estorno.
+- **`pedido.rs`** (alterado): `pode_cancelar_venda(data_venda, hoje)` (≤ 5 dias corridos) —
+  regra do guard do comando existente `excluir_pedido`.
 
 ## Consultas de leitura principais
 
