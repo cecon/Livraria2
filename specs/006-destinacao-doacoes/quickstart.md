@@ -20,70 +20,60 @@ vezes valida a idempotência da m007 (sem erro, sem seed duplicado de "Loja").
 2. Criar **Missões** e **Espaço**. Tentar criar " missões " → bloqueado (nome duplicado normalizado).
 3. Reordenar Espaço acima de Missões → ordem persiste ao reabrir a tela.
 
-## Cenário 2 — Doação com rateio (US1, o caso dos 220)
+## Cenário 2 — Doação em dois passos (o caso dos 220)
 
-1. Lançamentos → Nova nota → **Doação**; doador "Ana Souza (autora)".
-2. Bipar um livro com qtd **220**; abrir o rateio do item: **10 Loja / 210 Missões**.
-   - Conferir validação: rateio somando ≠ 220 impede finalizar com mensagem clara.
-3. **Dar entrada** e conferir:
-   - Estoque do livro subiu 220; extrato mostra `entrada` a custo R$ 0,00 (custo médio caiu).
-   - `destinacao_saldo` do livro: Loja = 10 e Missões = 210 (saldo livre pré-existente inalterado).
-4. Cancelar a nota (antes de qualquer venda) → estoque e carimbo voltam ao estado anterior.
-   Relançar a nota para os próximos cenários.
+1. **Entrada normal**: Lançamentos → Nova nota (fluxo atual), item de **220 unidades a
+   custo R$ 0,00**, finalizar. Extrato mostra `entrada` a custo zero (custo médio caiu).
+2. **Destinar**: Pesquisa → livro → **Destinar estoque**: transferir **10 de Livre → Loja** e
+   **210 de Livre → Missões** (motivo: "doação da autora").
+3. Conferir: estoque físico inalterado (as transferências não mexem no físico); saldos
+   Loja 10 / Missões 210; histórico do livro mostra as duas transferências.
+4. Tentar transferir mais 100 de Livre (não há) → bloqueado com o disponível na mensagem.
+5. Corrigir: 10 de Missões → Livre e de volta — saldos batem em cada passo.
 
-## Cenário 3 — Rateio percentual (metade/metade)
+## Cenário 3 — Venda na fronteira (US2 — badge só no detalhe)
 
-1. Nova nota Doação com padrão **50% Missões / 50% Espaço**; item de **41** unidades.
-2. Conferir prefill: 21 Missões / 20 Espaço (sobra à primeira do rateio); ajustar manualmente
-   e confirmar que o ajuste prevalece. Dar entrada.
-
-## Cenário 4 — Venda na fronteira (US2 — badge só no detalhe)
-
-Preparação: livro com carimbo **Loja 1** e **Missões 210** (doação rateada 1 Loja / 210 Missões,
-sem estoque anterior). Preço R$ 50,00.
+Preparação: livro com carimbo **Loja 1** e **Missões 210** (livre 0). Preço R$ 50,00.
 
 1. PDV: vender **2 unidades** — o carrinho mostra **uma linha** ("2×"), nenhum passo novo (SC-002).
 2. Detalhe da venda (Lista de vendas): item exibe **1 un. Loja · 1 un. Missões**, R$ 50,00 cada
    (carimbos na ordem: Loja primeiro, depois Missões).
-3. `destinacao_saldo`: Loja caiu para 0 e Missões para 209; estoque físico caiu 2.
-4. **Cancelar a venda**: estoque +2, Loja volta a 1 e Missões a 210 (devolução pelo registro
-   de alocação — inclusive o carimbo Loja).
+3. Saldos: Loja 0, Missões 209; estoque físico caiu 2.
+4. **Cancelar a venda** (mesmo dia): estoque +2, Loja volta a 1 e Missões a 210 (devolução pelo
+   registro de alocação — inclusive o carimbo Loja).
 
-## Cenário 5 — Relatório do período (US2)
+## Cenário 4 — Carimbo antes do livre
 
-1. Registrar mais 2 vendas: uma só de livro sem carimbo, outra consumindo Espaço.
+1. Livro com livre 40 e Missões 40 (via transferências). Vender **45 unidades**.
+2. Conferir: consome os **40 de Missões primeiro** e 5 do livre; detalhe mostra 40 Missões +
+   5 Loja.
+
+## Cenário 5 — Relatório do período + posição atual (US2)
+
+1. Registrar vendas variadas (com e sem carimbo, mais de um destino).
 2. Relatórios → **Por destinação**, intervalo de hoje:
    - Linhas: Loja, Missões, Espaço com qtd e R$; **Σ linhas = total vendido do dia** (SC-003).
-   - Cancelar uma das vendas e reconferir: relatório reflete o estorno.
+   - Seção **Posição atual**: unidades restantes por destinação (todos os livros), refletindo
+     transferências e vendas até agora.
+3. Cancelar uma venda de hoje e reconferir: o relatório do dia reflete o estorno (retroativo).
 
-## Cenário 6 — Inventário protege carimbos
+## Cenário 6 — Inventário e estornos protegem carimbos (ordem de perda)
 
-1. Livro com livre 5 + Missões 10 (estoque 15). Contagem/inventário: contar **12** (−3).
+1. Livro com livre 5 + Missões 10 (estoque 15). Contagem: contar **12** (−3).
 2. Conferir: livre caiu para 2, Missões **continua 10**.
 3. Contar **1** (−11 adicional): livre 0, Missões cai para 1 (consumo na ordem após o livre).
 4. Ajuste positivo +4: entra como livre (Missões inalterada).
+5. **Estorno de lançamento**: dar entrada de 10, carimbar 8 para Missões, cancelar a nota →
+   estorno físico de 10 consome 2 do livre e 8 de Missões (regra de perda; sem erro).
 
-## Cenário 7 — Destinar estoque existente (US4)
+## Cenário 7 — Guards
 
-1. Escolher um livro **já em estoque** (ex.: 80 unidades, tudo livre — nenhuma doação).
-2. No livro (Pesquisa → detalhe), abrir **Destino do estoque**: mostra Livre 80.
-3. Transferir **50 de Livre → Missões**, motivo "doação da autora sobre estoque existente":
-   - Estoque físico continua 80 (extrato do razão sem movimento novo); Livre 30, Missões 50.
-   - Histórico do livro mostra a transferência (de → para, qtd, motivo, data).
-4. Transferir 10 de Missões → Livre (correção): Livre 40, Missões 40.
-5. Tentar transferir 100 de Livre (só há 40) → bloqueado com o disponível na mensagem.
-6. Vender 45 unidades: consome os **40 de Missões primeiro** e 5 do livre (carimbo antes do
-   livre — o carimbo criado por transferência se comporta igual ao criado por nota).
+- Excluir "Missões" com saldo/alocação/transferência → bloqueado, oferece desativar.
+- Desativar "Espaço" → some das opções de transferência (como destino); vendas continuam
+  consumindo seu carimbo e o relatório continua exibindo a linha.
+- **Cancelar venda com mais de 5 dias** → bloqueado (`venda_antiga`), mensagem clara.
 
-## Cenário 8 — Guards
-
-- Excluir "Missões" com saldo/alocação → bloqueado, oferece desativar.
-- Desativar "Espaço" → some das opções de nova doação; vendas continuam consumindo seu carimbo
-  e o relatório continua exibindo a linha.
-- Cancelar a nota do cenário 2 **depois** da venda do cenário 4 → bloqueado
-  (`carimbo_consumido`), mensagem clara.
-
-## Cenário 9 — Caixa livre e confirmação no PDV (US5)
+## Cenário 8 — Caixa livre e confirmação no PDV (US4)
 
 1. Abrir o PDV sem itens: a área de itens mostra o informe **"Caixa livre"** (não uma tabela vazia).
 2. Bipar um item: o informe some e a venda aparece; remover o item: o informe volta.
@@ -95,7 +85,8 @@ sem estoque anterior). Preço R$ 50,00.
 
 ## Regressão (nada mudou onde não devia)
 
-- Nota de **Compra**: fluxo idêntico ao da 005 (fornecedor, custo, finalizar, cancelar).
+- Lançamento de entrada: fluxo **idêntico** ao atual (sem tipo de nota, doador ou rateio).
 - PDV: pagamento, troco e fechamento idênticos; `registrar_venda` com o mesmo payload.
 - Relatórios existentes (vendas por forma) inalterados.
+- Cancelamento de venda **recente** (< 5 dias) segue funcionando como hoje.
 - `bash scripts/check-file-size.sh` (hook) — nenhum arquivo > 300 linhas significativas.
