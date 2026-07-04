@@ -100,4 +100,6 @@ interface ItemVendaDetalhe {
 - `registrar_venda` — payload e resposta **idênticos** (SC-002); consumo de carimbos e gravação
   de alocações são efeitos internos da transação.
 - PDV, inventário e ajuste: nenhum comando muda de assinatura; a regra de consumo é interna.
+  Os estados visuais do PDV (US5 — caixa livre e confirmação animada) são frontend puro: a
+  resposta atual de `registrar_venda` já traz total/troco suficientes para a animação.
 - Importador do legado: intocado (vendas antigas = Loja por definição — D1/D3).

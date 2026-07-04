@@ -12,6 +12,8 @@ Adicionar **destinação do valor das vendas** para livros doados (Missões, Esp
 2. **Carimbo tem prioridade de venda**: a venda consome carimbos na ordem do cadastro (**Loja sempre primeiro** — a própria Loja é carimbável, ex. "10 para cobrir custos") e por último o saldo livre. Perdas de inventário fazem o **inverso** (livre primeiro), protegendo o compromisso com o doador.
 3. **Alocação gravada na venda** (`alocacao_venda`, uma linha por carimbo consumido, inclusive Loja): fonte única do relatório por período, do detalhe da venda e do estorno exato. O consumo do livre não gera linha — o valor da Loja no relatório é derivado (total − Σ demais).
 
+A feature carrega também uma história só de UI no PDV (US5): estado de **"Caixa livre"** quando não há itens e **confirmação animada** na conclusão da venda (com total/troco, auto-dispensada e nunca bloqueante) — frontend puro, zero comandos novos, zero cliques a mais.
+
 A entrada acontece por um novo **tipo de nota "Doação"** na tela de Lançamentos existente (doador opcional, destinação padrão da nota, rateio por item em quantidades), entrando no razão a **custo zero**. Para estoque **já existente**, a **transferência de destinação** (US4) move carimbos entre Livre e destinações sem tocar no físico, com registro auditável (`transferencia_destinacao`). Cadastro de destinações é um clone estrutural do cadastro de formas de pagamento (005), com a ordem da lista definindo a ordem de baixa.
 
 Mantém Hexagonal (domínio Rust puro, portas/adapters, comandos Tauri, UI React). **Sem novas dependências** (memória: projeto npm-only — não mexer no lockfile).
@@ -117,6 +119,9 @@ src/ (UI React)
 │   ├── LancamentoEditor.tsx          # ALTERADO — modo doação: esconde custo, mostra doador + destinação padrão
 │   ├── RateioDestinacao.tsx          # NOVO — editor de rateio do item (quantidades por destinação + validação)
 │   ├── DestinarEstoque.tsx           # NOVO — dialog no livro (Pesquisa): saldos + transferência + histórico (US4)
+│   ├── Pdv.tsx / CarrinhoItens.tsx   # ALTERADO — estado "Caixa livre" quando sem itens (US5, só frontend)
+│   ├── VendaConcluida.tsx            # NOVO — confirmação animada de conclusão (total/troco; auto-dispensa,
+│   │                                 #   descartada por bipagem — nunca bloqueia a próxima venda) (US5)
 │   └── ItensNotaTabela.tsx           # ALTERADO — coluna de destinação (badges) quando nota é doação
 ├── lib/
 │   ├── ipc_destinacoes.ts            # NOVO — bindings (CRUD, relatório)
@@ -129,7 +134,7 @@ docs/adr/0014-destinacao-doacoes.md   # NOVO — resíduo + carimbos, alocação
 
 **Structure Decision**: Desktop Hexagonal (mesma das 001–005). A novidade estrutural é a **camada de saldos carimbados** ao lado do razão de movimentos: o razão continua sendo a verdade do estoque físico; `destinacao_saldo` é a verdade do carimbo; `alocacao_venda` é a verdade do relatório. Os três são atualizados na mesma transação de cada operação (venda, nota, ajuste, contagem), com um único helper de consumo para não duplicar a regra de ordem.
 
-**Sequenciamento recomendado** (idealmente commits separados): (a) `m007` + domínio puro (`destinacao.rs`) com testes verdes; (b) cadastro completo (porta, repo, casos de uso, comandos, tela — US3); (c) nota de doação (entrada + carimbos + cancelamento — US1); (d) consumo na venda/ajuste/contagem + estorno de venda (FR-011..014); (e) transferência de destinação (US4); (f) relatório + detalhe da venda (US2); (g) ADR-0014.
+**Sequenciamento recomendado** (idealmente commits separados): (a) `m007` + domínio puro (`destinacao.rs`) com testes verdes; (b) cadastro completo (porta, repo, casos de uso, comandos, tela — US3); (c) nota de doação (entrada + carimbos + cancelamento — US1); (d) consumo na venda/ajuste/contagem + estorno de venda (FR-011..014); (e) transferência de destinação (US4); (f) relatório + detalhe da venda (US2); (g) caixa livre + confirmação animada no PDV (US5, independente — pode ir a qualquer momento); (h) ADR-0014.
 
 ## Complexity Tracking
 

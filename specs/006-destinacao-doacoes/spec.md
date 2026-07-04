@@ -94,6 +94,24 @@ Nem toda destinação chega junto com livros novos: às vezes o livro **já est�
 
 ---
 
+### User Story 5 - Caixa livre e confirmação de venda no PDV (Priority: P3)
+
+No PDV, quando não há nenhum item na venda, a área de itens exibe um estado claro de **"Caixa livre"** (em vez de uma lista vazia), indicando que o caixa está pronto para a próxima venda. Ao concluir o recebimento de uma venda, uma **confirmação animada** (com total e troco) sinaliza visivelmente que a venda terminou; o PDV volta sozinho ao estado de caixa livre, pronto para a próxima — sem que o operador precise de nenhum clique a mais.
+
+**Why this priority**: hoje o fim de uma venda e o início da próxima não têm marcação visual — num balcão com fila, o operador precisa de certeza imediata de que a venda fechou. É polimento de UX independente do restante da feature (só interface, nenhuma regra nova).
+
+**Independent Test**: Abrir o PDV sem itens e ver o estado "Caixa livre"; adicionar um item (estado some); concluir o pagamento e ver a confirmação animada com total/troco; em seguida o PDV está vazio novamente em "Caixa livre" — e bipar um livro durante a animação já inicia a próxima venda normalmente.
+
+**Acceptance Scenarios**:
+
+1. **Given** o PDV aberto sem nenhum item, **When** o operador olha a área de itens, **Then** vê o informe de "Caixa livre" (não uma tabela vazia).
+2. **Given** o estado de caixa livre, **When** o operador bipa/adiciona um item, **Then** o informe some e a venda em montagem aparece normalmente.
+3. **Given** uma venda com pagamento completo, **When** o operador conclui o recebimento, **Then** uma confirmação animada exibe total e troco, a venda é limpa e o PDV volta ao estado de caixa livre.
+4. **Given** a confirmação animada em exibição, **When** o operador bipa um item para a próxima venda, **Then** a animação é dispensada imediatamente e o item entra na nova venda (a confirmação nunca bloqueia a operação).
+5. **Given** a confirmação animada em exibição sem nenhuma ação do operador, **When** alguns segundos se passam, **Then** ela se dispensa sozinha, permanecendo o caixa livre.
+
+---
+
 ### Edge Cases
 
 - **Venda maior que os carimbos**: percorre os carimbos na ordem do cadastro (Loja primeiro) e termina no saldo livre; um mesmo item de venda pode gerar alocações em várias destinações.
@@ -138,6 +156,11 @@ Nem toda destinação chega junto com livros novos: às vezes o livro **já est�
 - **FR-015a**: O sistema MUST permitir transferir quantidades de um livro entre o saldo livre e qualquer carimbo (inclusive Loja), ou entre carimbos, sem alterar o estoque físico, bloqueando quando a origem não tem saldo suficiente.
 - **FR-015b**: Toda transferência MUST ficar registrada (livro, origem, destino, quantidade, motivo opcional, data) e consultável, e MUST contar como "uso" da destinação para fins do bloqueio de exclusão (FR-004).
 
+**Estados visuais do PDV**
+
+- **FR-015c**: Quando a venda não tem itens, a área de itens do PDV MUST exibir um informe de "Caixa livre" no lugar da lista vazia, removido ao adicionar o primeiro item.
+- **FR-015d**: Ao concluir o recebimento, o PDV MUST exibir uma confirmação animada com total e troco e voltar ao estado de caixa livre; a confirmação MUST se dispensar sozinha após alguns segundos e MUST ser dispensada imediatamente por qualquer interação que inicie a próxima venda (nunca bloqueia nem adiciona cliques ao fluxo).
+
 **Apuração**
 
 - **FR-016**: O sistema MUST oferecer um relatório por intervalo de datas com o valor arrecadado por destinação, calculado exclusivamente a partir das alocações gravadas nas vendas (não estimado a partir de saldos).
@@ -162,6 +185,7 @@ Nem toda destinação chega junto com livros novos: às vezes o livro **já est�
 - **SC-004**: Estornos (de venda e de nota de doação íntegra) restauram estoque e carimbos ao estado anterior com diferença zero.
 - **SC-005**: 100% das unidades vendidas de livros carimbados têm alocação registrada com destinação e valor, consultável no detalhe da venda.
 - **SC-006**: Definir o destino de estoque já existente (uma transferência) leva menos de 30 segundos a partir da busca do livro, sem lançar nota nem alterar o estoque físico.
+- **SC-007**: O operador identifica de relance (sem ler texto pequeno) se o caixa está livre ou com venda em andamento, e a próxima venda pode começar imediatamente após a conclusão da anterior — zero cliques entre uma venda e outra.
 
 ## Assumptions
 

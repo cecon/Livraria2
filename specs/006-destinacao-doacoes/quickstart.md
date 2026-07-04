@@ -83,6 +83,16 @@ sem estoque anterior). Preço R$ 50,00.
 - Cancelar a nota do cenário 2 **depois** da venda do cenário 4 → bloqueado
   (`carimbo_consumido`), mensagem clara.
 
+## Cenário 9 — Caixa livre e confirmação no PDV (US5)
+
+1. Abrir o PDV sem itens: a área de itens mostra o informe **"Caixa livre"** (não uma tabela vazia).
+2. Bipar um item: o informe some e a venda aparece; remover o item: o informe volta.
+3. Concluir uma venda paga: confirmação animada com **total e troco**; a venda limpa e o PDV
+   volta ao caixa livre sem nenhum clique.
+4. Concluir outra venda e **bipar um livro durante a animação**: a animação é dispensada na
+   hora e o item entra na nova venda (nunca bloqueia).
+5. Concluir uma venda e não tocar em nada: a animação se dispensa sozinha em poucos segundos.
+
 ## Regressão (nada mudou onde não devia)
 
 - Nota de **Compra**: fluxo idêntico ao da 005 (fornecedor, custo, finalizar, cancelar).
