@@ -5,8 +5,8 @@ use crate::application::ports::{ImportadorLegado, PedidosImportados, RepoErro};
 use crate::domain::categoria::Categoria;
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::livro::Livro;
-use crate::domain::pagamento::FormaPagamento;
-use crate::domain::pedido::{ItemPedido, Pagamentos, Pedido};
+use crate::domain::pagamento::{ChaveSistema, FormaIds};
+use crate::domain::pedido::{pago, ItemPedido, Pagamentos, Pedido, Recebimento};
 use crate::domain::texto::caixa_alta_sem_acento;
 use csv::StringRecord;
 use std::collections::{BTreeMap, HashMap};
@@ -146,15 +146,36 @@ fn eh_resumo(rec: &StringRecord, idx: &HashMap<String, usize>) -> bool {
         .starts_with("Total do Pedido")
 }
 
-fn acumular(acc: &mut [i64; 5], forma: FormaPagamento, valor: i64) {
-    let i = match forma {
-        FormaPagamento::Cartao => 0,
-        FormaPagamento::Dinheiro => 1,
-        FormaPagamento::Pix => 2,
-        FormaPagamento::Ministerio => 3,
-        FormaPagamento::ValePresente => 4,
+/// Ordem fixa do acumulador: credito, dinheiro, pix, ministerio, vale.
+fn acumular(acc: &mut [i64; 5], chave: ChaveSistema, valor: i64) {
+    let i = match chave {
+        ChaveSistema::Credito => 0,
+        ChaveSistema::Dinheiro => 1,
+        ChaveSistema::Pix => 2,
+        ChaveSistema::Ministerio => 3,
+        ChaveSistema::Vale => 4,
     };
     acc[i] += valor;
+}
+
+/// Monta a lista esparsa de recebimentos (só valor > 0), resolvendo chave → id.
+fn montar_pagamentos(acc: [i64; 5], formas: &FormaIds) -> Pagamentos {
+    let chaves = [
+        ChaveSistema::Credito,
+        ChaveSistema::Dinheiro,
+        ChaveSistema::Pix,
+        ChaveSistema::Ministerio,
+        ChaveSistema::Vale,
+    ];
+    chaves
+        .into_iter()
+        .zip(acc)
+        .filter(|(_, v)| *v > 0)
+        .map(|(chave, v)| Recebimento {
+            forma_id: formas.id_de(chave),
+            valor: Dinheiro::de_centavos(v),
+        })
+        .collect()
 }
 
 impl ImportadorLegado for MdbImportador {
@@ -181,7 +202,7 @@ impl ImportadorLegado for MdbImportador {
         Ok(livros)
     }
 
-    fn pedidos(&self) -> Result<PedidosImportados, RepoErro> {
+    fn pedidos(&self, formas: &FormaIds) -> Result<PedidosImportados, RepoErro> {
         let (idx, linhas) = self.ler("venda")?;
         let mut grupos: BTreeMap<i64, Vec<&StringRecord>> = BTreeMap::new();
         for r in &linhas {
@@ -204,8 +225,8 @@ impl ImportadorLegado for MdbImportador {
                 }
                 let qtd = campo(r, &idx, "vdquanto").trim().parse::<i64>().unwrap_or(1).max(1);
                 let preco = valor_para_centavos(campo(r, &idx, "vdvalor"));
-                let forma = FormaPagamento::de_legado_metodo(campo(r, &idx, "vdmetodo"));
-                acumular(&mut acc, forma, preco * qtd);
+                let chave = ChaveSistema::de_legado_metodo(campo(r, &idx, "vdmetodo"));
+                acumular(&mut acc, chave, preco * qtd);
                 itens.push(ItemPedido {
                     codigo: campo(r, &idx, "vdbar").trim().to_string(),
                     titulo: campo(r, &idx, "vdtitulo").trim().to_string(),
@@ -219,33 +240,35 @@ impl ImportadorLegado for MdbImportador {
             }
 
             // Pagamentos: a fonte real são as colunas de valor da linha-resumo
-            // (vdcartao/vdpix/...). Só caímos no split derivado de `vdmetodo` quando
-            // o resumo não tem valores (dados antigos) — FR-067a.
-            let pag_resumo = resumo.map(|res| Pagamentos {
-                cartao: Dinheiro::de_centavos(valor_para_centavos(campo(res, &idx, "vdcartao"))),
-                dinheiro: Dinheiro::de_centavos(valor_para_centavos(campo(res, &idx, "vddinheiro"))),
-                pix: Dinheiro::de_centavos(valor_para_centavos(campo(res, &idx, "vdpix"))),
-                ministerio: Dinheiro::de_centavos(valor_para_centavos(campo(res, &idx, "vdministerio"))),
-                vale: Dinheiro::de_centavos(valor_para_centavos(campo(res, &idx, "vdvale"))),
+            // (vdcartao/vdpix/...), mapeadas por CHAVE estável (FR-018 — o cartão de
+            // crédito do legado cai em `credito`). Só caímos no split derivado de
+            // `vdmetodo` quando o resumo não tem valores (dados antigos) — FR-067a.
+            let acc_resumo = resumo.map(|res| {
+                [
+                    valor_para_centavos(campo(res, &idx, "vdcartao")),
+                    valor_para_centavos(campo(res, &idx, "vddinheiro")),
+                    valor_para_centavos(campo(res, &idx, "vdpix")),
+                    valor_para_centavos(campo(res, &idx, "vdministerio")),
+                    valor_para_centavos(campo(res, &idx, "vdvale")),
+                ]
             });
-            let mut pagamentos = match pag_resumo {
-                Some(p) if p.pago().centavos() > 0 => p,
-                _ => Pagamentos {
-                    cartao: Dinheiro::de_centavos(acc[0]),
-                    dinheiro: Dinheiro::de_centavos(acc[1]),
-                    pix: Dinheiro::de_centavos(acc[2]),
-                    ministerio: Dinheiro::de_centavos(acc[3]),
-                    vale: Dinheiro::de_centavos(acc[4]),
-                },
+            let mut pagamentos = match acc_resumo {
+                Some(a) if a.iter().sum::<i64>() > 0 => montar_pagamentos(a, formas),
+                _ => montar_pagamentos(acc, formas),
             };
 
             // Marcador de repasse: a livraria soma alguns centavos no PIX para o
             // financeiro identificar o lançamento. Ao importar, removemos esse
             // excedente pequeno (≤5c) do PIX para o pagamento bater com o total.
             let item_total: i64 = itens.iter().map(|i| i.preco.centavos() * i.qtd).sum();
-            let excedente = pagamentos.pago().centavos() - item_total;
-            if pagamentos.pix.centavos() > 0 && (1..=5).contains(&excedente) {
-                pagamentos.pix = Dinheiro::de_centavos(pagamentos.pix.centavos() - excedente);
+            let excedente = pago(&pagamentos).centavos() - item_total;
+            if (1..=5).contains(&excedente) {
+                if let Some(r) = pagamentos
+                    .iter_mut()
+                    .find(|r| r.forma_id == formas.pix && r.valor.centavos() > excedente)
+                {
+                    r.valor = Dinheiro::de_centavos(r.valor.centavos() - excedente);
+                }
             }
 
             let nome = campo(fonte, &idx, "vdnome").trim();

@@ -86,27 +86,23 @@ async fn estornar_saidas(
     Ok(())
 }
 
-/// Insere o cabeçalho do pedido e seus itens na transação (sem mexer no estoque).
+/// Insere o cabeçalho do pedido, seus itens e os recebimentos por forma na
+/// transação (sem mexer no estoque). Pagamentos vão para `pagamento_pedido`.
 async fn inserir_cabecalho_e_itens(
     txn: &DatabaseTransaction,
     pedido: &Pedido,
 ) -> Result<(), DbErr> {
-    let pag = &pedido.pagamentos;
     let pm = pedido::ActiveModel {
         numero: Set(pedido.numero),
         cliente: Set(pedido.cliente.clone()),
         turno: Set(pedido.turno.chave().to_string()),
         data: Set(pedido.data.clone()),
         total_centavos: Set(pedido.total().centavos()),
-        val_cartao: Set(pag.cartao.centavos()),
-        val_dinheiro: Set(pag.dinheiro.centavos()),
-        val_pix: Set(pag.pix.centavos()),
-        val_ministerio: Set(pag.ministerio.centavos()),
-        val_vale: Set(pag.vale.centavos()),
         cancelado: Set(false),
         cancelado_em: Set(None),
     };
     pedido::Entity::insert(pm).exec(txn).await?;
+    super::pagamento_pedido_sql::inserir(txn, pedido.numero, &pedido.pagamentos).await?;
 
     for it in &pedido.itens {
         let im = item_pedido::ActiveModel {

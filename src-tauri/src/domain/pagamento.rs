@@ -1,47 +1,114 @@
-//! Formas de pagamento e turno (Constituição, Princípio VI — rótulos exatos do domínio).
+//! Formas de pagamento (cadastro gerenciável) e turno (Princípio VI — rótulos exatos).
+//!
+//! A forma é identificada por `chave` estável (snake_case, imutável); o `rotulo` é
+//! livre. Comportamento (troco, legado) prende-se à chave, nunca ao rótulo (ADR-0013).
 
 use serde::{Deserialize, Serialize};
 
-/// Formas de pagamento na ordem e rótulos exatos do negócio (FR-013).
-/// Apenas registro gerencial — sem TEF/fiscal.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum FormaPagamento {
-    Cartao,
-    Dinheiro,
-    Pix,
-    Ministerio,
-    ValePresente,
+/// Forma de pagamento do cadastro (FR-001). Apenas registro gerencial — sem TEF/fiscal.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FormaPagamento {
+    pub id: i64,
+    /// Identidade estável em snake_case; imutável (troco/legado/seed — FR-001a).
+    pub chave: String,
+    pub rotulo: String,
+    /// Formas de sistema não podem ser excluídas nem desativadas (FR-001a).
+    pub de_sistema: bool,
+    pub ativa: bool,
+    pub ordem: i64,
 }
 
 impl FormaPagamento {
-    /// Ordem canônica exibida no PDV e nos relatórios.
-    pub const ORDEM: [FormaPagamento; 5] = [
-        FormaPagamento::Cartao,
-        FormaPagamento::Dinheiro,
-        FormaPagamento::Pix,
-        FormaPagamento::Ministerio,
-        FormaPagamento::ValePresente,
-    ];
+    /// Excluir só é permitido para formas não-de-sistema nunca usadas (FR-009).
+    pub fn pode_excluir(&self, em_uso: bool) -> bool {
+        !self.de_sistema && !em_uso
+    }
 
-    pub fn rotulo(self) -> &'static str {
+    /// Desativar só é permitido para formas não-de-sistema (FR-007).
+    pub fn pode_desativar(&self) -> bool {
+        !self.de_sistema
+    }
+}
+
+/// Valida o rótulo de uma forma: não pode ser vazio (FR-010).
+pub fn nome_valido(rotulo: &str) -> bool {
+    !rotulo.trim().is_empty()
+}
+
+/// Normaliza um rótulo para comparação de unicidade (FR-010/D9):
+/// trim + minúsculas + remoção de diacríticos ("credito" = "Crédito" = " CRÉDITO ").
+pub fn nome_normalizado(rotulo: &str) -> String {
+    rotulo
+        .trim()
+        .to_lowercase()
+        .chars()
+        .map(|c| match c {
+            'á' | 'à' | 'â' | 'ã' | 'ä' => 'a',
+            'é' | 'è' | 'ê' | 'ë' => 'e',
+            'í' | 'ì' | 'î' | 'ï' => 'i',
+            'ó' | 'ò' | 'ô' | 'õ' | 'ö' => 'o',
+            'ú' | 'ù' | 'û' | 'ü' => 'u',
+            'ç' => 'c',
+            'ñ' => 'n',
+            _ => c,
+        })
+        .collect()
+}
+
+/// Chaves das formas de sistema — as únicas que o código conhece (FR-001a).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChaveSistema {
+    Credito,
+    Dinheiro,
+    Pix,
+    Ministerio,
+    Vale,
+}
+
+impl ChaveSistema {
+    pub fn chave(self) -> &'static str {
         match self {
-            FormaPagamento::Cartao => "Cartão",
-            FormaPagamento::Dinheiro => "Dinheiro",
-            FormaPagamento::Pix => "PIX",
-            FormaPagamento::Ministerio => "Ministério",
-            FormaPagamento::ValePresente => "Vale Presente",
+            ChaveSistema::Credito => "credito",
+            ChaveSistema::Dinheiro => "dinheiro",
+            ChaveSistema::Pix => "pix",
+            ChaveSistema::Ministerio => "ministerio",
+            ChaveSistema::Vale => "vale",
         }
     }
 
-    /// Mapeia o código de método do legado (`vdmetodo`) para a forma (ADR-0006, T050).
-    /// Valores desconhecidos caem em Dinheiro (default seguro, registrado na migração).
-    pub fn de_legado_metodo(codigo: &str) -> FormaPagamento {
+    /// Mapeia o código de método do legado (`vdmetodo`) para a chave (ADR-0006/0013).
+    /// "C" (cartão de crédito do legado) → Crédito; desconhecidos caem em Dinheiro.
+    pub fn de_legado_metodo(codigo: &str) -> ChaveSistema {
         match codigo.trim().to_uppercase().as_str() {
-            "C" => FormaPagamento::Cartao,
-            "P" => FormaPagamento::Pix,
-            "M" => FormaPagamento::Ministerio,
-            "V" => FormaPagamento::ValePresente,
-            _ => FormaPagamento::Dinheiro, // "D" e desconhecidos
+            "C" => ChaveSistema::Credito,
+            "P" => ChaveSistema::Pix,
+            "M" => ChaveSistema::Ministerio,
+            "V" => ChaveSistema::Vale,
+            _ => ChaveSistema::Dinheiro, // "D" e desconhecidos
+        }
+    }
+}
+
+/// Ids das formas de sistema já resolvidos (chave → id) pela aplicação, para uso
+/// em contextos sem acesso ao banco — ex.: o importador do legado (FR-018).
+#[derive(Debug, Clone, Copy)]
+pub struct FormaIds {
+    pub credito: i64,
+    pub dinheiro: i64,
+    pub pix: i64,
+    pub ministerio: i64,
+    pub vale: i64,
+}
+
+impl FormaIds {
+    pub fn id_de(self, chave: ChaveSistema) -> i64 {
+        match chave {
+            ChaveSistema::Credito => self.credito,
+            ChaveSistema::Dinheiro => self.dinheiro,
+            ChaveSistema::Pix => self.pix,
+            ChaveSistema::Ministerio => self.ministerio,
+            ChaveSistema::Vale => self.vale,
         }
     }
 }
@@ -90,20 +157,44 @@ impl Turno {
 mod tests {
     use super::*;
 
-    #[test]
-    fn ordem_e_rotulos_exatos() {
-        let rotulos: Vec<&str> = FormaPagamento::ORDEM.iter().map(|f| f.rotulo()).collect();
-        assert_eq!(
-            rotulos,
-            vec!["Cartão", "Dinheiro", "PIX", "Ministério", "Vale Presente"]
-        );
+    fn forma(chave: &str, de_sistema: bool) -> FormaPagamento {
+        FormaPagamento {
+            id: 1,
+            chave: chave.into(),
+            rotulo: "X".into(),
+            de_sistema,
+            ativa: true,
+            ordem: 0,
+        }
     }
 
     #[test]
-    fn metodo_legado() {
-        assert_eq!(FormaPagamento::de_legado_metodo("C"), FormaPagamento::Cartao);
-        assert_eq!(FormaPagamento::de_legado_metodo("d"), FormaPagamento::Dinheiro);
-        assert_eq!(FormaPagamento::de_legado_metodo("?"), FormaPagamento::Dinheiro);
+    fn metodo_legado_mapeia_por_chave() {
+        assert_eq!(ChaveSistema::de_legado_metodo("C"), ChaveSistema::Credito);
+        assert_eq!(ChaveSistema::de_legado_metodo("p"), ChaveSistema::Pix);
+        assert_eq!(ChaveSistema::de_legado_metodo("M"), ChaveSistema::Ministerio);
+        assert_eq!(ChaveSistema::de_legado_metodo("V"), ChaveSistema::Vale);
+        assert_eq!(ChaveSistema::de_legado_metodo("d"), ChaveSistema::Dinheiro);
+        assert_eq!(ChaveSistema::de_legado_metodo("?"), ChaveSistema::Dinheiro);
+    }
+
+    #[test]
+    fn guards_de_sistema_e_uso() {
+        assert!(!forma("dinheiro", true).pode_desativar());
+        assert!(!forma("dinheiro", true).pode_excluir(false));
+        assert!(forma("boleto", false).pode_desativar());
+        assert!(forma("boleto", false).pode_excluir(false));
+        assert!(!forma("boleto", false).pode_excluir(true)); // em uso
+    }
+
+    #[test]
+    fn nome_normalizado_caixa_acentos_e_trim() {
+        assert_eq!(nome_normalizado(" CRÉDITO "), "credito");
+        assert_eq!(nome_normalizado("Crédito"), nome_normalizado("credito"));
+        assert_eq!(nome_normalizado("Ministério"), "ministerio");
+        assert_eq!(nome_normalizado("Ação"), "acao");
+        assert!(nome_valido("Boleto"));
+        assert!(!nome_valido("   "));
     }
 
     #[test]
@@ -119,5 +210,7 @@ mod tests {
         for t in [Turno::Manha, Turno::Tarde] {
             assert_eq!(Turno::de_chave(t.chave()), t);
         }
+        assert_eq!(Turno::Manha.rotulo(), "Turma da Manhã");
+        assert_eq!(Turno::Tarde.rotulo(), "Turma da Tarde");
     }
 }

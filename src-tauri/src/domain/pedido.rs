@@ -1,8 +1,12 @@
-//! Modelo de domínio do Pedido: itens, pagamentos e cálculos ao vivo (FR-011/012/014).
+//! Modelo de domínio do Pedido: itens, recebimentos por forma e cálculos ao vivo.
+//!
+//! Pagamentos são uma lista de recebimentos vinculados ao cadastro de formas por
+//! `forma_id` opaco (ADR-0013). O troco é amarrado à forma Dinheiro, resolvida pela
+//! aplicação via chave estável — o domínio não conhece rótulos nem banco.
 
 use super::dinheiro::Dinheiro;
 use super::erros::ErroDominio;
-use super::pagamento::{FormaPagamento, Turno};
+use super::pagamento::Turno;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ItemPedido {
@@ -32,35 +36,30 @@ pub fn somar_item(itens: &mut Vec<ItemPedido>, novo: ItemPedido) -> Result<(), E
     Ok(())
 }
 
-/// Valores recebidos por forma de pagamento (apenas registro gerencial).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct Pagamentos {
-    pub cartao: Dinheiro,
-    pub dinheiro: Dinheiro,
-    pub pix: Dinheiro,
-    pub ministerio: Dinheiro,
-    pub vale: Dinheiro,
+/// Valor recebido em uma forma de pagamento do cadastro (FR-014).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Recebimento {
+    pub forma_id: i64,
+    pub valor: Dinheiro,
 }
 
-impl Pagamentos {
-    /// Soma de todas as formas (FR-012).
-    pub fn pago(&self) -> Dinheiro {
-        self.cartao
-            .soma(self.dinheiro)
-            .soma(self.pix)
-            .soma(self.ministerio)
-            .soma(self.vale)
-    }
+/// Recebimentos da venda: lista esparsa (só formas com valor). Substitui a struct
+/// de campos fixos — comporta formas criadas pelo usuário (FR-005/FR-012).
+pub type Pagamentos = Vec<Recebimento>;
 
-    pub fn por_forma(&self, forma: FormaPagamento) -> Dinheiro {
-        match forma {
-            FormaPagamento::Cartao => self.cartao,
-            FormaPagamento::Dinheiro => self.dinheiro,
-            FormaPagamento::Pix => self.pix,
-            FormaPagamento::Ministerio => self.ministerio,
-            FormaPagamento::ValePresente => self.vale,
-        }
-    }
+/// Soma de todas as formas (FR-012).
+pub fn pago(pagamentos: &Pagamentos) -> Dinheiro {
+    pagamentos
+        .iter()
+        .fold(Dinheiro::ZERO, |acc, r| acc.soma(r.valor))
+}
+
+/// Valor recebido numa forma específica (0 se ausente).
+pub fn por_forma_id(pagamentos: &Pagamentos, forma_id: i64) -> Dinheiro {
+    pagamentos
+        .iter()
+        .filter(|r| r.forma_id == forma_id)
+        .fold(Dinheiro::ZERO, |acc, r| acc.soma(r.valor))
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -82,20 +81,22 @@ impl Pedido {
 
     /// Quanto ainda falta receber (FR-012).
     pub fn restante(&self) -> Dinheiro {
-        self.total().diferenca_piso_zero(self.pagamentos.pago())
+        self.total().diferenca_piso_zero(pago(&self.pagamentos))
     }
 
     /// Troco quando o pago excede o total (FR-012).
     pub fn troco(&self) -> Dinheiro {
-        self.pagamentos.pago().diferenca_piso_zero(self.total())
+        pago(&self.pagamentos).diferenca_piso_zero(self.total())
     }
 
     pub fn total_itens(&self) -> i64 {
         self.itens.iter().map(|i| i.qtd).sum()
     }
 
-    /// Regra de conclusão (FR-014): ≥1 item e pago ≥ total.
-    pub fn validar_conclusao(&self) -> Result<(), ErroDominio> {
+    /// Regra de conclusão (FR-013/FR-014): ≥1 item, pago ≥ total e troco só do
+    /// Dinheiro — o excedente é válido apenas até o recebido na forma Dinheiro,
+    /// identificada pelo `dinheiro_forma_id` resolvido pela aplicação (chave estável).
+    pub fn validar_conclusao(&self, dinheiro_forma_id: i64) -> Result<(), ErroDominio> {
         if self.itens.is_empty() {
             return Err(ErroDominio::SemItens);
         }
@@ -105,9 +106,8 @@ impl Pedido {
                 falta_centavos: restante.centavos(),
             });
         }
-        // Troco só pode sair do dinheiro: o excedente não pode vir de cartão/PIX/etc.
         let troco = self.troco().centavos();
-        if troco > 0 && self.pagamentos.dinheiro.centavos() < troco {
+        if troco > 0 && por_forma_id(&self.pagamentos, dinheiro_forma_id).centavos() < troco {
             return Err(ErroDominio::TrocoSemDinheiro);
         }
         Ok(())
@@ -118,12 +118,22 @@ impl Pedido {
 mod tests {
     use super::*;
 
+    const DINHEIRO_ID: i64 = 3;
+    const CREDITO_ID: i64 = 1;
+
     fn item(codigo: &str, preco: i64, qtd: i64) -> ItemPedido {
         ItemPedido {
             codigo: codigo.into(),
             titulo: "Livro".into(),
             preco: Dinheiro::de_centavos(preco),
             qtd,
+        }
+    }
+
+    fn recebe(forma_id: i64, centavos: i64) -> Recebimento {
+        Recebimento {
+            forma_id,
+            valor: Dinheiro::de_centavos(centavos),
         }
     }
 
@@ -158,14 +168,16 @@ mod tests {
     }
 
     #[test]
+    fn pago_soma_lista_e_por_forma() {
+        let pags = vec![recebe(CREDITO_ID, 6000), recebe(DINHEIRO_ID, 4000)];
+        assert_eq!(pago(&pags).centavos(), 10000);
+        assert_eq!(por_forma_id(&pags, CREDITO_ID).centavos(), 6000);
+        assert_eq!(por_forma_id(&pags, 99).centavos(), 0);
+    }
+
+    #[test]
     fn totais_restante_troco() {
-        let p = pedido(
-            vec![item("A", 3000, 2)],
-            Pagamentos {
-                dinheiro: Dinheiro::de_centavos(5000),
-                ..Default::default()
-            },
-        );
+        let p = pedido(vec![item("A", 3000, 2)], vec![recebe(DINHEIRO_ID, 5000)]);
         assert_eq!(p.total().centavos(), 6000);
         assert_eq!(p.total_itens(), 2);
         assert_eq!(p.restante().centavos(), 1000);
@@ -174,45 +186,44 @@ mod tests {
 
     #[test]
     fn conclusao_bloqueia_sem_itens_e_pago_insuficiente() {
-        let vazio = pedido(vec![], Pagamentos::default());
-        assert_eq!(vazio.validar_conclusao(), Err(ErroDominio::SemItens));
-
-        let faltando = pedido(
-            vec![item("A", 3000, 1)],
-            Pagamentos {
-                pix: Dinheiro::de_centavos(1000),
-                ..Default::default()
-            },
-        );
+        let vazio = pedido(vec![], vec![]);
         assert_eq!(
-            faltando.validar_conclusao(),
+            vazio.validar_conclusao(DINHEIRO_ID),
+            Err(ErroDominio::SemItens)
+        );
+
+        let faltando = pedido(vec![item("A", 3000, 1)], vec![recebe(CREDITO_ID, 1000)]);
+        assert_eq!(
+            faltando.validar_conclusao(DINHEIRO_ID),
             Err(ErroDominio::PagoInsuficiente { falta_centavos: 2000 })
         );
     }
 
     #[test]
-    fn conclusao_ok_com_troco() {
-        let p = pedido(
-            vec![item("A", 3000, 1)],
-            Pagamentos {
-                dinheiro: Dinheiro::de_centavos(5000),
-                ..Default::default()
-            },
-        );
-        assert!(p.validar_conclusao().is_ok());
+    fn conclusao_ok_com_troco_do_dinheiro() {
+        let p = pedido(vec![item("A", 3000, 1)], vec![recebe(DINHEIRO_ID, 5000)]);
+        assert!(p.validar_conclusao(DINHEIRO_ID).is_ok());
         assert_eq!(p.troco().centavos(), 2000);
     }
 
     #[test]
     fn conclusao_bloqueia_troco_sem_dinheiro() {
-        // Cartão pagou mais que o total, sem dinheiro → troco sem dinheiro: inválido.
+        // Crédito pagou mais que o total, sem dinheiro → troco sem dinheiro: inválido.
+        let p = pedido(vec![item("A", 3000, 1)], vec![recebe(CREDITO_ID, 5000)]);
+        assert_eq!(
+            p.validar_conclusao(DINHEIRO_ID),
+            Err(ErroDominio::TrocoSemDinheiro)
+        );
+    }
+
+    #[test]
+    fn troco_misto_valido_ate_o_recebido_em_dinheiro() {
+        // Total 3000; crédito 2000 + dinheiro 2000 → troco 1000 ≤ dinheiro (2000): ok.
         let p = pedido(
             vec![item("A", 3000, 1)],
-            Pagamentos {
-                cartao: Dinheiro::de_centavos(5000),
-                ..Default::default()
-            },
+            vec![recebe(CREDITO_ID, 2000), recebe(DINHEIRO_ID, 2000)],
         );
-        assert_eq!(p.validar_conclusao(), Err(ErroDominio::TrocoSemDinheiro));
+        assert!(p.validar_conclusao(DINHEIRO_ID).is_ok());
+        assert_eq!(p.troco().centavos(), 1000);
     }
 }

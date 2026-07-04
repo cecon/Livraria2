@@ -1,9 +1,19 @@
 // PDV (US1) — fluxo por leitor de código. O rascunho da venda é salvo no
 // localStorage para não se perder se o app reiniciar/atualizar no meio.
+// Formas de pagamento vêm do cadastro (listar_formas_ativas), na ordem (FR-012);
+// o troco é amarrado à forma de chave 'dinheiro' (FR-013).
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Banknote, Church, CreditCard, Gift, QrCode } from "lucide-react";
+import {
+  Banknote,
+  Church,
+  CreditCard,
+  Gift,
+  QrCode,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PaymentRow } from "@/components/PaymentRow";
@@ -11,43 +21,50 @@ import { EntradaProduto } from "@/components/EntradaProduto";
 import { CarrinhoItens, type ItemCarrinho } from "@/components/CarrinhoItens";
 import { brl } from "@/lib/format";
 import {
-  PAG_VAZIO,
   RASCUNHO_KEY,
   pagamentosParaPayload,
   paraCentavos,
   parseRascunho,
-  type FormaKey,
+  somaPagamentos,
   type Pagamentos,
 } from "@/lib/venda";
-import type { Livro } from "@/lib/types";
+import type { FormaPagamento, Livro } from "@/lib/types";
 import {
+  listarFormasAtivas,
   livroPorCodigo,
   proximoNumeroPedido,
   registrarVenda,
   type ErroIpc,
 } from "@/lib/ipc";
 
-const FORMAS: { key: FormaKey; rotulo: string; Icon: typeof CreditCard }[] = [
-  { key: "cartao", rotulo: "Cartão", Icon: CreditCard },
-  { key: "dinheiro", rotulo: "Dinheiro", Icon: Banknote },
-  { key: "pix", rotulo: "PIX", Icon: QrCode },
-  { key: "ministerio", rotulo: "Ministério", Icon: Church },
-  { key: "vale", rotulo: "Vale Presente", Icon: Gift },
-];
+/** Ícone por chave estável; formas criadas pelo usuário caem no genérico. */
+const ICONES: Record<string, LucideIcon> = {
+  credito: CreditCard,
+  debito: CreditCard,
+  dinheiro: Banknote,
+  pix: QrCode,
+  pix_igreja: Church,
+  ministerio: Church,
+  vale: Gift,
+};
 
 export function Pdv() {
   const inicial = parseRascunho(localStorage.getItem(RASCUNHO_KEY));
   const [numero, setNumero] = useState<number | null>(null);
+  const [formas, setFormas] = useState<FormaPagamento[]>([]);
   const [cliente, setCliente] = useState(inicial?.cliente ?? "CLIENTE");
   const [qtd, setQtd] = useState("1");
   const [codigo, setCodigo] = useState("");
   const [itens, setItens] = useState<ItemCarrinho[]>(inicial?.itens ?? []);
-  const [pag, setPag] = useState<Pagamentos>(inicial?.pag ?? PAG_VAZIO);
+  const [pag, setPag] = useState<Pagamentos>(inicial?.pag ?? {});
   const [ocupado, setOcupado] = useState(false);
   const codigoRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     proximoNumeroPedido().then(setNumero).catch(() => setNumero(null));
+    listarFormasAtivas()
+      .then(setFormas)
+      .catch(() => toast.error("Erro ao carregar as formas de pagamento"));
     codigoRef.current?.focus();
   }, []);
 
@@ -56,14 +73,15 @@ export function Pdv() {
     localStorage.setItem(RASCUNHO_KEY, JSON.stringify({ cliente, itens, pag }));
   }, [cliente, itens, pag]);
 
+  const dinheiro = useMemo(
+    () => formas.find((f) => f.chave === "dinheiro"),
+    [formas],
+  );
   const totalCentavos = useMemo(
     () => itens.reduce((s, i) => s + i.precoCentavos * i.qtd, 0),
     [itens],
   );
-  const pagoCentavos = useMemo(
-    () => FORMAS.reduce((s, f) => s + pag[f.key], 0),
-    [pag],
-  );
+  const pagoCentavos = useMemo(() => somaPagamentos(pag), [pag]);
   const restante = Math.max(0, totalCentavos - pagoCentavos);
   const troco = Math.max(0, pagoCentavos - totalCentavos);
   const totalItens = itens.reduce((s, i) => s + i.qtd, 0);
@@ -120,13 +138,13 @@ export function Pdv() {
     setItens((atual) => atual.filter((i) => i.codigo !== cod));
   }
 
-  function receberRestante(key: FormaKey) {
-    setPag((p) => ({ ...p, [key]: p[key] + restante }));
+  function receberRestante(formaId: number) {
+    setPag((p) => ({ ...p, [formaId]: paraCentavos(p[formaId]) + restante }));
   }
 
   function limpar() {
     setItens([]);
-    setPag(PAG_VAZIO);
+    setPag({});
     setCliente("CLIENTE");
     focarCodigo();
   }
@@ -140,7 +158,7 @@ export function Pdv() {
       toast.error(`Falta ${brl(restante)}`);
       return;
     }
-    if (troco > 0 && pag.dinheiro < troco) {
+    if (troco > 0 && paraCentavos(dinheiro ? pag[dinheiro.id] : 0) < troco) {
       toast.error("O troco só pode sair do dinheiro. Ajuste as formas de pagamento.");
       return;
     }
@@ -230,14 +248,14 @@ export function Pdv() {
 
         <div className="bg-muted/40 space-y-2 rounded-lg p-3">
           <div className="text-muted-foreground text-[11px] uppercase">Formas de Pagamento</div>
-          {FORMAS.map((f) => (
+          {formas.map((f) => (
             <PaymentRow
-              key={f.key}
+              key={f.id}
               rotulo={f.rotulo}
-              Icon={f.Icon}
-              valor={pag[f.key]}
-              onChange={(t) => setPag((p) => ({ ...p, [f.key]: t }))}
-              onReceberRestante={() => receberRestante(f.key)}
+              Icon={ICONES[f.chave] ?? Wallet}
+              valor={paraCentavos(pag[f.id])}
+              onChange={(t) => setPag((p) => ({ ...p, [f.id]: t }))}
+              onReceberRestante={() => receberRestante(f.id)}
               restanteCentavos={restante}
             />
           ))}

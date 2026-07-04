@@ -41,6 +41,24 @@ pub enum ErroDominio {
 
     #[error("a nota já foi finalizada")]
     NotaFinalizada,
+
+    #[error("forma de pagamento não encontrada")]
+    FormaNaoEncontrada,
+
+    #[error("forma de pagamento inativa não pode receber valores")]
+    FormaInativa,
+
+    #[error("forma de sistema não pode ser excluída nem desativada")]
+    FormaDeSistema,
+
+    #[error("forma já usada em vendas não pode ser excluída — desative-a")]
+    FormaEmUso,
+
+    #[error("não é possível desativar a última forma ativa")]
+    UltimaFormaAtiva,
+
+    #[error("já existe uma forma ativa com esse nome — renomeie antes")]
+    FormaNomeDuplicado,
 }
 
 impl ErroDominio {
@@ -60,6 +78,12 @@ impl ErroDominio {
             ErroDominio::FornecedorDuplicado => "FORNECEDOR_DUPLICADO",
             ErroDominio::SemFornecedor => "SEM_FORNECEDOR",
             ErroDominio::NotaFinalizada => "NOTA_FINALIZADA",
+            ErroDominio::FormaNaoEncontrada => "FORMA_NAO_ENCONTRADA",
+            ErroDominio::FormaInativa => "FORMA_INATIVA",
+            ErroDominio::FormaDeSistema => "FORMA_DE_SISTEMA",
+            ErroDominio::FormaEmUso => "FORMA_EM_USO",
+            ErroDominio::UltimaFormaAtiva => "ULTIMA_FORMA_ATIVA",
+            ErroDominio::FormaNomeDuplicado => "FORMA_NOME_DUPLICADO",
         }
     }
 }

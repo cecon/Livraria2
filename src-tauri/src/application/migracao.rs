@@ -1,7 +1,9 @@
 //! Caso de uso: migração/sincronização do legado (FR-065..069). Idempotente (upsert).
 
 use crate::application::erros::ErroApp;
-use crate::application::ports::{ImportadorLegado, LivroRepo, PedidoRepo};
+use crate::application::ports::{FormaPagamentoRepo, ImportadorLegado, LivroRepo, PedidoRepo};
+use crate::domain::erros::ErroDominio;
+use crate::domain::pagamento::{ChaveSistema, FormaIds};
 use serde::Serialize;
 
 #[derive(Debug, Default, Serialize)]
@@ -13,12 +15,31 @@ pub struct RelatorioMigracao {
     pub divergencias: Vec<String>,
 }
 
+/// Resolve os ids das formas de sistema pela chave estável (FR-018). Como são
+/// formas de sistema (não excluíveis), o mapeamento nunca fica órfão.
+async fn resolver_formas(repo: &dyn FormaPagamentoRepo) -> Result<FormaIds, ErroApp> {
+    let id_de = |chave: ChaveSistema| async move {
+        repo.por_chave(chave.chave())
+            .await?
+            .map(|f| f.id)
+            .ok_or_else(|| ErroApp::from(ErroDominio::FormaNaoEncontrada))
+    };
+    Ok(FormaIds {
+        credito: id_de(ChaveSistema::Credito).await?,
+        dinheiro: id_de(ChaveSistema::Dinheiro).await?,
+        pix: id_de(ChaveSistema::Pix).await?,
+        ministerio: id_de(ChaveSistema::Ministerio).await?,
+        vale: id_de(ChaveSistema::Vale).await?,
+    })
+}
+
 /// Importa acervo (upsert) e pedidos (insert idempotente). Re-executável (FR-069):
 /// livros são atualizados, pedidos já existentes são ignorados.
 pub async fn migrar(
     imp: &dyn ImportadorLegado,
     livros: &dyn LivroRepo,
     pedidos: &dyn PedidoRepo,
+    formas: &dyn FormaPagamentoRepo,
 ) -> Result<RelatorioMigracao, ErroApp> {
     let mut rel = RelatorioMigracao::default();
 
@@ -27,7 +48,8 @@ pub async fn migrar(
         rel.livros_importados += 1;
     }
 
-    let importados = imp.pedidos()?;
+    let forma_ids = resolver_formas(formas).await?;
+    let importados = imp.pedidos(&forma_ids)?;
     rel.divergencias = importados.divergencias;
     for pedido in &importados.pedidos {
         if pedidos.importar(pedido).await? {
@@ -46,8 +68,8 @@ mod tests {
     use crate::domain::categoria::Categoria;
     use crate::domain::dinheiro::Dinheiro;
     use crate::domain::livro::Livro;
-    use crate::domain::pagamento::Turno;
-    use crate::domain::pedido::{ItemPedido, Pagamentos, Pedido};
+    use crate::domain::pagamento::{FormaPagamento, Turno};
+    use crate::domain::pedido::{ItemPedido, Pedido, Recebimento};
     use async_trait::async_trait;
     use std::sync::Mutex;
 
@@ -65,7 +87,7 @@ mod tests {
                 custo_medio: Dinheiro::ZERO,
             }])
         }
-        fn pedidos(&self) -> Result<PedidosImportados, RepoErro> {
+        fn pedidos(&self, formas: &FormaIds) -> Result<PedidosImportados, RepoErro> {
             Ok(PedidosImportados {
                 pedidos: vec![Pedido {
                     numero: 100,
@@ -78,10 +100,59 @@ mod tests {
                         preco: Dinheiro::de_centavos(3000),
                         qtd: 1,
                     }],
-                    pagamentos: Pagamentos::default(),
+                    pagamentos: vec![Recebimento {
+                        forma_id: formas.dinheiro,
+                        valor: Dinheiro::de_centavos(3000),
+                    }],
                 }],
                 divergencias: vec![],
             })
+        }
+    }
+
+    struct FakeFormas;
+    #[async_trait]
+    impl FormaPagamentoRepo for FakeFormas {
+        async fn listar(&self) -> Result<Vec<FormaPagamento>, RepoErro> {
+            Ok(["credito", "debito", "dinheiro", "pix", "pix_igreja", "ministerio", "vale"]
+                .iter()
+                .enumerate()
+                .map(|(i, chave)| FormaPagamento {
+                    id: i as i64 + 1,
+                    chave: (*chave).into(),
+                    rotulo: (*chave).into(),
+                    de_sistema: !matches!(*chave, "debito" | "pix_igreja"),
+                    ativa: true,
+                    ordem: i as i64,
+                })
+                .collect())
+        }
+        async fn listar_ativas(&self) -> Result<Vec<FormaPagamento>, RepoErro> {
+            self.listar().await
+        }
+        async fn por_id(&self, id: i64) -> Result<Option<FormaPagamento>, RepoErro> {
+            Ok(self.listar().await?.into_iter().find(|f| f.id == id))
+        }
+        async fn por_chave(&self, chave: &str) -> Result<Option<FormaPagamento>, RepoErro> {
+            Ok(self.listar().await?.into_iter().find(|f| f.chave == chave))
+        }
+        async fn em_uso(&self, _id: i64) -> Result<bool, RepoErro> {
+            Ok(false)
+        }
+        async fn criar(&self, _c: &str, _r: &str, _a: bool, _o: i64) -> Result<FormaPagamento, RepoErro> {
+            unimplemented!()
+        }
+        async fn renomear(&self, _id: i64, _r: &str) -> Result<(), RepoErro> {
+            Ok(())
+        }
+        async fn definir_ativa(&self, _id: i64, _a: bool) -> Result<(), RepoErro> {
+            Ok(())
+        }
+        async fn reordenar(&self, _ids: &[i64]) -> Result<(), RepoErro> {
+            Ok(())
+        }
+        async fn excluir(&self, _id: i64) -> Result<(), RepoErro> {
+            Ok(())
         }
     }
 
@@ -145,13 +216,13 @@ mod tests {
             existentes: Mutex::new(vec![]),
         };
 
-        let r1 = migrar(&imp, &livros, &pedidos).await.unwrap();
+        let r1 = migrar(&imp, &livros, &pedidos, &FakeFormas).await.unwrap();
         assert_eq!(r1.livros_importados, 1);
         assert_eq!(r1.pedidos_inseridos, 1);
         assert_eq!(r1.pedidos_existentes, 0);
 
         // Segunda execução: pedido já existe → não duplica (FR-069).
-        let r2 = migrar(&imp, &livros, &pedidos).await.unwrap();
+        let r2 = migrar(&imp, &livros, &pedidos, &FakeFormas).await.unwrap();
         assert_eq!(r2.pedidos_inseridos, 0);
         assert_eq!(r2.pedidos_existentes, 1);
     }

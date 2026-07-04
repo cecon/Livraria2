@@ -14,6 +14,7 @@ import {
   ShoppingCart,
   Sun,
   Truck,
+  Wallet,
 } from "lucide-react";
 import type { Tema } from "@/lib/theme";
 
@@ -24,6 +25,7 @@ const ITENS = [
   { to: "/pesquisa", rotulo: "Pesquisa", Icon: Search, end: false },
   { to: "/lancamentos", rotulo: "Lançamentos", Icon: PackagePlus, end: false },
   { to: "/fornecedores", rotulo: "Fornecedores", Icon: Truck, end: false },
+  { to: "/formas-pagamento", rotulo: "Formas de Pagamento", Icon: Wallet, end: false },
   { to: "/inventario", rotulo: "Inventário", Icon: ClipboardList, end: false },
   { to: "/relatorios", rotulo: "Relatórios", Icon: FileBarChart, end: false },
 ];

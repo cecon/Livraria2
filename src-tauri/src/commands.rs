@@ -5,6 +5,7 @@ use crate::adapters::legado::mdb_importer::MdbImportador;
 use crate::adapters::persistencia::inicializar_schema;
 use crate::adapters::persistencia::dashboard_repo::SeaDashboardRepo;
 use crate::adapters::persistencia::estoque_repo::SeaEstoqueRepo;
+use crate::adapters::persistencia::forma_pagamento_repo::SeaFormaPagamentoRepo;
 use crate::adapters::persistencia::livro_repo::SeaLivroRepo;
 use crate::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use crate::adapters::persistencia::relatorio_repo::SeaRelatorioRepo;
@@ -121,7 +122,7 @@ pub async fn proximo_numero_pedido(state: tauri::State<'_, AppState>) -> Result<
     Ok(venda::proximo_numero_pedido(&pedidos).await?)
 }
 
-/// Registra uma venda (US1, FR-015).
+/// Registra uma venda (US1, FR-015). Pagamentos por lista `{formaId, valorCentavos}`.
 #[tauri::command]
 pub async fn registrar_venda(
     state: tauri::State<'_, AppState>,
@@ -129,7 +130,9 @@ pub async fn registrar_venda(
 ) -> Result<PedidoDto, ErroDto> {
     let livros = SeaLivroRepo::new(state.db.clone());
     let pedidos = SeaPedidoRepo::new(state.db.clone());
-    let pedido = venda::registrar_venda(input, &livros, &pedidos, &RelogioSistema).await?;
+    let formas = SeaFormaPagamentoRepo::new(state.db.clone());
+    let pedido =
+        venda::registrar_venda(input, &livros, &pedidos, &formas, &RelogioSistema).await?;
     Ok(PedidoDto {
         numero: pedido.numero,
         total_centavos: pedido.total().centavos(),
@@ -250,6 +253,7 @@ pub async fn autenticar(
 }
 
 /// Relatório de vendas do período (US5, FR-041/042). `periodo` = dia|manha|tarde.
+/// Resumo dinâmico por forma do cadastro (FR-019).
 #[tauri::command]
 pub async fn relatorio_vendas(
     state: tauri::State<'_, AppState>,
@@ -257,7 +261,8 @@ pub async fn relatorio_vendas(
     periodo: String,
 ) -> Result<RelatorioVendas, ErroDto> {
     let repo = SeaRelatorioRepo::new(state.db.clone());
-    Ok(relatorios::vendas(&data, &periodo, &repo).await?)
+    let formas = SeaFormaPagamentoRepo::new(state.db.clone());
+    Ok(relatorios::vendas(&data, &periodo, &repo, &formas).await?)
 }
 
 /// Cancela uma venda inteira (pedido + itens) — edição da venda do dia.
@@ -308,7 +313,8 @@ pub async fn migrar_legado(
     let importador = MdbImportador::new(caminho);
     let livros = SeaLivroRepo::new(state.db.clone());
     let pedidos = SeaPedidoRepo::new(state.db.clone());
-    Ok(migracao::migrar(&importador, &livros, &pedidos).await?)
+    let formas = SeaFormaPagamentoRepo::new(state.db.clone());
+    Ok(migracao::migrar(&importador, &livros, &pedidos, &formas).await?)
 }
 
 /// Últimos livros cadastrados/alterados (US2, FR-005).

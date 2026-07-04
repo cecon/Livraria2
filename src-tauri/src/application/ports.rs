@@ -3,6 +3,7 @@
 //! para dentro — o domínio NUNCA conhece o adapter.
 
 use crate::domain::livro::Livro;
+use crate::domain::pagamento::FormaPagamento;
 use crate::domain::pedido::Pedido;
 use async_trait::async_trait;
 use serde::Serialize;
@@ -42,6 +43,33 @@ pub trait PedidoRepo: Send + Sync {
     async fn excluir_pedido(&self, numero: i64) -> Result<(), RepoErro>;
 }
 
+/// Repositório do cadastro de formas de pagamento (ADR-0013).
+/// A checagem `em_uso` é SQL explícito — FKs não são enforced em runtime (FR-017).
+#[async_trait]
+pub trait FormaPagamentoRepo: Send + Sync {
+    /// Todas as formas, por `ordem` (inclui inativas — tela de cadastro).
+    async fn listar(&self) -> Result<Vec<FormaPagamento>, RepoErro>;
+    /// Só ativas, por `ordem` (PDV — FR-012).
+    async fn listar_ativas(&self) -> Result<Vec<FormaPagamento>, RepoErro>;
+    async fn por_id(&self, id: i64) -> Result<Option<FormaPagamento>, RepoErro>;
+    /// Resolve uma forma de sistema pela chave estável (troco/legado — FR-001a).
+    async fn por_chave(&self, chave: &str) -> Result<Option<FormaPagamento>, RepoErro>;
+    /// Existe alguma linha em `pagamento_pedido` para a forma? (FR-009/FR-017)
+    async fn em_uso(&self, id: i64) -> Result<bool, RepoErro>;
+    async fn criar(
+        &self,
+        chave: &str,
+        rotulo: &str,
+        ativa: bool,
+        ordem: i64,
+    ) -> Result<FormaPagamento, RepoErro>;
+    async fn renomear(&self, id: i64, rotulo: &str) -> Result<(), RepoErro>;
+    async fn definir_ativa(&self, id: i64, ativa: bool) -> Result<(), RepoErro>;
+    /// Reordena todas as formas conforme a posição dos ids na lista (FR-008).
+    async fn reordenar(&self, ids: &[i64]) -> Result<(), RepoErro>;
+    async fn excluir(&self, id: i64) -> Result<(), RepoErro>;
+}
+
 /// Pedidos reconstruídos do legado + divergências encontradas (FR-067a).
 pub struct PedidosImportados {
     pub pedidos: Vec<Pedido>,
@@ -49,9 +77,12 @@ pub struct PedidosImportados {
 }
 
 /// Porta do importador do legado (Access). Implementada pelo adapter mdbtools.
+/// `formas` traz os ids das formas de sistema já resolvidos por chave (FR-018) —
+/// o importador não acessa o banco.
 pub trait ImportadorLegado: Send + Sync {
     fn livros(&self) -> Result<Vec<Livro>, RepoErro>;
-    fn pedidos(&self) -> Result<PedidosImportados, RepoErro>;
+    fn pedidos(&self, formas: &crate::domain::pagamento::FormaIds)
+        -> Result<PedidosImportados, RepoErro>;
 }
 
 /// Resumo agregado das vendas de um dia (dashboard).
@@ -87,18 +118,24 @@ pub struct ItemRelatorio {
     pub valor_centavos: i64,
 }
 
-/// Pedido detalhado num relatório de vendas (itens + valores por forma).
+/// Valor recebido numa forma, com rótulo para exibição (relatórios dinâmicos — FR-019).
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct RecebimentoRelatorio {
+    pub forma_id: i64,
+    pub chave: String,
+    pub rotulo: String,
+    pub valor_centavos: i64,
+}
+
+/// Pedido detalhado num relatório de vendas (itens + recebimentos por forma).
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PedidoRelatorio {
     pub numero: i64,
     pub cliente: String,
     pub itens: Vec<ItemRelatorio>,
-    pub cartao: i64,
-    pub dinheiro: i64,
-    pub pix: i64,
-    pub ministerio: i64,
-    pub vale: i64,
+    pub recebimentos: Vec<RecebimentoRelatorio>,
     pub total_centavos: i64,
     pub cancelado: bool,
 }

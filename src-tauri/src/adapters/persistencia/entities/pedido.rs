@@ -11,11 +11,6 @@ pub struct Model {
     pub turno: String,
     pub data: String,
     pub total_centavos: i64,
-    pub val_cartao: i64,
-    pub val_dinheiro: i64,
-    pub val_pix: i64,
-    pub val_ministerio: i64,
-    pub val_vale: i64,
     pub cancelado: bool,
     pub cancelado_em: Option<String>,
 }
