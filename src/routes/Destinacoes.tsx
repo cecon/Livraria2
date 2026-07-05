@@ -1,7 +1,7 @@
 // Cadastro de destinações (US3, FR-001..005): criar, renomear, reordenar,
 // ativar/desativar e excluir. A ordem define a ordem de baixa dos carimbos
-// na venda ("Loja" sempre primeira); o destino do estoque é definido no
-// livro, em Pesquisa → Destinar estoque.
+// na venda ("Loja" sempre primeira); o destino do estoque é definido na
+// lista de livros do Cadastro (ícone de destinação).
 
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
@@ -41,7 +41,7 @@ export default function Destinacoes() {
           <p className="text-muted-foreground text-sm">
             Para onde vai o valor das vendas de livros doados. A ordem daqui é
             a ordem de baixa na venda; o saldo livre pertence à “Loja”. Carimbe
-            os livros em Pesquisa → Destinar estoque.
+            os livros no Cadastro, pelo ícone de destinação na lista.
           </p>
         </div>
         <Button

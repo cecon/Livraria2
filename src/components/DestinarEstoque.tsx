@@ -1,5 +1,6 @@
 // Destinar estoque (US1, FR-006/FR-007): saldos por destinação do livro,
 // transferência entre Livre e carimbos (sem tocar no físico) e histórico.
+// Painel controlado — o gatilho (ícone/botão) vive em quem o renderiza.
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -23,8 +24,13 @@ import {
   validarTransferenciaUi,
 } from "@/lib/destinar";
 
-export function DestinarEstoque({ codigo }: { codigo: string }) {
-  const [aberto, setAberto] = useState(false);
+export function DestinarEstoque({
+  codigo,
+  onFechar,
+}: {
+  codigo: string;
+  onFechar: () => void;
+}) {
   const [saldos, setSaldos] = useState<SaldoLivro | null>(null);
   const [ativas, setAtivas] = useState<Destinacao[]>([]);
   const [historico, setHistorico] = useState<Transferencia[] | null>(null);
@@ -43,8 +49,8 @@ export function DestinarEstoque({ codigo }: { codigo: string }) {
   }, [codigo]);
 
   useEffect(() => {
-    if (aberto) void carregar();
-  }, [aberto, carregar]);
+    void carregar();
+  }, [carregar]);
 
   async function transferir() {
     const invalido = validarTransferenciaUi(qtd, para);
@@ -76,14 +82,6 @@ export function DestinarEstoque({ codigo }: { codigo: string }) {
     } catch (e) {
       toast.error((e as ErroIpc).mensagem ?? "Erro ao carregar histórico");
     }
-  }
-
-  if (!aberto) {
-    return (
-      <Button variant="outline" size="sm" onClick={() => setAberto(true)}>
-        Destinar estoque
-      </Button>
-    );
   }
 
   const origens = opcoesOrigem(saldos);
@@ -153,7 +151,7 @@ export function DestinarEstoque({ codigo }: { codigo: string }) {
           Histórico
         </Button>
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setAberto(false)}>
+          <Button variant="ghost" size="sm" onClick={onFechar}>
             Fechar
           </Button>
           <Button size="sm" onClick={transferir}>

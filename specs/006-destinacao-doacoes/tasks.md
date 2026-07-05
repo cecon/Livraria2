@@ -52,7 +52,7 @@
 - [x] T013 [US1] Adicionar comandos `destinacao_transferir`, `destinacao_saldos_livro`, `destinacao_transferencias_livro` em src-tauri/src/commands_destinacao.rs (+ lib.rs); erro `saldo_insuficiente` com disponível na mensagem
 - [x] T014 [P] [US1] Adicionar bindings de transferência em src/lib/ipc_destinacoes.ts e tipos `SaldoLivro`/`Transferencia` em src/lib/types.ts
 - [x] T015 [US1] Criar src/components/DestinarEstoque.tsx: dialog com saldos do livro (livre + carimbos), form de transferência (origem/destino/qtd/motivo) e histórico — validação de saldo com mensagem clara
-- [x] T016 [US1] Adicionar ação "Destinar estoque" no detalhe do livro em src/routes/Pesquisa.tsx (abre o dialog)
+- [x] T016 [US1] Adicionar ação "Destinar estoque" na lista de livros em src/routes/Cadastro.tsx (ícone por linha, painel expandido — movido da Pesquisa a pedido do usuário)
 
 **Checkpoint**: US1 completa — dá para carimbar o caso dos 220 (entrada normal + 10 Loja / 210 Missões) de ponta a ponta.
 

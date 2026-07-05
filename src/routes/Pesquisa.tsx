@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { StockBadge } from "@/components/StockBadge";
 import { Cover } from "@/components/Cover";
 import { AjusteEstoque } from "@/components/AjusteEstoque";
-import { DestinarEstoque } from "@/components/DestinarEstoque";
 import { ExtratoMovimentos } from "@/components/ExtratoMovimentos";
 import { brl } from "@/lib/format";
 import { CATEGORIAS, type Livro } from "@/lib/types";
@@ -111,7 +110,6 @@ export default function Pesquisa() {
           </div>
         </div>
         <div className="mt-4 flex justify-end gap-2">
-          <DestinarEstoque codigo={detalhe.codigo} />
           <AjusteEstoque
             livro={detalhe}
             onAjustado={(l) => {

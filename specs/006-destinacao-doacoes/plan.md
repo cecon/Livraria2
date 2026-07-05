@@ -110,14 +110,14 @@ src-tauri/src/
 src/ (UI React)
 ├── routes/
 │   ├── Destinacoes.tsx               # NOVO — tela de cadastro (clone estrutural de FormasPagamento.tsx)
-│   ├── Pesquisa.tsx                  # ALTERADO — ação "Destinar estoque" no livro
+│   ├── Cadastro.tsx                  # ALTERADO — ícone "Destinar estoque" na lista de livros (linha expandida)
 │   ├── ListaVendas.tsx               # ALTERADO — detalhe da venda exibe distribuição por destinação
 │   │                                 #   (badges); erro claro ao cancelar venda > 5 dias
 │   └── Relatorios.tsx                # ALTERADO — visão "Por destinação" (período + posição atual)
 ├── components/
 │   ├── DestinacoesLista.tsx          # NOVO — lista/reordena/ativa/exclui (padrão FormasPagamentoLista)
 │   ├── DestinacaoForm.tsx            # NOVO — criar/renomear
-│   ├── DestinarEstoque.tsx           # NOVO — dialog no livro: saldos + transferência + histórico (US1)
+│   ├── DestinarEstoque.tsx           # NOVO — painel controlado: saldos + transferência + histórico (US1)
 │   ├── Pdv.tsx / CarrinhoItens.tsx   # ALTERADO — estado "Caixa livre" quando sem itens (US4, só frontend)
 │   └── VendaConcluida.tsx            # NOVO — confirmação animada de conclusão (total/troco; auto-dispensa,
 │                                     #   descartada por bipagem — nunca bloqueia a próxima venda) (US4)

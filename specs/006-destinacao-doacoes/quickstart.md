@@ -24,7 +24,7 @@ vezes valida a idempotência da m007 (sem erro, sem seed duplicado de "Loja").
 
 1. **Entrada normal**: Lançamentos → Nova nota (fluxo atual), item de **220 unidades a
    custo R$ 0,00**, finalizar. Extrato mostra `entrada` a custo zero (custo médio caiu).
-2. **Destinar**: Pesquisa → livro → **Destinar estoque**: transferir **10 de Livre → Loja** e
+2. **Destinar**: Cadastro → ícone de destinação na linha do livro (**Destinar estoque**): transferir **10 de Livre → Loja** e
    **210 de Livre → Missões** (motivo: "doação da autora").
 3. Conferir: estoque físico inalterado (as transferências não mexem no físico); saldos
    Loja 10 / Missões 210; histórico do livro mostra as duas transferências.
