@@ -7,8 +7,14 @@ use sea_orm_migration::prelude::*;
 
 pub mod m004;
 pub mod m006;
+pub mod m007;
 
 pub struct Migrator;
+
+/// Sentenças da m007, expostas para o teste de idempotência re-aplicá-las.
+pub fn m007_sql() -> &'static [&'static str] {
+    m007::UP
+}
 
 #[async_trait::async_trait]
 impl MigratorTrait for Migrator {
@@ -18,6 +24,7 @@ impl MigratorTrait for Migrator {
             Box::new(m_estoque::Migration),
             Box::new(m_fornecedores::Migration),
             Box::new(m005_pedido_cancelado::Migration),
+            Box::new(m007::Migration),
         ]
     }
 }

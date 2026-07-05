@@ -299,3 +299,5 @@ export async function buscarPorCodigoBarras(
 export * from "./ipc_compras";
 // Cadastro de formas de pagamento & estado do boot (feature 005).
 export * from "./ipc_formas";
+// Destinações de estoque (feature 006).
+export * from "./ipc_destinacoes";

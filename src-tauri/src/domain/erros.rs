@@ -59,6 +59,30 @@ pub enum ErroDominio {
 
     #[error("já existe uma forma ativa com esse nome — renomeie antes")]
     FormaNomeDuplicado,
+
+    #[error("destinação não encontrada")]
+    DestinacaoNaoEncontrada,
+
+    #[error("a Loja é a destinação padrão do sistema e não pode ser excluída, desativada ou reordenada")]
+    DestinacaoDeSistema,
+
+    #[error("destinação já usada não pode ser excluída — desative-a")]
+    DestinacaoEmUso,
+
+    #[error("já existe uma destinação ativa com esse nome — renomeie antes")]
+    DestinacaoNomeDuplicado,
+
+    #[error("destinação inativa não pode receber transferências")]
+    DestinacaoInativa,
+
+    #[error("origem e destino da transferência devem ser diferentes")]
+    TransferenciaInvalida,
+
+    #[error("saldo insuficiente na origem: disponível {disponivel}")]
+    SaldoInsuficiente { disponivel: i64 },
+
+    #[error("venda com mais de {dias} dias não pode mais ser cancelada")]
+    VendaAntiga { dias: i64 },
 }
 
 impl ErroDominio {
@@ -84,6 +108,14 @@ impl ErroDominio {
             ErroDominio::FormaEmUso => "FORMA_EM_USO",
             ErroDominio::UltimaFormaAtiva => "ULTIMA_FORMA_ATIVA",
             ErroDominio::FormaNomeDuplicado => "FORMA_NOME_DUPLICADO",
+            ErroDominio::DestinacaoNaoEncontrada => "DESTINACAO_NAO_ENCONTRADA",
+            ErroDominio::DestinacaoDeSistema => "DESTINACAO_DE_SISTEMA",
+            ErroDominio::DestinacaoEmUso => "DESTINACAO_EM_USO",
+            ErroDominio::DestinacaoNomeDuplicado => "DESTINACAO_NOME_DUPLICADO",
+            ErroDominio::DestinacaoInativa => "DESTINACAO_INATIVA",
+            ErroDominio::TransferenciaInvalida => "TRANSFERENCIA_INVALIDA",
+            ErroDominio::SaldoInsuficiente { .. } => "SALDO_INSUFICIENTE",
+            ErroDominio::VendaAntiga { .. } => "VENDA_ANTIGA",
         }
     }
 }

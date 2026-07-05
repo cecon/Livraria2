@@ -19,9 +19,9 @@
 
 **Purpose**: schema novo no lugar, idempotente, antes de qualquer código de negócio.
 
-- [ ] T001 Adicionar módulo `m007_destinacoes` em src-tauri/src/migration/mod.rs (estilo `m005`): `CREATE TABLE IF NOT EXISTS` para `destinacao`, `destinacao_saldo`, `transferencia_destinacao`, `alocacao_venda` + índices + seed "Loja" (`de_sistema=1, ordem=0`) com `INSERT … WHERE NOT EXISTS (de_sistema=1)`; registrar no vetor `migrations()` — sem ALTERs (data-model.md)
-- [ ] T002 [P] Criar entities SeaORM em src-tauri/src/adapters/persistencia/entities/destinacao.rs (módulos: destinacao, destinacao_saldo, transferencia_destinacao, alocacao_venda) e registrar em entities/mod.rs
-- [ ] T003 Teste de idempotência da m007 em src-tauri/src/migration/mod.rs (`#[cfg(test)]`, SQLite temporário): aplicar 2× converge sem erro, seed "Loja" não duplica
+- [x] T001 Adicionar módulo `m007_destinacoes` em src-tauri/src/migration/mod.rs (estilo `m005`): `CREATE TABLE IF NOT EXISTS` para `destinacao`, `destinacao_saldo`, `transferencia_destinacao`, `alocacao_venda` + índices + seed "Loja" (`de_sistema=1, ordem=0`) com `INSERT … WHERE NOT EXISTS (de_sistema=1)`; registrar no vetor `migrations()` — sem ALTERs (data-model.md)
+- [x] T002 [P] Criar entities SeaORM em src-tauri/src/adapters/persistencia/entities/destinacao.rs (módulos: destinacao, destinacao_saldo, transferencia_destinacao, alocacao_venda) e registrar em entities/mod.rs
+- [x] T003 Teste de idempotência da m007 em src-tauri/src/migration/mod.rs (`#[cfg(test)]`, SQLite temporário): aplicar 2× converge sem erro, seed "Loja" não duplica
 
 ---
 
@@ -29,13 +29,13 @@
 
 **Purpose**: regras e acesso a dados que TODAS as stories usam. ⚠️ Bloqueia as fases 3+.
 
-- [ ] T004 [P] Criar src-tauri/src/domain/destinacao.rs: `Destinacao {id, nome, de_sistema, ativa, ordem}` + validações puras (nome não-vazio; `pode_excluir(em_uso)`, `pode_desativar`, `pode_reordenar` — Loja: nunca) + testes inline
-- [ ] T005 [P] Criar src-tauri/src/domain/alocacao.rs: `alocar_venda(carimbos_ordenados, livre, qtd)` (carimbos em ordem, Loja 1º → livre), `alocar_perda(livre, carimbos_ordenados, qtd)` (inverso), `validar_transferencia(origem_saldo, qtd)`, inversos de estorno + testes inline cobrindo fronteiras (qtd > carimbos, qtd > total, carimbo zerado)
-- [ ] T006 [P] Adicionar `pode_cancelar_venda(data_venda, hoje)` (≤ 5 dias corridos) em src-tauri/src/domain/pedido.rs + testes inline (dia 5 permite, dia 6 bloqueia)
-- [ ] T007 Criar src-tauri/src/application/ports_destinacao.rs: trait `DestinacaoRepo` (listar, listar_ativas, criar, renomear, definir_ativa, reordenar, excluir, em_uso, saldos_livro, transferir, transferencias_livro, relatorio_periodo, posicao_atual) + tipos (`SaldoLivro`, `Alocacao`, `LinhaRelatorio`); registrar em application/mod.rs
-- [ ] T008 Criar src-tauri/src/adapters/persistencia/destinacao_repo.rs: `SeaDestinacaoRepo` com CRUD + `em_uso` (existe em destinacao_saldo qtd>0 OU alocacao_venda OU transferencia_destinacao) + testes com SQLite temporário; registrar em persistencia/mod.rs
-- [ ] T009 Criar src-tauri/src/commands_destinacao.rs com comandos base `destinacoes_listar`, `destinacoes_listar_ativas`, `destinacao_criar` (contrato em contracts/tauri-commands.md) e registrar em src-tauri/src/lib.rs
-- [ ] T010 [P] Criar src/lib/ipc_destinacoes.ts (bindings base) e adicionar `Destinacao` em src/lib/types.ts
+- [x] T004 [P] Criar src-tauri/src/domain/destinacao.rs: `Destinacao {id, nome, de_sistema, ativa, ordem}` + validações puras (nome não-vazio; `pode_excluir(em_uso)`, `pode_desativar`, `pode_reordenar` — Loja: nunca) + testes inline
+- [x] T005 [P] Criar src-tauri/src/domain/alocacao.rs: `alocar_venda(carimbos_ordenados, livre, qtd)` (carimbos em ordem, Loja 1º → livre), `alocar_perda(livre, carimbos_ordenados, qtd)` (inverso), `validar_transferencia(origem_saldo, qtd)`, inversos de estorno + testes inline cobrindo fronteiras (qtd > carimbos, qtd > total, carimbo zerado)
+- [x] T006 [P] Adicionar `pode_cancelar_venda(data_venda, hoje)` (≤ 5 dias corridos) em src-tauri/src/domain/pedido.rs + testes inline (dia 5 permite, dia 6 bloqueia)
+- [x] T007 Criar src-tauri/src/application/ports_destinacao.rs: trait `DestinacaoRepo` (listar, listar_ativas, criar, renomear, definir_ativa, reordenar, excluir, em_uso, saldos_livro, transferir, transferencias_livro, relatorio_periodo, posicao_atual) + tipos (`SaldoLivro`, `Alocacao`, `LinhaRelatorio`); registrar em application/mod.rs
+- [x] T008 Criar src-tauri/src/adapters/persistencia/destinacao_repo.rs: `SeaDestinacaoRepo` com CRUD + `em_uso` (existe em destinacao_saldo qtd>0 OU alocacao_venda OU transferencia_destinacao) + testes com SQLite temporário; registrar em persistencia/mod.rs
+- [x] T009 Criar src-tauri/src/commands_destinacao.rs com comandos base `destinacoes_listar`, `destinacoes_listar_ativas`, `destinacao_criar` (contrato em contracts/tauri-commands.md) e registrar em src-tauri/src/lib.rs
+- [x] T010 [P] Criar src/lib/ipc_destinacoes.ts (bindings base) e adicionar `Destinacao` em src/lib/types.ts
 
 **Checkpoint**: `cargo test` verde; app abre com m007 aplicada; criar/listar destinação funciona via console.
 
@@ -47,12 +47,12 @@
 
 **Independent Test**: livro com estoque 80 livre → transferir 50 para Missões (físico 80, livre 30, Missões 50); 10 de Missões → Livre (40/40); transferir 100 de Livre com só 40 → bloqueado com o disponível na mensagem; histórico registra tudo (quickstart cenário 2).
 
-- [ ] T011 [US1] Criar src-tauri/src/adapters/persistencia/destinacao_sql.rs com `transferir(txn, livro_id, de, para, qtd, motivo)` (guards: de ≠ para, origem com saldo — livre = estoque − Σ carimbos, destino ativo; upsert/decremento em destinacao_saldo com remoção de linhas qtd=0 + registro em transferencia_destinacao), `saldos_livro`, `transferencias_livro` + testes SQLite temporário (incl. invariante Σ carimbos ≤ estoque)
-- [ ] T012 [US1] Criar src-tauri/src/application/destinacoes.rs: caso de uso `transferir` (valida via domain/alocacao.rs e delega à porta) + `saldos_livro`/`historico` + testes com fakes da porta
-- [ ] T013 [US1] Adicionar comandos `destinacao_transferir`, `destinacao_saldos_livro`, `destinacao_transferencias_livro` em src-tauri/src/commands_destinacao.rs (+ lib.rs); erro `saldo_insuficiente` com disponível na mensagem
-- [ ] T014 [P] [US1] Adicionar bindings de transferência em src/lib/ipc_destinacoes.ts e tipos `SaldoLivro`/`Transferencia` em src/lib/types.ts
-- [ ] T015 [US1] Criar src/components/DestinarEstoque.tsx: dialog com saldos do livro (livre + carimbos), form de transferência (origem/destino/qtd/motivo) e histórico — validação de saldo com mensagem clara
-- [ ] T016 [US1] Adicionar ação "Destinar estoque" no detalhe do livro em src/routes/Pesquisa.tsx (abre o dialog)
+- [x] T011 [US1] Criar src-tauri/src/adapters/persistencia/destinacao_sql.rs com `transferir(txn, livro_id, de, para, qtd, motivo)` (guards: de ≠ para, origem com saldo — livre = estoque − Σ carimbos, destino ativo; upsert/decremento em destinacao_saldo com remoção de linhas qtd=0 + registro em transferencia_destinacao), `saldos_livro`, `transferencias_livro` + testes SQLite temporário (incl. invariante Σ carimbos ≤ estoque)
+- [x] T012 [US1] Criar src-tauri/src/application/destinacoes.rs: caso de uso `transferir` (valida via domain/alocacao.rs e delega à porta) + `saldos_livro`/`historico` + testes com fakes da porta
+- [x] T013 [US1] Adicionar comandos `destinacao_transferir`, `destinacao_saldos_livro`, `destinacao_transferencias_livro` em src-tauri/src/commands_destinacao.rs (+ lib.rs); erro `saldo_insuficiente` com disponível na mensagem
+- [x] T014 [P] [US1] Adicionar bindings de transferência em src/lib/ipc_destinacoes.ts e tipos `SaldoLivro`/`Transferencia` em src/lib/types.ts
+- [x] T015 [US1] Criar src/components/DestinarEstoque.tsx: dialog com saldos do livro (livre + carimbos), form de transferência (origem/destino/qtd/motivo) e histórico — validação de saldo com mensagem clara
+- [x] T016 [US1] Adicionar ação "Destinar estoque" no detalhe do livro em src/routes/Pesquisa.tsx (abre o dialog)
 
 **Checkpoint**: US1 completa — dá para carimbar o caso dos 220 (entrada normal + 10 Loja / 210 Missões) de ponta a ponta.
 

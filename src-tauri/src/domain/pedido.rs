@@ -62,6 +62,35 @@ pub fn por_forma_id(pagamentos: &Pagamentos, forma_id: i64) -> Dinheiro {
         .fold(Dinheiro::ZERO, |acc, r| acc.soma(r.valor))
 }
 
+/// Janela de cancelamento de venda em dias corridos (FR-011 da 006).
+pub const JANELA_CANCELAMENTO_DIAS: i64 = 5;
+
+/// Dias corridos desde a época civil (algoritmo days-from-civil, sem dependência).
+fn dias_civis(data_iso: &str) -> Option<i64> {
+    let mut partes = data_iso.splitn(3, '-');
+    let ano: i64 = partes.next()?.parse().ok()?;
+    let mes: i64 = partes.next()?.parse().ok()?;
+    let dia: i64 = partes.next()?.get(..2).unwrap_or_default().parse().ok()?;
+    if !(1..=12).contains(&mes) || !(1..=31).contains(&dia) {
+        return None;
+    }
+    let a = ano - i64::from(mes <= 2);
+    let era = a.div_euclid(400);
+    let aoe = a - era * 400;
+    let doy = (153 * (if mes > 2 { mes - 3 } else { mes + 9 }) + 2) / 5 + dia - 1;
+    let doe = aoe * 365 + aoe / 4 - aoe / 100 + doy;
+    Some(era * 146_097 + doe)
+}
+
+/// Cancelamento permitido até `JANELA_CANCELAMENTO_DIAS` dias corridos da venda
+/// (FR-011). Datas ISO `yyyy-mm-dd`; data ilegível → bloqueia (conservador).
+pub fn pode_cancelar_venda(data_venda: &str, hoje: &str) -> bool {
+    match (dias_civis(data_venda), dias_civis(hoje)) {
+        (Some(v), Some(h)) => (h - v) <= JANELA_CANCELAMENTO_DIAS && h >= v,
+        _ => false,
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Pedido {
     pub numero: i64,
@@ -146,6 +175,21 @@ mod tests {
             itens,
             pagamentos,
         }
+    }
+
+    #[test]
+    fn janela_de_cancelamento_5_dias_corridos() {
+        // Dia 5 ainda permite; dia 6 bloqueia (FR-011).
+        assert!(pode_cancelar_venda("2026-07-04", "2026-07-04"));
+        assert!(pode_cancelar_venda("2026-07-04", "2026-07-09"));
+        assert!(!pode_cancelar_venda("2026-07-04", "2026-07-10"));
+        // Vira de mês/ano corretamente.
+        assert!(pode_cancelar_venda("2026-06-30", "2026-07-05"));
+        assert!(!pode_cancelar_venda("2026-06-30", "2026-07-06"));
+        assert!(pode_cancelar_venda("2025-12-31", "2026-01-05"));
+        // Venda "no futuro" ou data ilegível → bloqueia (conservador).
+        assert!(!pode_cancelar_venda("2026-07-10", "2026-07-04"));
+        assert!(!pode_cancelar_venda("data-ruim", "2026-07-04"));
     }
 
     #[test]

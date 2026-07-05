@@ -1,5 +1,6 @@
 //! Entidades SeaORM (uma por tabela). Vivem no adapter, nunca no domínio (ADR-0003).
 
+pub mod destinacao;
 pub mod forma_pagamento;
 pub mod fornecedor;
 pub mod item_contagem;
