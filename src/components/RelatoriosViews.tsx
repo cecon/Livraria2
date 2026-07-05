@@ -70,6 +70,41 @@ export function VendasView({ rel }: VendasProps) {
         })
       )}
 
+      {rel.repasses.length > 0 && (
+        <div className="rounded-lg border p-3 text-sm">
+          <div className="mb-2 font-semibold">Repasse por destinação</div>
+          <div className="space-y-3">
+            {rel.repasses.map((d) => (
+              <div key={d.destinacaoId}>
+                <div className="flex items-center justify-between border-b pb-1 font-medium">
+                  <span>{d.nome}</span>
+                  <span className="font-mono text-[#1f7a4d]">
+                    {d.qtd} un. · {brl(d.valorCentavos)}
+                  </span>
+                </div>
+                <ul className="text-muted-foreground mt-1">
+                  {d.livros.map((l) => (
+                    <li
+                      key={l.titulo}
+                      className="flex items-center gap-2 font-mono text-[12px]"
+                    >
+                      <span className="flex-1">
+                        {l.qtd}× {l.titulo}
+                      </span>
+                      <span>{brl(l.valorCentavos)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 flex justify-between border-t pt-2 font-mono text-sm font-semibold">
+            <span>Total do período</span>
+            <span>{brl(rel.repasses.reduce((s, d) => s + d.valorCentavos, 0))}</span>
+          </div>
+        </div>
+      )}
+
       {canceladas.length > 0 && (
         <div className="rounded-lg border border-dashed p-3 text-sm">
           <div className="text-muted-foreground mb-2 text-[11px] font-semibold uppercase">

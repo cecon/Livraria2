@@ -2,6 +2,7 @@
 
 use crate::application::erros::ErroApp;
 use crate::application::ports::{FormaPagamentoRepo, PedidoRelatorio, RelatorioRepo, UsuarioRepo};
+use crate::application::ports_destinacao::{DestinacaoRepo, RepasseDestinacao};
 use serde::Serialize;
 
 /// Total recebido numa forma do cadastro (relatórios dinâmicos — FR-019).
@@ -29,6 +30,8 @@ pub struct RelatorioVendas {
     pub data: String,
     pub pedidos: Vec<PedidoRelatorio>,
     pub resumo: ResumoVendas,
+    /// Repasse por destinação (livros + total) — quanto vai para cada destino (006).
+    pub repasses: Vec<RepasseDestinacao>,
 }
 
 #[derive(Serialize)]
@@ -63,6 +66,7 @@ pub async fn vendas(
     periodo: &str,
     repo: &dyn RelatorioRepo,
     formas: &dyn FormaPagamentoRepo,
+    destinacoes: &dyn DestinacaoRepo,
 ) -> Result<RelatorioVendas, ErroApp> {
     let pedidos = repo.vendas(data, periodo).await?;
     // Uma entrada por forma do cadastro (na ordem), somando os recebimentos dos
@@ -90,6 +94,7 @@ pub async fn vendas(
             }
         }
     }
+    let repasses = destinacoes.repasse(data, periodo).await?;
     Ok(RelatorioVendas {
         periodo: periodo.to_string(),
         data: data.to_string(),
@@ -98,6 +103,7 @@ pub async fn vendas(
             formas: totais,
             subtotal_centavos: subtotal,
         },
+        repasses,
     })
 }
 
@@ -228,7 +234,15 @@ mod tests {
 
     #[tokio::test]
     async fn resumo_dinamico_reconcilia_com_os_pedidos() {
-        let rel = vendas("2026-06-14", "dia", &FakeRel, &FakeFormas).await.unwrap();
+        let rel = vendas(
+            "2026-06-14",
+            "dia",
+            &FakeRel,
+            &FakeFormas,
+            &crate::application::fakes::FakeDestinacoes,
+        )
+        .await
+        .unwrap();
         let total_de = |id: i64| {
             rel.resumo
                 .formas

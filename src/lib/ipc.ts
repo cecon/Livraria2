@@ -158,11 +158,27 @@ export interface ResumoVendas {
   formas: TotalForma[];
   subtotalCentavos: number;
 }
+/** Livro dentro do repasse por destinação (fechamento do dia — 006). */
+export interface LivroRepasse {
+  titulo: string;
+  qtd: number;
+  valorCentavos: number;
+}
+/** Repasse por destinação: livros vendidos + total a repassar. */
+export interface RepasseDestinacao {
+  destinacaoId: number;
+  nome: string;
+  qtd: number;
+  valorCentavos: number;
+  livros: LivroRepasse[];
+}
 export interface RelatorioVendas {
   periodo: string;
   data: string;
   pedidos: PedidoRelatorio[];
   resumo: ResumoVendas;
+  /** Vazio quando nada foi vendido no período. */
+  repasses: RepasseDestinacao[];
 }
 export interface ItemEstoque {
   codigo: string;

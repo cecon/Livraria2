@@ -136,6 +136,14 @@ async fn venda_na_fronteira_estorno_e_relatorio() {
     assert_eq!(r.linhas[0].valor_centavos, 5000);
     assert_eq!(r.posicao_atual.iter().find(|p| p.destinacao_id == missoes.id).unwrap().qtd, 69);
 
+    // Repasse do fechamento: por destinação, livros + total (Loja primeiro).
+    let rep = repo.repasse("2026-07-05", "dia").await.unwrap();
+    assert_eq!(rep.len(), 2);
+    assert_eq!((rep[0].nome.as_str(), rep[0].qtd, rep[0].valor_centavos), ("Loja", 1, 5000));
+    assert_eq!((rep[1].nome.as_str(), rep[1].qtd, rep[1].valor_centavos), ("Missões", 1, 5000));
+    assert_eq!(rep[1].livros[0].titulo, "A Cruz de Cristo");
+    assert_eq!(rep.iter().map(|r| r.valor_centavos).sum::<i64>(), 10000);
+
     // Estorno (mesmo dia): devolve ao carimbo certo, inclusive Loja (FR-010/SC-004).
     cancelamento::cancelar_venda(1, &pedidos, &RelogioFixo).await.unwrap();
     let s = dest::saldos_livro("111", &repo).await.unwrap();

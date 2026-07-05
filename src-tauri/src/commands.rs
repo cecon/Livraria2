@@ -262,7 +262,9 @@ pub async fn relatorio_vendas(
 ) -> Result<RelatorioVendas, ErroDto> {
     let repo = SeaRelatorioRepo::new(state.db.clone());
     let formas = SeaFormaPagamentoRepo::new(state.db.clone());
-    Ok(relatorios::vendas(&data, &periodo, &repo, &formas).await?)
+    let destinacoes =
+        crate::adapters::persistencia::destinacao_repo::SeaDestinacaoRepo::new(state.db.clone());
+    Ok(relatorios::vendas(&data, &periodo, &repo, &formas, &destinacoes).await?)
 }
 
 /// Cancela uma venda inteira (pedido + itens). Bloqueado após 5 dias corridos

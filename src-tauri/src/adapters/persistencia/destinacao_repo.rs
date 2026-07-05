@@ -5,8 +5,8 @@ use super::destinacao_sql;
 use super::entities::destinacao::destinacao::{self, ActiveModel, Entity as DestEntity};
 use crate::application::ports::RepoErro;
 use crate::application::ports_destinacao::{
-    DestinacaoRepo, LinhaRelatorio, PosicaoAtual, RelatorioDestinacoes, SaldoLivro,
-    TransferenciaReg,
+    DestinacaoRepo, LinhaRelatorio, PosicaoAtual, RelatorioDestinacoes, RepasseDestinacao,
+    SaldoLivro, TransferenciaReg,
 };
 use crate::domain::destinacao::Destinacao;
 use async_trait::async_trait;
@@ -273,5 +273,11 @@ impl DestinacaoRepo for SeaDestinacaoRepo {
             linhas,
             posicao_atual,
         })
+    }
+
+    async fn repasse(&self, data: &str, periodo: &str) -> Result<Vec<RepasseDestinacao>, RepoErro> {
+        super::destinacao_repasse_sql::repasse(&self.db, data, periodo)
+            .await
+            .map_err(erro)
     }
 }
