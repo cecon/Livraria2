@@ -1,9 +1,9 @@
 // Tela Cadastro (US2): lista de livros com busca, estoque, ações e paginação.
 
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, HeartHandshake, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { StockBadge } from "@/components/StockBadge";
 import { LivroForm } from "@/components/LivroForm";
+import { DestinarEstoque } from "@/components/DestinarEstoque";
 import { brl } from "@/lib/format";
 import type { Livro } from "@/lib/types";
 import { excluirLivro, livrosPagina, resolverPendencia, type ErroIpc } from "@/lib/ipc";
@@ -28,6 +29,8 @@ export default function Cadastro() {
   const [itens, setItens] = useState<Livro[]>([]);
   const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(1);
+  // Livro com o painel "Destinar estoque" aberto (linha expandida — US1 da 006).
+  const [destinando, setDestinando] = useState<string | null>(null);
 
   // US4: vindo de uma pendência, abre "novo livro" semeando o código lido e
   // resolve a pendência ao salvar com sucesso.
@@ -150,7 +153,8 @@ export default function Cadastro() {
           </TableHeader>
           <TableBody>
             {itens.map((l) => (
-              <TableRow key={l.codigo}>
+              <React.Fragment key={l.codigo}>
+              <TableRow>
                 <TableCell>
                   <div className="truncate font-medium">{l.titulo}</div>
                   <div className="text-muted-foreground truncate text-[11px]">
@@ -172,6 +176,21 @@ export default function Cadastro() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      onClick={() =>
+                        setDestinando((c) => (c === l.codigo ? null : l.codigo))
+                      }
+                      title="Destinar estoque (Missões, Loja…)"
+                      className={
+                        destinando === l.codigo
+                          ? "text-[#1f7a4d] bg-[#1f7a4d]/10"
+                          : "text-[#1f7a4d] hover:text-[#1a6a43]"
+                      }
+                    >
+                      <HeartHandshake size={15} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => setAberto(l)}
                       title="Editar"
                     >
@@ -189,6 +208,17 @@ export default function Cadastro() {
                   </div>
                 </TableCell>
               </TableRow>
+              {destinando === l.codigo && (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={4} className="p-2">
+                    <DestinarEstoque
+                      codigo={l.codigo}
+                      onFechar={() => setDestinando(null)}
+                    />
+                  </TableCell>
+                </TableRow>
+              )}
+              </React.Fragment>
             ))}
             {itens.length === 0 && (
               <TableRow className="hover:bg-transparent">

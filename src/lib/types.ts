@@ -193,3 +193,60 @@ export function seloEstoque(estoque: number): SeloEstoque {
   if (estoque <= 3) return "baixo";
   return "normal";
 }
+
+// --- Destinações (feature 006 — ADR-0014) ---
+
+/** Destinação do valor das vendas; "Loja" é a de sistema (padrão). */
+export interface Destinacao {
+  id: number;
+  nome: string;
+  deSistema: boolean;
+  ativa: boolean;
+  ordem: number;
+}
+
+export interface CarimboSaldo {
+  destinacaoId: number;
+  nome: string;
+  qtd: number;
+}
+
+/** Saldos de um livro: físico, livre (resíduo da Loja) e carimbos em ordem. */
+export interface SaldoLivro {
+  estoque: number;
+  livre: number;
+  carimbos: CarimboSaldo[];
+}
+
+/** Registro do histórico de transferências; de/para nulos = saldo livre. */
+export interface Transferencia {
+  id: number;
+  de?: string | null;
+  para?: string | null;
+  qtd: number;
+  motivo?: string | null;
+  criadoEm: string;
+}
+
+/** Linha do relatório por destinação; Loja vem com valor derivado (total − Σ demais). */
+export interface LinhaDestinacao {
+  destinacaoId: number;
+  nome: string;
+  qtd: number;
+  valorCentavos: number;
+}
+
+/** Posição atual dos carimbos (Σ por destinação, todos os livros). */
+export interface PosicaoDestinacao {
+  destinacaoId: number;
+  nome: string;
+  qtd: number;
+}
+
+export interface RelatorioDestinacoes {
+  inicio: string;
+  fim: string;
+  totalCentavos: number;
+  linhas: LinhaDestinacao[];
+  posicaoAtual: PosicaoDestinacao[];
+}

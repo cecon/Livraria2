@@ -206,6 +206,12 @@ mod tests {
         async fn excluir_pedido(&self, _numero: i64) -> Result<(), RepoErro> {
             Ok(())
         }
+        async fn dados_cancelamento(
+            &self,
+            _numero: i64,
+        ) -> Result<Option<(String, bool)>, RepoErro> {
+            Ok(None)
+        }
     }
 
     #[tokio::test]

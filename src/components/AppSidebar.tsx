@@ -7,6 +7,7 @@ import {
   BookPlus,
   ClipboardList,
   FileBarChart,
+  HeartHandshake,
   Home,
   Moon,
   PackagePlus,
@@ -26,6 +27,7 @@ const ITENS = [
   { to: "/lancamentos", rotulo: "Lançamentos", Icon: PackagePlus, end: false },
   { to: "/fornecedores", rotulo: "Fornecedores", Icon: Truck, end: false },
   { to: "/formas-pagamento", rotulo: "Formas de Pagamento", Icon: Wallet, end: false },
+  { to: "/destinacoes", rotulo: "Destinações", Icon: HeartHandshake, end: false },
   { to: "/inventario", rotulo: "Inventário", Icon: ClipboardList, end: false },
   { to: "/relatorios", rotulo: "Relatórios", Icon: FileBarChart, end: false },
 ];

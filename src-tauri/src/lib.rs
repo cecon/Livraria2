@@ -3,6 +3,7 @@
 pub mod adapters;
 pub mod application;
 pub mod commands;
+pub mod commands_destinacao;
 pub mod commands_estoque;
 pub mod commands_formas;
 pub mod commands_fornecedor;
@@ -130,6 +131,17 @@ pub fn run() {
             commands_lancamento::lancamento_excluir,
             commands_lancamento::lancamento_finalizar,
             commands_lancamento::lancamento_cancelar,
+            commands_destinacao::destinacoes_listar,
+            commands_destinacao::destinacoes_listar_ativas,
+            commands_destinacao::destinacao_criar,
+            commands_destinacao::destinacao_renomear,
+            commands_destinacao::destinacao_definir_ativa,
+            commands_destinacao::destinacao_reordenar,
+            commands_destinacao::destinacao_excluir,
+            commands_destinacao::destinacao_saldos_livro,
+            commands_destinacao::destinacao_transferir,
+            commands_destinacao::destinacao_transferencias_livro,
+            commands_destinacao::relatorio_destinacoes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

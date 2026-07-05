@@ -170,11 +170,26 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
                 </div>
                 <ul className="text-muted-foreground mt-1">
                   {p.itens.map((i) => (
-                    <li key={i.id} className="flex items-center gap-2 font-mono text-[12px]">
-                      <span className="flex-1">
-                        {i.qtd}× {i.titulo}
-                      </span>
-                      <span>{brl(i.valorCentavos)}</span>
+                    <li key={i.id} className="font-mono text-[12px]">
+                      <div className="flex items-center gap-2">
+                        <span className="flex-1">
+                          {i.qtd}× {i.titulo}
+                        </span>
+                        <span>{brl(i.valorCentavos)}</span>
+                      </div>
+                      {i.alocacoes.length > 0 && (
+                        <div className="mt-0.5 flex flex-wrap gap-1">
+                          {i.alocacoes.map((a) => (
+                            <span
+                              key={a.destinacaoId}
+                              className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px]"
+                              title={brl(a.valorCentavos)}
+                            >
+                              {a.qtd} un. {a.nome}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>

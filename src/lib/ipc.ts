@@ -123,12 +123,21 @@ export async function autenticar(usuario: string, senha: string): Promise<boolea
   return await invoke("autenticar", { usuario, senha });
 }
 
+/** Distribuição do item por destinação (006 — Loja já consolidada no backend). */
+export interface AlocacaoItem {
+  destinacaoId: number;
+  nome: string;
+  qtd: number;
+  valorCentavos: number;
+}
 export interface ItemRelatorio {
   id: number;
   codigo: string;
   titulo: string;
   qtd: number;
   valorCentavos: number;
+  /** Vazio = sem carimbo envolvido (100% Loja). */
+  alocacoes: AlocacaoItem[];
 }
 export interface PedidoRelatorio {
   numero: number;
@@ -149,11 +158,27 @@ export interface ResumoVendas {
   formas: TotalForma[];
   subtotalCentavos: number;
 }
+/** Livro dentro do repasse por destinação (fechamento do dia — 006). */
+export interface LivroRepasse {
+  titulo: string;
+  qtd: number;
+  valorCentavos: number;
+}
+/** Repasse por destinação: livros vendidos + total a repassar. */
+export interface RepasseDestinacao {
+  destinacaoId: number;
+  nome: string;
+  qtd: number;
+  valorCentavos: number;
+  livros: LivroRepasse[];
+}
 export interface RelatorioVendas {
   periodo: string;
   data: string;
   pedidos: PedidoRelatorio[];
   resumo: ResumoVendas;
+  /** Vazio quando nada foi vendido no período. */
+  repasses: RepasseDestinacao[];
 }
 export interface ItemEstoque {
   codigo: string;
@@ -299,3 +324,5 @@ export async function buscarPorCodigoBarras(
 export * from "./ipc_compras";
 // Cadastro de formas de pagamento & estado do boot (feature 005).
 export * from "./ipc_formas";
+// Destinações de estoque (feature 006).
+export * from "./ipc_destinacoes";

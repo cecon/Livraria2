@@ -1,6 +1,6 @@
 // Tabela de itens do PDV (US1): título, preço, stepper de qtd, total, remover.
 
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, ScanBarcode, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/format";
 
@@ -33,8 +33,12 @@ export function CarrinhoItens({ itens, onAlterar, onRemover }: Props) {
       </div>
 
       {itens.length === 0 ? (
-        <div className="text-muted-foreground p-8 text-center text-sm">
-          Escaneie um código de barras ou busque pelo título para começar.
+        <div className="flex h-full min-h-48 flex-col items-center justify-center gap-2 p-8 text-center">
+          <ScanBarcode size={40} className="text-[#1f7a4d] opacity-70" aria-hidden />
+          <div className="text-lg font-semibold tracking-tight">Caixa livre</div>
+          <div className="text-muted-foreground text-sm">
+            Bipe um código de barras ou busque pelo título para iniciar a venda.
+          </div>
         </div>
       ) : (
         itens.map((i) => (

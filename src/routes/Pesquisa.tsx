@@ -109,7 +109,7 @@ export default function Pesquisa() {
             </dl>
           </div>
         </div>
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex justify-end gap-2">
           <AjusteEstoque
             livro={detalhe}
             onAjustado={(l) => {

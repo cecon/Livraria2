@@ -1,6 +1,7 @@
 // Visualizações dos relatórios emitidos (US5, FR-042/043).
 
 import { brl } from "@/lib/format";
+import type { RelatorioDestinacoes } from "@/lib/types";
 import { CATEGORIAS } from "@/lib/types";
 import type { RelatorioEstoque, RelatorioVendas } from "@/lib/ipc";
 
@@ -67,6 +68,41 @@ export function VendasView({ rel }: VendasProps) {
           </div>
           );
         })
+      )}
+
+      {rel.repasses.length > 0 && (
+        <div className="rounded-lg border p-3 text-sm">
+          <div className="mb-2 font-semibold">Repasse por destinação</div>
+          <div className="space-y-3">
+            {rel.repasses.map((d) => (
+              <div key={d.destinacaoId}>
+                <div className="flex items-center justify-between border-b pb-1 font-medium">
+                  <span>{d.nome}</span>
+                  <span className="font-mono text-[#1f7a4d]">
+                    {d.qtd} un. · {brl(d.valorCentavos)}
+                  </span>
+                </div>
+                <ul className="text-muted-foreground mt-1">
+                  {d.livros.map((l) => (
+                    <li
+                      key={l.titulo}
+                      className="flex items-center gap-2 font-mono text-[12px]"
+                    >
+                      <span className="flex-1">
+                        {l.qtd}× {l.titulo}
+                      </span>
+                      <span>{brl(l.valorCentavos)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 flex justify-between border-t pt-2 font-mono text-sm font-semibold">
+            <span>Total a repassar</span>
+            <span>{brl(rel.repasses.reduce((s, d) => s + d.valorCentavos, 0))}</span>
+          </div>
+        </div>
       )}
 
       {canceladas.length > 0 && (
@@ -144,6 +180,64 @@ export function EstoqueView({ rel }: { rel: RelatorioEstoque }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/** Relatório por destinação (US2 — FR-016/FR-018): valores do período + posição atual. */
+export function DestinacoesView({ rel }: { rel: RelatorioDestinacoes }) {
+  return (
+    <div className="bg-card rounded-xl border p-5">
+      <h2 className="text-lg font-semibold">Vendas por Destinação</h2>
+      <p className="text-muted-foreground text-sm">
+        {rel.inicio === rel.fim ? rel.inicio : `${rel.inicio} a ${rel.fim}`}
+      </p>
+      <table className="mt-3 w-full text-sm">
+        <thead>
+          <tr className="text-muted-foreground border-b text-left text-[11px] uppercase">
+            <th className="py-1.5">Destinação</th>
+            <th className="py-1.5 text-right">Unidades</th>
+            <th className="py-1.5 text-right">Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rel.linhas.map((l) => (
+            <tr key={l.destinacaoId} className="border-b last:border-0">
+              <td className="py-1.5">{l.nome}</td>
+              <td className="py-1.5 text-right font-mono">{l.qtd}</td>
+              <td className="py-1.5 text-right font-mono">{brl(l.valorCentavos)}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="font-semibold">
+            <td className="py-2">Total</td>
+            <td />
+            <td className="py-2 text-right font-mono">{brl(rel.totalCentavos)}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <h3 className="mt-5 text-sm font-semibold">Posição atual dos carimbos</h3>
+      <p className="text-muted-foreground text-[11px]">
+        Unidades ainda reservadas por destinação (todos os livros) — independe do período.
+      </p>
+      {rel.posicaoAtual.length === 0 ? (
+        <p className="text-muted-foreground mt-2 text-sm">
+          Nenhum saldo carimbado no momento.
+        </p>
+      ) : (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {rel.posicaoAtual.map((pos) => (
+            <span
+              key={pos.destinacaoId}
+              className="bg-muted rounded px-2 py-1 font-mono text-[12px]"
+            >
+              {pos.nome}: {pos.qtd}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

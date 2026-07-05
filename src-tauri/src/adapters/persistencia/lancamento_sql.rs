@@ -158,7 +158,7 @@ pub(crate) async fn aplicar_cancelamento(
     let itens = txn
         .query_all(Statement::from_sql_and_values(
             txn.get_database_backend(),
-            "SELECT lv.codigo AS livro_codigo, i.qtd AS qtd
+            "SELECT lv.id AS livro_id, lv.codigo AS livro_codigo, i.qtd AS qtd
              FROM item_lancamento i JOIN livro lv ON lv.id = i.livro_id
              WHERE i.lancamento_id = ?",
             [id.into()],
@@ -166,6 +166,7 @@ pub(crate) async fn aplicar_cancelamento(
         .await?;
     let motivo = format!("cancelamento da nota #{id}");
     for r in &itens {
+        let livro_id: i64 = r.try_get("", "livro_id")?;
         let codigo: String = r.try_get("", "livro_codigo")?;
         let qtd: i64 = r.try_get("", "qtd")?;
         let (estoque, _) = ler_saldo(txn, &codigo).await?;
@@ -174,6 +175,15 @@ pub(crate) async fn aplicar_cancelamento(
                 "Não é possível cancelar: o estoque de '{codigo}' já foi movimentado/vendido."
             )));
         }
+        // Estorno de entrada consome como PERDA (livre → carimbos, FR-012):
+        // o invariante Σ carimbos ≤ físico nunca quebra, sem guard extra (D4).
+        super::destinacao_sql::consumir_carimbos(
+            txn,
+            livro_id,
+            qtd,
+            super::destinacao_sql::ModoConsumo::Perda,
+        )
+        .await?;
         inserir_movimento(
             txn,
             &codigo,

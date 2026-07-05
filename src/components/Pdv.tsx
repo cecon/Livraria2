@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { PaymentRow } from "@/components/PaymentRow";
 import { EntradaProduto } from "@/components/EntradaProduto";
 import { CarrinhoItens, type ItemCarrinho } from "@/components/CarrinhoItens";
+import { VendaConcluida, type VendaConcluidaInfo } from "@/components/VendaConcluida";
 import { brl } from "@/lib/format";
 import {
   RASCUNHO_KEY,
@@ -58,6 +59,7 @@ export function Pdv() {
   const [itens, setItens] = useState<ItemCarrinho[]>(inicial?.itens ?? []);
   const [pag, setPag] = useState<Pagamentos>(inicial?.pag ?? {});
   const [ocupado, setOcupado] = useState(false);
+  const [concluida, setConcluida] = useState<VendaConcluidaInfo | null>(null);
   const codigoRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -95,6 +97,7 @@ export function Pdv() {
   }
 
   function inserirNoCarrinho(livro: Livro, q: number) {
+    setConcluida(null); // qualquer item novo dispensa a confirmação (FR-015)
     setItens((atual) => {
       const i = atual.findIndex((x) => x.codigo === livro.codigo);
       if (i >= 0) {
@@ -169,10 +172,12 @@ export function Pdv() {
         itens: itens.map((i) => ({ codigo: i.codigo, qtd: paraCentavos(i.qtd) })),
         pagamentos: pagamentosParaPayload(pag),
       });
-      toast.success(
-        `Pedido Nº ${r.numero} recebido` +
-          (r.trocoCentavos > 0 ? ` · Troco ${brl(r.trocoCentavos)}` : ""),
-      );
+      // Confirmação animada com total/troco; PDV volta ao caixa livre (FR-015).
+      setConcluida({
+        numero: r.numero,
+        totalCentavos: r.totalCentavos,
+        trocoCentavos: r.trocoCentavos,
+      });
       limpar();
       setNumero(await proximoNumeroPedido());
     } catch (e) {
@@ -234,7 +239,12 @@ export function Pdv() {
           </Button>
         </div>
 
-        <CarrinhoItens itens={itens} onAlterar={alterarQtd} onRemover={remover} />
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <CarrinhoItens itens={itens} onAlterar={alterarQtd} onRemover={remover} />
+          {concluida && (
+            <VendaConcluida info={concluida} onDispensar={() => setConcluida(null)} />
+          )}
+        </div>
       </div>
 
       <aside className="bg-card flex flex-col gap-3 rounded-xl border p-5">
