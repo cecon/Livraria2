@@ -187,6 +187,17 @@ pub(crate) async fn aplicar_fechamento(
         )
         .await?;
         let diff = contada - sistema;
+        if diff < 0 {
+            // Perda de inventário: livre primeiro, carimbos por último (FR-012),
+            // ANTES da baixa física.
+            super::destinacao_sql::consumir_carimbos(
+                txn,
+                livro_id,
+                -diff,
+                super::destinacao_sql::ModoConsumo::Perda,
+            )
+            .await?;
+        }
         if diff != 0 {
             exec(
                 txn,

@@ -3,8 +3,11 @@
 
 pub mod ajuste;
 pub mod cadastro;
+pub mod cancelamento;
 pub mod dashboard;
 pub mod erros;
+#[cfg(test)]
+pub mod fakes;
 pub mod estoque_setup;
 pub mod extrato;
 pub mod formas_pagamento;

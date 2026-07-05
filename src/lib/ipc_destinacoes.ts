@@ -2,7 +2,12 @@
 // relatório. Módulo próprio para manter ipc.ts < 300 linhas (Princípio III).
 
 import { invoke } from "@tauri-apps/api/core";
-import type { Destinacao, SaldoLivro, Transferencia } from "./types";
+import type {
+  Destinacao,
+  RelatorioDestinacoes,
+  SaldoLivro,
+  Transferencia,
+} from "./types";
 
 // --- Cadastro (US3) ---
 
@@ -71,4 +76,14 @@ export async function destinacaoTransferenciasLivro(
   codigo: string,
 ): Promise<Transferencia[]> {
   return await invoke("destinacao_transferencias_livro", { codigo });
+}
+
+// --- Relatório (US2) ---
+
+/** Datas ISO inclusivas; posição atual vem junto (independe do período). */
+export async function relatorioDestinacoes(
+  inicio: string,
+  fim: string,
+): Promise<RelatorioDestinacoes> {
+  return await invoke("relatorio_destinacoes", { inicio, fim });
 }

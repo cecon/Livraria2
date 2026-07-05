@@ -141,6 +141,7 @@ pub fn run() {
             commands_destinacao::destinacao_saldos_livro,
             commands_destinacao::destinacao_transferir,
             commands_destinacao::destinacao_transferencias_livro,
+            commands_destinacao::relatorio_destinacoes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

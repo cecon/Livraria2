@@ -41,6 +41,8 @@ pub trait PedidoRepo: Send + Sync {
     async fn excluir_item(&self, item_id: i64) -> Result<(), RepoErro>;
     /// Remove um pedido inteiro e seus itens (cancelar venda do dia).
     async fn excluir_pedido(&self, numero: i64) -> Result<(), RepoErro>;
+    /// Data (ISO) e flag de cancelado do pedido — guard dos 5 dias (FR-011 da 006).
+    async fn dados_cancelamento(&self, numero: i64) -> Result<Option<(String, bool)>, RepoErro>;
 }
 
 /// Repositório do cadastro de formas de pagamento (ADR-0013).
@@ -114,6 +116,19 @@ pub struct ItemRelatorio {
     pub id: i64,
     pub codigo: String,
     pub titulo: String,
+    pub qtd: i64,
+    pub valor_centavos: i64,
+    /// Vazio = sem carimbo envolvido (100% Loja, nada a destacar na UI).
+    pub alocacoes: Vec<AlocacaoRelatorio>,
+}
+
+/// Distribuição de um item de venda por destinação (006 — FR-013). O backend já
+/// consolida carimbo Loja + saldo livre numa única entrada "Loja".
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AlocacaoRelatorio {
+    pub destinacao_id: i64,
+    pub nome: String,
     pub qtd: i64,
     pub valor_centavos: i64,
 }

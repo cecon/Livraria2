@@ -150,6 +150,7 @@ mod tests {
                     numero: 1,
                     cliente: "A".into(),
                     itens: vec![ItemRelatorio {
+                        alocacoes: vec![],
                         id: 1,
                         codigo: "L1".into(),
                         titulo: "L1".into(),

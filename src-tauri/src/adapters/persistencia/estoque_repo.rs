@@ -66,6 +66,21 @@ impl EstoqueRepo for SeaEstoqueRepo {
     ) -> Result<Livro, RepoErro> {
         let txn = self.db.begin().await.map_err(erro)?;
         let backend = txn.get_database_backend();
+        if delta < 0 {
+            // Perda consome livre → carimbos (ordem inversa da venda — FR-012),
+            // ANTES da baixa física (o livre é derivado do estoque atual).
+            let livro_id = super::destinacao_sql::livro_id_por_codigo(&txn, codigo)
+                .await
+                .map_err(erro)?;
+            super::destinacao_sql::consumir_carimbos(
+                &txn,
+                livro_id,
+                -delta,
+                super::destinacao_sql::ModoConsumo::Perda,
+            )
+            .await
+            .map_err(erro)?;
+        }
         inserir_movimento(
             &txn,
             codigo,

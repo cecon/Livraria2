@@ -37,6 +37,37 @@ pub struct TransferenciaReg {
     pub criado_em: String,
 }
 
+/// Linha do relatório por destinação (contracts: RelatorioDestinacoes.linhas).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LinhaRelatorio {
+    pub destinacao_id: i64,
+    pub nome: String,
+    pub qtd: i64,
+    pub valor_centavos: i64,
+}
+
+/// Posição atual dos carimbos (FR-018): Σ por destinação, todos os livros.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PosicaoAtual {
+    pub destinacao_id: i64,
+    pub nome: String,
+    pub qtd: i64,
+}
+
+/// Relatório por período: especiais somadas das alocações; Loja derivada
+/// (total − Σ demais), cobrindo livre + carimbo Loja (D3).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RelatorioDestinacoes {
+    pub inicio: String,
+    pub fim: String,
+    pub total_centavos: i64,
+    pub linhas: Vec<LinhaRelatorio>,
+    pub posicao_atual: Vec<PosicaoAtual>,
+}
+
 #[async_trait]
 pub trait DestinacaoRepo: Send + Sync {
     // --- cadastro (US3) ---
@@ -68,4 +99,8 @@ pub trait DestinacaoRepo: Send + Sync {
         &self,
         livro_codigo: &str,
     ) -> Result<Vec<TransferenciaReg>, RepoErro>;
+
+    // --- apuração (US2) ---
+    /// Datas ISO inclusivas. Só pedidos não cancelados (estorno retroativo — FR-010).
+    async fn relatorio(&self, inicio: &str, fim: &str) -> Result<RelatorioDestinacoes, RepoErro>;
 }

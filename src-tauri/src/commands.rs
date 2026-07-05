@@ -265,14 +265,15 @@ pub async fn relatorio_vendas(
     Ok(relatorios::vendas(&data, &periodo, &repo, &formas).await?)
 }
 
-/// Cancela uma venda inteira (pedido + itens) — edição da venda do dia.
+/// Cancela uma venda inteira (pedido + itens). Bloqueado após 5 dias corridos
+/// (erro VENDA_ANTIGA — FR-011 da 006); devolve estoque e carimbos.
 #[tauri::command]
 pub async fn excluir_pedido(
     state: tauri::State<'_, AppState>,
     numero: i64,
 ) -> Result<(), ErroDto> {
     let pedidos = SeaPedidoRepo::new(state.db.clone());
-    pedidos.excluir_pedido(numero).await.map_err(ErroApp::from)?;
+    crate::application::cancelamento::cancelar_venda(numero, &pedidos, &RelogioSistema).await?;
     Ok(())
 }
 

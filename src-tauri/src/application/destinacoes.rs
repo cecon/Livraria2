@@ -3,7 +3,9 @@
 //! (mesma regra da 005), exclusão só sem uso, transferência dentro do saldo.
 
 use crate::application::erros::ErroApp;
-use crate::application::ports_destinacao::{DestinacaoRepo, SaldoLivro, TransferenciaReg};
+use crate::application::ports_destinacao::{
+    DestinacaoRepo, RelatorioDestinacoes, SaldoLivro, TransferenciaReg,
+};
 use crate::domain::alocacao::validar_transferencia;
 use crate::domain::destinacao::{nome_normalizado, nome_valido, Destinacao};
 use crate::domain::erros::ErroDominio;
@@ -105,6 +107,15 @@ pub async fn excluir(id: i64, repo: &dyn DestinacaoRepo) -> Result<(), ErroApp> 
     }
     repo.excluir(id).await?;
     Ok(())
+}
+
+/// Relatório por destinação no período + posição atual (US2 — FR-016/FR-018).
+pub async fn relatorio(
+    inicio: &str,
+    fim: &str,
+    repo: &dyn DestinacaoRepo,
+) -> Result<RelatorioDestinacoes, ErroApp> {
+    Ok(repo.relatorio(inicio, fim).await?)
 }
 
 pub async fn saldos_livro(

@@ -123,12 +123,21 @@ export async function autenticar(usuario: string, senha: string): Promise<boolea
   return await invoke("autenticar", { usuario, senha });
 }
 
+/** Distribuição do item por destinação (006 — Loja já consolidada no backend). */
+export interface AlocacaoItem {
+  destinacaoId: number;
+  nome: string;
+  qtd: number;
+  valorCentavos: number;
+}
 export interface ItemRelatorio {
   id: number;
   codigo: string;
   titulo: string;
   qtd: number;
   valorCentavos: number;
+  /** Vazio = sem carimbo envolvido (100% Loja). */
+  alocacoes: AlocacaoItem[];
 }
 export interface PedidoRelatorio {
   numero: number;

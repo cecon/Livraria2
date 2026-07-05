@@ -13,21 +13,24 @@ import {
 } from "@/lib/exportar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { EstoqueView, VendasView } from "@/components/RelatoriosViews";
+import { DestinacoesView, EstoqueView, VendasView } from "@/components/RelatoriosViews";
 import {
   autenticar,
+  relatorioDestinacoes,
   relatorioEstoque,
   relatorioVendas,
   type ErroIpc,
   type RelatorioEstoque as REstoque,
   type RelatorioVendas as RVendas,
 } from "@/lib/ipc";
+import type { RelatorioDestinacoes as RDest } from "@/lib/types";
 
 const TIPOS = [
   { id: "dia", rotulo: "Relatório dia Inteiro", grupo: "Vendas" },
   { id: "manha", rotulo: "Turma da Manhã", grupo: "Vendas" },
   { id: "tarde", rotulo: "Turma da Tarde", grupo: "Vendas" },
   { id: "estoque", rotulo: "Relatório de Estoque", grupo: "Administrativos" },
+  { id: "destinacoes", rotulo: "Vendas por Destinação", grupo: "Administrativos" },
 ];
 
 function hojeIso(): string {
@@ -44,11 +47,14 @@ export default function Relatorios() {
   const [senha, setSenha] = useState("");
   const [vendas, setVendas] = useState<RVendas | null>(null);
   const [estoque, setEstoque] = useState<REstoque | null>(null);
+  const [dest, setDest] = useState<RDest | null>(null);
+  const [dataFim, setDataFim] = useState(hojeIso());
   const [ocupado, setOcupado] = useState(false);
 
   function voltar() {
     setVendas(null);
     setEstoque(null);
+    setDest(null);
   }
 
   async function exportarExcel() {
@@ -89,9 +95,15 @@ export default function Relatorios() {
       if (tipo === "estoque") {
         setEstoque(await relatorioEstoque());
         setVendas(null);
+        setDest(null);
+      } else if (tipo === "destinacoes") {
+        setDest(await relatorioDestinacoes(data, dataFim));
+        setVendas(null);
+        setEstoque(null);
       } else {
         setVendas(await relatorioVendas(data, tipo));
         setEstoque(null);
+        setDest(null);
       }
     } catch (e) {
       toast.error((e as ErroIpc).mensagem ?? "Erro ao emitir");
@@ -100,7 +112,7 @@ export default function Relatorios() {
     }
   }
 
-  if (vendas || estoque) {
+  if (vendas || estoque || dest) {
     return (
       <div className="mx-auto max-w-3xl p-6">
         <div className="mb-4 flex gap-2 print:hidden">
@@ -131,6 +143,7 @@ export default function Relatorios() {
         </div>
         {vendas && <VendasView rel={vendas} />}
         {estoque && <EstoqueView rel={estoque} />}
+        {dest && <DestinacoesView rel={dest} />}
       </div>
     );
   }
@@ -169,15 +182,29 @@ export default function Relatorios() {
         ))}
 
         {tipo !== "estoque" && (
-          <div>
-            <Label htmlFor="data">Data</Label>
-            <Input
-              id="data"
-              type="date"
-              value={data}
-              onChange={(e) => setData(e.currentTarget.value)}
-              className="mt-1 h-9"
-            />
+          <div className={tipo === "destinacoes" ? "grid grid-cols-2 gap-3" : ""}>
+            <div>
+              <Label htmlFor="data">{tipo === "destinacoes" ? "De" : "Data"}</Label>
+              <Input
+                id="data"
+                type="date"
+                value={data}
+                onChange={(e) => setData(e.currentTarget.value)}
+                className="mt-1 h-9"
+              />
+            </div>
+            {tipo === "destinacoes" && (
+              <div>
+                <Label htmlFor="dataFim">Até</Label>
+                <Input
+                  id="dataFim"
+                  type="date"
+                  value={dataFim}
+                  onChange={(e) => setDataFim(e.currentTarget.value)}
+                  className="mt-1 h-9"
+                />
+              </div>
+            )}
           </div>
         )}
         <div className="grid grid-cols-2 gap-3">

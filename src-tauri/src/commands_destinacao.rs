@@ -3,7 +3,7 @@
 
 use crate::adapters::persistencia::destinacao_repo::SeaDestinacaoRepo;
 use crate::application::destinacoes;
-use crate::application::ports_destinacao::{SaldoLivro, TransferenciaReg};
+use crate::application::ports_destinacao::{RelatorioDestinacoes, SaldoLivro, TransferenciaReg};
 use crate::commands::{AppState, ErroDto};
 use crate::domain::destinacao::Destinacao;
 
@@ -108,4 +108,14 @@ pub async fn destinacao_transferencias_livro(
     codigo: String,
 ) -> Result<Vec<TransferenciaReg>, ErroDto> {
     Ok(destinacoes::historico(&codigo, &repo(&state)).await?)
+}
+
+/// Relatório por destinação (datas ISO inclusivas) + posição atual (US2).
+#[tauri::command]
+pub async fn relatorio_destinacoes(
+    state: tauri::State<'_, AppState>,
+    inicio: String,
+    fim: String,
+) -> Result<RelatorioDestinacoes, ErroDto> {
+    Ok(destinacoes::relatorio(&inicio, &fim, &repo(&state)).await?)
 }

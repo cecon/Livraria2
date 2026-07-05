@@ -64,18 +64,18 @@
 
 **Independent Test**: livro com Loja 1 + Missões 210, vender 2 × R$ 50 → relatório do dia: R$ 50 Loja / R$ 50 Missões; detalhe da venda: 1 un. Loja · 1 un. Missões; posição atual: Missões 209; cancelar no mesmo dia restaura tudo; cancelar venda com > 5 dias é bloqueado (quickstart cenários 3–7).
 
-- [ ] T017 [US2] Adicionar em src-tauri/src/adapters/persistencia/destinacao_sql.rs: `consumir_carimbos(txn, livro_id, qtd, modo)` (modo Venda: carimbos em ordem → livre, retorna alocações; modo Perda: livre → carimbos), `devolver_alocacoes(txn, pedido_numero)` e `gravar_alocacoes(txn, …)` + testes SQLite temporário dos dois modos e do estorno
-- [ ] T018 [US2] Integrar consumo na venda em src-tauri/src/adapters/persistencia/pedido_repo.rs: `registrar` chama consumir_carimbos (modo Venda) + grava alocacao_venda (valor = qtd × preço do item) na MESMA transação dos movimentos; testes: venda na fronteira (Loja 1 + Missões 210, vende 2), livro sem carimbo (zero linhas)
-- [ ] T019 [US2] Cancelamento de venda: guard dos 5 dias (domain `pode_cancelar_venda`) aplicado na camada de aplicação do comando existente `excluir_pedido` (src-tauri/src/commands.rs, erro `venda_antiga`) e devolução pelas alocações em pedido_repo `cancelar`; testes: cancela dia 5 ok, dia 6 bloqueia, carimbo Loja restaurado
-- [ ] T020 [P] [US2] Ajuste negativo consome modo Perda em src-tauri/src/adapters/persistencia/estoque_repo.rs (mesma transação do movimento) + testes (livre primeiro, carimbo protegido)
-- [ ] T021 [P] [US2] Diferença negativa de contagem consome modo Perda em src-tauri/src/adapters/persistencia/inventario_repo.rs + testes (quickstart cenário 6)
-- [ ] T022 [P] [US2] Estorno de lançamento de entrada consome modo Perda em src-tauri/src/adapters/persistencia/lancamento_sql.rs (`aplicar_cancelamento`) + teste (entrada 10, carimba 8, cancela → 2 do livre + 8 do carimbo, sem erro)
-- [ ] T023 [US2] Relatório em destinacao_sql.rs: `relatorio_periodo(inicio, fim)` (especiais por Σ alocações com `pedido.cancelado = 0`; Loja = total − Σ demais) e `posicao_atual()` (Σ destinacao_saldo por destinação) + caso de uso em application/destinacoes.rs + testes (Σ linhas = total; estorno retroativo)
-- [ ] T024 [US2] Comando `relatorio_destinacoes({inicio, fim})` em src-tauri/src/commands_destinacao.rs (+ lib.rs), resposta com `linhas` + `posicaoAtual` (contrato)
-- [ ] T025 [US2] Detalhe da venda com alocações por item em src-tauri/src/adapters/persistencia/relatorio_repo.rs (consolidando carimbo Loja + livre numa entrada "Loja") + exposição no comando de detalhe existente
-- [ ] T026 [P] [US2] Bindings `relatorioDestinacoes` + tipos (`RelatorioDestinacoes`, `AlocacaoVenda`) em src/lib/ipc_destinacoes.ts e src/lib/types.ts
-- [ ] T027 [US2] Visão "Por destinação" em src/routes/Relatorios.tsx (via src/components/RelatoriosViews.tsx se necessário p/ limite de linhas): intervalo de datas, linhas com qtd/R$, total e seção "Posição atual"
-- [ ] T028 [US2] Distribuição por destinação (badges) no detalhe da venda em src/routes/ListaVendas.tsx + mensagem clara para erro `venda_antiga` no cancelamento
+- [x] T017 [US2] Adicionar em src-tauri/src/adapters/persistencia/destinacao_sql.rs: `consumir_carimbos(txn, livro_id, qtd, modo)` (modo Venda: carimbos em ordem → livre, retorna alocações; modo Perda: livre → carimbos), `devolver_alocacoes(txn, pedido_numero)` e `gravar_alocacoes(txn, …)` + testes SQLite temporário dos dois modos e do estorno
+- [x] T018 [US2] Integrar consumo na venda em src-tauri/src/adapters/persistencia/pedido_repo.rs: `registrar` chama consumir_carimbos (modo Venda) + grava alocacao_venda (valor = qtd × preço do item) na MESMA transação dos movimentos; testes: venda na fronteira (Loja 1 + Missões 210, vende 2), livro sem carimbo (zero linhas)
+- [x] T019 [US2] Cancelamento de venda: guard dos 5 dias (domain `pode_cancelar_venda`) aplicado na camada de aplicação do comando existente `excluir_pedido` (src-tauri/src/commands.rs, erro `venda_antiga`) e devolução pelas alocações em pedido_repo `cancelar`; testes: cancela dia 5 ok, dia 6 bloqueia, carimbo Loja restaurado
+- [x] T020 [P] [US2] Ajuste negativo consome modo Perda em src-tauri/src/adapters/persistencia/estoque_repo.rs (mesma transação do movimento) + testes (livre primeiro, carimbo protegido)
+- [x] T021 [P] [US2] Diferença negativa de contagem consome modo Perda em src-tauri/src/adapters/persistencia/inventario_repo.rs + testes (quickstart cenário 6)
+- [x] T022 [P] [US2] Estorno de lançamento de entrada consome modo Perda em src-tauri/src/adapters/persistencia/lancamento_sql.rs (`aplicar_cancelamento`) + teste (entrada 10, carimba 8, cancela → 2 do livre + 8 do carimbo, sem erro)
+- [x] T023 [US2] Relatório em destinacao_sql.rs: `relatorio_periodo(inicio, fim)` (especiais por Σ alocações com `pedido.cancelado = 0`; Loja = total − Σ demais) e `posicao_atual()` (Σ destinacao_saldo por destinação) + caso de uso em application/destinacoes.rs + testes (Σ linhas = total; estorno retroativo)
+- [x] T024 [US2] Comando `relatorio_destinacoes({inicio, fim})` em src-tauri/src/commands_destinacao.rs (+ lib.rs), resposta com `linhas` + `posicaoAtual` (contrato)
+- [x] T025 [US2] Detalhe da venda com alocações por item em src-tauri/src/adapters/persistencia/relatorio_repo.rs (consolidando carimbo Loja + livre numa entrada "Loja") + exposição no comando de detalhe existente
+- [x] T026 [P] [US2] Bindings `relatorioDestinacoes` + tipos (`RelatorioDestinacoes`, `AlocacaoVenda`) em src/lib/ipc_destinacoes.ts e src/lib/types.ts
+- [x] T027 [US2] Visão "Por destinação" em src/routes/Relatorios.tsx (via src/components/RelatoriosViews.tsx se necessário p/ limite de linhas): intervalo de datas, linhas com qtd/R$, total e seção "Posição atual"
+- [x] T028 [US2] Distribuição por destinação (badges) no detalhe da venda em src/routes/ListaVendas.tsx + mensagem clara para erro `venda_antiga` no cancelamento
 
 **Checkpoint**: ciclo completo doação → destino → venda → relatório fecha com o caixa; estornos consistentes.
 

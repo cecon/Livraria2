@@ -227,3 +227,26 @@ export interface Transferencia {
   motivo?: string | null;
   criadoEm: string;
 }
+
+/** Linha do relatório por destinação; Loja vem com valor derivado (total − Σ demais). */
+export interface LinhaDestinacao {
+  destinacaoId: number;
+  nome: string;
+  qtd: number;
+  valorCentavos: number;
+}
+
+/** Posição atual dos carimbos (Σ por destinação, todos os livros). */
+export interface PosicaoDestinacao {
+  destinacaoId: number;
+  nome: string;
+  qtd: number;
+}
+
+export interface RelatorioDestinacoes {
+  inicio: string;
+  fim: string;
+  totalCentavos: number;
+  linhas: LinhaDestinacao[];
+  posicaoAtual: PosicaoDestinacao[];
+}
