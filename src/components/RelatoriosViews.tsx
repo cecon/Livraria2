@@ -99,7 +99,7 @@ export function VendasView({ rel }: VendasProps) {
             ))}
           </div>
           <div className="mt-2 flex justify-between border-t pt-2 font-mono text-sm font-semibold">
-            <span>Total do período</span>
+            <span>Total a repassar</span>
             <span>{brl(rel.repasses.reduce((s, d) => s + d.valorCentavos, 0))}</span>
           </div>
         </div>

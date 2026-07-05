@@ -78,7 +78,8 @@ pub struct LivroRepasse {
 }
 
 /// Repasse por destinação no relatório de vendas: livros vendidos + total —
-/// é o valor a repassar no fechamento (Loja inclui o saldo livre, derivado).
+/// é o valor a repassar no fechamento. Só destinações ESPECIAIS (a Loja não
+/// entra: o dinheiro dela é da própria loja).
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RepasseDestinacao {
@@ -124,7 +125,7 @@ pub trait DestinacaoRepo: Send + Sync {
     // --- apuração (US2) ---
     /// Datas ISO inclusivas. Só pedidos não cancelados (estorno retroativo — FR-010).
     async fn relatorio(&self, inicio: &str, fim: &str) -> Result<RelatorioDestinacoes, RepoErro>;
-    /// Repasse do relatório de vendas: por destinação, livros + total.
+    /// Repasse do relatório de vendas: por destinação ESPECIAL, livros + total.
     /// `periodo` = dia|manha|tarde (mesmo filtro do relatório de vendas).
     async fn repasse(&self, data: &str, periodo: &str) -> Result<Vec<RepasseDestinacao>, RepoErro>;
 }
