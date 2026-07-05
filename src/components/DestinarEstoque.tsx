@@ -15,8 +15,13 @@ import {
   type ErroIpc,
 } from "@/lib/ipc";
 import type { Destinacao, SaldoLivro, Transferencia } from "@/lib/types";
-
-const LIVRE = "livre";
+import {
+  LIVRE,
+  opcoesDestino,
+  opcoesOrigem,
+  paraPayload,
+  validarTransferenciaUi,
+} from "@/lib/destinar";
 
 export function DestinarEstoque({ codigo }: { codigo: string }) {
   const [aberto, setAberto] = useState(false);
@@ -42,21 +47,17 @@ export function DestinarEstoque({ codigo }: { codigo: string }) {
   }, [aberto, carregar]);
 
   async function transferir() {
-    const n = parseInt(qtd, 10);
-    if (!n || Number.isNaN(n) || n <= 0) {
-      toast.error("Informe a quantidade (mínimo 1)");
-      return;
-    }
-    if (!para) {
-      toast.error("Escolha o destino");
+    const invalido = validarTransferenciaUi(qtd, para);
+    if (invalido) {
+      toast.error(invalido);
       return;
     }
     try {
       const s = await destinacaoTransferir(
         codigo,
-        de === LIVRE ? null : Number(de),
-        para === LIVRE ? null : Number(para),
-        n,
+        paraPayload(de),
+        paraPayload(para),
+        parseInt(qtd, 10),
         motivo.trim() || undefined,
       );
       setSaldos(s);
@@ -85,19 +86,8 @@ export function DestinarEstoque({ codigo }: { codigo: string }) {
     );
   }
 
-  // Origens: Livre + carimbos existentes; destinos: Livre + destinações ativas (menos a origem).
-  const origens = [
-    { valor: LIVRE, rotulo: `Livre (${saldos?.livre ?? 0})` },
-    ...(saldos?.carimbos ?? []).map((c) => ({
-      valor: String(c.destinacaoId),
-      rotulo: `${c.nome} (${c.qtd})`,
-    })),
-  ];
-  const destinos = [
-    { valor: LIVRE, rotulo: "Livre" },
-    // A Loja também é destino válido — carimbo Loja dá prioridade de venda ao lote.
-    ...ativas.map((d) => ({ valor: String(d.id), rotulo: d.nome })),
-  ].filter((o) => o.valor !== de);
+  const origens = opcoesOrigem(saldos);
+  const destinos = opcoesDestino(ativas, de);
 
   return (
     <div className="bg-muted/30 rounded-lg border p-3">

@@ -14,6 +14,7 @@ import Pesquisa from "@/routes/Pesquisa";
 import Lancamentos from "@/routes/Lancamentos";
 import Fornecedores from "@/routes/Fornecedores";
 import FormasPagamento from "@/routes/FormasPagamento";
+import Destinacoes from "@/routes/Destinacoes";
 import Inventario from "@/routes/Inventario";
 import Relatorios from "@/routes/Relatorios";
 
@@ -75,6 +76,7 @@ function App() {
             <Route path="/lancamentos" element={<Lancamentos />} />
             <Route path="/fornecedores" element={<Fornecedores />} />
             <Route path="/formas-pagamento" element={<FormasPagamento />} />
+            <Route path="/destinacoes" element={<Destinacoes />} />
             <Route path="/inventario" element={<Inventario />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="*" element={<Navigate to="/" replace />} />

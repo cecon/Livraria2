@@ -148,3 +148,32 @@
     overflow: visible !important;
   }
 }
+/* Confirmação animada de venda concluída (006 — US4, FR-015). */
+@keyframes venda-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) translateY(8px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.03) translateY(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes venda-check {
+  0% {
+    stroke-dashoffset: 48;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+.venda-concluida-card {
+  animation: venda-pop 0.35s ease-out;
+}
+.venda-concluida-check {
+  stroke-dasharray: 48;
+  animation: venda-check 0.5s ease-out 0.15s backwards;
+}

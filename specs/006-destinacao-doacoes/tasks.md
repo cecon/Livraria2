@@ -87,11 +87,11 @@
 
 **Independent Test**: criar "Missões"/"Espaço", renomear com conflito normalizado (bloqueia), inverter ordem (muda a ordem de baixa na próxima venda), desativar (some das transferências, saldos continuam consumíveis), excluir usada (bloqueia e oferece desativar) — quickstart cenários 1 e 7.
 
-- [ ] T029 [US3] Completar src-tauri/src/application/destinacoes.rs: `renomear`, `definir_ativa`, `reordenar`, `excluir` com guards (Loja protegida via domain; unicidade `nome_norm` entre ativas incl. bloqueio de reativação conflitante — reusar normalização de src-tauri/src/domain/texto.rs; excluir só sem uso) + testes com fakes
-- [ ] T030 [US3] Adicionar comandos `destinacao_renomear`, `destinacao_definir_ativa`, `destinacao_reordenar`, `destinacao_excluir` em src-tauri/src/commands_destinacao.rs (+ lib.rs)
-- [ ] T031 [P] [US3] Completar bindings do CRUD em src/lib/ipc_destinacoes.ts
-- [ ] T032 [P] [US3] Criar src/components/DestinacoesLista.tsx (lista com reordenação, ativar/desativar, excluir→oferece desativar; Loja fixa no topo) e src/components/DestinacaoForm.tsx (criar/renomear) — padrão FormasPagamentoLista/FormaPagamentoForm da 005
-- [ ] T033 [US3] Criar src/routes/Destinacoes.tsx e adicionar entrada no menu em src/components/AppSidebar.tsx + rota em src/App.tsx
+- [x] T029 [US3] Completar src-tauri/src/application/destinacoes.rs: `renomear`, `definir_ativa`, `reordenar`, `excluir` com guards (Loja protegida via domain; unicidade `nome_norm` entre ativas incl. bloqueio de reativação conflitante — reusar normalização de src-tauri/src/domain/texto.rs; excluir só sem uso) + testes com fakes
+- [x] T030 [US3] Adicionar comandos `destinacao_renomear`, `destinacao_definir_ativa`, `destinacao_reordenar`, `destinacao_excluir` em src-tauri/src/commands_destinacao.rs (+ lib.rs)
+- [x] T031 [P] [US3] Completar bindings do CRUD em src/lib/ipc_destinacoes.ts
+- [x] T032 [P] [US3] Criar src/components/DestinacoesLista.tsx (lista com reordenação, ativar/desativar, excluir→oferece desativar; Loja fixa no topo) e src/components/DestinacaoForm.tsx (criar/renomear) — padrão FormasPagamentoLista/FormaPagamentoForm da 005
+- [x] T033 [US3] Criar src/routes/Destinacoes.tsx e adicionar entrada no menu em src/components/AppSidebar.tsx + rota em src/App.tsx
 
 **Checkpoint**: gestão completa sem alteração de código para destino novo.
 
@@ -103,9 +103,9 @@
 
 **Independent Test**: PDV vazio mostra "Caixa livre"; bipar item remove; concluir pagamento mostra animação com total/troco e volta ao caixa livre; bipar durante a animação dispensa e inicia a próxima venda; sem ação, auto-dispensa em segundos (quickstart cenário 8).
 
-- [ ] T034 [P] [US4] Estado "Caixa livre" na área de itens em src/components/CarrinhoItens.tsx (informe visível de relance quando lista vazia; some ao adicionar item)
-- [ ] T035 [P] [US4] Criar src/components/VendaConcluida.tsx: confirmação animada com total e troco (props), auto-dispensa por timeout e por callback de dispensa
-- [ ] T036 [US4] Integrar em src/components/Pdv.tsx: ao concluir `registrar_venda`, exibir VendaConcluida, limpar venda, manter foco no campo de código; qualquer bipagem/tecla dispensa a animação e inicia a próxima venda
+- [x] T034 [P] [US4] Estado "Caixa livre" na área de itens em src/components/CarrinhoItens.tsx (informe visível de relance quando lista vazia; some ao adicionar item)
+- [x] T035 [P] [US4] Criar src/components/VendaConcluida.tsx: confirmação animada com total e troco (props), auto-dispensa por timeout e por callback de dispensa
+- [x] T036 [US4] Integrar em src/components/Pdv.tsx: ao concluir `registrar_venda`, exibir VendaConcluida, limpar venda, manter foco no campo de código; qualquer bipagem/tecla dispensa a animação e inicia a próxima venda
 
 **Checkpoint**: ciclo venda → confirmação → caixa livre → próxima venda sem cliques.
 
@@ -113,10 +113,10 @@
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T037 [P] Escrever docs/adr/0014-destinacao-doacoes.md (resíduo + carimbos com prioridade de venda; transferência como origem única; estorno de entrada como perda; janela de 5 dias; base: research.md D1–D9) e listar no docs/adr/README.md se existir índice
+- [x] T037 [P] Escrever docs/adr/0014-destinacao-doacoes.md (resíduo + carimbos com prioridade de venda; transferência como origem única; estorno de entrada como perda; janela de 5 dias; base: research.md D1–D9) e listar no docs/adr/README.md se existir índice
 - [ ] T038 Validação manual completa do quickstart.md (cenários 1–8 + regressão) em cópia da base real
-- [ ] T039 [P] Testes Vitest de UI (padrão de src/lib/venda.test.ts): DestinarEstoque (validação de saldo e mensagens), distribuição por destinação no detalhe da venda, estado "Caixa livre" e VendaConcluida (auto-dispensa e dispensa por bipagem) em src/components/*.test.tsx
-- [ ] T040 Gates finais: `cargo test` completo, `npm run build` + Vitest, `bash scripts/check-file-size.sh` (≤300 linhas), revisão de termos pt-BR ("Destinação", "Destinar estoque", "Loja", "Livre", "Caixa livre")
+- [x] T039 [P] Testes Vitest de UI (padrão de src/lib/venda.test.ts): DestinarEstoque (validação de saldo e mensagens), distribuição por destinação no detalhe da venda, estado "Caixa livre" e VendaConcluida (auto-dispensa e dispensa por bipagem) em src/components/*.test.tsx
+- [x] T040 Gates finais: `cargo test` completo, `npm run build` + Vitest, `bash scripts/check-file-size.sh` (≤300 linhas), revisão de termos pt-BR ("Destinação", "Destinar estoque", "Loja", "Livre", "Caixa livre")
 
 ---
 
