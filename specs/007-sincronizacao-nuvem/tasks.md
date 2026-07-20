@@ -38,8 +38,8 @@
 
 ### Schema e acesso na nuvem
 
-- [ ] T008 Migração da nuvem (versionada/idempotente) — tabelas espelho com `sync_uid uuid PRIMARY KEY`, `sincronizado_em timestamptz DEFAULT now()`, `origem`, `atualizado_em`, `excluido_em`, `criado_por`, **FKs enforced** e **CHECKs** (qtd<>0, custos>=0, preços>=0); `usuario` **sem `senha_hash`**; `pedido.operador` (contracts/nuvem-schema.md); versionar em `apps/nuvem/migrations/` (ou script documentado)
-- [ ] T009 [P] Nuvem: habilitar **Supabase Auth** + **RLS por usuário** (policies com `auth.uid()`) e criar VIEWS `vw_saldo_livro`, `vw_custo_medio` (fold do ledger, espelha ADR-0009) — derivados nunca como coluna (research D5, ADR-0016)
+- [X] T008 Migração da nuvem (versionada/idempotente) — tabelas espelho com `sync_uid uuid PRIMARY KEY`, `sincronizado_em timestamptz DEFAULT now()`, `origem`, `atualizado_em`, `excluido_em`, `criado_por`, **FKs enforced** e **CHECKs** (qtd<>0, custos>=0, preços>=0); `usuario` **sem `senha_hash`**; `pedido.operador` (contracts/nuvem-schema.md); versionar em `apps/nuvem/migrations/` (ou script documentado)
+- [X] T009 [P] Nuvem: habilitar **Supabase Auth** + **RLS por usuário** (policies com `auth.uid()`) e criar VIEWS `vw_saldo_livro`, `vw_custo_medio` (fold do ledger, espelha ADR-0009) — derivados nunca como coluna (research D5, ADR-0016)
 
 ### Domínio, porta, adapter, orquestração, comandos
 
