@@ -68,6 +68,13 @@ Guia de validação ponta a ponta. Prova os cenários P1 da [spec](spec.md): esc
 3. Defina a senha no PDV, logue como esse operador e faça uma venda; sincronize.
 4. **Esperado**: a venda na nuvem indica **"vendido por"** esse operador (SC-011); vendas antigas ficam como "operador desconhecido".
 
+## Cenário 10 — Exclusão propaga sem ressuscitar (FR-015, D8)
+
+1. Exclua um livro (ou fornecedor) num lado (ex.: no escritório). Sincronize os dois lados.
+2. **Esperado**: o item some dos dois lados (soft delete via `excluido_em`).
+3. Sincronize novamente (e edite o item no outro lado antes, se quiser testar o conflito exclusão×edição).
+4. **Esperado**: o item **não reaparece**; a exclusão é idempotente e não é "desfeita" por uma sincronização posterior.
+
 ## Testes automatizados de referência
 
 - `cargo test` — domínio de sync (ordenação pais→filhas, LWW, detecção de órfã, convergência do fold); adapter contra Postgres de teste (upsert idempotente, cursor, retomada).

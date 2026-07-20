@@ -112,10 +112,12 @@ src-tauri/src/
 └── commands_sync.rs             # NOVO — comandos Tauri: sincronizar_agora, status_sincronizacao, seed_inicial
 
 apps/                             # NOVO — monorepo passa a ter mais de um front
-└── escritorio/                   # NOVO — app web estático (React + Vite + supabase-js + Supabase Auth)
-    └── src/                      #   telas: Login, Recebimento (entrada), Fornecedores, Operadores,
-                                  #   Cadastro/Preço, Consulta (estoque/vendas), relatórios (formas de
-                                  #   pagamento / destinação / "vendido por" operador)
+├── escritorio/                   # NOVO — app web estático (React + Vite + supabase-js + Supabase Auth)
+│   └── src/                      #   telas: Login, Recebimento (entrada), Fornecedores, Operadores,
+│                                 #   Cadastro/Preço, Consulta (estoque/vendas), relatórios (formas de
+│                                 #   pagamento / destinação / "vendido por" operador)
+└── nuvem/                        # NOVO — migrações/policies do schema Supabase (versionadas, idempotentes)
+    └── migrations/               #   tabelas espelho + FKs/CHECKs + RLS por usuário + views (derivados)
 packages/                        # NOVO (opcional) — tipos/utilitários compartilhados PDV↔escritório
 ```
 

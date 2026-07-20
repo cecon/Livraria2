@@ -25,7 +25,7 @@ Somente aditiva — segue Princípio IV (nenhum rebuild, nenhum ALTER destrutivo
 1. `ALTER TABLE <t> ADD COLUMN sync_uid TEXT` (+ `origem`, `atualizado_em`, `excluido_em`, `sincronizado_em`) para cada tabela sincronizável — via padrão "ADD COLUMN se não existe".
 2. **Backfill idempotente** de `sync_uid` para linhas existentes onde `sync_uid IS NULL` (gera UUID; `origem='pdv'`; `atualizado_em` = `criado_em` ou now). Re-executável. Este backfill é o que torna toda a base atual **pendente de push** para o **seed inicial** (D13).
 3. `CREATE UNIQUE INDEX IF NOT EXISTS` em `sync_uid` por tabela.
-4. **Índices de deduplicação por chave natural** (D4): único em `livro(codigo_barras)`, `fornecedor(<nome normalizado>, documento)` e `usuario(usuario)` (já é PK) — garantem que a merge una registros iguais em vez de duplicar.
+4. **Índices de deduplicação por chave natural** (D4): `livro(codigo_barras)`, **`fornecedor(nome_norm)`** (índice único **já existente** na feature 003; `documento` é desempate opcional) e `usuario(usuario)` (já é PK) — garantem que a merge una registros iguais em vez de duplicar.
 5. `ADD COLUMN pedido.operador TEXT` (referência a `usuario.usuario`) — atribuição da venda (nullable; vendas antigas ficam nulas).
 6. `CREATE TABLE IF NOT EXISTS sync_cursor (recurso TEXT PRIMARY KEY, last_cursor TEXT NOT NULL DEFAULT '')` — guarda o cursor de pull por tabela/recurso (D10).
 
@@ -55,7 +55,7 @@ Espelho das tabelas sincronizáveis com os mesmos campos de negócio + colunas d
 | `livro` | Sim (título, preço) | Ambos | Upsert com **dedup por código de barras** + **LWW** por `atualizado_em`; soft delete (D4/D7/D8). |
 | `livro.custo_medio_centavos` | Derivado | — | **Recomputado** por fold pós-merge; nunca sincronizado (D5). |
 | Saldo do livro | Derivado | — | Soma de `movimento_estoque`; VIEW na nuvem, cálculo atual no PDV. |
-| `fornecedor` | Sim | Ambos | Upsert com **dedup por nome/documento** + **LWW**; soft delete (D4/D7). |
+| `fornecedor` | Sim | Ambos | Upsert com **dedup por `nome_norm`** (índice único da 003; `documento` desempate) + **LWW**; soft delete (D4/D7). |
 | `usuario` (operador) | Sim (identidade) | Ambos | Upsert com **dedup por `usuario`** + **LWW**; **`senha_hash` nunca sincroniza** (fica só no PDV). |
 | `pedido` / `item_pedido` / `pagamento_pedido` (venda + forma pgto) | Não | PDV | Upsert por `sync_uid`; venda sobe com forma de pagamento (005) e **operador** atribuído. |
 | `lancamento_entrada` / `item_lancamento` | Não | Escritório (e PDV) | Upsert por `sync_uid`; gera as entradas; vincula `fornecedor`. |

@@ -32,7 +32,7 @@
 
 ### Migração local e entidades
 
-- [ ] T005 Criar `m008` em src-tauri/src/migration/m008.rs (registrar em migration/mod.rs): ADD COLUMN `sync_uid`/`origem`/`atualizado_em`/`excluido_em`/`sincronizado_em` (padrão "add se não existe") nas tabelas sincronizáveis (livro, movimento_estoque, pedido, item_pedido, pagamento_pedido, forma_pagamento, lancamento_entrada, item_lancamento, fornecedor, destinacao, transferencia_destinacao, alocacao_venda, **usuario**) + **`ADD COLUMN pedido.operador TEXT`** (atribuição, nullable) + **backfill idempotente** de `sync_uid` + `UNIQUE INDEX` em sync_uid + índices de **dedup** (livro.codigo, fornecedor nome-normalizado/documento, usuario) + tabela `sync_cursor` — sem ALTER destrutivo. **`usuario.senha_hash` fica fora do sync** (data-model.md §1-2)
+- [ ] T005 Criar `m008` em src-tauri/src/migration/m008.rs (registrar em migration/mod.rs): ADD COLUMN `sync_uid`/`origem`/`atualizado_em`/`excluido_em`/`sincronizado_em` (padrão "add se não existe") nas tabelas sincronizáveis (livro, movimento_estoque, pedido, item_pedido, pagamento_pedido, forma_pagamento, lancamento_entrada, item_lancamento, fornecedor, destinacao, transferencia_destinacao, alocacao_venda, **usuario**) + **`ADD COLUMN pedido.operador TEXT`** (atribuição, nullable) + **backfill idempotente** de `sync_uid` + `UNIQUE INDEX` em sync_uid + índices de **dedup** (livro.codigo, `fornecedor.nome_norm` — índice único já existente na 003, `documento` como desempate, usuario) + tabela `sync_cursor` — sem ALTER destrutivo. **`usuario.senha_hash` fica fora do sync** (data-model.md §1-2)
 - [ ] T006 [P] Atualizar entities SeaORM com as novas colunas de sync (e `pedido.operador`) em src-tauri/src/adapters/persistencia/entities/ (tabelas afetadas)
 - [ ] T007 Teste de idempotência da `m008` em src-tauri/src/migration/m008.rs (`#[cfg(test)]`, SQLite temporário): aplicar 2× converge; backfill não gera 2º `sync_uid`; índices de dedup criados
 
@@ -43,7 +43,7 @@
 
 ### Domínio, porta, adapter, orquestração, comandos
 
-- [ ] T010 [P] Criar src-tauri/src/domain/sincronizacao.rs: regras **puras** — ordenação por dependência (pais→filhas), decisão **last-write-wins** por `atualizado_em`, **match de dedup** por chave natural (livro=código; fornecedor=nome/documento; operador=usuário), **detecção de órfã**, convergência do fold — com testes inline (ADR-0016). Sem SeaORM/Tauri/sqlx (hook de pureza)
+- [ ] T010 [P] Criar src-tauri/src/domain/sincronizacao.rs: regras **puras** — ordenação por dependência (pais→filhas, cobrindo `livro`, `fornecedor`, `forma_pagamento`, `usuario`, `destinacao` como pais), decisão **last-write-wins** por `atualizado_em`, **match de dedup** por chave natural (livro=código; fornecedor=`nome_norm`; operador=`usuario`), **propagação de exclusão (soft delete)** sem "ressuscitar" (FR-015), **detecção de órfã**, convergência do fold — com testes inline (ADR-0016). Sem SeaORM/Tauri/sqlx (hook de pureza)
 - [ ] T011 Criar src-tauri/src/application/ports_sync.rs: trait `SyncPort` (`enviar_pendentes`, `puxar_desde(cursor)`, `aplicar_delta`), trait `RelogioServidor` (`agora_servidor`) + tipos de delta/resumo; registrar em application/mod.rs (contracts/sync-port.md)
 - [ ] T012 Criar src-tauri/src/adapters/nuvem/mod.rs + supabase_sync.rs: implementa `SyncPort` via PostgREST/HTTPS (`reqwest`), **upsert por `sync_uid`** (`Prefer: resolution=merge-duplicates`), autenticação por token de usuário (nunca `service_role`), leitura do tempo do servidor, **excluindo `usuario.senha_hash` do payload**; registrar em adapters/mod.rs
 - [ ] T013 Criar src-tauri/src/application/sincronizacao.rs: caso de uso que orquestra **push pendentes → pull desde cursor → recomputar derivados** (`custo_medio` por fold nos livros afetados) → persistir `last_cursor` em `sync_cursor`; retomável e idempotente
@@ -85,8 +85,8 @@
 **Independent Test**: quickstart Cenário 2 — 3 vendas offline → `status` pendentes=3 → reconecta → nuvem com as 3, uma vez cada, com operador.
 
 - [ ] T023 [US2] Marcar pendências no PDV: toda venda/movimento de saída nasce com `sincronizado_em = NULL`; `enviar_pendentes` empurra em ordem pais→filhas e marca com o retorno (data-model.md §1, research D10)
-- [ ] T024 [US2] Push de `pedido`/`item_pedido`/`pagamento_pedido` (venda com forma de pagamento — 005) via `supabase_sync` (upsert por `sync_uid`)
-- [ ] T025 [US2] Registrar o **operador logado** na venda (`pedido.operador`) no fluxo de venda do PDV (application/venda.rs + captura do operador da sessão) e incluí-lo no push (FR-023)
+- [ ] T024 [US2] Push de `pedido`/`item_pedido`/`pagamento_pedido` (venda com forma de pagamento — 005) via `supabase_sync` (upsert por `sync_uid`). **`forma_pagamento` (pai da FK `pagamento_pedido.forma_id`) deve estar no escopo desde a Foundational**; o push ordena pais→filhas (T010/T023)
+- [ ] T025 [US2] Registrar o **operador logado** na venda (`pedido.operador`) no fluxo de venda do PDV (application/venda.rs + captura do operador da sessão) e incluí-lo no push (FR-023). **`usuario` (pai de `pedido.operador`) deve estar no escopo desde a Foundational** (push ordenado pais→filhas); o refino de dedup/LWW do operador é T036
 - [ ] T026 [P] [US2] Teste de adapter: 3 vendas pendentes → push → nuvem tem 3 (idempotente); re-push não duplica
 - [ ] T027 [US2] Teste de integração (Cenário 2): vender offline, `status_sincronizacao` mostra pendentes; reconectar → nuvem consistente, com operador atribuído
 
@@ -122,7 +122,7 @@
 - [ ] T036 [US4] Sincronizar **operador** (`usuario`): upsert com **dedup por `usuario`** + **LWW**, com o adapter **excluindo `senha_hash` do payload** em application/sincronizacao.rs + adapters/nuvem (D15, FR-022)
 - [ ] T037 [US4] Tela **Operadores** em apps/escritorio (criar/editar identidade: usuário + nome + ativo, **sem senha**) + no PDV: tratar `senha_hash` vazio como "definir senha no 1º login" e bloquear login até definir (src/ do PDV + application)
 - [ ] T038 [P] [US4] Testes de domínio: LWW (edição mais nova vence), match de dedup (mesmo código/nome/usuário mescla) em src-tauri/src/domain/sincronizacao.rs
-- [ ] T039 [US4] Teste de integração (Cenários 5/8): preço editado dos dois lados → último vence; mesmo código de barras/fornecedor criado nos dois lados → um único registro
+- [ ] T039 [US4] Teste de integração (Cenários 5/8/10): preço editado dos dois lados → último vence; mesmo código de barras/fornecedor criado nos dois lados → um único registro; **exclusão (soft delete) de um livro/fornecedor num lado propaga e NÃO ressuscita após sincronizar** (FR-015, Cenário 10)
 - [ ] T040 [US4] Teste de integração (Cenário 9): operador criado no escritório aparece no PDV como "pendente"; após definir senha local, loga; `senha_hash` nunca presente na nuvem (SC-010)
 
 **Checkpoint**: cadastros (livro, fornecedor, operador) convergem sem duplicata; senha do PDV nunca sai local.
@@ -135,7 +135,7 @@
 
 **Independent Test**: após o PDV sincronizar, o escritório vê vendas com operador e os relatórios de formas de pagamento e de repasse por destinação.
 
-- [ ] T041 [US5] Incluir no escopo de push/pull os cadastros/eventos de 005/006: `forma_pagamento`, `destinacao`, `transferencia_destinacao`, `alocacao_venda` (research D14, data-model §4)
+- [ ] T041 [US5] Confirmar/estender o escopo de push/pull dos **eventos/cadastros de 006** para os relatórios: `destinacao`, `transferencia_destinacao`, `alocacao_venda` (`forma_pagamento` de 005 já sincroniza desde a Foundational por ser pai de `pagamento_pedido`) (research D14, data-model §4)
 - [ ] T042 [US5] Tela **Consulta de estoque** em apps/escritorio (lê `vw_saldo_livro` + `vw_custo_medio`) e **Consulta de vendas** (pedido/itens/pagamento)
 - [ ] T043 [US5] Telas de **relatório**: formas de pagamento (005) e **repasse por destinação** (006) lendo `alocacao_venda`+`destinacao` (contracts/escritorio-web.md)
 - [ ] T044 [US5] Exibir o **operador ("vendido por")** na consulta/relatório de vendas do escritório, resolvendo `pedido.operador` → nome (vendas antigas: "operador desconhecido") (FR-023, SC-011)
@@ -167,7 +167,7 @@
 - [ ] T052 [P] Docs: notas de deploy do escritório (Portainer/nginx) em docs/ e ajuste do README se preciso
 - [ ] T053 [P] Verificar integridade do lockfile npm após o app do escritório (memória `npm-only-lockfile`)
 - [ ] T054 Performance (SC-005): sincronização de rotina (volume de 1 dia) conclui < 1 min
-- [ ] T055 Rodar `quickstart.md` ponta a ponta (Cenários 1–9) e registrar resultados
+- [ ] T055 Rodar `quickstart.md` ponta a ponta (Cenários 1–10) e registrar resultados
 
 ---
 
@@ -184,6 +184,11 @@
   - **US5** (P2) depende do push/pull de vendas (US2), do operador na venda (T025) e do escopo 005/006 (T041).
   - **US6** (P3) depende de `status_sincronizacao`/`sincronizar_agora` (Foundational).
 - **Polish (Phase 9)**: depois das stories desejadas.
+
+### Escopo de sync e ordem de FK (importante)
+
+- **Todas as tabelas sincronizáveis** recebem `sync_uid`/colunas de sync na Foundational (T005) e são tratadas pelo adapter genérico (T012) — inclusive os **pais** `livro`, `fornecedor`, `forma_pagamento`, `usuario`, `destinacao`. As tarefas por story (T033/T034/T036/T041) adicionam **UI, dedup e LWW**, não o sync básico.
+- O push/seed **ordena pais→filhas** (T010/T023/T028), o que satisfaz as FKs enforced na nuvem (ex.: `pagamento_pedido.forma_id → forma_pagamento`, `pedido.operador → usuario`, `movimento.livro_codigo → livro`). Por isso um filho de US2 nunca sobe antes de seu pai, mesmo que a UI do pai esteja numa story posterior.
 
 ### Within Each User Story
 
