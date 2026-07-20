@@ -53,5 +53,8 @@ pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
             rel.formas_semeadas, rel.pedidos, rel.linhas_pagamento, rel.soma_total_centavos
         );
     }
+    // m008 (feature 007): colunas de sincronização com a nuvem (ADR-0015/0016),
+    // aditiva e idempotente, aplicada contra o schema final.
+    crate::migration::m008::aplicar(db).await?;
     Ok(())
 }

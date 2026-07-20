@@ -83,7 +83,10 @@ async fn guards_de_sistema_e_em_uso() {
     // Forma em uso: exclusão bloqueada por checagem SQL explícita (FR-009/FR-017).
     for sql in [
         "INSERT INTO pedido (numero,cliente,turno,data,total_centavos) VALUES (1,'C','manha','2026-07-01',500)".to_string(),
-        format!("INSERT INTO pagamento_pedido VALUES (1, {}, 500)", debito.id),
+        format!(
+            "INSERT INTO pagamento_pedido (pedido_numero, forma_id, valor_centavos) VALUES (1, {}, 500)",
+            debito.id
+        ),
     ] {
         db.execute(Statement::from_string(db.get_database_backend(), sql))
             .await

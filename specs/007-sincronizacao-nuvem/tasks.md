@@ -32,9 +32,9 @@
 
 ### Migração local e entidades
 
-- [ ] T005 Criar `m008` em src-tauri/src/migration/m008.rs (registrar em migration/mod.rs): ADD COLUMN `sync_uid`/`origem`/`atualizado_em`/`excluido_em`/`sincronizado_em` (padrão "add se não existe") nas tabelas sincronizáveis (livro, movimento_estoque, pedido, item_pedido, pagamento_pedido, forma_pagamento, lancamento_entrada, item_lancamento, fornecedor, destinacao, transferencia_destinacao, alocacao_venda, **usuario**) + **`ADD COLUMN pedido.operador TEXT`** (atribuição, nullable) + **backfill idempotente** de `sync_uid` + `UNIQUE INDEX` em sync_uid + índices de **dedup** (livro.codigo, `fornecedor.nome_norm` — índice único já existente na 003, `documento` como desempate, usuario) + tabela `sync_cursor` — sem ALTER destrutivo. **`usuario.senha_hash` fica fora do sync** (data-model.md §1-2)
+- [X] T005 Criar `m008` em src-tauri/src/migration/m008.rs (registrar em migration/mod.rs): ADD COLUMN `sync_uid`/`origem`/`atualizado_em`/`excluido_em`/`sincronizado_em` (padrão "add se não existe") nas tabelas sincronizáveis (livro, movimento_estoque, pedido, item_pedido, pagamento_pedido, forma_pagamento, lancamento_entrada, item_lancamento, fornecedor, destinacao, transferencia_destinacao, alocacao_venda, **usuario**) + **`ADD COLUMN pedido.operador TEXT`** (atribuição, nullable) + **backfill idempotente** de `sync_uid` + `UNIQUE INDEX` em sync_uid + índices de **dedup** (livro.codigo, `fornecedor.nome_norm` — índice único já existente na 003, `documento` como desempate, usuario) + tabela `sync_cursor` — sem ALTER destrutivo. **`usuario.senha_hash` fica fora do sync** (data-model.md §1-2)
 - [ ] T006 [P] Atualizar entities SeaORM com as novas colunas de sync (e `pedido.operador`) em src-tauri/src/adapters/persistencia/entities/ (tabelas afetadas)
-- [ ] T007 Teste de idempotência da `m008` em src-tauri/src/migration/m008.rs (`#[cfg(test)]`, SQLite temporário): aplicar 2× converge; backfill não gera 2º `sync_uid`; índices de dedup criados
+- [X] T007 Teste de idempotência da `m008` em src-tauri/src/migration/m008.rs (`#[cfg(test)]`, SQLite temporário): aplicar 2× converge; backfill não gera 2º `sync_uid`; índices de dedup criados
 
 ### Schema e acesso na nuvem
 
