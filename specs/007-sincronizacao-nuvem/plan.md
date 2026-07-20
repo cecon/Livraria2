@@ -30,13 +30,13 @@ Recursos mutáveis compartilhados (editáveis nos dois lados): **cadastro/preço
 
 **Language/Version**: Rust 1.93 (núcleo + adapters); TypeScript ~5.8 / React 19 (UI PDV **e** novo app do escritório)
 
-**Primary Dependencies**: Tauri 2; SeaORM/sqlx (local); **NOVAS** — cliente HTTP Rust (`reqwest`) para falar com a API do Supabase (PostgREST) + `uuid`; no app web do escritório, `@supabase/supabase-js` + **Supabase Auth** (login por usuário) (npm). Sem TEF/impressão nova.
+**Primary Dependencies**: Tauri 2 + React/**Vite** (PDV); SeaORM/sqlx (local); **NOVAS** — cliente HTTP Rust (`reqwest`) para falar com a API do Supabase (PostgREST) + `uuid`; no app do escritório, **Next.js (App Router)** + `@supabase/supabase-js` + **`@supabase/ssr`** (Supabase Auth por usuário, sessão por cookie) (npm). Sem TEF/impressão nova.
 
 **Storage**: **Local** SQLite (fonte de operação offline do PDV) + **Nuvem** Supabase/Postgres (hub de merge). Espelho das tabelas sincronizáveis: `livro`, `movimento_estoque`, `pedido`/`item_pedido`, `pagamento_pedido` (005), `lancamento_entrada`/`item_lancamento`, `fornecedor` (003), `forma_pagamento` (005), `destinacao`/`transferencia_destinacao`/`alocacao_venda` (006), `usuario` (operador — **só identidade, sem `senha_hash`**). `m008` também adiciona `pedido.operador`. Derivados (saldo, `custo_medio`) recomputados, não sincronizados.
 
 **Testing**: `cargo test` — domínio de sincronização puro (ordenação por dependência, decisão last-write-wins, detecção de órfã, convergência do fold) sem rede; adapters com Postgres/PostgREST de teste (upsert idempotente por `sync_uid`, cursor, retomada); Vitest no app do escritório.
 
-**Target Platform**: PDV desktop (Tauri, macOS/Windows/Linux), offline-capable; escritório = navegador (web estático, hospedado no Portainer do usuário).
+**Target Platform**: PDV desktop (Tauri + Vite, macOS/Windows/Linux), offline-capable; escritório = app **Next.js** servido como **container no Portainer Swarm** do usuário (runtime Node), acessado por navegador.
 
 **Project Type**: Desktop app (Rust core + React) **+ novo cliente web** (monorepo) — deixa de ser "somente desktop".
 
@@ -53,7 +53,7 @@ Recursos mutáveis compartilhados (editáveis nos dois lados): **cadastro/preço
 | Princípio | Situação | Status |
 |---|---|---|
 | I. Hexagonal & SOLID | Regras de merge/convergência puras em `domain/sincronizacao.rs` (testáveis sem rede/DB). Nova porta `SyncPort`; a fala com a nuvem fica **só** no adapter `adapters/nuvem`. Domínio não conhece Supabase. | ✅ PASS |
-| II. KISS & DRY / YAGNI | Reusa o ledger existente (nada de motor de sync genérico). **Uma via lógica de escrita por origem** (PDV=saídas, escritório=entradas) evita resolução de conflito. Derivados recomputados por **um** fold (fonte única). Escritório grava **eventos crus** — regras de negócio NÃO são reimplementadas em TS (invariantes viram `CHECK` no schema). Web estático, sem SSR (Next.js rejeitado). | ✅ PASS |
+| II. KISS & DRY / YAGNI | Reusa o ledger existente (nada de motor de sync genérico). **Uma via lógica de escrita por origem** (PDV=saídas, escritório=entradas) evita resolução de conflito. Derivados recomputados por **um** fold (fonte única). Escritório grava **eventos crus** — regras de negócio NÃO são reimplementadas em TS (invariantes viram `CHECK` no schema). Next.js no escritório é justificado pelo ambiente de deploy (Portainer Swarm roda containers), não é complexidade gratuita. | ✅ PASS |
 | III. ≤300 linhas/arquivo | Sync fatiado: `domain/sincronizacao.rs` (regras), `application/sincronizacao.rs` (orquestração), `adapters/nuvem/supabase_sync.rs` (I/O), `commands_sync.rs`. App web em componentes pequenos. | ✅ PASS (hook verifica) |
 | IV. Persistência idempotente por comando | Merge = **upsert por `sync_uid`** (ADR-0006 estende ao sync). Migração local `m008` só ADD COLUMN + backfill idempotente de `sync_uid`. Schema da nuvem por migração idempotente. Re-sync não duplica. | ✅ PASS |
 | V. Guardrails (Hooks/Skills/ADRs) | **ADR-0015** (arquitetura de sync) e **ADR-0016** (identidade `sync_uid`, dedup e recomputação de derivados) **registrados**. Hook de 300 linhas e skills vigentes. | ✅ PASS |
@@ -112,10 +112,12 @@ src-tauri/src/
 └── commands_sync.rs             # NOVO — comandos Tauri: sincronizar_agora, status_sincronizacao, seed_inicial
 
 apps/                             # NOVO — monorepo passa a ter mais de um front
-├── escritorio/                   # NOVO — app web estático (React + Vite + supabase-js + Supabase Auth)
-│   └── src/                      #   telas: Login, Recebimento (entrada), Fornecedores, Operadores,
-│                                 #   Cadastro/Preço, Consulta (estoque/vendas), relatórios (formas de
-│                                 #   pagamento / destinação / "vendido por" operador)
+├── escritorio/                   # NOVO — app Next.js (App Router) + @supabase/ssr; Dockerfile p/ swarm
+│   ├── app/                      #   rotas: Login, Recebimento (entrada), Fornecedores, Operadores,
+│   │                             #   Cadastro/Preço, Consulta (estoque/vendas), relatórios (formas de
+│   │                             #   pagamento / destinação / "vendido por" operador)
+│   ├── utils/supabase/           #   server.ts / client.ts / middleware.ts (@supabase/ssr)
+│   └── Dockerfile                #   imagem publicada como serviço no Portainer Swarm
 └── nuvem/                        # NOVO — migrações/policies do schema Supabase (versionadas, idempotentes)
     └── migrations/               #   tabelas espelho + FKs/CHECKs + RLS por usuário + views (derivados)
 packages/                        # NOVO (opcional) — tipos/utilitários compartilhados PDV↔escritório
@@ -132,6 +134,6 @@ packages/                        # NOVO (opcional) — tipos/utilitários compar
 | **Base de dados na nuvem** (contra "Dados: SQLite local") | É o único jeito de o escritório operar com o notebook **desligado** — requisito P1 da spec. | "Só SQLite local" não permite dois pontos independentes; não resolve o problema declarado. |
 | **Consumo de API HTTP** (contra "Sem backend HTTP") | Sincronizar exige um ponto de encontro remoto; PostgREST + RLS evita abrir Postgres direto e vazar credenciais. | Conexão Postgres direta do binário expõe credenciais e abre a porta 5432 à internet — pior em segurança. |
 | **Segundo app (web) além do Tauri** (contra "só Tauri desktop") | O escritório usa navegador; instalar Tauri no escritório não resolve "notebook desligado" (são máquinas distintas). | Reusar só o app Tauri não cobre o acesso web independente do PDV. |
-| **Novas dependências** (`reqwest`, `uuid`, `supabase-js`) | Cliente HTTP e identidade global são pré-requisitos do sync. | Implementar HTTP/UUID à mão viola KISS e aumenta risco. |
+| **Novas dependências** (`reqwest`, `uuid`; `next`, `@supabase/supabase-js`, `@supabase/ssr`) | Cliente HTTP + identidade global (Rust) e o app do escritório (Next.js no swarm) são pré-requisitos. | Implementar HTTP/UUID à mão viola KISS; Vite estático não aproveita o Portainer Swarm. |
 
 **Ação de governança (gate) — CONCLUÍDA em 2026-07-20**: ✅ emenda **1.1.0** (MINOR — permite sync opcional com nuvem sob invariante de offline do PDV) + ✅ **ADR-0015** (arquitetura) e ✅ **ADR-0016** (identidade/convergência). A implementação está liberada.

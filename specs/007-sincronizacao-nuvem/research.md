@@ -71,12 +71,12 @@ Formato por decisão: **Decisão / Rationale / Alternativas rejeitadas**. Estas 
 - **Rationale**: memória do projeto — SQLite local não faz enforce de FK e há **órfãs históricas**; o Postgres **vai** enforçar e rejeitaria o lote. Isolar mantém o sync vivo (FR-012).
 - **Alternativas rejeitadas**: desligar FK na nuvem (perde a garantia que motiva usar Postgres); abortar tudo numa órfã (trava o sync). Ver memória `sqlite-fks-nao-enforced`.
 
-## D12 — App do escritório: web estático + monorepo
+## D12 — App do escritório: Next.js (SSR) no Portainer Swarm; PDV segue Vite (revisão 2026-07-20)
 
-- **Decisão**: app **React + Vite estático** em `apps/escritorio`, falando com o Supabase via `@supabase/supabase-js` (RLS). Hospedado no **Portainer** do usuário (container nginx servindo o build). Tipos/telas compartilhados com o PDV via `packages/`. **Sem Next.js.**
-- **Rationale**: o escritório só precisa de páginas que leem/gravam Supabase — não há necessidade de servidor/SSR. Estático é o mais simples de hospedar e manter.
-- **Alternativas rejeitadas**: Next.js (SSR/servidor sem uso → complexidade); embutir no Tauri (não roda no navegador do escritório).
-- **Cuidado (memória `npm-only-lockfile`)**: ao adicionar o app web ao workspace, usar **npm** e não corromper o lockfile (nada de pnpm/npm 11).
+- **Decisão**: o **PDV (Tauri)** continua **React + Vite**. O **app do escritório** é **Next.js (App Router)** em `apps/escritorio`, com `@supabase/supabase-js` + **`@supabase/ssr`** (sessão por cookies + middleware de refresh), autenticando por **Supabase Auth** (RLS por usuário). **Hospedado como container (runtime Node) no Portainer Swarm** do usuário — imagem própria (Dockerfile) publicada como serviço de swarm. Tipos compartilhados com o PDV via `packages/`.
+- **Rationale**: o ambiente de hospedagem do usuário é **Docker Swarm no Portainer** (roda containers), então um serviço Next.js encaixa no fluxo de deploy existente; o App Router/SSR dá **sessão autenticada por cookie** (mais robusta que só `localStorage`) e integra bem com `@supabase/ssr`. **Substitui a decisão anterior** ("Vite estático em nginx") — ver ADR-0015.
+- **Alternativas rejeitadas**: Vite estático em nginx (não aproveita o swarm; sessão só em `localStorage`); embutir no Tauri (não roda no navegador do escritório).
+- **Cuidado (memória `npm-only-lockfile`)**: ao adicionar o app ao workspace, usar **npm** e não corromper o lockfile (nada de pnpm/npm 11).
 
 ## D13 — Carga inicial (seed) do histórico completo
 

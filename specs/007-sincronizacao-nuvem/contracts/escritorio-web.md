@@ -1,6 +1,6 @@
 # Contrato — App do escritório (web)
 
-App **React + Vite estático** (`apps/escritorio`), falando com o Supabase via `@supabase/supabase-js`. Sempre online. Hospedado no Portainer (nginx). **Sem Next.js, sem SSR** (D12).
+App **Next.js (App Router)** (`apps/escritorio`), falando com o Supabase via `@supabase/supabase-js` + `@supabase/ssr` (sessão por cookies + middleware). Sempre online. **Hospedado como container no Portainer Swarm** (imagem própria via Dockerfile). O **PDV** segue React + Vite (Tauri) (D12, revisão 2026-07-20).
 
 ## Autenticação (Clarificação 2026-07-20)
 

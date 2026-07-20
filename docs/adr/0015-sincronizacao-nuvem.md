@@ -15,9 +15,12 @@ do binário.
 - **Nuvem como hub** (Supabase/Postgres, já provisionado): guarda o log mesclado. O **PDV mantém o
   SQLite local como réplica offline** e sincroniza deltas — o SQLite continua a **fonte de operação**
   do balcão (invariante da emenda 1.1.0). A nuvem **nunca** é a única fonte de operação do PDV.
-- **Escritório = cliente web fino** (`apps/escritorio`, React + Vite **estático**, `supabase-js`),
-  sempre online, hospedado no Portainer. **Sem Next.js/SSR** (YAGNI) — só páginas que leem/gravam a
-  nuvem. Reuso de tipos/telas com o PDV via `packages/` (monorepo, **npm-only**).
+- **Escritório = app web Next.js** (`apps/escritorio`, App Router, `@supabase/supabase-js` +
+  `@supabase/ssr` com sessão por cookies/middleware), sempre online, **hospedado como container no
+  Portainer Swarm** (imagem própria via Dockerfile, serviço de swarm). Reuso de tipos com o PDV via
+  `packages/` (monorepo, **npm-only**). O **PDV segue React + Vite** (Tauri). *(Revisão 2026-07-20:
+  substitui a escolha anterior de "Vite estático em nginx" — o ambiente é Docker Swarm, que roda
+  containers; ver research D12.)*
 - **Canal e autenticação**: acesso via **PostgREST/HTTPS** com **Supabase Auth por usuário** e **RLS
   por usuário**; toda gravação do escritório carrega **autoria** (`criado_por = auth.uid()`),
   permitindo auditoria e revogação individual. **`service_role` nunca** vai em cliente (binário ou

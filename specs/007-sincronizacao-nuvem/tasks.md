@@ -19,10 +19,10 @@
 
 **Purpose**: preparar monorepo, dependências e configuração da nuvem — sem lógica de negócio.
 
-- [ ] T001 Criar workspace npm com o app do escritório: `apps/escritorio` (Vite + React 19 + TS) e `packages/` (tipos compartilhados), configurando `workspaces` em package.json **sem corromper o lockfile** (npm-only; memória `npm-only-lockfile`)
+- [ ] T001 Criar workspace npm com o app do escritório: `apps/escritorio` (**Next.js App Router** + React + TS) e `packages/` (tipos compartilhados), configurando `workspaces` em package.json **sem corromper o lockfile** (npm-only; memória `npm-only-lockfile`)
 - [ ] T002 [P] Adicionar deps Rust em src-tauri/Cargo.toml: `reqwest` (features rustls-tls, json), `uuid` (v4) — cliente HTTP e identidade global (research D3/D4)
 - [ ] T003 [P] Configurar acesso à nuvem via variáveis de ambiente (URL do projeto, chave `anon`, token de usuário de serviço do PDV) — documentar em `apps/escritorio/.env.example` e config do adapter; **nenhum segredo no repositório** (segredos no Notion, ADR-0015)
-- [ ] T004 [P] Configurar lint/build do `apps/escritorio` alinhado à raiz (tsconfig, eslint, script `build`)
+- [ ] T004 [P] Configurar lint/build do `apps/escritorio` (Next.js) alinhado à raiz (tsconfig, eslint, script `build`) + **`Dockerfile`** (build standalone do Next.js) para publicar como serviço no Portainer Swarm
 
 ---
 
@@ -52,7 +52,7 @@
 
 ### Esqueleto do escritório e tipos compartilhados
 
-- [ ] T016 [P] Esqueleto `apps/escritorio`: cliente supabase-js + **tela de Login (Supabase Auth)** + guarda de rota (sem sessão, sem acesso) (contracts/escritorio-web.md)
+- [ ] T016 [P] Esqueleto `apps/escritorio` (Next.js): helpers `utils/supabase/{server,client,middleware}.ts` (`@supabase/ssr`) + **tela de Login (Supabase Auth)** + middleware de sessão + guarda de rota (sem sessão, sem acesso) (contracts/escritorio-web.md)
 - [ ] T017 [P] Criar `packages/` com tipos de entidade compartilhados (Livro, Fornecedor, Operador, Movimento, Venda) reusados por PDV e escritório
 
 ### Teste base do motor
@@ -164,7 +164,7 @@
 
 - [ ] T050 [P] Segurança (Cenário 7, SC-006/008/010): confirmar que nenhum bundle (Tauri/web) expõe `service_role`; RLS por usuário ativa; `criado_por` gravado; sem login não há acesso; **`usuario.senha_hash` não presente na nuvem nem no bundle web**
 - [ ] T051 [P] Guardrail de 300 linhas em todos os módulos novos (`scripts/check-file-size.sh`) — extrair (ex.: `supabase_sync` I/O vs. mapeamento) se necessário
-- [ ] T052 [P] Docs: notas de deploy do escritório (Portainer/nginx) em docs/ e ajuste do README se preciso
+- [ ] T052 [P] Docs + deploy: `Dockerfile` do Next.js (output standalone) e **stack de Docker Swarm** (compose/service) para o Portainer; notas de deploy em docs/ e ajuste do README se preciso
 - [ ] T053 [P] Verificar integridade do lockfile npm após o app do escritório (memória `npm-only-lockfile`)
 - [ ] T054 Performance (SC-005): sincronização de rotina (volume de 1 dia) conclui < 1 min
 - [ ] T055 Rodar `quickstart.md` ponta a ponta (Cenários 1–10) e registrar resultados
