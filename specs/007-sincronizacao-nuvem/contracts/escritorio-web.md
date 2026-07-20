@@ -13,7 +13,7 @@ App **React + Vite estático** (`apps/escritorio`), falando com o Supabase via `
 |---|---|---|
 | **Receber livros** (Recebimento) | Insere `lancamento_entrada` + `item_lancamento` e os `movimento_estoque` tipo `entrada` correspondentes, com `origem='escritorio'`, `sync_uid` gerado no cliente. | qtd/custo validados por `CHECK` no schema (não reimplementa regra de negócio). |
 | **Cadastrar/editar livro e preço** | Upsert em `livro` com `atualizado_em = now()` do servidor (LWW). | Dedup por **código de barras**; soft delete via `excluido_em`. |
-| **Cadastrar/editar fornecedor** | Upsert em `fornecedor` com `atualizado_em = now()`. | Dedup por **nome/documento**; permite receber de fornecedor novo com o notebook desligado (FR-021). |
+| **Cadastrar/editar fornecedor** | Upsert em `fornecedor` com `atualizado_em = now()`. | Dedup por **`nome_norm`** (documento desempate); permite receber de fornecedor novo com o notebook desligado (FR-021). |
 | **Cadastrar/editar operador do PDV** | Upsert em `usuario` (identidade: usuário + nome + ativo) com `atualizado_em = now()`. | Dedup por **usuário**; **nunca grava/lê `senha_hash`** — o operador define a senha no PDV no 1º uso (FR-022). |
 
 - O escritório **não** grava saldo nem `custo_medio` (derivados, lidos das views).
