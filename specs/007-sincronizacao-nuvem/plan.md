@@ -22,6 +22,7 @@ Recursos mutáveis compartilhados (editáveis nos dois lados): **cadastro/preço
 > 3. **Seed inicial do histórico completo** (idempotente) como passo de primeira classe.
 > 4. **Dedup por chave natural**: `livro` por código de barras, `fornecedor` por nome/documento (além do `sync_uid`).
 > 5. **Fornecedor** é entidade **mutável bidirecional** (mesma estratégia LWW do livro).
+> 6. **Operadores do PDV** sincronizam (bidirecional, dedup por usuário) — **só identidade, `senha_hash` nunca sai do PDV**; dois espaços de identidade (retaguarda Supabase Auth × operador local). A **venda passa a registrar o operador** (`pedido.operador`).
 
 > ⚠️ **Esta feature altera uma restrição constitucional** ("Sem backend HTTP; funcionamento offline; Dados: SQLite local"). Exige **emenda da constituição (1.0.0 → 1.1.0)** e **ADRs** antes da implementação (ver Constitution Check e Complexity Tracking). O PDV **continua offline-capable**; a nuvem é aditiva.
 
@@ -31,7 +32,7 @@ Recursos mutáveis compartilhados (editáveis nos dois lados): **cadastro/preço
 
 **Primary Dependencies**: Tauri 2; SeaORM/sqlx (local); **NOVAS** — cliente HTTP Rust (`reqwest`) para falar com a API do Supabase (PostgREST) + `uuid`; no app web do escritório, `@supabase/supabase-js` + **Supabase Auth** (login por usuário) (npm). Sem TEF/impressão nova.
 
-**Storage**: **Local** SQLite (fonte de operação offline do PDV) + **Nuvem** Supabase/Postgres (hub de merge). Espelho das tabelas sincronizáveis: `livro`, `movimento_estoque`, `pedido`/`item_pedido`, `pagamento_pedido` (005), `lancamento_entrada`/`item_lancamento`, `fornecedor` (003), `forma_pagamento` (005), `destinacao`/`transferencia_destinacao`/`alocacao_venda` (006). Derivados (saldo, `custo_medio`) recomputados, não sincronizados.
+**Storage**: **Local** SQLite (fonte de operação offline do PDV) + **Nuvem** Supabase/Postgres (hub de merge). Espelho das tabelas sincronizáveis: `livro`, `movimento_estoque`, `pedido`/`item_pedido`, `pagamento_pedido` (005), `lancamento_entrada`/`item_lancamento`, `fornecedor` (003), `forma_pagamento` (005), `destinacao`/`transferencia_destinacao`/`alocacao_venda` (006), `usuario` (operador — **só identidade, sem `senha_hash`**). `m008` também adiciona `pedido.operador`. Derivados (saldo, `custo_medio`) recomputados, não sincronizados.
 
 **Testing**: `cargo test` — domínio de sincronização puro (ordenação por dependência, decisão last-write-wins, detecção de órfã, convergência do fold) sem rede; adapters com Postgres/PostgREST de teste (upsert idempotente por `sync_uid`, cursor, retomada); Vitest no app do escritório.
 
@@ -89,9 +90,10 @@ src-tauri/src/
 │   └── m008.rs                   # NOVO — ADD COLUMN sync_uid/atualizado_em/excluido_em/sincronizado_em
 │                                 #   em TODAS as tabelas sincronizáveis (livro, movimento, pedido/itens,
 │                                 #   pagamento_pedido, fornecedor, forma_pagamento, lancamento/itens,
-│                                 #   destinacao/transferencia/alocacao) + backfill idempotente de sync_uid
-│                                 #   + índices de dedup (livro.codigo_barras, fornecedor nome/doc)
-│                                 #   + tabela sync_cursor. Só ADD/CREATE IF NOT EXISTS.
+│                                 #   destinacao/transferencia/alocacao, usuario) + pedido.operador
+│                                 #   + backfill idempotente de sync_uid + índices de dedup
+│                                 #   (livro.codigo_barras, fornecedor nome/doc, usuario) + sync_cursor.
+│                                 #   usuario.senha_hash FORA do sync. Só ADD/CREATE IF NOT EXISTS.
 ├── domain/
 │   └── sincronizacao.rs          # NOVO — regras puras: ordenação por dependência (pais→filhas),
 │                                 #   last-write-wins (livro/fornecedor), dedup por chave natural,

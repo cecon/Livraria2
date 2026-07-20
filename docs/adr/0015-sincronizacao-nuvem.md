@@ -34,6 +34,11 @@ do binário.
   recebimento. Cadastros de 005/006 são gerenciados no PDV e replicados para leitura no escritório.
 - **Derivados como VIEW na nuvem** (`vw_saldo_livro`, `vw_custo_medio`) e **CHECKs** como fonte única
   de invariante — o escritório grava **eventos crus**, sem reimplementar regra de negócio em TS.
+- **Dois espaços de identidade** (D15): o **usuário da retaguarda** autentica na nuvem (Supabase Auth);
+  o **operador do PDV** autentica **localmente** (tabela `usuario`). O cadastro de operadores
+  **sincroniza bidirecional** (dedup por `usuario`, LWW), mas **só a identidade** — **`senha_hash`
+  NUNCA sai do PDV**. Operador criado no escritório chega "sem senha" e a define no PDV no primeiro
+  uso. A venda passa a registrar o **operador** (`pedido.operador`) para atribuição nos relatórios.
 
 ## Consequências
 - **Positivas**: escritório opera com o notebook desligado; PDV segue offline; convergência eventual

@@ -32,7 +32,7 @@
 
 ### Migração local e entidades
 
-- [ ] T005 Criar `m008` em src-tauri/src/migration/m008.rs (registrar em migration/mod.rs): ADD COLUMN `sync_uid`/`origem`/`atualizado_em`/`excluido_em`/`sincronizado_em` (padrão "add se não existe") nas tabelas sincronizáveis (livro, movimento_estoque, pedido, item_pedido, pagamento_pedido, forma_pagamento, lancamento_entrada, item_lancamento, fornecedor, destinacao, transferencia_destinacao, alocacao_venda) + **backfill idempotente** de `sync_uid` + `UNIQUE INDEX` em sync_uid + índices de **dedup** (livro.codigo, fornecedor nome-normalizado/documento) + tabela `sync_cursor` — sem ALTER destrutivo (data-model.md §1-2)
+- [ ] T005 Criar `m008` em src-tauri/src/migration/m008.rs (registrar em migration/mod.rs): ADD COLUMN `sync_uid`/`origem`/`atualizado_em`/`excluido_em`/`sincronizado_em` (padrão "add se não existe") nas tabelas sincronizáveis (livro, movimento_estoque, pedido, item_pedido, pagamento_pedido, forma_pagamento, lancamento_entrada, item_lancamento, fornecedor, destinacao, transferencia_destinacao, alocacao_venda, **usuario**) + **`ADD COLUMN pedido.operador TEXT`** (atribuição da venda, nullable) + **backfill idempotente** de `sync_uid` + `UNIQUE INDEX` em sync_uid + índices de **dedup** (livro.codigo, fornecedor nome-normalizado/documento, usuario) + tabela `sync_cursor` — sem ALTER destrutivo (data-model.md §1-2). **`usuario.senha_hash` fica fora do sync**
 - [ ] T006 [P] Atualizar entities SeaORM com as novas colunas de sync em src-tauri/src/adapters/persistencia/entities/ (tabelas afetadas)
 - [ ] T007 Teste de idempotência da `m008` em src-tauri/src/migration/m008.rs (`#[cfg(test)]`, SQLite temporário): aplicar 2× converge; backfill não gera 2º `sync_uid`; índices de dedup criados
 
@@ -88,8 +88,9 @@
 - [ ] T024 [US2] Push de `pedido`/`item_pedido`/`pagamento_pedido` (venda com forma de pagamento — 005) via `supabase_sync` (upsert por `sync_uid`)
 - [ ] T025 [P] [US2] Teste de adapter: 3 vendas pendentes → push → nuvem tem 3 (idempotente); re-push não duplica
 - [ ] T026 [US2] Teste de integração (Cenário 2): vender offline, `status_sincronizacao` mostra pendentes; reconectar → nuvem consistente
+- [ ] T054 [US2] Registrar o **operador logado** na venda (`pedido.operador`) no fluxo de venda do PDV (application/venda.rs + captura do operador da sessão) e incluí-lo no push (FR-023)
 
-**Checkpoint**: PDV opera offline e reconcilia as vendas sem perda.
+**Checkpoint**: PDV opera offline, reconcilia as vendas e cada venda leva o operador que a fez.
 
 ---
 
@@ -120,8 +121,11 @@
 - [ ] T034 [US4] Tela **Cadastro/Preço de livro** em apps/escritorio (upsert com `atualizado_em` do servidor; soft delete via `excluido_em`)
 - [ ] T035 [P] [US4] Testes de domínio: LWW (edição mais nova vence), match de dedup (mesmo código/nome mescla) em src-tauri/src/domain/sincronizacao.rs
 - [ ] T036 [US4] Teste de integração (Cenários 5/8): preço editado dos dois lados → último vence; mesmo código de barras/fornecedor criado nos dois lados → um único registro
+- [ ] T051 [US4] Sincronizar **operador** (`usuario`): upsert com **dedup por `usuario`** + **LWW**, com o adapter **excluindo `senha_hash` do payload** (nunca sobe/baixa hash) em application/sincronizacao.rs + adapters/nuvem (D15, FR-022)
+- [ ] T052 [US4] Tela **Operadores** em apps/escritorio (criar/editar identidade: usuário + nome + ativo, **sem senha**) + no PDV: tratar `senha_hash` vazio como "definir senha no 1º login" e bloquear login até definir (src/ do PDV + application)
+- [ ] T053 [P] [US4] Teste de integração: operador criado no escritório aparece no PDV como "pendente"; após definir senha local, loga; `senha_hash` nunca presente na nuvem (SC-010)
 
-**Checkpoint**: cadastros convergem sem duplicata e sem travar nenhum lado.
+**Checkpoint**: cadastros (livro, fornecedor, operador) convergem sem duplicata; senha do PDV nunca sai local.
 
 ---
 
@@ -135,8 +139,9 @@
 - [ ] T038 [US5] Tela **Consulta de estoque** em apps/escritorio (lê `vw_saldo_livro` + `vw_custo_medio`) e **Consulta de vendas** (pedido/itens/pagamento)
 - [ ] T039 [US5] Telas de **relatório**: formas de pagamento (005) e **repasse por destinação** (006) lendo `alocacao_venda`+`destinacao` (contracts/escritorio-web.md)
 - [ ] T040 [US5] Teste de integração: após sync do PDV, escritório enxerga vendas + relatórios 005/006 batendo com o PDV
+- [ ] T055 [US5] Exibir o **operador ("vendido por")** na consulta/relatório de vendas do escritório, resolvendo `pedido.operador` → nome (vendas antigas: "operador desconhecido") (FR-023, SC-011)
 
-**Checkpoint**: visibilidade remota completa no escritório.
+**Checkpoint**: visibilidade remota completa no escritório, com atribuição de operador.
 
 ---
 
@@ -157,12 +162,12 @@
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T045 [P] Segurança (Cenário 7, SC-006/008): confirmar que nenhum bundle (Tauri/web) expõe `service_role`; RLS por usuário ativa; `criado_por` gravado; sem login não há acesso
+- [ ] T045 [P] Segurança (Cenário 7, SC-006/008/010): confirmar que nenhum bundle (Tauri/web) expõe `service_role`; RLS por usuário ativa; `criado_por` gravado; sem login não há acesso; **`usuario.senha_hash` não presente na nuvem nem no bundle web**
 - [ ] T046 [P] Guardrail de 300 linhas em todos os módulos novos (`scripts/check-file-size.sh`) — extrair (ex.: `supabase_sync` I/O vs. mapeamento) se necessário
 - [ ] T047 [P] Docs: notas de deploy do escritório (Portainer/nginx) em docs/ e ajuste do README se preciso
 - [ ] T048 [P] Verificar integridade do lockfile npm após o app do escritório (memória `npm-only-lockfile`)
 - [ ] T049 Performance (SC-005): sincronização de rotina (volume de 1 dia) conclui < 1 min
-- [ ] T050 Rodar `quickstart.md` ponta a ponta (Cenários 1–8) e registrar resultados
+- [ ] T050 Rodar `quickstart.md` ponta a ponta (Cenários 1–9) e registrar resultados
 
 ---
 

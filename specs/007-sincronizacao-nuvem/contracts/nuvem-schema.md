@@ -33,7 +33,9 @@ Mesmos campos de negócio das tabelas locais + colunas de sync (ver [data-model.
 
 ## Escopo de tabelas (Clarificação 2026-07-20)
 
-Espelham-se: `livro`, `movimento_estoque`, `pedido`/`item_pedido`/`pagamento_pedido` (005), `forma_pagamento` (005), `lancamento_entrada`/`item_lancamento`, `fornecedor` (003), `destinacao`/`transferencia_destinacao`/`alocacao_venda` (006). Índices únicos de **dedup**: `livro(codigo_barras)`, `fornecedor(nome_normalizado, documento)`.
+Espelham-se: `livro`, `movimento_estoque`, `pedido`/`item_pedido`/`pagamento_pedido` (005), `forma_pagamento` (005), `lancamento_entrada`/`item_lancamento`, `fornecedor` (003), `destinacao`/`transferencia_destinacao`/`alocacao_venda` (006), **`usuario` (operador — colunas `usuario`, `nome`, `ativo`; SEM `senha_hash`)**. `pedido` ganha `operador`. Índices únicos de **dedup**: `livro(codigo_barras)`, `fornecedor(nome_normalizado, documento)`, `usuario(usuario)`.
+
+> **`usuario.senha_hash` não existe no schema da nuvem** — a autenticação do operador é local ao PDV (D15). A nuvem só guarda a identidade do operador para atribuição/administração.
 
 ## O que NÃO vai para a nuvem
 

@@ -17,6 +17,8 @@
 - Q: Quais dados sobem para a nuvem nesta feature? → A: Tudo — além de livro, estoque, vendas e recebimento, também **formas de pagamento (005)** e **destinações de doações (006)**.
 - Q: O que acontece com o histórico já existente no SQLite quando a sincronização for ativada? → A: Sobe **todo o histórico** (seed completo) — vendas e movimentos existentes vão para a nuvem, para o estoque bater e o escritório enxergar tudo.
 - Q: Como ficam os fornecedores (005/003) já que o escritório faz recebimento? → A: **Fornecedores sincronizam** e o escritório **pode cadastrar/editar** (dedup por nome/documento), permitindo receber de fornecedor novo com o notebook desligado.
+- Q: O usuário da retaguarda é diferente do operador do PDV — o cadastro de operadores do PDV deve sincronizar? → A: **Sim**. São dois espaços de identidade distintos (retaguarda = Supabase Auth; operador = login local do PDV). O **cadastro de operadores** sincroniza e o **escritório também pode criar/editar** (dedup por usuário). A **senha (`senha_hash`) nunca sai do PDV** — só a identidade (usuário + nome); operador criado no escritório define a senha localmente no PDV no primeiro uso.
+- Q: As vendas passam a registrar qual operador as fez? → A: **Sim** — o pedido passa a registrar o **operador** e isso sincroniza, para o escritório ver "vendido por X" nos relatórios.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -130,6 +132,9 @@ A sincronização acontece sozinha em segundo plano sempre que há internet, sem
 - Carga inicial (seed) de todo o histórico com registros inconsistentes preexistentes → os válidos sobem; os inconsistentes são isolados e reportados, sem abortar a carga.
 - Usuário do escritório com acesso revogado → deixa de gravar/ler na nuvem, sem afetar os dados já sincronizados.
 - Mesmo fornecedor cadastrado nos dois lados → converge por nome/documento, sem duplicata; recebimentos permanecem vinculados ao fornecedor mesclado.
+- Operador criado no escritório (sem senha) → o PDV bloqueia o login dele até a **senha ser definida localmente**; a identidade já aparece na nuvem.
+- Venda antiga sem operador → continua válida nos relatórios como "operador desconhecido".
+- Tentativa de sincronizar `senha_hash` → nunca ocorre; o campo é excluído do payload de sincronização.
 
 ## Requirements *(mandatory)*
 
@@ -156,12 +161,15 @@ A sincronização acontece sozinha em segundo plano sempre que há internet, sem
 - **FR-019**: Ao ativar a sincronização, o sistema MUST realizar uma **carga inicial (seed) de todo o histórico existente** (livros, movimentos, vendas, recebimentos) para a nuvem, de forma idempotente, isolando e reportando registros inconsistentes sem abortar a carga.
 - **FR-020**: O sistema MUST registrar a **autoria** das gravações do escritório (qual usuário gerou o dado), permitindo auditoria e revogação de acesso individual.
 - **FR-021**: O sistema MUST sincronizar os **fornecedores** e permitir que o escritório os **cadastre e edite** pela nuvem (deduplicação por nome/documento), de modo que um recebimento possa ser vinculado a fornecedor novo mesmo com o notebook desligado.
+- **FR-022**: O sistema MUST sincronizar o **cadastro de operadores do PDV** (identidade: usuário + nome + situação ativa), permitindo que o **escritório também os cadastre/edite** (deduplicação por usuário). A **senha (`senha_hash`) NUNCA é sincronizada** — permanece somente no PDV; operador criado pelo escritório chega sem senha e MUST ter a senha **definida localmente no PDV** antes do primeiro login.
+- **FR-023**: O sistema MUST registrar na venda o **operador** que a realizou e sincronizar essa atribuição, para os relatórios do escritório indicarem "vendido por". Vendas históricas sem operador permanecem válidas (operador desconhecido).
 
 ### Key Entities *(include if feature involves data)*
 
 - **Movimento de estoque**: evento **imutável** que registra uma mudança de estoque (tipos: saldo inicial, entrada, saída de venda, ajuste, contagem, estorno). Tem identidade estável, quantidade, custo, referência ao livro, origem (PDV ou escritório) e momento. É a **fonte da verdade** do estoque — o saldo é sempre a soma dos movimentos.
 - **Livro**: cadastro do produto (título, código de barras, preço). Estado **mutável**, editável tanto no PDV quanto no escritório. O **código de barras é a chave de deduplicação** entre os dois lados — um mesmo código nunca gera dois livros.
-- **Venda**: registro de uma venda no PDV; gera os movimentos de saída correspondentes.
+- **Venda**: registro de uma venda no PDV; gera os movimentos de saída correspondentes; passa a registrar o **operador** que a realizou.
+- **Operador (usuário do PDV)**: identidade de quem opera o balcão (usuário + nome + ativo). **Mutável e bidirecional** (PDV e escritório cadastram/editam; dedup por usuário). A **senha fica só no PDV** — nunca sincroniza. Distinto do **Usuário do escritório** (Supabase Auth).
 - **Recebimento (entrada de fornecedor)**: registro feito no escritório; gera os movimentos de entrada correspondentes.
 - **Fornecedor** (feature 003): cadastro do fornecedor; **mutável**, editável no PDV e no escritório; deduplicado por nome/documento. Necessário para vincular recebimentos.
 - **Forma de pagamento** (feature 005): como a venda foi recebida; sincronizada junto das vendas para os relatórios do escritório.
@@ -183,6 +191,8 @@ A sincronização acontece sozinha em segundo plano sempre que há internet, sem
 - **SC-007**: O operador identifica em poucos segundos se seus dados estão sincronizados ou pendentes.
 - **SC-008**: Apenas usuários autenticados com login próprio acessam ou gravam na nuvem; cada gravação do escritório é atribuível a um usuário.
 - **SC-009**: Após a carga inicial, o estoque e o histórico de vendas na nuvem batem com os do PDV em 100% dos livros válidos, e todo registro inconsistente descartado é reportado.
+- **SC-010**: Nenhuma senha de operador (`senha_hash`) é recuperável na nuvem ou no app do escritório; o login do PDV funciona 100% offline.
+- **SC-011**: As vendas sincronizadas indicam o operador que as realizou (exceto as históricas anteriores à atribuição).
 
 ## Assumptions
 
@@ -191,7 +201,8 @@ A sincronização acontece sozinha em segundo plano sempre que há internet, sem
 - O escritório opera **sempre online** (é a interface na nuvem) e não precisa de modo offline próprio; apenas o PDV precisa operar sem internet.
 - A **nuvem é o ponto de encontro** (hub) dos dados mesclados; o PDV mantém uma cópia local para operar offline e sincroniza as diferenças.
 - **Consistência eventual** é aceitável — não é necessário sincronizar em tempo real; latência de segundos a minutos é suficiente.
-- Os **recursos mutáveis compartilhados** (editáveis nos dois lados) são o cadastro/preço do **Livro** (dedup por código de barras) e o **Fornecedor** (dedup por nome/documento); para ambos vale "última edição vence". Estoque nunca é escrito como número — só como movimentos.
+- Os **recursos mutáveis compartilhados** (editáveis nos dois lados) são o cadastro/preço do **Livro** (dedup por código de barras), o **Fornecedor** (dedup por nome/documento) e o **Operador do PDV** (dedup por usuário, **sem a senha**); para todos vale "última edição vence". Estoque nunca é escrito como número — só como movimentos.
+- **Dois espaços de identidade distintos**: usuário da retaguarda autentica na nuvem (Supabase Auth); operador do PDV autentica localmente (senha só no PDV). Não são unificados; a identidade do operador é replicada como dado, a autenticação não.
 - Cadastros de **forma de pagamento (005)** e **destinação (006)** permanecem gerenciados no PDV e replicam para a nuvem principalmente para **leitura/relatório** no escritório (escrita de baixo conflito, um dono).
 - O **escopo de dados sincronizados** inclui livro, estoque (movimentos), vendas (com forma de pagamento e alocações de destinação), recebimento, **fornecedores**, e os cadastros de 005/006.
 - A **ativação** dispara uma **carga inicial (seed) de todo o histórico** existente para a nuvem, idempotente; a partir daí sincroniza incrementalmente.

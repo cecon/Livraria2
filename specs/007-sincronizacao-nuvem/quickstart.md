@@ -61,6 +61,13 @@ Guia de validação ponta a ponta. Prova os cenários P1 da [spec](spec.md): esc
 2. Sincronize os dois lados.
 3. **Esperado**: existe **um** livro e **um** fornecedor (dedup por chave natural); nenhum duplicado; cadastro resolve por última edição.
 
+## Cenário 9 — Operador: cadastro no escritório + atribuição de venda (FR-022/FR-023, D15)
+
+1. No escritório, cadastre um operador novo (usuário + nome, **sem senha**). Sincronize o PDV.
+2. **Esperado**: o operador aparece no PDV como **pendente**; o login dele é bloqueado até definir a **senha localmente**. Nenhum `senha_hash` recuperável na nuvem/app web (SC-010).
+3. Defina a senha no PDV, logue como esse operador e faça uma venda; sincronize.
+4. **Esperado**: a venda na nuvem indica **"vendido por"** esse operador (SC-011); vendas antigas ficam como "operador desconhecido".
+
 ## Testes automatizados de referência
 
 - `cargo test` — domínio de sync (ordenação pais→filhas, LWW, detecção de órfã, convergência do fold); adapter contra Postgres de teste (upsert idempotente, cursor, retomada).
