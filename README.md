@@ -60,3 +60,13 @@ scripts/check-domain-purity.sh                    # domínio sem dependência de
 ```
 
 Os guardrails rodam automaticamente no `git commit` (pre-commit) e nas edições do Claude Code.
+
+## Memória do projeto (segredos & coisas de longa duração)
+
+Senhas, credenciais, IDs de serviço e demais informações **sensíveis e de longa duração** ficam
+centralizadas na página do Notion, **nunca** commitadas neste repositório:
+
+📓 [Memoria_Projeto_Livraria (Notion)](https://app.notion.com/p/Memoria_Projeto_Livraria-3a30fcc132cf8068ab0dee09d80f9b76)
+
+> Não cole segredos em código, README, `.env` versionado ou arquivos de spec. Registre-os no Notion
+> e referencie por lá.

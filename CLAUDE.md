@@ -9,3 +9,10 @@ KISS/DRY, ≤300 significant lines per logic file, idempotent migrations via com
 cents, hooks+skills+ADRs. Architecture decisions: `docs/adr/`. Feature spec:
 `specs/006-destinacao-doacoes/spec.md`.
 <!-- SPECKIT END -->
+
+## Memória do projeto (segredos & longa duração)
+
+Segredos e informações sensíveis de longa duração (senhas, credenciais, IDs de serviço) ficam na
+página do Notion — **nunca** neste repositório:
+[Memoria_Projeto_Livraria](https://app.notion.com/p/Memoria_Projeto_Livraria-3a30fcc132cf8068ab0dee09d80f9b76).
+Nunca copie segredos para código, README, specs ou memórias locais — registre e consulte no Notion.
