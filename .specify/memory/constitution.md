@@ -1,31 +1,33 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: (template inicial, não versionado) → 1.0.0
-Bump rationale: Ratificação inicial da constituição (MAJOR 1.0.0) — primeira definição
-concreta de princípios e governança a partir dos placeholders do template.
+Version change: 1.0.0 → 1.1.0
+Bump rationale: Emenda MINOR — expansão material de orientação na seção "Restrições Técnicas &
+Stack" para permitir **sincronização opcional com uma base na nuvem**, preservando o funcionamento
+offline do PDV como invariante. Motivada pela feature 007 (specs/007-sincronizacao-nuvem): o
+escritório precisa operar com o notebook desligado e o PDV precisa vender sem internet. Nenhum
+princípio (I–VI) foi removido ou redefinido; a mudança é aditiva e condicionada a ADRs.
 
-Modified principles: N/A (todos os princípios são novos)
-Added principles:
-  - I. Arquitetura Hexagonal & SOLID (Domínio Isolado)
-  - II. Simplicidade Deliberada (KISS & DRY, YAGNI)
-  - III. Limite de 300 Linhas por Arquivo de Lógica (NÃO-NEGOCIÁVEL)
-  - IV. Persistência Idempotente via Comando (SQLite & Migrations)
-  - V. Guardrails Automatizados (Hooks, Skills & ADRs)
-  - VI. Fidelidade ao Domínio & Localização pt-BR
-Added sections:
-  - Restrições Técnicas & Stack
-  - Fluxo de Desenvolvimento & Quality Gates
-Removed sections: nenhuma (apenas placeholders substituídos)
+Modified principles: nenhum (I–VI inalterados)
+Modified sections:
+  - Restrições Técnicas & Stack — "Sem backend HTTP; funcionamento offline" passa a permitir sync
+    com nuvem sob invariante de offline do PDV + login/RLS + segredos fora do binário (ADR-0015/0016)
+Added principles: nenhum
+Added sections: nenhuma
+Removed sections: nenhuma
 
 Templates de dependência:
-  - .specify/templates/plan-template.md ........ ✅ alinhado (Constitution Check é genérico; puxa os gates daqui)
-  - .specify/templates/spec-template.md ......... ✅ alinhado (sem referência rígida que conflite)
-  - .specify/templates/tasks-template.md ........ ✅ alinhado (categorização de tarefas compatível)
+  - .specify/templates/plan-template.md ........ ✅ alinhado (Constitution Check puxa os gates daqui)
+  - .specify/templates/spec-template.md ......... ✅ alinhado
+  - .specify/templates/tasks-template.md ........ ✅ alinhado
   - .specify/templates/checklist-template.md .... ✅ alinhado
   - .specify/templates/constitution-template.md . ℹ️ é o template fonte; não alterado
 
-Follow-up TODOs: nenhum (sem placeholders deferidos).
+Propagação (feature 007):
+  - CLAUDE.md .................................. ⚠️ atualizar referência "(v1.0.0)" → "(v1.1.0)"
+  - docs/adr/0015, docs/adr/0016 ............... ✅ registram a decisão de sync
+
+Follow-up TODOs: nenhum.
 -->
 
 # Constituição da Livraria 2 (Espaço do Livro)
@@ -123,11 +125,22 @@ O sistema MUST preservar o modelo mental e o vocabulário dos usuários atuais.
 ## Restrições Técnicas & Stack
 
 - **Shell desktop**: Tauri 2. **UI**: React + TypeScript + shadcn/ui + Tailwind. **Núcleo/adapters de
-  sistema**: Rust quando apropriado. **Dados**: SQLite local. Sem backend HTTP; funcionamento offline.
+  sistema**: Rust quando apropriado. **Dados**: SQLite local como base de operação.
+- **Funcionamento offline do PDV é INVARIANTE**: o ponto de venda MUST operar por completo sem
+  internet (venda, baixa de estoque, consulta), com o SQLite local como fonte de operação. Nenhuma
+  funcionalidade essencial do PDV pode depender de conectividade.
+- **Sincronização opcional com a nuvem é PERMITIDA** (emenda 1.1.0), desde que: (a) seja **aditiva** e
+  o PDV continue 100% funcional offline; (b) a nuvem seja um **espelho/hub** que converge por
+  idempotência (upsert por identidade estável), nunca a única fonte de operação do PDV; (c) o acesso
+  use **autenticação por usuário + RLS** e **nenhum segredo administrativo** (`service_role`
+  equivalente) seja embarcado no cliente distribuído; (d) a decisão seja registrada em **ADR**. Um
+  segundo cliente (ex.: app web do escritório) é permitido sob as mesmas condições.
 - **Camadas** (Hexagonal): domínio (regras puras) → aplicação (casos de uso/portas) → adapters
-  (persistência SQLite, importador do `.mdb`, UI, impressão). A regra de dependência aponta para dentro.
+  (persistência SQLite, importador do `.mdb`, **sincronização com a nuvem**, UI, impressão). A regra
+  de dependência aponta para dentro; a nuvem entra **exclusivamente** por porta/adapter.
 - **ADRs** ficam em `docs/adr/`. No mínimo: persistência SQLite; camada de dados/ORM; estratégia de
-  migrations; Hexagonal/SOLID; limite de 300 linhas; hooks+skills; ETL/mapeamento do legado.
+  migrations; Hexagonal/SOLID; limite de 300 linhas; hooks+skills; ETL/mapeamento do legado;
+  **sincronização com a nuvem** (arquitetura e identidade/convergência).
 - Decisões de tecnologia que afetem estes pontos MUST passar por ADR antes da implementação.
 
 ## Fluxo de Desenvolvimento & Quality Gates
@@ -154,4 +167,4 @@ O sistema MUST preservar o modelo mental e o vocabulário dos usuários atuais.
 - Esta constituição reside em `.specify/memory/constitution.md` e é a fonte de orientação de runtime para
   o agente e para os colaboradores.
 
-**Version**: 1.0.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-06-14
+**Version**: 1.1.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-20

@@ -55,12 +55,12 @@ Recursos mutáveis compartilhados (editáveis nos dois lados): **cadastro/preço
 | II. KISS & DRY / YAGNI | Reusa o ledger existente (nada de motor de sync genérico). **Uma via lógica de escrita por origem** (PDV=saídas, escritório=entradas) evita resolução de conflito. Derivados recomputados por **um** fold (fonte única). Escritório grava **eventos crus** — regras de negócio NÃO são reimplementadas em TS (invariantes viram `CHECK` no schema). Web estático, sem SSR (Next.js rejeitado). | ✅ PASS |
 | III. ≤300 linhas/arquivo | Sync fatiado: `domain/sincronizacao.rs` (regras), `application/sincronizacao.rs` (orquestração), `adapters/nuvem/supabase_sync.rs` (I/O), `commands_sync.rs`. App web em componentes pequenos. | ✅ PASS (hook verifica) |
 | IV. Persistência idempotente por comando | Merge = **upsert por `sync_uid`** (ADR-0006 estende ao sync). Migração local `m008` só ADD COLUMN + backfill idempotente de `sync_uid`. Schema da nuvem por migração idempotente. Re-sync não duplica. | ✅ PASS |
-| V. Guardrails (Hooks/Skills/ADRs) | **Requer ADR-0015** (arquitetura de sync: hub nuvem, PDV réplica, escritório web, RLS) e **ADR-0016** (identidade `sync_uid`, convergência e recomputação de derivados). Hook de 300 linhas e skills vigentes. | ⚠️ PASS **condicionado** aos ADRs |
+| V. Guardrails (Hooks/Skills/ADRs) | **ADR-0015** (arquitetura de sync) e **ADR-0016** (identidade `sync_uid`, dedup e recomputação de derivados) **registrados**. Hook de 300 linhas e skills vigentes. | ✅ PASS |
 | VI. Fidelidade ao domínio & pt-BR | Vocabulário mantido; escritório repete os termos de recebimento (003), estoque (002), formas de pagamento (005) e destinação (006). Valores em `R$`/centavos. | ✅ PASS |
 | **Segurança / acesso** | **Login por usuário** (Supabase Auth) + **RLS por usuário** + coluna de **autoria** nas gravações do escritório (auditoria/revogação). `service_role` nunca no cliente. | ✅ PASS |
-| **Restrição de stack** ("Sem backend HTTP; offline; SQLite local; só Tauri") | **VIOLAÇÃO MATERIAL**: introduz base na nuvem, consumo de API HTTP e um segundo app (web). O PDV segue offline-capable, mas a restrição como está escrita não permite nuvem. | ❌ **Requer emenda 1.1.0** |
+| **Restrição de stack** (nuvem/HTTP/2º app) | **Resolvido pela emenda 1.1.0**: a constituição passa a permitir sync opcional com a nuvem sob invariante de offline do PDV + login/RLS + segredos fora do binário. | ✅ PASS |
 
-**Resultado do gate**: **NÃO passa como está** — a restrição de stack precisa de emenda formal + ADRs (ver Complexity Tracking). O restante do design é conforme. Nada deve ser implementado antes da emenda e dos ADRs (Princípio V e Governança).
+**Resultado do gate**: **PASSA**. A emenda **1.1.0** (constituição atualizada) e os **ADR-0015/0016** foram registrados; o design é conforme. Gate de governança **liberado** para `/speckit-tasks`.
 
 ## Project Structure
 
@@ -129,4 +129,4 @@ packages/                        # NOVO (opcional) — tipos/utilitários compar
 | **Segundo app (web) além do Tauri** (contra "só Tauri desktop") | O escritório usa navegador; instalar Tauri no escritório não resolve "notebook desligado" (são máquinas distintas). | Reusar só o app Tauri não cobre o acesso web independente do PDV. |
 | **Novas dependências** (`reqwest`, `uuid`, `supabase-js`) | Cliente HTTP e identidade global são pré-requisitos do sync. | Implementar HTTP/UUID à mão viola KISS e aumenta risco. |
 
-**Ação de governança exigida (gate)**: emenda **1.1.0** (MINOR — expande a stack para "PDV offline-capable + sync opcional com nuvem"; mantém o PDV funcional offline como invariante) + **ADR-0015** e **ADR-0016**. Sem isso, a implementação **não** deve começar.
+**Ação de governança (gate) — CONCLUÍDA em 2026-07-20**: ✅ emenda **1.1.0** (MINOR — permite sync opcional com nuvem sob invariante de offline do PDV) + ✅ **ADR-0015** (arquitetura) e ✅ **ADR-0016** (identidade/convergência). A implementação está liberada.
