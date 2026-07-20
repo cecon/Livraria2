@@ -7,7 +7,7 @@ Guia de validação ponta a ponta. Prova os cenários P1 da [spec](spec.md): esc
 - Base na nuvem provisionada (Supabase; segredos na Memória do Projeto no Notion), com schema espelho + **RLS por usuário** aplicados e **Supabase Auth** habilitado (ao menos 1 usuário do escritório).
 - `m008` aplicada no SQLite local (colunas de sync + backfill de `sync_uid` + índices de dedup).
 - **Seed inicial** executado (`seed_inicial`) — histórico completo já na nuvem (D13).
-- App do escritório publicado (Portainer/nginx), com **login** funcionando.
+- App do escritório (Next.js) publicado como container no **Portainer Swarm**, com **login** funcionando.
 - **Emenda 1.1.0 e ADR-0015/0016 já registrados** (gate de governança).
 
 ## Cenário 1 — Escritório recebe livro com o notebook desligado (US1, SC-001)
