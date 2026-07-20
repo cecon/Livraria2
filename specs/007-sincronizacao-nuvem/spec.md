@@ -8,6 +8,16 @@
 
 **Input**: User description: "manter o escritório funcionando quando o notebook está desligado, mas chegou livro, e manter o notebook funcionando se não tiver internet no momento"
 
+## Clarifications
+
+### Session 2026-07-20
+
+- Q: Como os usuários do escritório se autenticam no app web da nuvem? → A: Login por usuário (Supabase Auth) — cada pessoa com e-mail/senha, permitindo RLS por usuário, auditoria de quem gravou e revogação.
+- Q: Se o mesmo livro (mesmo código de barras) for cadastrado nos dois lados antes de sincronizar, o que acontece? → A: O código de barras é a chave de deduplicação — os dois lados convergem para o mesmo livro; edições resolvem por última-edição.
+- Q: Quais dados sobem para a nuvem nesta feature? → A: Tudo — além de livro, estoque, vendas e recebimento, também **formas de pagamento (005)** e **destinações de doações (006)**.
+- Q: O que acontece com o histórico já existente no SQLite quando a sincronização for ativada? → A: Sobe **todo o histórico** (seed completo) — vendas e movimentos existentes vão para a nuvem, para o estoque bater e o escritório enxergar tudo.
+- Q: Como ficam os fornecedores (005/003) já que o escritório faz recebimento? → A: **Fornecedores sincronizam** e o escritório **pode cadastrar/editar** (dedup por nome/documento), permitindo receber de fornecedor novo com o notebook desligado.
+
 ## User Scenarios & Testing *(mandatory)*
 
 Dois papéis operam o sistema, cada um podendo estar indisponível para o outro:
@@ -116,6 +126,10 @@ A sincronização acontece sozinha em segundo plano sempre que há internet, sem
 - Relógios do notebook e da nuvem dessincronizados → a decisão de "última edição vence" e a ordem de sincronização usam uma referência de tempo confiável, não o relógio local do caixa.
 - Um livro removido em um lado → não "ressuscita" após a sincronização.
 - Uma saída de venda que chega antes da entrada correspondente (ordem de sincronização) → o estoque final permanece correto, pois é a soma de todos os movimentos, independente da ordem.
+- Mesmo livro (mesmo código de barras) cadastrado nos dois lados antes de sincronizar → converge para um único livro pelo código de barras, sem duplicata; o cadastro resolve por última edição.
+- Carga inicial (seed) de todo o histórico com registros inconsistentes preexistentes → os válidos sobem; os inconsistentes são isolados e reportados, sem abortar a carga.
+- Usuário do escritório com acesso revogado → deixa de gravar/ler na nuvem, sem afetar os dados já sincronizados.
+- Mesmo fornecedor cadastrado nos dois lados → converge por nome/documento, sem duplicata; recebimentos permanecem vinculados ao fornecedor mesclado.
 
 ## Requirements *(mandatory)*
 
@@ -133,18 +147,27 @@ A sincronização acontece sozinha em segundo plano sempre que há internet, sem
 - **FR-010**: A sincronização MUST ser retomável — após interrupção, continua e conclui sem duplicar o que já havia sido sincronizado.
 - **FR-011**: O sistema MUST mesclar movimentos independentemente da ordem em que chegam, mantendo o total de estoque correto.
 - **FR-012**: O sistema MUST tolerar dados inconsistentes preexistentes (ex.: movimento referenciando livro ausente) isolando e reportando o item afetado, sem interromper a sincronização dos demais.
-- **FR-013**: O acesso à base na nuvem MUST ser autenticado e restrito; nenhuma credencial de acesso pode ficar exposta no aplicativo distribuído.
+- **FR-013**: O acesso à base na nuvem MUST ser autenticado por **login de usuário** (cada operador do escritório com sua própria credencial); o acesso é restrito e nenhuma credencial administrativa pode ficar exposta no aplicativo distribuído.
 - **FR-014**: O sistema MUST indicar ao operador o estado de sincronização (ex.: sincronizado, pendente, sem conexão).
 - **FR-015**: Uma exclusão feita em um lado MUST propagar para o outro, sem que o item excluído reapareça após a sincronização.
 - **FR-016**: A sincronização SHOULD ocorrer automaticamente quando houver conexão, sem exigir ação manual, mantendo também a opção de disparo manual.
+- **FR-017**: Quando o mesmo livro (mesmo código de barras) for cadastrado independentemente nos dois lados, o sistema MUST tratá-los como **o mesmo livro** (deduplicação pelo código de barras), sem criar duplicata, convergindo o cadastro pela última edição.
+- **FR-018**: O sistema MUST sincronizar também as **formas de pagamento** (feature 005) e as **destinações de doações e alocações de venda** (feature 006), de modo que os relatórios correspondentes fiquem disponíveis no escritório.
+- **FR-019**: Ao ativar a sincronização, o sistema MUST realizar uma **carga inicial (seed) de todo o histórico existente** (livros, movimentos, vendas, recebimentos) para a nuvem, de forma idempotente, isolando e reportando registros inconsistentes sem abortar a carga.
+- **FR-020**: O sistema MUST registrar a **autoria** das gravações do escritório (qual usuário gerou o dado), permitindo auditoria e revogação de acesso individual.
+- **FR-021**: O sistema MUST sincronizar os **fornecedores** e permitir que o escritório os **cadastre e edite** pela nuvem (deduplicação por nome/documento), de modo que um recebimento possa ser vinculado a fornecedor novo mesmo com o notebook desligado.
 
 ### Key Entities *(include if feature involves data)*
 
 - **Movimento de estoque**: evento **imutável** que registra uma mudança de estoque (tipos: saldo inicial, entrada, saída de venda, ajuste, contagem, estorno). Tem identidade estável, quantidade, custo, referência ao livro, origem (PDV ou escritório) e momento. É a **fonte da verdade** do estoque — o saldo é sempre a soma dos movimentos.
-- **Livro**: cadastro do produto (título, código de barras, preço). Estado **mutável**, editável tanto no PDV quanto no escritório.
+- **Livro**: cadastro do produto (título, código de barras, preço). Estado **mutável**, editável tanto no PDV quanto no escritório. O **código de barras é a chave de deduplicação** entre os dois lados — um mesmo código nunca gera dois livros.
 - **Venda**: registro de uma venda no PDV; gera os movimentos de saída correspondentes.
 - **Recebimento (entrada de fornecedor)**: registro feito no escritório; gera os movimentos de entrada correspondentes.
+- **Fornecedor** (feature 003): cadastro do fornecedor; **mutável**, editável no PDV e no escritório; deduplicado por nome/documento. Necessário para vincular recebimentos.
+- **Forma de pagamento** (feature 005): como a venda foi recebida; sincronizada junto das vendas para os relatórios do escritório.
+- **Destinação / Alocação de venda** (feature 006): destinação de doações e a alocação por venda; sincronizadas para o relatório de repasse por destinação ficar disponível no escritório.
 - **Origem / Estação**: identifica onde um dado foi criado (PDV ou escritório), permitindo distinguir e mesclar.
+- **Usuário do escritório**: identidade autenticada (login próprio) associada às gravações feitas na nuvem, para auditoria e revogação.
 - **Estado de sincronização**: controle do que já foi sincronizado e do que está pendente em cada lado.
 
 ## Success Criteria *(mandatory)*
@@ -158,6 +181,8 @@ A sincronização acontece sozinha em segundo plano sempre que há internet, sem
 - **SC-005**: Uma sincronização de rotina, com o volume típico de um dia de operação, conclui em menos de 1 minuto com conexão comum.
 - **SC-006**: Nenhuma credencial de acesso à nuvem fica recuperável a partir do aplicativo distribuído.
 - **SC-007**: O operador identifica em poucos segundos se seus dados estão sincronizados ou pendentes.
+- **SC-008**: Apenas usuários autenticados com login próprio acessam ou gravam na nuvem; cada gravação do escritório é atribuível a um usuário.
+- **SC-009**: Após a carga inicial, o estoque e o histórico de vendas na nuvem batem com os do PDV em 100% dos livros válidos, e todo registro inconsistente descartado é reportado.
 
 ## Assumptions
 
@@ -166,10 +191,14 @@ A sincronização acontece sozinha em segundo plano sempre que há internet, sem
 - O escritório opera **sempre online** (é a interface na nuvem) e não precisa de modo offline próprio; apenas o PDV precisa operar sem internet.
 - A **nuvem é o ponto de encontro** (hub) dos dados mesclados; o PDV mantém uma cópia local para operar offline e sincroniza as diferenças.
 - **Consistência eventual** é aceitável — não é necessário sincronizar em tempo real; latência de segundos a minutos é suficiente.
-- O **único recurso mutável compartilhado** é o cadastro/preço do Livro; para ele vale "última edição vence". Estoque nunca é escrito como número — só como movimentos.
+- Os **recursos mutáveis compartilhados** (editáveis nos dois lados) são o cadastro/preço do **Livro** (dedup por código de barras) e o **Fornecedor** (dedup por nome/documento); para ambos vale "última edição vence". Estoque nunca é escrito como número — só como movimentos.
+- Cadastros de **forma de pagamento (005)** e **destinação (006)** permanecem gerenciados no PDV e replicam para a nuvem principalmente para **leitura/relatório** no escritório (escrita de baixo conflito, um dono).
+- O **escopo de dados sincronizados** inclui livro, estoque (movimentos), vendas (com forma de pagamento e alocações de destinação), recebimento, **fornecedores**, e os cadastros de 005/006.
+- A **ativação** dispara uma **carga inicial (seed) de todo o histórico** existente para a nuvem, idempotente; a partir daí sincroniza incrementalmente.
 - Deleções são raras e podem ser tratadas por **marcação** (soft delete) em vez de remoção física, para propagarem de forma consistente.
 - O volume de dados é de uma **livraria pequena** (milhares de registros), não exige escala de milhões.
 - A interface do escritório pode **reaproveitar** os fluxos de recebimento (feature 003) e de movimentos de estoque (feature 002).
+- A autenticação de usuários usa o mecanismo de **login do provedor da nuvem** (não é preciso construir gestão de identidade própria).
 
 ## Dependencies
 
