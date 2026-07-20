@@ -14,7 +14,7 @@ Abordagem técnica central — três pilares que tornam isso tratável sem cair 
 2. **Nuvem é o hub**; o PDV mantém o SQLite local como **réplica offline** e sincroniza deltas. O escritório é um **cliente web fino** (sempre online) que grava eventos crus direto na nuvem.
 3. **Idempotência por identidade estável**: cada registro sincronizável ganha um **`sync_uid` (UUID)** imutável gerado na origem; a sincronização é **upsert por `sync_uid`** (mesmo princípio do import idempotente do legado — ADR-0006), retomável e à prova de re-execução.
 
-Recursos mutáveis compartilhados (editáveis nos dois lados): **cadastro/preço do Livro** (dedup por código de barras) e **Fornecedor** (dedup por nome/documento) → **última edição vence** por `atualizado_em` (tempo do servidor). Deleções via **soft delete**.
+Recursos mutáveis compartilhados (editáveis nos dois lados): **cadastro/preço do Livro** (dedup por código de barras), **Fornecedor** (dedup por nome/documento) e **Operador do PDV** (dedup por usuário, **sem `senha_hash`**) → **última edição vence** por `atualizado_em` (tempo do servidor). Deleções via **soft delete**.
 
 > **Clarificações incorporadas (2026-07-20)** — este plano reflete as 5 respostas do `/speckit-clarify`:
 > 1. **Auth por usuário** (Supabase Auth) + RLS por usuário + **autoria** nas gravações do escritório — não apenas chave `anon`.
@@ -96,7 +96,7 @@ src-tauri/src/
 │                                 #   usuario.senha_hash FORA do sync. Só ADD/CREATE IF NOT EXISTS.
 ├── domain/
 │   └── sincronizacao.rs          # NOVO — regras puras: ordenação por dependência (pais→filhas),
-│                                 #   last-write-wins (livro/fornecedor), dedup por chave natural,
+│                                 #   last-write-wins (livro/fornecedor/operador), dedup por chave natural,
 │                                 #   detecção de órfã, convergência do fold
 ├── application/
 │   ├── ports_sync.rs             # NOVO — trait SyncPort (enviar_pendentes, puxar_desde(cursor)),
@@ -113,8 +113,9 @@ src-tauri/src/
 
 apps/                             # NOVO — monorepo passa a ter mais de um front
 └── escritorio/                   # NOVO — app web estático (React + Vite + supabase-js + Supabase Auth)
-    └── src/                      #   telas: Login, Recebimento (entrada), Fornecedores, Cadastro/Preço,
-                                  #   Consulta (estoque/vendas), relatórios (formas de pagamento / destinação)
+    └── src/                      #   telas: Login, Recebimento (entrada), Fornecedores, Operadores,
+                                  #   Cadastro/Preço, Consulta (estoque/vendas), relatórios (formas de
+                                  #   pagamento / destinação / "vendido por" operador)
 packages/                        # NOVO (opcional) — tipos/utilitários compartilhados PDV↔escritório
 ```
 
