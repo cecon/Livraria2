@@ -104,7 +104,7 @@ impl ReplicaLocalRepo for SeaReplicaSync {
             }
             for r in s.refs {
                 colunas.push(r.col_local.to_string());
-                placeholders.push(format!("(select id from {} where sync_uid=?)", r.pai));
+                placeholders.push(format!("(select {} from {} where sync_uid=?)", r.chave_local_pai, r.pai));
                 vals.push(valor(&reg.dados, r.uid_key, Tipo::Texto));
             }
             // Meta: origem/atualizado_em são NOT NULL (fallback 'pdv'/''); excluido_em nullable.

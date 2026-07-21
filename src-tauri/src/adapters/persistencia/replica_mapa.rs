@@ -9,30 +9,35 @@ pub(crate) enum Tipo {
     Inteiro,
     Bool,
 }
-
 pub(crate) struct Col {
     pub nome: &'static str,
     pub tipo: Tipo,
 }
 
-/// FK remapeada: `uid_key` na nuvem ↔ `col_local` (id) resolvida pelo `pai`.
+/// FK remapeada por `sync_uid`. Na nuvem vira `uid_key`; localmente é `col_local`,
+/// que casa com a coluna `chave_local_pai` do `pai` (normalmente `id`, mas p.ex.
+/// `pedido.numero` ou `usuario.usuario`).
 pub(crate) struct Ref {
     pub uid_key: &'static str,
     pub col_local: &'static str,
     pub pai: &'static str,
+    pub chave_local_pai: &'static str,
 }
 
 pub(crate) struct Spec {
     pub recurso: &'static str,
     /// true = cadastro (upsert com LWW); false = evento (DO NOTHING).
     pub mutavel: bool,
-    /// coluna literal setada só no INSERT (ex.: usuario.senha_hash='' = senha pendente).
     pub default_insert: &'static [(&'static str, &'static str)],
     pub cols: &'static [Col],
     pub refs: &'static [Ref],
 }
 
 use Tipo::{Bool, Inteiro, Texto};
+
+const fn rid(uid: &'static str, local: &'static str, pai: &'static str) -> Ref {
+    Ref { uid_key: uid, col_local: local, pai, chave_local_pai: "id" }
+}
 
 pub(crate) const SPECS: &[Spec] = &[
     Spec {
@@ -75,6 +80,70 @@ pub(crate) const SPECS: &[Spec] = &[
         refs: &[],
     },
     Spec {
+        recurso: "forma_pagamento",
+        mutavel: true,
+        default_insert: &[],
+        cols: &[
+            Col { nome: "chave", tipo: Texto },
+            Col { nome: "rotulo", tipo: Texto },
+            Col { nome: "de_sistema", tipo: Bool },
+            Col { nome: "ativa", tipo: Bool },
+            Col { nome: "ordem", tipo: Inteiro },
+        ],
+        refs: &[],
+    },
+    Spec {
+        recurso: "destinacao",
+        mutavel: true,
+        default_insert: &[],
+        cols: &[
+            Col { nome: "nome", tipo: Texto },
+            Col { nome: "nome_norm", tipo: Texto },
+            Col { nome: "de_sistema", tipo: Bool },
+            Col { nome: "ativa", tipo: Bool },
+            Col { nome: "ordem", tipo: Inteiro },
+        ],
+        refs: &[],
+    },
+    // Venda: mutável (cancelamento); operador referencia usuario por `usuario`.
+    Spec {
+        recurso: "pedido",
+        mutavel: true,
+        default_insert: &[],
+        cols: &[
+            Col { nome: "numero", tipo: Inteiro },
+            Col { nome: "cliente", tipo: Texto },
+            Col { nome: "turno", tipo: Texto },
+            Col { nome: "data", tipo: Texto },
+            Col { nome: "total_centavos", tipo: Inteiro },
+            Col { nome: "cancelado", tipo: Bool },
+            Col { nome: "cancelado_em", tipo: Texto },
+        ],
+        refs: &[Ref { uid_key: "operador_uid", col_local: "operador", pai: "usuario", chave_local_pai: "usuario" }],
+    },
+    Spec {
+        recurso: "item_pedido",
+        mutavel: false,
+        default_insert: &[],
+        cols: &[
+            Col { nome: "codigo", tipo: Texto },
+            Col { nome: "titulo", tipo: Texto },
+            Col { nome: "preco_centavos", tipo: Inteiro },
+            Col { nome: "qtd", tipo: Inteiro },
+        ],
+        refs: &[Ref { uid_key: "pedido_uid", col_local: "pedido_numero", pai: "pedido", chave_local_pai: "numero" }],
+    },
+    Spec {
+        recurso: "pagamento_pedido",
+        mutavel: false,
+        default_insert: &[],
+        cols: &[Col { nome: "valor_centavos", tipo: Inteiro }],
+        refs: &[
+            Ref { uid_key: "pedido_uid", col_local: "pedido_numero", pai: "pedido", chave_local_pai: "numero" },
+            rid("forma_uid", "forma_id", "forma_pagamento"),
+        ],
+    },
+    Spec {
         recurso: "lancamento_entrada",
         mutavel: true,
         default_insert: &[],
@@ -84,7 +153,7 @@ pub(crate) const SPECS: &[Spec] = &[
             Col { nome: "status", tipo: Texto },
             Col { nome: "finalizada_em", tipo: Texto },
         ],
-        refs: &[Ref { uid_key: "fornecedor_uid", col_local: "fornecedor_id", pai: "fornecedor" }],
+        refs: &[rid("fornecedor_uid", "fornecedor_id", "fornecedor")],
     },
     Spec {
         recurso: "item_lancamento",
@@ -92,11 +161,11 @@ pub(crate) const SPECS: &[Spec] = &[
         default_insert: &[],
         cols: &[Col { nome: "qtd", tipo: Inteiro }, Col { nome: "custo_unit_centavos", tipo: Inteiro }],
         refs: &[
-            Ref { uid_key: "lancamento_uid", col_local: "lancamento_id", pai: "lancamento_entrada" },
-            Ref { uid_key: "livro_uid", col_local: "livro_id", pai: "livro" },
+            rid("lancamento_uid", "lancamento_id", "lancamento_entrada"),
+            rid("livro_uid", "livro_id", "livro"),
         ],
     },
-    // Movimento de estoque: evento append-only (DO NOTHING); FK livro por sync_uid.
+    // Estoque: evento append-only; FK livro por sync_uid.
     Spec {
         recurso: "movimento_estoque",
         mutavel: false,
@@ -110,7 +179,30 @@ pub(crate) const SPECS: &[Spec] = &[
             Col { nome: "referencia", tipo: Texto },
             Col { nome: "criado_em", tipo: Texto },
         ],
-        refs: &[Ref { uid_key: "livro_uid", col_local: "livro_id", pai: "livro" }],
+        refs: &[rid("livro_uid", "livro_id", "livro")],
+    },
+    // Destinação (006): transferências e alocações de venda.
+    Spec {
+        recurso: "transferencia_destinacao",
+        mutavel: false,
+        default_insert: &[],
+        cols: &[Col { nome: "qtd", tipo: Inteiro }, Col { nome: "motivo", tipo: Texto }, Col { nome: "criado_em", tipo: Texto }],
+        refs: &[
+            rid("livro_uid", "livro_id", "livro"),
+            rid("de_destinacao_uid", "de_destinacao_id", "destinacao"),
+            rid("para_destinacao_uid", "para_destinacao_id", "destinacao"),
+        ],
+    },
+    Spec {
+        recurso: "alocacao_venda",
+        mutavel: false,
+        default_insert: &[],
+        cols: &[Col { nome: "qtd", tipo: Inteiro }, Col { nome: "valor_centavos", tipo: Inteiro }],
+        refs: &[
+            Ref { uid_key: "pedido_uid", col_local: "pedido_numero", pai: "pedido", chave_local_pai: "numero" },
+            rid("item_uid", "item_id", "item_pedido"),
+            rid("destinacao_uid", "destinacao_id", "destinacao"),
+        ],
     },
 ];
 
@@ -118,8 +210,8 @@ pub(crate) fn spec(recurso: &str) -> Option<&'static Spec> {
     SPECS.iter().find(|s| s.recurso == recurso)
 }
 
-/// Expressão `json_object(...)` que produz a linha no formato da nuvem
-/// (booleanos 0/1→true/false; `atualizado_em` vazio→null; FKs → `*_uid`).
+/// `json_object(...)` que produz a linha no formato da nuvem (bool 0/1→true/false;
+/// `atualizado_em` vazio→null; FKs → `*_uid` pela chave do pai).
 pub(crate) fn expr_json(s: &Spec) -> String {
     let mut p = vec![
         "'sync_uid',sync_uid".to_string(),
@@ -134,7 +226,10 @@ pub(crate) fn expr_json(s: &Spec) -> String {
         }
     }
     for r in s.refs {
-        p.push(format!("'{}',(select sync_uid from {} where id=t.{})", r.uid_key, r.pai, r.col_local));
+        p.push(format!(
+            "'{}',(select sync_uid from {} where {}=t.{})",
+            r.uid_key, r.pai, r.chave_local_pai, r.col_local
+        ));
     }
     format!("json_object({})", p.join(","))
 }
