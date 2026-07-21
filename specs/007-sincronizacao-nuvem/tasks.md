@@ -52,7 +52,7 @@
 
 ### Esqueleto do escritório e tipos compartilhados
 
-- [ ] T016 [P] Esqueleto `apps/escritorio` (Next.js): helpers `utils/supabase/{server,client,middleware}.ts` (`@supabase/ssr`) + **tela de Login (Supabase Auth)** + middleware de sessão + guarda de rota (sem sessão, sem acesso) (contracts/escritorio-web.md)
+- [X] T016 [P] Esqueleto `apps/escritorio` (Next.js): helpers `utils/supabase/{server,client,middleware}.ts` (`@supabase/ssr`) + **tela de Login (Supabase Auth)** + middleware de sessão + guarda de rota (sem sessão, sem acesso) (contracts/escritorio-web.md)
 - [ ] T017 [P] Criar `packages/` com tipos de entidade compartilhados (Livro, Fornecedor, Operador, Movimento, Venda) reusados por PDV e escritório
 
 ### Teste base do motor
