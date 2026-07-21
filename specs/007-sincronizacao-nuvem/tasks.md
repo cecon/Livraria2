@@ -121,7 +121,7 @@
 - [X] T035 [US4] Tela **Cadastro/Preço de livro** em apps/escritorio (upsert com `atualizado_em` do servidor; soft delete via `excluido_em`)
 - [ ] T036 [US4] Sincronizar **operador** (`usuario`): upsert com **dedup por `usuario`** + **LWW**, com o adapter **excluindo `senha_hash` do payload** em application/sincronizacao.rs + adapters/nuvem (D15, FR-022)
 - [X] T037 [US4] Tela **Operadores** em apps/escritorio (criar/editar identidade: usuário + nome + ativo, **sem senha**) + no PDV: tratar `senha_hash` vazio como "definir senha no 1º login" e bloquear login até definir (src/ do PDV + application)
-- [ ] T038 [P] [US4] Testes de domínio: LWW (edição mais nova vence), match de dedup (mesmo código/nome/usuário mescla) em src-tauri/src/domain/sincronizacao.rs
+- [X] T038 [P] [US4] Testes de domínio: LWW (edição mais nova vence), match de dedup (mesmo código/nome/usuário mescla) em src-tauri/src/domain/sincronizacao.rs
 - [ ] T039 [US4] Teste de integração (Cenários 5/8/10): preço editado dos dois lados → último vence; mesmo código de barras/fornecedor criado nos dois lados → um único registro; **exclusão (soft delete) de um livro/fornecedor num lado propaga e NÃO ressuscita após sincronizar** (FR-015, Cenário 10)
 - [ ] T040 [US4] Teste de integração (Cenário 9): operador criado no escritório aparece no PDV como "pendente"; após definir senha local, loga; `senha_hash` nunca presente na nuvem (SC-010)
 
@@ -135,10 +135,10 @@
 
 **Independent Test**: após o PDV sincronizar, o escritório vê vendas com operador e os relatórios de formas de pagamento e de repasse por destinação.
 
-- [ ] T041 [US5] Confirmar/estender o escopo de push/pull dos **eventos/cadastros de 006** para os relatórios: `destinacao`, `transferencia_destinacao`, `alocacao_venda` (`forma_pagamento` de 005 já sincroniza desde a Foundational por ser pai de `pagamento_pedido`) (research D14, data-model §4)
+- [X] T041 [US5] Confirmar/estender o escopo de push/pull dos **eventos/cadastros de 006** para os relatórios: `destinacao`, `transferencia_destinacao`, `alocacao_venda` (`forma_pagamento` de 005 já sincroniza desde a Foundational por ser pai de `pagamento_pedido`) (research D14, data-model §4)
 - [ ] T042 [US5] Tela **Consulta de estoque** em apps/escritorio (lê `vw_saldo_livro` + `vw_custo_medio`) e **Consulta de vendas** (pedido/itens/pagamento)
 - [ ] T043 [US5] Telas de **relatório**: formas de pagamento (005) e **repasse por destinação** (006) lendo `alocacao_venda`+`destinacao` (contracts/escritorio-web.md)
-- [ ] T044 [US5] Exibir o **operador ("vendido por")** na consulta/relatório de vendas do escritório, resolvendo `pedido.operador` → nome (vendas antigas: "operador desconhecido") (FR-023, SC-011)
+- [X] T044 [US5] Exibir o **operador ("vendido por")** na consulta/relatório de vendas do escritório, resolvendo `pedido.operador` → nome (vendas antigas: "operador desconhecido") (FR-023, SC-011)
 - [ ] T045 [US5] Teste de integração: após sync do PDV, escritório enxerga vendas (com operador) + relatórios 005/006 batendo com o PDV
 
 **Checkpoint**: visibilidade remota completa no escritório, com atribuição de operador.

@@ -65,8 +65,10 @@ pub fn run() {
             // O frontend consulta `estado_boot` e bloqueia a operação.
             match resultado {
                 Ok(db) => {
-                    app.manage(AppState { db });
+                    app.manage(AppState { db: db.clone() });
                     app.manage(BootState { erro_migracao: None });
+                    // Feature 007: sincronização em background (oportunista, não bloqueia a venda).
+                    tauri::async_runtime::spawn(sincronizacao_periodica(db));
                 }
                 Err(e) => {
                     eprintln!("boot: migração falhou — app bloqueado para operação: {e}");
@@ -148,4 +150,26 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Feature 007: loop de sincronização em background. Oportunista — se não houver
+/// config/rede, apenas dorme e tenta de novo; nunca bloqueia a operação do PDV.
+async fn sincronizacao_periodica(db: DatabaseConnection) {
+    use adapters::nuvem::supabase_sync::SupabaseSync;
+    use adapters::persistencia::replica_sync::SeaReplicaSync;
+    // Espera o app assentar antes da 1ª tentativa.
+    tokio::time::sleep(std::time::Duration::from_secs(15)).await;
+    loop {
+        if let Ok(nuvem) = SupabaseSync::conectar().await {
+            let local = SeaReplicaSync::new(db.clone());
+            match application::sincronizacao::sincronizar(&nuvem, &local).await {
+                Ok(r) if r.enviados + r.recebidos > 0 => {
+                    eprintln!("sync: enviados={} recebidos={} orfas={}", r.enviados, r.recebidos, r.orfas);
+                }
+                Ok(_) => {}
+                Err(e) => eprintln!("sync falhou (segue offline): {e}"),
+            }
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(120)).await;
+    }
 }
