@@ -7,9 +7,38 @@
 use crate::application::ports::RepoErro;
 use crate::application::ports_sync::{LotePull, NuvemRepo, RegistroSync};
 use async_trait::async_trait;
+use serde::Deserialize;
 use serde_json::Value;
+use std::path::Path;
 
 const LIMITE_PULL: usize = 500;
+
+/// Configuração de acesso à nuvem. Segredos fora do repo (ADR-0015): vêm de env
+/// (dev) OU de um arquivo `sync.json` na pasta de config do app (desktop instalado).
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConfigSync {
+    pub url: String,
+    pub anon: String,
+    pub email: String,
+    pub senha: String,
+}
+
+impl ConfigSync {
+    /// Env vars têm prioridade; se incompletas, lê o `arquivo` JSON (se informado).
+    pub fn carregar(arquivo: Option<&Path>) -> Result<Self, RepoErro> {
+        if let (Ok(url), Ok(anon), Ok(email), Ok(senha)) = (
+            std::env::var("SUPABASE_URL"),
+            std::env::var("SUPABASE_ANON_KEY"),
+            std::env::var("SUPABASE_PDV_EMAIL"),
+            std::env::var("SUPABASE_PDV_SENHA"),
+        ) {
+            return Ok(Self { url, anon, email, senha });
+        }
+        let path = arquivo.ok_or_else(|| RepoErro::Persistencia("config de sync ausente (env ou sync.json)".into()))?;
+        let txt = std::fs::read_to_string(path).map_err(erro)?;
+        serde_json::from_str(&txt).map_err(erro)
+    }
+}
 
 pub struct SupabaseSync {
     client: reqwest::Client,
@@ -47,13 +76,16 @@ impl SupabaseSync {
             .ok_or_else(|| RepoErro::Persistencia("login sem access_token".into()))
     }
 
-    /// Conecta lendo o ambiente (URL/ANON/EMAIL/SENHA — segredos fora do repo, ADR-0015)
-    /// e autenticando o usuário de serviço do PDV.
-    pub async fn conectar() -> Result<Self, RepoErro> {
-        let url = env("SUPABASE_URL")?;
-        let anon = env("SUPABASE_ANON_KEY")?;
-        let token = Self::login(&url, &anon, &env("SUPABASE_PDV_EMAIL")?, &env("SUPABASE_PDV_SENHA")?).await?;
-        Ok(Self::new(&url, anon, token))
+    /// Conecta a partir de uma [`ConfigSync`] (autentica o usuário de serviço do PDV).
+    pub async fn conectar_de(cfg: &ConfigSync) -> Result<Self, RepoErro> {
+        let token = Self::login(&cfg.url, &cfg.anon, &cfg.email, &cfg.senha).await?;
+        Ok(Self::new(&cfg.url, cfg.anon.clone(), token))
+    }
+
+    /// Conecta lendo env vars OU o `arquivo` de config (sync.json). Segredos fora
+    /// do repo (ADR-0015).
+    pub async fn conectar(arquivo: Option<&Path>) -> Result<Self, RepoErro> {
+        Self::conectar_de(&ConfigSync::carregar(arquivo)?).await
     }
 
     fn req(&self, method: reqwest::Method, url: &str) -> reqwest::RequestBuilder {
@@ -62,10 +94,6 @@ impl SupabaseSync {
             .header("apikey", &self.apikey)
             .header("Authorization", format!("Bearer {}", self.token))
     }
-}
-
-fn env(k: &str) -> Result<String, RepoErro> {
-    std::env::var(k).map_err(|_| RepoErro::Persistencia(format!("variável {k} ausente")))
 }
 
 fn erro(e: impl std::fmt::Display) -> RepoErro {

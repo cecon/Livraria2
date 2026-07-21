@@ -22,7 +22,7 @@ pub struct ResumoSyncDto {
 /// pelo agendador em background (T041). A venda nunca bloqueia por isto.
 #[tauri::command]
 pub async fn sincronizar_agora(state: tauri::State<'_, AppState>) -> Result<ResumoSyncDto, String> {
-    let nuvem = SupabaseSync::conectar().await.map_err(|e| e.to_string())?;
+    let nuvem = SupabaseSync::conectar(state.config_sync_path.as_deref()).await.map_err(|e| e.to_string())?;
     let local = SeaReplicaSync::new(state.db.clone());
     let r = sincronizar(&nuvem, &local).await.map_err(|e| e.to_string())?;
     Ok(ResumoSyncDto { enviados: r.enviados, recebidos: r.recebidos, orfas: r.orfas })
@@ -61,7 +61,7 @@ pub async fn listar_operadores(state: tauri::State<'_, AppState>) -> Result<Vec<
 /// quantos registros foram enviados.
 #[tauri::command]
 pub async fn seed_inicial(state: tauri::State<'_, AppState>) -> Result<usize, String> {
-    let nuvem = SupabaseSync::conectar().await.map_err(|e| e.to_string())?;
+    let nuvem = SupabaseSync::conectar(state.config_sync_path.as_deref()).await.map_err(|e| e.to_string())?;
     let local = SeaReplicaSync::new(state.db.clone());
     semear(&nuvem, &local).await.map_err(|e| e.to_string())
 }

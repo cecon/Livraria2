@@ -25,7 +25,7 @@ fn reg(recurso: &str, uid: &str, dados: serde_json::Value) -> RegistroSync {
 #[ignore]
 async fn sincroniza_livro_do_pdv_para_a_nuvem() {
     // 1) Conecta (login email/senha → JWT).
-    let nuvem = SupabaseSync::conectar().await.expect("login PDV");
+    let nuvem = SupabaseSync::conectar(None).await.expect("login PDV");
 
     // 2) SQLite migrado + um livro local (codigo fixo → idempotente por upsert).
     let db = Database::connect("sqlite::memory:").await.unwrap();
@@ -55,7 +55,7 @@ async fn sincroniza_livro_do_pdv_para_a_nuvem() {
 #[tokio::test]
 #[ignore]
 async fn escritorio_recebe_pdv_puxa_e_estoque_reflete() {
-    let nuvem = SupabaseSync::conectar().await.expect("login");
+    let nuvem = SupabaseSync::conectar(None).await.expect("login");
     let lu = format!("11111111-1111-4111-8111-{:012}", 1u64); // uid fixo do livro de teste
     let mu = format!("22222222-2222-4222-8222-{:012}", 1u64); // uid do movimento
     let codigo = "E2E-PULL-007";

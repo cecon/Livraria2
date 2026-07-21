@@ -28,6 +28,9 @@ use serde::{Deserialize, Serialize};
 /// (DatabaseConnection é barato de clonar — Arc interno).
 pub struct AppState {
     pub db: DatabaseConnection,
+    /// Caminho do `sync.json` (config da nuvem) na pasta de config do app.
+    /// `None` = usa só env vars (dev). Feature 007.
+    pub config_sync_path: Option<std::path::PathBuf>,
 }
 
 /// Erro serializado que cruza a fronteira Tauri: `{ codigo, mensagem }`.
