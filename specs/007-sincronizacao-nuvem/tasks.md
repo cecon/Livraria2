@@ -20,7 +20,7 @@
 **Purpose**: preparar monorepo, dependências e configuração da nuvem — sem lógica de negócio.
 
 - [ ] T001 Criar workspace npm com o app do escritório: `apps/escritorio` (**Next.js App Router** + React + TS) e `packages/` (tipos compartilhados), configurando `workspaces` em package.json **sem corromper o lockfile** (npm-only; memória `npm-only-lockfile`)
-- [ ] T002 [P] Adicionar deps Rust em src-tauri/Cargo.toml: `reqwest` (features rustls-tls, json), `uuid` (v4) — cliente HTTP e identidade global (research D3/D4)
+- [X] T002 [P] Adicionar deps Rust em src-tauri/Cargo.toml: `reqwest` (features rustls-tls, json), `uuid` (v4) — cliente HTTP e identidade global (research D3/D4)
 - [ ] T003 [P] Configurar acesso à nuvem via variáveis de ambiente (URL do projeto, chave `anon`, token de usuário de serviço do PDV) — documentar em `apps/escritorio/.env.example` e config do adapter; **nenhum segredo no repositório** (segredos no Notion, ADR-0015)
 - [ ] T004 [P] Configurar lint/build do `apps/escritorio` (Next.js) alinhado à raiz (tsconfig, eslint, script `build`) + **`Dockerfile`** (build standalone do Next.js) para publicar como serviço no Portainer Swarm
 
