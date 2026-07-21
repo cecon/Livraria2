@@ -133,7 +133,11 @@ impl NuvemRepo for SupabaseSync {
             return Ok(());
         }
         let corpo: Vec<&Value> = registros.iter().map(|r| &r.dados).collect();
-        let url = format!("{}/{recurso}", self.rest_url);
+        // Resolve conflito pela **chave natural** dos cadastros (chave/codigo/nome_norm/
+        // usuario) — o mesmo registro pode ter `sync_uid` diferente entre PDV e nuvem.
+        // Eventos (sem chave natural) resolvem por `sync_uid`.
+        let conflito = crate::domain::sincronizacao::chave_natural(recurso).unwrap_or("sync_uid");
+        let url = format!("{}/{recurso}?on_conflict={conflito}", self.rest_url);
         let resp = self
             .req(reqwest::Method::POST, &url)
             .header("Content-Type", "application/json")

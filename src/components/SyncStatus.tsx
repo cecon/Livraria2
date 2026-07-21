@@ -9,6 +9,7 @@ type Estado = "sincronizado" | "pendente" | "sincronizando" | "offline";
 export function SyncStatus() {
   const [pendentes, setPendentes] = useState(0);
   const [estado, setEstado] = useState<Estado>("sincronizado");
+  const [erro, setErro] = useState<string | null>(null);
 
   const atualizar = useCallback(async () => {
     try {
@@ -28,11 +29,13 @@ export function SyncStatus() {
 
   async function sincronizar() {
     setEstado("sincronizando");
+    setErro(null);
     try {
       await sincronizarAgora();
       setEstado("sincronizado");
-    } catch {
+    } catch (e) {
       setEstado("offline");
+      setErro(typeof e === "string" ? e : ((e as Error)?.message ?? "erro"));
     }
     atualizar();
   }
@@ -50,25 +53,32 @@ export function SyncStatus() {
     estado === "offline" ? "#b3261e" : pendentes > 0 || estado === "sincronizando" ? "#b8860b" : "#1a7f37";
 
   return (
-    <button
-      type="button"
-      onClick={sincronizar}
-      disabled={estado === "sincronizando"}
-      title="Sincronizar com a nuvem"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        border: "1px solid #d0d5da",
-        background: "transparent",
-        borderRadius: 8,
-        padding: "4px 10px",
-        cursor: "pointer",
-        font: "inherit",
-      }}
-    >
-      <span style={{ width: 8, height: 8, borderRadius: "50%", background: cor }} />
-      <span>{rotulo}</span>
-    </button>
+    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <button
+        type="button"
+        onClick={sincronizar}
+        disabled={estado === "sincronizando"}
+        title={erro ?? "Sincronizar com a nuvem"}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          border: "1px solid #d0d5da",
+          background: "transparent",
+          borderRadius: 8,
+          padding: "4px 10px",
+          cursor: "pointer",
+          font: "inherit",
+        }}
+      >
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: cor }} />
+        <span>{rotulo}</span>
+      </button>
+      {erro && (
+        <span style={{ color: "#b3261e", fontSize: 11, maxWidth: 180, wordBreak: "break-word" }}>
+          {erro}
+        </span>
+      )}
+    </div>
   );
 }

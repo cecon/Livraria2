@@ -58,8 +58,14 @@ pub async fn sincronizar(
     Ok(resumo)
 }
 
-/// Empurra todos os pendentes (pais→filhas), marcando-os sincronizados. Retorna
-/// quantos foram enviados. Usado pelo sync e pela carga inicial (`semear`).
+/// Tamanho do lote de push. Um upsert por lote (evita payloads gigantes que
+/// estouram/travam com bases grandes — ex.: o seed inicial de milhares de linhas).
+const LOTE_PUSH: usize = 500;
+
+/// Empurra todos os pendentes (pais→filhas) em **lotes**, marcando cada lote como
+/// sincronizado. Retorna quantos foram enviados. Como cada lote é marcado assim que
+/// sobe, uma falha no meio preserva o progresso (retomável) e o contador de
+/// pendentes baixa progressivamente. Usado pelo sync e pela carga inicial (`semear`).
 async fn enviar_pendentes(
     nuvem: &dyn NuvemRepo,
     local: &dyn ReplicaLocalRepo,
@@ -68,13 +74,12 @@ async fn enviar_pendentes(
     let mut enviados = 0;
     for recurso in ORDEM_DEPENDENCIA {
         let pendentes = local.pendentes(recurso).await?;
-        if pendentes.is_empty() {
-            continue;
+        for lote in pendentes.chunks(LOTE_PUSH) {
+            nuvem.upsert(recurso, lote).await?;
+            let uids: Vec<String> = lote.iter().map(|r| r.sync_uid.clone()).collect();
+            local.marcar_sincronizado(recurso, &uids, agora).await?;
+            enviados += lote.len();
         }
-        nuvem.upsert(recurso, &pendentes).await?;
-        let uids: Vec<String> = pendentes.iter().map(|r| r.sync_uid.clone()).collect();
-        local.marcar_sincronizado(recurso, &uids, agora).await?;
-        enviados += pendentes.len();
     }
     Ok(enviados)
 }
