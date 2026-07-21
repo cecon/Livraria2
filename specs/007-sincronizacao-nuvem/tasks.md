@@ -47,7 +47,7 @@
 - [X] T011 Criar src-tauri/src/application/ports_sync.rs: trait `SyncPort` (`enviar_pendentes`, `puxar_desde(cursor)`, `aplicar_delta`), trait `RelogioServidor` (`agora_servidor`) + tipos de delta/resumo; registrar em application/mod.rs (contracts/sync-port.md)
 - [X] T012 Criar src-tauri/src/adapters/nuvem/mod.rs + supabase_sync.rs: implementa `SyncPort` via PostgREST/HTTPS (`reqwest`), **upsert por `sync_uid`** (`Prefer: resolution=merge-duplicates`), autenticação por token de usuário (nunca `service_role`), leitura do tempo do servidor, **excluindo `usuario.senha_hash` do payload**; registrar em adapters/mod.rs
 - [X] T013 Criar src-tauri/src/application/sincronizacao.rs: caso de uso que orquestra **push pendentes → pull desde cursor → recomputar derivados** (`custo_medio` por fold nos livros afetados) → persistir `last_cursor` em `sync_cursor`; retomável e idempotente
-- [ ] T014 Criar src-tauri/src/commands_sync.rs: comandos Tauri `sincronizar_agora`, `status_sincronizacao` (contrato sync-port.md) e registrar em src-tauri/src/lib.rs
+- [X] T014 Criar src-tauri/src/commands_sync.rs: comandos Tauri `sincronizar_agora`, `status_sincronizacao` (contrato sync-port.md) e registrar em src-tauri/src/lib.rs
 - [ ] T015 [P] Criar src/lib/ipc_sync.ts (bindings) + tipos de status em src/lib/types.ts (PDV)
 
 ### Esqueleto do escritório e tipos compartilhados
@@ -57,7 +57,7 @@
 
 ### Teste base do motor
 
-- [ ] T018 Teste de adapter em src-tauri/src/adapters/nuvem/supabase_sync.rs (`#[cfg(test)]` contra Postgres/PostgREST de teste): upsert **idempotente** por `sync_uid` (2× = 1); **retomada** após interrupção não duplica
+- [X] T018 Teste de adapter em src-tauri/src/adapters/nuvem/supabase_sync.rs (`#[cfg(test)]` contra Postgres/PostgREST de teste): upsert **idempotente** por `sync_uid` (2× = 1); **retomada** após interrupção não duplica
 
 **Checkpoint**: `cargo test` verde; `m008` aplicada; login do escritório funciona; sync manual sobe/baixa um registro sem duplicar.
 

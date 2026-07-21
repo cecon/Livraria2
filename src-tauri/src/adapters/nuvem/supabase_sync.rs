@@ -24,9 +24,36 @@ impl SupabaseSync {
         Self { client: reqwest::Client::new(), rest_url, apikey, token }
     }
 
-    /// Constrói a partir do ambiente (segredos fora do repo — ADR-0015).
-    pub fn from_env() -> Result<Self, RepoErro> {
-        Ok(Self::new(&env("SUPABASE_URL")?, env("SUPABASE_ANON_KEY")?, env("SUPABASE_TOKEN")?))
+    /// Login por email/senha (Supabase Auth, password grant) → JWT de usuário.
+    pub async fn login(base_url: &str, apikey: &str, email: &str, senha: &str) -> Result<String, RepoErro> {
+        let url = format!("{}/auth/v1/token?grant_type=password", base_url.trim_end_matches('/'));
+        let resp = reqwest::Client::new()
+            .post(&url)
+            .header("apikey", apikey)
+            .header("Content-Type", "application/json")
+            .json(&serde_json::json!({"email": email, "password": senha}))
+            .send()
+            .await
+            .map_err(erro)?;
+        if !resp.status().is_success() {
+            let s = resp.status();
+            let t = resp.text().await.unwrap_or_default();
+            return Err(RepoErro::Persistencia(format!("login {s}: {t}")));
+        }
+        let v: serde_json::Value = resp.json().await.map_err(erro)?;
+        v.get("access_token")
+            .and_then(|x| x.as_str())
+            .map(str::to_string)
+            .ok_or_else(|| RepoErro::Persistencia("login sem access_token".into()))
+    }
+
+    /// Conecta lendo o ambiente (URL/ANON/EMAIL/SENHA — segredos fora do repo, ADR-0015)
+    /// e autenticando o usuário de serviço do PDV.
+    pub async fn conectar() -> Result<Self, RepoErro> {
+        let url = env("SUPABASE_URL")?;
+        let anon = env("SUPABASE_ANON_KEY")?;
+        let token = Self::login(&url, &anon, &env("SUPABASE_PDV_EMAIL")?, &env("SUPABASE_PDV_SENHA")?).await?;
+        Ok(Self::new(&url, anon, token))
     }
 
     fn req(&self, method: reqwest::Method, url: &str) -> reqwest::RequestBuilder {

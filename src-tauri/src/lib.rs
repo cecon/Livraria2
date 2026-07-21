@@ -9,6 +9,7 @@ pub mod commands_formas;
 pub mod commands_fornecedor;
 pub mod commands_inventario;
 pub mod commands_lancamento;
+pub mod commands_sync;
 pub mod domain;
 pub mod migration;
 
@@ -104,6 +105,8 @@ pub fn run() {
             commands::salvar_arquivo,
             commands_estoque::registrar_ajuste,
             commands_estoque::extrato_livro,
+            commands_sync::sincronizar_agora,
+            commands_sync::status_sincronizacao,
             commands_inventario::inventario_abrir,
             commands_inventario::inventario_sessao_aberta,
             commands_inventario::inventario_bipar,
