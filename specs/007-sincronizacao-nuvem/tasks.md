@@ -53,7 +53,7 @@
 ### Esqueleto do escritório e tipos compartilhados
 
 - [X] T016 [P] Esqueleto `apps/escritorio` (Next.js): helpers `utils/supabase/{server,client,middleware}.ts` (`@supabase/ssr`) + **tela de Login (Supabase Auth)** + middleware de sessão + guarda de rota (sem sessão, sem acesso) (contracts/escritorio-web.md)
-- [ ] T017 [P] Criar `packages/` com tipos de entidade compartilhados (Livro, Fornecedor, Operador, Movimento, Venda) reusados por PDV e escritório
+- [~] T017 [P] Criar `packages/` com tipos de entidade compartilhados (Livro, Fornecedor, Operador, Movimento, Venda) reusados por PDV e escritório — N/A (office standalone; lê a nuvem ao vivo)
 
 ### Teste base do motor
 
@@ -122,8 +122,8 @@
 - [X] T036 [US4] Sincronizar **operador** (`usuario`): upsert com **dedup por `usuario`** + **LWW**, com o adapter **excluindo `senha_hash` do payload** em application/sincronizacao.rs + adapters/nuvem (D15, FR-022)
 - [X] T037 [US4] Tela **Operadores** em apps/escritorio (criar/editar identidade: usuário + nome + ativo, **sem senha**) + no PDV: tratar `senha_hash` vazio como "definir senha no 1º login" e bloquear login até definir (src/ do PDV + application)
 - [X] T038 [P] [US4] Testes de domínio: LWW (edição mais nova vence), match de dedup (mesmo código/nome/usuário mescla) em src-tauri/src/domain/sincronizacao.rs
-- [ ] T039 [US4] Teste de integração (Cenários 5/8/10): preço editado dos dois lados → último vence; mesmo código de barras/fornecedor criado nos dois lados → um único registro; **exclusão (soft delete) de um livro/fornecedor num lado propaga e NÃO ressuscita após sincronizar** (FR-015, Cenário 10)
-- [ ] T040 [US4] Teste de integração (Cenário 9): operador criado no escritório aparece no PDV como "pendente"; após definir senha local, loga; `senha_hash` nunca presente na nuvem (SC-010)
+- [X] T039 [US4] Teste de integração (Cenários 5/8/10): preço editado dos dois lados → último vence; mesmo código de barras/fornecedor criado nos dois lados → um único registro; **exclusão (soft delete) de um livro/fornecedor num lado propaga e NÃO ressuscita após sincronizar** (FR-015, Cenário 10)
+- [X] T040 [US4] Teste de integração (Cenário 9): operador criado no escritório aparece no PDV como "pendente"; após definir senha local, loga; `senha_hash` nunca presente na nuvem (SC-010)
 
 **Checkpoint**: cadastros (livro, fornecedor, operador) convergem sem duplicata; senha do PDV nunca sai local.
 
@@ -153,8 +153,8 @@
 
 - [X] T046 [US6] Agendador em background no PDV: chama `sincronizar_agora` periodicamente quando online, sem bloquear a venda (commands_sync.rs / lib.rs)
 - [X] T047 [US6] Indicador de estado no PDV (React): componente que consome `status_sincronizacao` (sincronizado/pendente/sem conexão) — FR-014
-- [ ] T048 [P] [US6] Indicador/atualização no escritório (apps/escritorio) refletindo o estado dos dados
-- [ ] T049 [US6] Teste de integração: novo movimento com internet auto-sincroniza; offline mostra "pendente" e a venda conclui normalmente
+- [~] T048 [P] [US6] Indicador/atualização no escritório (apps/escritorio) refletindo o estado dos dados — N/A (office standalone; lê a nuvem ao vivo)
+- [X] T049 [US6] Teste de integração: novo movimento com internet auto-sincroniza; offline mostra "pendente" e a venda conclui normalmente
 
 **Checkpoint**: sync transparente e observável.
 
