@@ -2,6 +2,8 @@
 
 Dois esquemas espelhados: **local (SQLite, PDV)** e **nuvem (Postgres/Supabase, hub)**. As tabelas de negócio já existem (features 001–006); esta feature adiciona **colunas de sincronização** e o **espelho na nuvem**. Nenhuma tabela de negócio muda de forma; só ganha metadados de sync.
 
+> **⚠️ Correção 2026-07-20 (schema real, pós-implementação).** Este documento foi escrito antes de inspecionar o schema final e usa nomes que **não existem** (`livro_codigo`, `codigo_barras`). O schema real (pós `m004`/`m006`) é: **`livro.id`** (PK autoincrement) + **`livro.codigo`** (código de barras, UNIQUE); `movimento_estoque.livro_id`, `pagamento_pedido.forma_id`, `pedido.numero`, `pedido.operador` (→ `usuario.usuario`). Como esses **ids locais não são estáveis** entre PDV e escritório, **a nuvem referencia os pais por `sync_uid`** (`livro_uid`, `forma_uid`, `operador_uid`…) e o adapter faz o **FK-remap** id↔sync_uid. Schema autoritativo da nuvem: **`apps/nuvem/migrations/`**; do local: as entidades SeaORM + `m008`. Onde este doc disser `livro_codigo`/`codigo_barras`, leia `livro_id`/`codigo`.
+
 ## 1. Colunas de sincronização (adicionadas às tabelas sincronizáveis)
 
 Aplicadas via `m008` (local) e refletidas no schema da nuvem. Tabelas sincronizáveis (escopo confirmado — Clarificação 2026-07-20): `livro`, `movimento_estoque`, `pedido`, `item_pedido`, `pagamento_pedido` (005), `forma_pagamento` (005), `lancamento_entrada`, `item_lancamento`, `fornecedor` (003), `destinacao`, `transferencia_destinacao`, `alocacao_venda` (006), **`usuario` (operador — só identidade, sem `senha_hash`)**.
