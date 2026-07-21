@@ -48,7 +48,7 @@
 - [X] T012 Criar src-tauri/src/adapters/nuvem/mod.rs + supabase_sync.rs: implementa `SyncPort` via PostgREST/HTTPS (`reqwest`), **upsert por `sync_uid`** (`Prefer: resolution=merge-duplicates`), autenticação por token de usuário (nunca `service_role`), leitura do tempo do servidor, **excluindo `usuario.senha_hash` do payload**; registrar em adapters/mod.rs
 - [X] T013 Criar src-tauri/src/application/sincronizacao.rs: caso de uso que orquestra **push pendentes → pull desde cursor → recomputar derivados** (`custo_medio` por fold nos livros afetados) → persistir `last_cursor` em `sync_cursor`; retomável e idempotente
 - [X] T014 Criar src-tauri/src/commands_sync.rs: comandos Tauri `sincronizar_agora`, `status_sincronizacao` (contrato sync-port.md) e registrar em src-tauri/src/lib.rs
-- [ ] T015 [P] Criar src/lib/ipc_sync.ts (bindings) + tipos de status em src/lib/types.ts (PDV)
+- [X] T015 [P] Criar src/lib/ipc_sync.ts (bindings) + tipos de status em src/lib/types.ts (PDV)
 
 ### Esqueleto do escritório e tipos compartilhados
 
@@ -136,7 +136,7 @@
 **Independent Test**: após o PDV sincronizar, o escritório vê vendas com operador e os relatórios de formas de pagamento e de repasse por destinação.
 
 - [X] T041 [US5] Confirmar/estender o escopo de push/pull dos **eventos/cadastros de 006** para os relatórios: `destinacao`, `transferencia_destinacao`, `alocacao_venda` (`forma_pagamento` de 005 já sincroniza desde a Foundational por ser pai de `pagamento_pedido`) (research D14, data-model §4)
-- [ ] T042 [US5] Tela **Consulta de estoque** em apps/escritorio (lê `vw_saldo_livro` + `vw_custo_medio`) e **Consulta de vendas** (pedido/itens/pagamento)
+- [X] T042 [US5] Tela **Consulta de estoque** em apps/escritorio (lê `vw_saldo_livro` + `vw_custo_medio`) e **Consulta de vendas** (pedido/itens/pagamento)
 - [ ] T043 [US5] Telas de **relatório**: formas de pagamento (005) e **repasse por destinação** (006) lendo `alocacao_venda`+`destinacao` (contracts/escritorio-web.md)
 - [X] T044 [US5] Exibir o **operador ("vendido por")** na consulta/relatório de vendas do escritório, resolvendo `pedido.operador` → nome (vendas antigas: "operador desconhecido") (FR-023, SC-011)
 - [X] T045 [US5] Teste de integração: após sync do PDV, escritório enxerga vendas (com operador) + relatórios 005/006 batendo com o PDV

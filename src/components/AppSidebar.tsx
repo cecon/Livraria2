@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { getVersion } from "@tauri-apps/api/app";
+import { SyncStatus } from "./SyncStatus";
 import {
   BookPlus,
   ClipboardList,
@@ -79,6 +80,10 @@ export function AppSidebar({ tema, onToggleTema }: Props) {
           </NavLink>
         ))}
       </nav>
+
+      <div className="mx-3 mb-1">
+        <SyncStatus />
+      </div>
 
       <button
         onClick={onToggleTema}
