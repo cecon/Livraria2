@@ -197,19 +197,8 @@ impl ReplicaLocalRepo for SeaReplicaSync {
     }
 
     async fn recomputar_derivados(&self, livros_uid: &[String]) -> Result<(), RepoErro> {
-        // Estoque = soma dos movimentos não excluídos (ADR-0008). custo_medio (fold
-        // ponderado ordenado por criado_em — ADR-0009) entra num próximo incremento.
-        for uid in livros_uid {
-            self.exec(
-                "UPDATE livro SET estoque = COALESCE((SELECT SUM(m.qtd) FROM movimento_estoque m \
-                 WHERE m.livro_id = livro.id AND (m.excluido_em IS NULL OR m.excluido_em='')),0) \
-                 WHERE sync_uid=?"
-                    .to_string(),
-                vec![Value::String(Some(Box::new(uid.clone())))],
-            )
-            .await?;
-        }
-        Ok(())
+        // Fold do ledger → saldo + custo_medio (ADR-0008/0009), em recompute.rs.
+        super::recompute::recompor(&self.db, livros_uid).await
     }
 }
 
