@@ -86,7 +86,7 @@
 
 - [X] T023 [US2] Marcar pendências no PDV: toda venda/movimento de saída nasce com `sincronizado_em = NULL`; `enviar_pendentes` empurra em ordem pais→filhas e marca com o retorno (data-model.md §1, research D10)
 - [X] T024 [US2] Push de `pedido`/`item_pedido`/`pagamento_pedido` (venda com forma de pagamento — 005) via `supabase_sync` (upsert por `sync_uid`). **`forma_pagamento` (pai da FK `pagamento_pedido.forma_id`) deve estar no escopo desde a Foundational**; o push ordena pais→filhas (T010/T023)
-- [ ] T025 [US2] Registrar o **operador logado** na venda (`pedido.operador`) no fluxo de venda do PDV (application/venda.rs + captura do operador da sessão) e incluí-lo no push (FR-023). **`usuario` (pai de `pedido.operador`) deve estar no escopo desde a Foundational** (push ordenado pais→filhas); o refino de dedup/LWW do operador é T036
+- [X] T025 [US2] Registrar o **operador logado** na venda (`pedido.operador`) no fluxo de venda do PDV (application/venda.rs + captura do operador da sessão) e incluí-lo no push (FR-023). **`usuario` (pai de `pedido.operador`) deve estar no escopo desde a Foundational** (push ordenado pais→filhas); o refino de dedup/LWW do operador é T036
 - [X] T026 [P] [US2] Teste de adapter: 3 vendas pendentes → push → nuvem tem 3 (idempotente); re-push não duplica
 - [X] T027 [US2] Teste de integração (Cenário 2): vender offline, `status_sincronizacao` mostra pendentes; reconectar → nuvem consistente, com operador atribuído
 

@@ -13,6 +13,8 @@ pub struct Model {
     pub total_centavos: i64,
     pub cancelado: bool,
     pub cancelado_em: Option<String>,
+    /// Operador que realizou a venda (feature 007, FR-023). Nullable.
+    pub operador: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

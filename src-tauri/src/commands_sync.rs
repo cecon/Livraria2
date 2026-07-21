@@ -28,6 +28,35 @@ pub async fn sincronizar_agora(state: tauri::State<'_, AppState>) -> Result<Resu
     Ok(ResumoSyncDto { enviados: r.enviados, recebidos: r.recebidos, orfas: r.orfas })
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OperadorDto {
+    pub usuario: String,
+    pub nome: Option<String>,
+}
+
+/// Lista os operadores (usuários do PDV) para o caixa escolher quem está operando
+/// (FR-023). Não expõe senha.
+#[tauri::command]
+pub async fn listar_operadores(state: tauri::State<'_, AppState>) -> Result<Vec<OperadorDto>, String> {
+    let rows = state
+        .db
+        .query_all(Statement::from_string(
+            state.db.get_database_backend(),
+            "SELECT usuario, nome FROM usuario WHERE (excluido_em IS NULL OR excluido_em='') ORDER BY usuario"
+                .to_string(),
+        ))
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(rows
+        .iter()
+        .map(|r| OperadorDto {
+            usuario: r.try_get::<String>("", "usuario").unwrap_or_default(),
+            nome: r.try_get::<Option<String>>("", "nome").ok().flatten(),
+        })
+        .collect())
+}
+
 /// Carga inicial: sobe todo o histórico pendente para a nuvem (T028). Retorna
 /// quantos registros foram enviados.
 #[tauri::command]

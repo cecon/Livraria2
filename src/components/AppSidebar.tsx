@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { getVersion } from "@tauri-apps/api/app";
 import { SyncStatus } from "./SyncStatus";
+import { OperadorAtual } from "./OperadorAtual";
 import {
   BookPlus,
   ClipboardList,
@@ -80,6 +81,8 @@ export function AppSidebar({ tema, onToggleTema }: Props) {
           </NavLink>
         ))}
       </nav>
+
+      <OperadorAtual />
 
       <div className="mx-3 mb-1">
         <SyncStatus />

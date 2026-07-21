@@ -72,6 +72,7 @@ fn pedido(numero: i64, data: &str, codigo: &str, qtd: i64, preco: i64) -> Pedido
         numero,
         cliente: "CLIENTE".into(),
         turno: Turno::de_hora(10),
+        operador: None,
         data: data.into(),
         itens: vec![ItemPedido {
             codigo: codigo.into(),

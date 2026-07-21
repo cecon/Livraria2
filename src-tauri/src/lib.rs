@@ -110,6 +110,7 @@ pub fn run() {
             commands_sync::sincronizar_agora,
             commands_sync::status_sincronizacao,
             commands_sync::seed_inicial,
+            commands_sync::listar_operadores,
             commands_inventario::inventario_abrir,
             commands_inventario::inventario_sessao_aberta,
             commands_inventario::inventario_bipar,
