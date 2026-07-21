@@ -82,6 +82,7 @@ pub(crate) async fn inserir_cabecalho_e_itens(
         total_centavos: Set(pedido.total().centavos()),
         cancelado: Set(false),
         cancelado_em: Set(None),
+        operador: Set(pedido.operador.clone()),
     };
     pedido::Entity::insert(pm).exec(txn).await?;
     super::pagamento_pedido_sql::inserir(txn, pedido.numero, &pedido.pagamentos).await?;

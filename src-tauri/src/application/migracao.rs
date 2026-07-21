@@ -93,6 +93,7 @@ mod tests {
                     numero: 100,
                     cliente: "CLIENTE".into(),
                     turno: Turno::Manha,
+                    operador: None,
                     data: "2025-07-05".into(),
                     itens: vec![ItemPedido {
                         codigo: "111".into(),

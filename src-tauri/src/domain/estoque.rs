@@ -63,6 +63,24 @@ pub fn custo_medio_apos_entrada(
     Dinheiro::de_centavos(round_div(numer, denom))
 }
 
+/// Fold do ledger → `(saldo, custo_medio)` para recompor os derivados após uma
+/// sincronização (ADR-0008/0009). Cada item é `(qtd, custo_unit_centavos)` na
+/// ordem cronológica; `qtd < 0` são saídas. O custo médio só muda em **entrada**
+/// (`qtd > 0` com custo informado); saídas apenas reduzem o saldo.
+pub fn recompor_ledger(movimentos: &[(i64, Option<i64>)]) -> (i64, Dinheiro) {
+    let mut saldo = 0i64;
+    let mut medio = Dinheiro::ZERO;
+    for &(qtd, custo) in movimentos {
+        if qtd > 0 {
+            if let Some(c) = custo {
+                medio = custo_medio_apos_entrada(saldo, medio, qtd, Dinheiro::de_centavos(c));
+            }
+        }
+        saldo += qtd;
+    }
+    (saldo, medio)
+}
+
 /// Deriva (custo_unitário, custo_total) em centavos a partir do que o usuário informou.
 /// Informe `unit` OU `total` (FR-010a). Exige `qtd > 0`.
 pub fn derivar_custos(
@@ -100,6 +118,15 @@ pub fn diferenca_contagem(sistema: i64, contado: i64) -> i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn recompor_ledger_saldo_e_custo_medio() {
+        // entrada 10 @ 100, entrada 10 @ 200 → médio 150, saldo 20; saída -5 → saldo 15, médio mantém.
+        let movs = [(10_i64, Some(100_i64)), (10, Some(200)), (-5, None)];
+        let (saldo, medio) = recompor_ledger(&movs);
+        assert_eq!(saldo, 15);
+        assert_eq!(medio.centavos(), 150);
+    }
 
     #[test]
     fn tipo_ida_e_volta() {

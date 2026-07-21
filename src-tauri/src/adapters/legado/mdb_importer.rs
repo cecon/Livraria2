@@ -279,6 +279,7 @@ impl ImportadorLegado for MdbImportador {
                 data: data_iso(campo(fonte, &idx, "vddata")),
                 itens,
                 pagamentos,
+                operador: None, // vendas do legado não têm operador
             };
 
             if let Some(res) = resumo {

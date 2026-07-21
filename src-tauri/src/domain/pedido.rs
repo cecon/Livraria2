@@ -99,6 +99,8 @@ pub struct Pedido {
     pub data: String, // ISO yyyy-mm-dd
     pub itens: Vec<ItemPedido>,
     pub pagamentos: Pagamentos,
+    /// Operador que realizou a venda (feature 007, FR-023). `None` = desconhecido.
+    pub operador: Option<String>,
 }
 
 impl Pedido {
@@ -171,6 +173,7 @@ mod tests {
             numero: 5997,
             cliente: "CLIENTE".into(),
             turno: Turno::Manha,
+            operador: None,
             data: "2026-06-14".into(),
             itens,
             pagamentos,

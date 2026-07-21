@@ -19,6 +19,8 @@ As decisões nascem do `/speckit-plan` (ver `specs/001-sistema-estoque-vendas/re
 | [0012](0012-identidade-livro-id.md) | Identidade do livro: `id` numérico e `codigo` (barcode) único | Aceito |
 | [0013](0013-cadastro-formas-pagamento.md) | Cadastro de formas de pagamento: registro + junção e migração m006 | Aceito |
 | [0014](0014-destinacao-doacoes.md) | Destinação de doações: Loja como resíduo, carimbos com prioridade de venda | Aceito |
+| [0015](0015-sincronizacao-nuvem.md) | Sincronização com a nuvem: hub Supabase, PDV réplica offline, escritório web | Aceito |
+| [0016](0016-sync-identidade-convergencia.md) | Sincronização: identidade estável, deduplicação e convergência idempotente | Aceito |
 
 **Versionamento**: um arquivo por decisão, numeração sequencial. Mudança de decisão → novo ADR que
 "supersedes" o anterior (não reescrever o histórico).

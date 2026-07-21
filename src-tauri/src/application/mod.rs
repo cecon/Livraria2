@@ -22,5 +22,7 @@ pub mod ports_compras;
 pub mod ports_destinacao;
 pub mod ports_estoque;
 pub mod ports_inventario;
+pub mod ports_sync;
+pub mod sincronizacao;
 pub mod relatorios;
 pub mod venda;
