@@ -76,15 +76,19 @@ async fn escritorio_recebe_pdv_puxa_e_estoque_reflete() {
     let local = SeaReplicaSync::new(db.clone());
     let r = sincronizar(&nuvem, &local).await.expect("sincronizar");
     println!("resumo pull: recebidos={}", r.recebidos);
+    // Idempotência (T032/SC-004): sincronizar de novo NÃO muda nada.
+    sincronizar(&nuvem, &local).await.expect("sincronizar 2x");
 
     let rows = db
         .query_all(Statement::from_string(
             db.get_database_backend(),
-            format!("SELECT estoque FROM livro WHERE codigo='{codigo}'"),
+            format!("SELECT estoque AS e, (SELECT COUNT(*) FROM movimento_estoque) AS n FROM livro WHERE codigo='{codigo}'"),
         ))
         .await
         .unwrap();
-    let estoque: i64 = rows.first().and_then(|r| r.try_get("", "estoque").ok()).unwrap_or(-1);
+    let estoque: i64 = rows.first().and_then(|r| r.try_get("", "e").ok()).unwrap_or(-1);
+    let n: i64 = rows.first().and_then(|r| r.try_get("", "n").ok()).unwrap_or(-1);
     assert_eq!(estoque, 5, "estoque do PDV deve refletir a entrada do escritório");
-    println!("OK: PDV puxou a entrada do escritório; estoque={estoque}");
+    assert_eq!(n, 1, "re-sync não deve duplicar o movimento (idempotência)");
+    println!("OK: PDV puxou a entrada; estoque={estoque}; após 2ª sync sem duplicar (mov={n})");
 }
