@@ -27,16 +27,7 @@ pub async fn sincronizar(
     let mut resumo = ResumoSync::default();
 
     // 1) PUSH dos pendentes, pais→filhas (respeita FKs na nuvem).
-    for recurso in ORDEM_DEPENDENCIA {
-        let pendentes = local.pendentes(recurso).await?;
-        if pendentes.is_empty() {
-            continue;
-        }
-        nuvem.upsert(recurso, &pendentes).await?;
-        let uids: Vec<String> = pendentes.iter().map(|r| r.sync_uid.clone()).collect();
-        local.marcar_sincronizado(recurso, &uids, &agora).await?;
-        resumo.enviados += pendentes.len();
-    }
+    resumo.enviados = enviar_pendentes(nuvem, local, &agora).await?;
 
     // 2) PULL desde o cursor, pais→filhas (respeita FKs locais).
     let mut livros_afetados: HashSet<String> = HashSet::new();
@@ -65,6 +56,34 @@ pub async fn sincronizar(
     }
 
     Ok(resumo)
+}
+
+/// Empurra todos os pendentes (pais→filhas), marcando-os sincronizados. Retorna
+/// quantos foram enviados. Usado pelo sync e pela carga inicial (`semear`).
+async fn enviar_pendentes(
+    nuvem: &dyn NuvemRepo,
+    local: &dyn ReplicaLocalRepo,
+    agora: &str,
+) -> Result<usize, RepoErro> {
+    let mut enviados = 0;
+    for recurso in ORDEM_DEPENDENCIA {
+        let pendentes = local.pendentes(recurso).await?;
+        if pendentes.is_empty() {
+            continue;
+        }
+        nuvem.upsert(recurso, &pendentes).await?;
+        let uids: Vec<String> = pendentes.iter().map(|r| r.sync_uid.clone()).collect();
+        local.marcar_sincronizado(recurso, &uids, agora).await?;
+        enviados += pendentes.len();
+    }
+    Ok(enviados)
+}
+
+/// Carga inicial (T028/D13): sobe **todo o histórico pendente** para a nuvem, de
+/// forma idempotente (upsert por `sync_uid`). É só o push — o pull vem no sync normal.
+pub async fn semear(nuvem: &dyn NuvemRepo, local: &dyn ReplicaLocalRepo) -> Result<usize, RepoErro> {
+    let agora = nuvem.agora_servidor().await?;
+    enviar_pendentes(nuvem, local, &agora).await
 }
 
 #[cfg(test)]

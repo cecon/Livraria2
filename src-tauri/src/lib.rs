@@ -109,6 +109,7 @@ pub fn run() {
             commands_estoque::extrato_livro,
             commands_sync::sincronizar_agora,
             commands_sync::status_sincronizacao,
+            commands_sync::seed_inicial,
             commands_inventario::inventario_abrir,
             commands_inventario::inventario_sessao_aberta,
             commands_inventario::inventario_bipar,

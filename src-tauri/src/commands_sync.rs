@@ -4,7 +4,7 @@
 
 use crate::adapters::nuvem::supabase_sync::SupabaseSync;
 use crate::adapters::persistencia::replica_sync::SeaReplicaSync;
-use crate::application::sincronizacao::sincronizar;
+use crate::application::sincronizacao::{semear, sincronizar};
 use crate::commands::AppState;
 use crate::domain::sincronizacao::ORDEM_DEPENDENCIA;
 use sea_orm::{ConnectionTrait, Statement};
@@ -26,6 +26,15 @@ pub async fn sincronizar_agora(state: tauri::State<'_, AppState>) -> Result<Resu
     let local = SeaReplicaSync::new(state.db.clone());
     let r = sincronizar(&nuvem, &local).await.map_err(|e| e.to_string())?;
     Ok(ResumoSyncDto { enviados: r.enviados, recebidos: r.recebidos, orfas: r.orfas })
+}
+
+/// Carga inicial: sobe todo o histórico pendente para a nuvem (T028). Retorna
+/// quantos registros foram enviados.
+#[tauri::command]
+pub async fn seed_inicial(state: tauri::State<'_, AppState>) -> Result<usize, String> {
+    let nuvem = SupabaseSync::conectar().await.map_err(|e| e.to_string())?;
+    let local = SeaReplicaSync::new(state.db.clone());
+    semear(&nuvem, &local).await.map_err(|e| e.to_string())
 }
 
 #[derive(Serialize)]
