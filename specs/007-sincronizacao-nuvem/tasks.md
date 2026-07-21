@@ -69,10 +69,10 @@
 
 **Independent Test**: quickstart Cenário 1 — entrada de 5 offline no escritório → PDV sincroniza → saldo +5, `origem='escritorio'`.
 
-- [ ] T019 [US1] Tela **Recebimento** em apps/escritorio: grava `lancamento_entrada` + `item_lancamento` + `movimento_estoque` tipo `entrada` (evento cru, `origem='escritorio'`, `sync_uid` gerado no cliente, `criado_por`), validado por CHECK do schema (contracts/escritorio-web.md)
+- [X] T019 [US1] Tela **Recebimento** em apps/escritorio: grava `lancamento_entrada` + `item_lancamento` + `movimento_estoque` tipo `entrada` (evento cru, `origem='escritorio'`, `sync_uid` gerado no cliente, `criado_por`), validado por CHECK do schema (contracts/escritorio-web.md)
 - [ ] T020 [US1] Pull+aplicar entradas no PDV: `aplicar_delta` para `movimento_estoque` + recomputar `custo_medio`/saldo do livro afetado (usa application/sincronizacao.rs)
 - [ ] T021 [P] [US1] Teste de domínio em src-tauri/src/domain/sincronizacao.rs: movimento `entrada` mesclado soma ao saldo (+N) e recomputa custo médio por fold ordenado por `criado_em`
-- [ ] T022 [US1] Teste de integração (Cenário 1) em src-tauri: entrada no "lado nuvem" + pull no PDV → saldo do livro +5, um único movimento, `origem='escritorio'`
+- [X] T022 [US1] Teste de integração (Cenário 1) em src-tauri: entrada no "lado nuvem" + pull no PDV → saldo do livro +5, um único movimento, `origem='escritorio'`
 
 **Checkpoint**: escritório recebe com notebook off e o PDV reflete ao sincronizar.
 
