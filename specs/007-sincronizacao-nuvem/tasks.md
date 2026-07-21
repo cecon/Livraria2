@@ -139,7 +139,7 @@
 - [ ] T042 [US5] Tela **Consulta de estoque** em apps/escritorio (lê `vw_saldo_livro` + `vw_custo_medio`) e **Consulta de vendas** (pedido/itens/pagamento)
 - [ ] T043 [US5] Telas de **relatório**: formas de pagamento (005) e **repasse por destinação** (006) lendo `alocacao_venda`+`destinacao` (contracts/escritorio-web.md)
 - [X] T044 [US5] Exibir o **operador ("vendido por")** na consulta/relatório de vendas do escritório, resolvendo `pedido.operador` → nome (vendas antigas: "operador desconhecido") (FR-023, SC-011)
-- [ ] T045 [US5] Teste de integração: após sync do PDV, escritório enxerga vendas (com operador) + relatórios 005/006 batendo com o PDV
+- [X] T045 [US5] Teste de integração: após sync do PDV, escritório enxerga vendas (com operador) + relatórios 005/006 batendo com o PDV
 
 **Checkpoint**: visibilidade remota completa no escritório, com atribuição de operador.
 
@@ -151,7 +151,7 @@
 
 **Independent Test**: gerar movimento com internet → sincroniza sozinho e o indicador vira "sincronizado"; sem internet → "pendente".
 
-- [ ] T046 [US6] Agendador em background no PDV: chama `sincronizar_agora` periodicamente quando online, sem bloquear a venda (commands_sync.rs / lib.rs)
+- [X] T046 [US6] Agendador em background no PDV: chama `sincronizar_agora` periodicamente quando online, sem bloquear a venda (commands_sync.rs / lib.rs)
 - [ ] T047 [US6] Indicador de estado no PDV (React): componente que consome `status_sincronizacao` (sincronizado/pendente/sem conexão) — FR-014
 - [ ] T048 [P] [US6] Indicador/atualização no escritório (apps/escritorio) refletindo o estado dos dados
 - [ ] T049 [US6] Teste de integração: novo movimento com internet auto-sincroniza; offline mostra "pendente" e a venda conclui normalmente
@@ -165,7 +165,7 @@
 - [ ] T050 [P] Segurança (Cenário 7, SC-006/008/010): confirmar que nenhum bundle (Tauri/web) expõe `service_role`; RLS por usuário ativa; `criado_por` gravado; sem login não há acesso; **`usuario.senha_hash` não presente na nuvem nem no bundle web**
 - [ ] T051 [P] Guardrail de 300 linhas em todos os módulos novos (`scripts/check-file-size.sh`) — extrair (ex.: `supabase_sync` I/O vs. mapeamento) se necessário
 - [ ] T052 [P] Docs + deploy: `Dockerfile` do Next.js (output standalone) e **stack de Docker Swarm** (compose/service) para o Portainer; notas de deploy em docs/ e ajuste do README se preciso
-- [ ] T053 [P] Verificar integridade do lockfile npm após o app do escritório (memória `npm-only-lockfile`)
+- [X] T053 [P] Verificar integridade do lockfile npm após o app do escritório (memória `npm-only-lockfile`)
 - [ ] T054 Performance (SC-005): sincronização de rotina (volume de 1 dia) conclui < 1 min
 - [ ] T055 Rodar `quickstart.md` ponta a ponta (Cenários 1–10) e registrar resultados
 
