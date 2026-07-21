@@ -101,7 +101,7 @@
 **Independent Test**: quickstart Cenários 3, 4, 6 — saldo 12/12; re-sync estável; retomada idêntica; órfã isolada.
 
 - [ ] T028 [US3] Criar src-tauri/src/application/seed_nuvem.rs + comando `seed_inicial` (commands_sync.rs): carga inicial idempotente de todo o histórico (push de pendentes ordenado pais→filhas), reusando o caminho de sync (research D13)
-- [ ] T029 [US3] Isolamento de órfãs no push/seed: registros com FK ausente (ex.: movimento com `livro_codigo` inexistente) são separados e reportados em `ResumoSeed/ResumoSync.orfas`, sem abortar o lote (FR-012, memória `sqlite-fks-nao-enforced`)
+- [X] T029 [US3] Isolamento de órfãs no push/seed: registros com FK ausente (ex.: movimento com `livro_codigo` inexistente) são separados e reportados em `ResumoSeed/ResumoSync.orfas`, sem abortar o lote (FR-012, memória `sqlite-fks-nao-enforced`)
 - [ ] T030 [US3] Garantir recomputação determinística do `custo_medio` por fold ordenado por `criado_em` após cada merge (não por `id` local) em application/sincronizacao.rs (ADR-0016 D5)
 - [ ] T031 [P] [US3] Testes de domínio em src-tauri/src/domain/sincronizacao.rs: convergência (soma bate), idempotência (fold estável em 2ª passada), detecção de órfã
 - [ ] T032 [US3] Testes de integração (Cenários 3/4/6): saldo 12 nos dois lados; sincronizar 3× sem mudar; interromper e retomar sem duplicar; seed com órfã histórica isola e reporta

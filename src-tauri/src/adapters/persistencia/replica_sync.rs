@@ -142,7 +142,16 @@ impl ReplicaLocalRepo for SeaReplicaSync {
                 colunas.join(","),
                 placeholders.join(",")
             );
-            self.exec(sql, vals).await?;
+            // FR-012/D11: registro órfão (FK/pai ausente) é isolado e reportado,
+            // sem abortar o lote — os demais seguem aplicando.
+            if let Err(e) = self.exec(sql, vals).await {
+                let m = e.to_string().to_lowercase();
+                if m.contains("foreign key") || m.contains("not null") {
+                    eprintln!("sync: órfão isolado ({recurso} {}): {e}", reg.sync_uid);
+                    continue;
+                }
+                return Err(e);
+            }
         }
         Ok(())
     }
@@ -279,5 +288,44 @@ mod testes {
         let n: i64 = rows[0].try_get("", "n").unwrap();
         assert_eq!(n, 1, "movimento inserido com livro_id remapeado");
         assert_eq!(estoque, 5, "estoque recomputado = soma dos movimentos");
+    }
+
+    #[tokio::test]
+    async fn movimento_orfao_e_isolado_sem_abortar_o_lote() {
+        let db = base().await;
+        let repo = SeaReplicaSync::new(db.clone());
+        db.execute(Statement::from_string(
+            db.get_database_backend(),
+            "INSERT INTO livro (codigo,titulo) VALUES ('111','L')".to_string(),
+        )).await.unwrap();
+        let uid = repo.pendentes("livro").await.unwrap()[0].sync_uid.clone();
+
+        let orfao = RegistroSync {
+            recurso: "movimento_estoque".into(),
+            sync_uid: "m-orfao".into(),
+            atualizado_em: None,
+            excluido_em: None,
+            dados: json!({"sync_uid":"m-orfao","livro_uid":"nao-existe","tipo":"entrada","qtd":3,
+                "criado_em":"2026-07-20T09:00:00Z","origem":"escritorio","atualizado_em":null,"excluido_em":null,
+                "custo_unit_centavos":null,"fornecedor":null,"motivo":null,"referencia":null}),
+        };
+        let valido = RegistroSync {
+            recurso: "movimento_estoque".into(),
+            sync_uid: "m-ok".into(),
+            atualizado_em: None,
+            excluido_em: None,
+            dados: json!({"sync_uid":"m-ok","livro_uid":uid,"tipo":"entrada","qtd":5,
+                "criado_em":"2026-07-20T09:00:00Z","origem":"escritorio","atualizado_em":null,"excluido_em":null,
+                "custo_unit_centavos":null,"fornecedor":null,"motivo":null,"referencia":null}),
+        };
+        // Não deve dar erro mesmo com o órfão no lote.
+        repo.aplicar("movimento_estoque", &[orfao, valido]).await.unwrap();
+
+        let rows = db.query_all(Statement::from_string(
+            db.get_database_backend(),
+            "SELECT COUNT(*) AS n FROM movimento_estoque".to_string(),
+        )).await.unwrap();
+        let n: i64 = rows[0].try_get("", "n").unwrap();
+        assert_eq!(n, 1, "só o movimento válido entrou; o órfão foi isolado");
     }
 }
