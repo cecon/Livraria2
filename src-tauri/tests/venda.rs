@@ -57,6 +57,7 @@ async fn venda_persiste_e_baixa_estoque() {
         .expect("semear");
 
     let input = VendaInput {
+        operador: None,
         cliente: "".into(),
         itens: vec![ItemInput {
             codigo: "9788573671469".into(),

@@ -35,4 +35,8 @@ sea-orm-migration = { version = "1.1", features = ["sqlx-sqlite", "runtime-tokio
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 csv = "1"
 sha2 = "0.10"
+# Feature 007: sincronização com a nuvem (adapter Supabase/PostgREST) — ADR-0015
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+uuid = { version = "1", features = ["v4"] }
+tokio = { version = "1", features = ["time"] }
 

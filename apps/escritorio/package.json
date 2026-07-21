@@ -1,0 +1,25 @@
+{
+  "name": "livraria-escritorio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "App web do escritório (retaguarda) — feature 007 (Next.js + Supabase). Roda como container no Portainer Swarm.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@supabase/supabase-js": "^2.47.0",
+    "@supabase/ssr": "^0.5.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
+  }
+}

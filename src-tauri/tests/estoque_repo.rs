@@ -38,6 +38,7 @@ fn venda_de(codigo: &str, qtd: i64) -> Pedido {
         numero: 1,
         cliente: "CLIENTE".into(),
         turno: Turno::de_hora(10),
+        operador: None,
         data: "2026-06-23".into(),
         itens: vec![ItemPedido {
             codigo: codigo.into(),

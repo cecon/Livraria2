@@ -36,6 +36,18 @@ export interface VendaInput {
   itens: ItemVenda[];
   /** Lista esparsa: só formas com valor > 0 (FR-012). */
   pagamentos: RecebimentoInput[];
+  /** Operador que fez a venda (feature 007, FR-023). Opcional. */
+  operador?: string;
+}
+
+export interface OperadorDto {
+  usuario: string;
+  nome?: string | null;
+}
+
+// Lista de operadores do PDV para o caixa escolher (feature 007).
+export async function listarOperadores(): Promise<OperadorDto[]> {
+  return await invoke("listar_operadores");
 }
 
 export interface PedidoResultado {

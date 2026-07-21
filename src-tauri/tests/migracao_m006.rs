@@ -142,7 +142,7 @@ async fn falha_na_verificacao_faz_rollback_e_preserva_dados() {
         PRIMARY KEY (pedido_numero, forma_id)
     )")
     .await;
-    run(&db, "INSERT INTO pagamento_pedido VALUES (1, 999, 123)").await;
+    run(&db, "INSERT INTO pagamento_pedido (pedido_numero, forma_id, valor_centavos) VALUES (1, 999, 123)").await;
 
     let r = m006::aplicar(&db).await;
     assert!(r.is_err(), "verificação divergente deve retornar Err (FR-016a)");

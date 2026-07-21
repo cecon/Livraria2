@@ -21,6 +21,7 @@ import { EntradaProduto } from "@/components/EntradaProduto";
 import { CarrinhoItens, type ItemCarrinho } from "@/components/CarrinhoItens";
 import { VendaConcluida, type VendaConcluidaInfo } from "@/components/VendaConcluida";
 import { brl } from "@/lib/format";
+import { operadorAtual } from "@/lib/operador";
 import {
   RASCUNHO_KEY,
   pagamentosParaPayload,
@@ -171,6 +172,7 @@ export function Pdv() {
         cliente,
         itens: itens.map((i) => ({ codigo: i.codigo, qtd: paraCentavos(i.qtd) })),
         pagamentos: pagamentosParaPayload(pag),
+        operador: operadorAtual() || undefined,
       });
       // Confirmação animada com total/troco; PDV volta ao caixa livre (FR-015).
       setConcluida({

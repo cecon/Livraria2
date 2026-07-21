@@ -13,4 +13,5 @@ pub mod lancamento;
 pub mod livro;
 pub mod pagamento;
 pub mod pedido;
+pub mod sincronizacao;
 pub mod texto;

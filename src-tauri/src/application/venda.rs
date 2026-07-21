@@ -29,6 +29,9 @@ pub struct VendaInput {
     pub itens: Vec<ItemInput>,
     #[serde(default)]
     pub pagamentos: Vec<RecebimentoInput>,
+    /// Operador logado no PDV (FR-023). Opcional; vazio/ausente → venda sem atribuição.
+    #[serde(default)]
+    pub operador: Option<String>,
 }
 
 /// Próximo número de pedido (FR-017).
@@ -94,6 +97,10 @@ pub async fn registrar_venda(
     } else {
         input.cliente.trim().to_string()
     };
+    let operador = input.operador.and_then(|o| {
+        let o = o.trim().to_string();
+        if o.is_empty() { None } else { Some(o) }
+    });
     let pedido = Pedido {
         numero,
         cliente,
@@ -101,6 +108,7 @@ pub async fn registrar_venda(
         data: relogio.hoje_iso(),
         itens,
         pagamentos,
+        operador,
     };
 
     pedido.validar_conclusao(dinheiro.id)?;
@@ -138,6 +146,7 @@ mod tests {
                 qtd,
             }],
             pagamentos,
+            operador: None,
         }
     }
 

@@ -9,6 +9,7 @@ pub mod commands_formas;
 pub mod commands_fornecedor;
 pub mod commands_inventario;
 pub mod commands_lancamento;
+pub mod commands_sync;
 pub mod domain;
 pub mod migration;
 
@@ -64,8 +65,18 @@ pub fn run() {
             // O frontend consulta `estado_boot` e bloqueia a operação.
             match resultado {
                 Ok(db) => {
-                    app.manage(AppState { db });
+                    // Feature 007: config da nuvem em <app_config_dir>/sync.json (ou env vars).
+                    let config_sync_path = tauri::Manager::path(app)
+                        .app_config_dir()
+                        .ok()
+                        .map(|d| d.join("sync.json"));
+                    app.manage(AppState {
+                        db: db.clone(),
+                        config_sync_path: config_sync_path.clone(),
+                    });
                     app.manage(BootState { erro_migracao: None });
+                    // Sincronização em background (oportunista, não bloqueia a venda).
+                    tauri::async_runtime::spawn(sincronizacao_periodica(db, config_sync_path));
                 }
                 Err(e) => {
                     eprintln!("boot: migração falhou — app bloqueado para operação: {e}");
@@ -104,6 +115,10 @@ pub fn run() {
             commands::salvar_arquivo,
             commands_estoque::registrar_ajuste,
             commands_estoque::extrato_livro,
+            commands_sync::sincronizar_agora,
+            commands_sync::status_sincronizacao,
+            commands_sync::seed_inicial,
+            commands_sync::listar_operadores,
             commands_inventario::inventario_abrir,
             commands_inventario::inventario_sessao_aberta,
             commands_inventario::inventario_bipar,
@@ -145,4 +160,26 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Feature 007: loop de sincronização em background. Oportunista — se não houver
+/// config/rede, apenas dorme e tenta de novo; nunca bloqueia a operação do PDV.
+async fn sincronizacao_periodica(db: DatabaseConnection, config_path: Option<std::path::PathBuf>) {
+    use adapters::nuvem::supabase_sync::SupabaseSync;
+    use adapters::persistencia::replica_sync::SeaReplicaSync;
+    // Espera o app assentar antes da 1ª tentativa.
+    tokio::time::sleep(std::time::Duration::from_secs(15)).await;
+    loop {
+        if let Ok(nuvem) = SupabaseSync::conectar(config_path.as_deref()).await {
+            let local = SeaReplicaSync::new(db.clone());
+            match application::sincronizacao::sincronizar(&nuvem, &local).await {
+                Ok(r) if r.enviados + r.recebidos > 0 => {
+                    eprintln!("sync: enviados={} recebidos={} orfas={}", r.enviados, r.recebidos, r.orfas);
+                }
+                Ok(_) => {}
+                Err(e) => eprintln!("sync falhou (segue offline): {e}"),
+            }
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(120)).await;
+    }
 }
