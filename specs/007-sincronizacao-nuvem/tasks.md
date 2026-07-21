@@ -117,10 +117,10 @@
 **Independent Test**: quickstart Cenários 5, 8, 9 — preço converge para o mais recente; mesmo código/nome/usuário vira um único registro; operador criado remoto fica pendente de senha.
 
 - [ ] T033 [US4] Upsert de `livro` com **dedup por código de barras** + **LWW** por `atualizado_em` (tempo do servidor), nos dois sentidos, em application/sincronizacao.rs + adapters/nuvem (ADR-0016 D4/D7)
-- [ ] T034 [US4] Upsert de `fornecedor` com **dedup por `nome_norm`** (índice único da 003; documento desempate) + **LWW**; tela **Fornecedores** em apps/escritorio (criar/editar), permitindo vincular recebimento a fornecedor novo (FR-021)
-- [ ] T035 [US4] Tela **Cadastro/Preço de livro** em apps/escritorio (upsert com `atualizado_em` do servidor; soft delete via `excluido_em`)
+- [X] T034 [US4] Upsert de `fornecedor` com **dedup por `nome_norm`** (índice único da 003; documento desempate) + **LWW**; tela **Fornecedores** em apps/escritorio (criar/editar), permitindo vincular recebimento a fornecedor novo (FR-021)
+- [X] T035 [US4] Tela **Cadastro/Preço de livro** em apps/escritorio (upsert com `atualizado_em` do servidor; soft delete via `excluido_em`)
 - [ ] T036 [US4] Sincronizar **operador** (`usuario`): upsert com **dedup por `usuario`** + **LWW**, com o adapter **excluindo `senha_hash` do payload** em application/sincronizacao.rs + adapters/nuvem (D15, FR-022)
-- [ ] T037 [US4] Tela **Operadores** em apps/escritorio (criar/editar identidade: usuário + nome + ativo, **sem senha**) + no PDV: tratar `senha_hash` vazio como "definir senha no 1º login" e bloquear login até definir (src/ do PDV + application)
+- [X] T037 [US4] Tela **Operadores** em apps/escritorio (criar/editar identidade: usuário + nome + ativo, **sem senha**) + no PDV: tratar `senha_hash` vazio como "definir senha no 1º login" e bloquear login até definir (src/ do PDV + application)
 - [ ] T038 [P] [US4] Testes de domínio: LWW (edição mais nova vence), match de dedup (mesmo código/nome/usuário mescla) em src-tauri/src/domain/sincronizacao.rs
 - [ ] T039 [US4] Teste de integração (Cenários 5/8/10): preço editado dos dois lados → último vence; mesmo código de barras/fornecedor criado nos dois lados → um único registro; **exclusão (soft delete) de um livro/fornecedor num lado propaga e NÃO ressuscita após sincronizar** (FR-015, Cenário 10)
 - [ ] T040 [US4] Teste de integração (Cenário 9): operador criado no escritório aparece no PDV como "pendente"; após definir senha local, loga; `senha_hash` nunca presente na nuvem (SC-010)
