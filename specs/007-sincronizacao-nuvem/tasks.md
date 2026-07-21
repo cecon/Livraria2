@@ -137,7 +137,7 @@
 
 - [X] T041 [US5] Confirmar/estender o escopo de push/pull dos **eventos/cadastros de 006** para os relatórios: `destinacao`, `transferencia_destinacao`, `alocacao_venda` (`forma_pagamento` de 005 já sincroniza desde a Foundational por ser pai de `pagamento_pedido`) (research D14, data-model §4)
 - [X] T042 [US5] Tela **Consulta de estoque** em apps/escritorio (lê `vw_saldo_livro` + `vw_custo_medio`) e **Consulta de vendas** (pedido/itens/pagamento)
-- [ ] T043 [US5] Telas de **relatório**: formas de pagamento (005) e **repasse por destinação** (006) lendo `alocacao_venda`+`destinacao` (contracts/escritorio-web.md)
+- [X] T043 [US5] Telas de **relatório**: formas de pagamento (005) e **repasse por destinação** (006) lendo `alocacao_venda`+`destinacao` (contracts/escritorio-web.md)
 - [X] T044 [US5] Exibir o **operador ("vendido por")** na consulta/relatório de vendas do escritório, resolvendo `pedido.operador` → nome (vendas antigas: "operador desconhecido") (FR-023, SC-011)
 - [X] T045 [US5] Teste de integração: após sync do PDV, escritório enxerga vendas (com operador) + relatórios 005/006 batendo com o PDV
 

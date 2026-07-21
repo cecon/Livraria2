@@ -19,6 +19,7 @@ export default async function Home() {
         <a className="card" href="/livros">📚 Cadastro / preço</a>
         <a className="card" href="/operadores">👤 Operadores</a>
         <a className="card" href="/consulta">🔎 Estoque &amp; vendas</a>
+        <a className="card" href="/relatorios">📊 Relatórios</a>
       </nav>
     </main>
   );
