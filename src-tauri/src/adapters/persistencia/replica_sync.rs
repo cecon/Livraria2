@@ -142,12 +142,13 @@ impl ReplicaLocalRepo for SeaReplicaSync {
                 colunas.join(","),
                 placeholders.join(",")
             );
-            // FR-012/D11: registro órfão (FK/pai ausente) é isolado e reportado,
-            // sem abortar o lote — os demais seguem aplicando.
+            // FR-012/D11: registro problemático (órfão por FK/pai ausente, ou
+            // colisão de chave natural — dedup, T033) é isolado e reportado, sem
+            // abortar o lote. (A merge por chave natural é refinamento futuro.)
             if let Err(e) = self.exec(sql, vals).await {
                 let m = e.to_string().to_lowercase();
-                if m.contains("foreign key") || m.contains("not null") {
-                    eprintln!("sync: órfão isolado ({recurso} {}): {e}", reg.sync_uid);
+                if m.contains("foreign key") || m.contains("not null") || m.contains("unique") {
+                    eprintln!("sync: registro isolado ({recurso} {}): {e}", reg.sync_uid);
                     continue;
                 }
                 return Err(e);
