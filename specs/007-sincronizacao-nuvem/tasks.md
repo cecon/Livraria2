@@ -33,7 +33,7 @@
 ### Migração local e entidades
 
 - [X] T005 Criar `m008` em src-tauri/src/migration/m008.rs (registrar em migration/mod.rs): ADD COLUMN `sync_uid`/`origem`/`atualizado_em`/`excluido_em`/`sincronizado_em` (padrão "add se não existe") nas tabelas sincronizáveis (livro, movimento_estoque, pedido, item_pedido, pagamento_pedido, forma_pagamento, lancamento_entrada, item_lancamento, fornecedor, destinacao, transferencia_destinacao, alocacao_venda, **usuario**) + **`ADD COLUMN pedido.operador TEXT`** (atribuição, nullable) + **backfill idempotente** de `sync_uid` + `UNIQUE INDEX` em sync_uid + índices de **dedup** (livro.codigo, `fornecedor.nome_norm` — índice único já existente na 003, `documento` como desempate, usuario) + tabela `sync_cursor` — sem ALTER destrutivo. **`usuario.senha_hash` fica fora do sync** (data-model.md §1-2)
-- [ ] T006 [P] Atualizar entities SeaORM com as novas colunas de sync (e `pedido.operador`) em src-tauri/src/adapters/persistencia/entities/ (tabelas afetadas)
+- [~] T006 [P] Atualizar entities SeaORM com as novas colunas de sync (e `pedido.operador`) em src-tauri/src/adapters/persistencia/entities/ (tabelas afetadas) — N/A: réplica usa SQL cru, entidades não participam do sync
 - [X] T007 Teste de idempotência da `m008` em src-tauri/src/migration/m008.rs (`#[cfg(test)]`, SQLite temporário): aplicar 2× converge; backfill não gera 2º `sync_uid`; índices de dedup criados
 
 ### Schema e acesso na nuvem
@@ -70,8 +70,8 @@
 **Independent Test**: quickstart Cenário 1 — entrada de 5 offline no escritório → PDV sincroniza → saldo +5, `origem='escritorio'`.
 
 - [X] T019 [US1] Tela **Recebimento** em apps/escritorio: grava `lancamento_entrada` + `item_lancamento` + `movimento_estoque` tipo `entrada` (evento cru, `origem='escritorio'`, `sync_uid` gerado no cliente, `criado_por`), validado por CHECK do schema (contracts/escritorio-web.md)
-- [ ] T020 [US1] Pull+aplicar entradas no PDV: `aplicar_delta` para `movimento_estoque` + recomputar `custo_medio`/saldo do livro afetado (usa application/sincronizacao.rs)
-- [ ] T021 [P] [US1] Teste de domínio em src-tauri/src/domain/sincronizacao.rs: movimento `entrada` mesclado soma ao saldo (+N) e recomputa custo médio por fold ordenado por `criado_em`
+- [X] T020 [US1] Pull+aplicar entradas no PDV: `aplicar_delta` para `movimento_estoque` + recomputar `custo_medio`/saldo do livro afetado (usa application/sincronizacao.rs)
+- [X] T021 [P] [US1] Teste de domínio em src-tauri/src/domain/sincronizacao.rs: movimento `entrada` mesclado soma ao saldo (+N) e recomputa custo médio por fold ordenado por `criado_em`
 - [X] T022 [US1] Teste de integração (Cenário 1) em src-tauri: entrada no "lado nuvem" + pull no PDV → saldo do livro +5, um único movimento, `origem='escritorio'`
 
 **Checkpoint**: escritório recebe com notebook off e o PDV reflete ao sincronizar.
@@ -102,8 +102,8 @@
 
 - [X] T028 [US3] Criar src-tauri/src/application/seed_nuvem.rs + comando `seed_inicial` (commands_sync.rs): carga inicial idempotente de todo o histórico (push de pendentes ordenado pais→filhas), reusando o caminho de sync (research D13)
 - [X] T029 [US3] Isolamento de órfãs no push/seed: registros com FK ausente (ex.: movimento com `livro_codigo` inexistente) são separados e reportados em `ResumoSeed/ResumoSync.orfas`, sem abortar o lote (FR-012, memória `sqlite-fks-nao-enforced`)
-- [ ] T030 [US3] Garantir recomputação determinística do `custo_medio` por fold ordenado por `criado_em` após cada merge (não por `id` local) em application/sincronizacao.rs (ADR-0016 D5)
-- [ ] T031 [P] [US3] Testes de domínio em src-tauri/src/domain/sincronizacao.rs: convergência (soma bate), idempotência (fold estável em 2ª passada), detecção de órfã
+- [X] T030 [US3] Garantir recomputação determinística do `custo_medio` por fold ordenado por `criado_em` após cada merge (não por `id` local) em application/sincronizacao.rs (ADR-0016 D5)
+- [X] T031 [P] [US3] Testes de domínio em src-tauri/src/domain/sincronizacao.rs: convergência (soma bate), idempotência (fold estável em 2ª passada), detecção de órfã
 - [ ] T032 [US3] Testes de integração (Cenários 3/4/6): saldo 12 nos dois lados; sincronizar 3× sem mudar; interromper e retomar sem duplicar; seed com órfã histórica isola e reporta
 
 **Checkpoint**: estoque converge e o sync é à prova de re-execução, interrupção e órfãs.
@@ -119,7 +119,7 @@
 - [X] T033 [US4] Upsert de `livro` com **dedup por código de barras** + **LWW** por `atualizado_em` (tempo do servidor), nos dois sentidos, em application/sincronizacao.rs + adapters/nuvem (ADR-0016 D4/D7)
 - [X] T034 [US4] Upsert de `fornecedor` com **dedup por `nome_norm`** (índice único da 003; documento desempate) + **LWW**; tela **Fornecedores** em apps/escritorio (criar/editar), permitindo vincular recebimento a fornecedor novo (FR-021)
 - [X] T035 [US4] Tela **Cadastro/Preço de livro** em apps/escritorio (upsert com `atualizado_em` do servidor; soft delete via `excluido_em`)
-- [ ] T036 [US4] Sincronizar **operador** (`usuario`): upsert com **dedup por `usuario`** + **LWW**, com o adapter **excluindo `senha_hash` do payload** em application/sincronizacao.rs + adapters/nuvem (D15, FR-022)
+- [X] T036 [US4] Sincronizar **operador** (`usuario`): upsert com **dedup por `usuario`** + **LWW**, com o adapter **excluindo `senha_hash` do payload** em application/sincronizacao.rs + adapters/nuvem (D15, FR-022)
 - [X] T037 [US4] Tela **Operadores** em apps/escritorio (criar/editar identidade: usuário + nome + ativo, **sem senha**) + no PDV: tratar `senha_hash` vazio como "definir senha no 1º login" e bloquear login até definir (src/ do PDV + application)
 - [X] T038 [P] [US4] Testes de domínio: LWW (edição mais nova vence), match de dedup (mesmo código/nome/usuário mescla) em src-tauri/src/domain/sincronizacao.rs
 - [ ] T039 [US4] Teste de integração (Cenários 5/8/10): preço editado dos dois lados → último vence; mesmo código de barras/fornecedor criado nos dois lados → um único registro; **exclusão (soft delete) de um livro/fornecedor num lado propaga e NÃO ressuscita após sincronizar** (FR-015, Cenário 10)
@@ -152,7 +152,7 @@
 **Independent Test**: gerar movimento com internet → sincroniza sozinho e o indicador vira "sincronizado"; sem internet → "pendente".
 
 - [X] T046 [US6] Agendador em background no PDV: chama `sincronizar_agora` periodicamente quando online, sem bloquear a venda (commands_sync.rs / lib.rs)
-- [ ] T047 [US6] Indicador de estado no PDV (React): componente que consome `status_sincronizacao` (sincronizado/pendente/sem conexão) — FR-014
+- [X] T047 [US6] Indicador de estado no PDV (React): componente que consome `status_sincronizacao` (sincronizado/pendente/sem conexão) — FR-014
 - [ ] T048 [P] [US6] Indicador/atualização no escritório (apps/escritorio) refletindo o estado dos dados
 - [ ] T049 [US6] Teste de integração: novo movimento com internet auto-sincroniza; offline mostra "pendente" e a venda conclui normalmente
 
@@ -162,9 +162,9 @@
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T050 [P] Segurança (Cenário 7, SC-006/008/010): confirmar que nenhum bundle (Tauri/web) expõe `service_role`; RLS por usuário ativa; `criado_por` gravado; sem login não há acesso; **`usuario.senha_hash` não presente na nuvem nem no bundle web**
-- [ ] T051 [P] Guardrail de 300 linhas em todos os módulos novos (`scripts/check-file-size.sh`) — extrair (ex.: `supabase_sync` I/O vs. mapeamento) se necessário
-- [ ] T052 [P] Docs + deploy: `Dockerfile` do Next.js (output standalone) e **stack de Docker Swarm** (compose/service) para o Portainer; notas de deploy em docs/ e ajuste do README se preciso
+- [X] T050 [P] Segurança (Cenário 7, SC-006/008/010): confirmar que nenhum bundle (Tauri/web) expõe `service_role`; RLS por usuário ativa; `criado_por` gravado; sem login não há acesso; **`usuario.senha_hash` não presente na nuvem nem no bundle web**
+- [X] T051 [P] Guardrail de 300 linhas em todos os módulos novos (`scripts/check-file-size.sh`) — extrair (ex.: `supabase_sync` I/O vs. mapeamento) se necessário
+- [X] T052 [P] Docs + deploy: `Dockerfile` do Next.js (output standalone) e **stack de Docker Swarm** (compose/service) para o Portainer; notas de deploy em docs/ e ajuste do README se preciso
 - [X] T053 [P] Verificar integridade do lockfile npm após o app do escritório (memória `npm-only-lockfile`)
 - [ ] T054 Performance (SC-005): sincronização de rotina (volume de 1 dia) conclui < 1 min
 - [ ] T055 Rodar `quickstart.md` ponta a ponta (Cenários 1–10) e registrar resultados
