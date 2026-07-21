@@ -1,119 +1,19 @@
 //! Adapter da réplica local (SeaORM) — `ReplicaLocalRepo` (feature 007).
 //!
-//! `pendentes` monta o JSON no **formato da nuvem** com `json_object` do SQLite
-//! (booleanos 0/1→true/false; `atualizado_em` vazio→null; FKs remapeadas para
-//! `*_uid` por subquery no pai). `aplicar` faz upsert com **LWW em SQL** (cadastros)
-//! ou `DO NOTHING` (eventos). Recursos ainda não mapeados são no-op seguro (as
-//! tabelas correspondentes na nuvem seguem vazias até serem incluídas).
+//! `pendentes` monta o JSON no formato da nuvem (ver `replica_mapa`); `aplicar`
+//! faz upsert com **LWW em SQL** (cadastros) ou `DO NOTHING` (eventos), com
+//! **FK-remap** (`*_uid` → id local via subquery). Recursos ainda não mapeados
+//! são no-op seguro. `recomputar_derivados` refaz o estoque pelo ledger (ADR-0008).
 
+use super::replica_mapa::{expr_json, spec, valor, Tipo};
 use crate::application::ports::RepoErro;
 use crate::application::ports_sync::{RegistroSync, ReplicaLocalRepo};
 use async_trait::async_trait;
 use sea_orm::{ConnectionTrait, DatabaseConnection, Statement, Value};
 use std::collections::HashSet;
 
-#[derive(Clone, Copy)]
-enum Tipo {
-    Texto,
-    Inteiro,
-    Bool,
-}
-struct Col {
-    nome: &'static str,
-    tipo: Tipo,
-}
-/// FK remapeada: `uid_key` na nuvem ↔ `col_local` (id) resolvida pelo `pai`.
-struct Ref {
-    uid_key: &'static str,
-    col_local: &'static str,
-    pai: &'static str,
-}
-struct Spec {
-    recurso: &'static str,
-    mutavel: bool,
-    /// coluna literal setada só no INSERT (ex.: usuario.senha_hash='' = senha pendente).
-    default_insert: &'static [(&'static str, &'static str)],
-    cols: &'static [Col],
-    refs: &'static [Ref],
-}
-
-use Tipo::{Bool, Inteiro, Texto};
-
-const SPECS: &[Spec] = &[
-    Spec {
-        recurso: "livro",
-        mutavel: true,
-        default_insert: &[],
-        cols: &[
-            Col { nome: "codigo", tipo: Texto },
-            Col { nome: "titulo", tipo: Texto },
-            Col { nome: "autor", tipo: Texto },
-            Col { nome: "preco_centavos", tipo: Inteiro },
-            Col { nome: "categoria", tipo: Inteiro },
-            Col { nome: "descricao", tipo: Texto },
-            Col { nome: "busca_norm", tipo: Texto },
-            Col { nome: "ativo", tipo: Bool },
-        ],
-        refs: &[],
-    },
-    Spec {
-        recurso: "fornecedor",
-        mutavel: true,
-        default_insert: &[],
-        cols: &[
-            Col { nome: "nome", tipo: Texto },
-            Col { nome: "nome_norm", tipo: Texto },
-            Col { nome: "documento", tipo: Texto },
-            Col { nome: "telefone", tipo: Texto },
-            Col { nome: "email", tipo: Texto },
-            Col { nome: "observacoes", tipo: Texto },
-            Col { nome: "ativo", tipo: Bool },
-        ],
-        refs: &[],
-    },
-];
-
-fn spec(recurso: &str) -> Option<&'static Spec> {
-    SPECS.iter().find(|s| s.recurso == recurso)
-}
-
 fn erro(e: impl std::fmt::Display) -> RepoErro {
     RepoErro::Persistencia(e.to_string())
-}
-
-/// Expressão `json_object(...)` para produzir a linha no formato da nuvem.
-fn expr_json(s: &Spec) -> String {
-    let mut p = vec![
-        "'sync_uid',sync_uid".to_string(),
-        "'origem',origem".to_string(),
-        "'atualizado_em',iif(atualizado_em='',null,atualizado_em)".to_string(),
-        "'excluido_em',excluido_em".to_string(),
-    ];
-    for c in s.cols {
-        match c.tipo {
-            Bool => p.push(format!("'{0}',json(iif({0},'true','false'))", c.nome)),
-            _ => p.push(format!("'{0}',{0}", c.nome)),
-        }
-    }
-    for r in s.refs {
-        p.push(format!(
-            "'{}',(select sync_uid from {} where id=t.{})",
-            r.uid_key, r.pai, r.col_local
-        ));
-    }
-    format!("json_object({})", p.join(","))
-}
-
-/// Valor SeaORM (nullable) a partir de um campo do JSON da nuvem.
-fn valor(dados: &serde_json::Value, chave: &str, tipo: Tipo) -> Value {
-    let v = dados.get(chave);
-    match tipo {
-        Tipo::Bool => Value::BigInt(Some(i64::from(v.and_then(|x| x.as_bool()).unwrap_or(false)))),
-        Tipo::Inteiro => Value::BigInt(v.and_then(|x| x.as_i64())),
-        Tipo::Texto => Value::String(
-            v.and_then(|x| x.as_str()).map(|s| Box::new(s.to_string())),
-        ),
-    }
 }
 
 pub struct SeaReplicaSync {
@@ -207,10 +107,19 @@ impl ReplicaLocalRepo for SeaReplicaSync {
                 placeholders.push(format!("(select id from {} where sync_uid=?)", r.pai));
                 vals.push(valor(&reg.dados, r.uid_key, Tipo::Texto));
             }
-            for meta in ["sync_uid", "origem", "atualizado_em", "excluido_em"] {
-                colunas.push(meta.to_string());
+            // Meta: origem/atualizado_em são NOT NULL (fallback 'pdv'/''); excluido_em nullable.
+            let txt = |k: &str, def: &str| {
+                reg.dados.get(k).and_then(|v| v.as_str()).unwrap_or(def).to_string()
+            };
+            for (col, val) in [
+                ("sync_uid", Value::String(Some(Box::new(reg.sync_uid.clone())))),
+                ("origem", Value::String(Some(Box::new(txt("origem", "pdv"))))),
+                ("atualizado_em", Value::String(Some(Box::new(txt("atualizado_em", ""))))),
+                ("excluido_em", valor(&reg.dados, "excluido_em", Tipo::Texto)),
+            ] {
+                colunas.push(col.to_string());
                 placeholders.push("?".into());
-                vals.push(valor(&reg.dados, meta, Tipo::Texto));
+                vals.push(val);
             }
             let sets: Vec<String> = s
                 .cols
@@ -278,8 +187,19 @@ impl ReplicaLocalRepo for SeaReplicaSync {
         .await
     }
 
-    async fn recomputar_derivados(&self, _livros_uid: &[String]) -> Result<(), RepoErro> {
-        // Recompute de estoque/custo_medio entra com o mapeamento de movimento_estoque.
+    async fn recomputar_derivados(&self, livros_uid: &[String]) -> Result<(), RepoErro> {
+        // Estoque = soma dos movimentos não excluídos (ADR-0008). custo_medio (fold
+        // ponderado ordenado por criado_em — ADR-0009) entra num próximo incremento.
+        for uid in livros_uid {
+            self.exec(
+                "UPDATE livro SET estoque = COALESCE((SELECT SUM(m.qtd) FROM movimento_estoque m \
+                 WHERE m.livro_id = livro.id AND (m.excluido_em IS NULL OR m.excluido_em='')),0) \
+                 WHERE sync_uid=?"
+                    .to_string(),
+                vec![Value::String(Some(Box::new(uid.clone())))],
+            )
+            .await?;
+        }
         Ok(())
     }
 }
@@ -300,19 +220,16 @@ mod testes {
     async fn livro_pendente_vira_json_da_nuvem_e_aplica_com_lww() {
         let db = base().await;
         let repo = SeaReplicaSync::new(db.clone());
-        // Livro local (id autoincrement; sync_uid backfilled pela m008).
         db.execute(Statement::from_string(
             db.get_database_backend(),
             "INSERT INTO livro (codigo,titulo,ativo,atualizado_em) VALUES ('789','Orig',1,'2026-07-20T10:00:00Z')".to_string(),
         )).await.unwrap();
-        // m008 backfill dá sync_uid; refaz p/ garantir pendente (sincronizado_em NULL já é o default).
 
         let pend = repo.pendentes("livro").await.unwrap();
         assert_eq!(pend.len(), 1);
         assert_eq!(pend[0].dados["codigo"], "789");
         assert_eq!(pend[0].dados["ativo"], json!(true)); // 1 -> true
 
-        // Aplica uma versão MAIS NOVA vinda da "nuvem" (LWW atualiza).
         let uid = pend[0].sync_uid.clone();
         let novo = RegistroSync {
             recurso: "livro".into(),
@@ -330,5 +247,37 @@ mod testes {
         )).await.unwrap();
         let titulo: String = rows[0].try_get("", "titulo").unwrap();
         assert_eq!(titulo, "Novo"); // LWW: edição mais nova venceu
+    }
+
+    #[tokio::test]
+    async fn movimento_da_nuvem_remapeia_livro_e_recomputa_estoque() {
+        let db = base().await;
+        let repo = SeaReplicaSync::new(db.clone());
+        db.execute(Statement::from_string(
+            db.get_database_backend(),
+            "INSERT INTO livro (codigo,titulo,estoque) VALUES ('789','L',10)".to_string(),
+        )).await.unwrap();
+        let uid = repo.pendentes("livro").await.unwrap()[0].sync_uid.clone();
+
+        let mov = RegistroSync {
+            recurso: "movimento_estoque".into(),
+            sync_uid: "mov-1".into(),
+            atualizado_em: None,
+            excluido_em: None,
+            dados: json!({"sync_uid":"mov-1","livro_uid":uid,"tipo":"entrada","qtd":5,
+                "origem":"escritorio","criado_em":"2026-07-20T09:00:00Z","atualizado_em":null,
+                "excluido_em":null,"custo_unit_centavos":null,"fornecedor":null,"motivo":null,"referencia":null}),
+        };
+        repo.aplicar("movimento_estoque", &[mov]).await.unwrap();
+        repo.recomputar_derivados(&[uid]).await.unwrap();
+
+        let rows = db.query_all(Statement::from_string(
+            db.get_database_backend(),
+            "SELECT estoque, (SELECT COUNT(*) FROM movimento_estoque) n FROM livro WHERE codigo='789'".to_string(),
+        )).await.unwrap();
+        let estoque: i64 = rows[0].try_get("", "estoque").unwrap();
+        let n: i64 = rows[0].try_get("", "n").unwrap();
+        assert_eq!(n, 1, "movimento inserido com livro_id remapeado");
+        assert_eq!(estoque, 5, "estoque recomputado = soma dos movimentos");
     }
 }

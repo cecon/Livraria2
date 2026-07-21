@@ -21,6 +21,7 @@ pub mod pedido_sql;
 pub mod relatorio_repo;
 pub mod usuario_repo;
 
+pub mod replica_mapa;
 pub mod replica_sync;
 
 use crate::migration::Migrator;
