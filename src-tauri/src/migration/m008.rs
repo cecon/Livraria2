@@ -36,7 +36,8 @@ const COLUNAS_SYNC: &[&str] = &[
 ];
 
 /// UUID v4 gerado em SQL puro (independe de rng/relógio do Rust; distinto por linha).
-const UUID_V4: &str = "lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'\
+/// Reusado pela réplica local para atribuir `sync_uid` a linhas novas (lazy).
+pub const UUID_V4: &str = "lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'\
 ||substr(lower(hex(randomblob(2))),2)||'-'||substr('89ab',abs(random())%4+1,1)\
 ||substr(lower(hex(randomblob(2))),2)||'-'||lower(hex(randomblob(6)))";
 

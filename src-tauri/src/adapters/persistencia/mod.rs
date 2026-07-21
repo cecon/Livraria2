@@ -21,6 +21,8 @@ pub mod pedido_sql;
 pub mod relatorio_repo;
 pub mod usuario_repo;
 
+pub mod replica_sync;
+
 use crate::migration::Migrator;
 use sea_orm::{Database, DatabaseConnection, DbErr};
 use sea_orm_migration::MigratorTrait;
