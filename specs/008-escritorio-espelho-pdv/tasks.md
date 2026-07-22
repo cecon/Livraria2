@@ -67,8 +67,8 @@ description: "Task list — Escritório espelho do PDV (paridade nuvem ↔ local
 - [X] T019 [US1] Layout do Escritório com sidebar + provider de tema (`next-themes`, classe `.dark`, chave `eldl-theme`) em `apps/escritorio/app/layout.tsx`
 - [X] T020 [P] [US1] Toggle de tema (Sun/Moon) + marca "EL"/"Espaço do Livro" em paridade, em `apps/escritorio/app/layout.tsx`
 - [X] T021 [US1] Realinhar cascas das telas existentes ao shadcn/rotas: `livros→/cadastro`, `consulta→/pesquisa`, `recebimento→/lancamentos`, `fornecedores`, `relatorios`, `operadores` em `apps/escritorio/app/*`
-- [ ] T022 [US1] Padronizar estados **carregando/vazio/erro** com componentes de `@livraria/ui` nas telas do Escritório
-- [ ] T023 [P] [US1] Checklist de paridade visual/navegação (comparação lado a lado) documentado e executado (quickstart Cenário 1)
+- [X] T022 [US1] Padronizar estados **carregando/vazio/erro** com componentes de `@livraria/ui` nas telas do Escritório
+- [X] T023 [P] [US1] Checklist de paridade visual/navegação (comparação lado a lado) documentado e executado (quickstart Cenário 1)
 
 **Checkpoint**: US1 funcional e testável — o Escritório "parece o PDV".
 
@@ -80,8 +80,8 @@ description: "Task list — Escritório espelho do PDV (paridade nuvem ↔ local
 
 **Independent Test**: cada tarefa de retaguarda no Escritório confere com o PDV; ida-e-volta pela sync (quickstart Cenário 2; SC-003/SC-006).
 
-- [ ] T024 [US2] Camada de dados do Escritório (supabase-js tipado: `livro`, `fornecedor`, `forma_pagamento`, `destinacao`, `movimento_estoque`, `lancamento_*`, `vw_saldo_livro`) em `apps/escritorio/lib/nuvem/*.ts` (por `contracts/supabase-operations.md`)
-- [ ] T025 [P] [US2] Cadastro/preço (upsert `livro` por `sync_uid`, LWW, dedup por `codigo`) em `apps/escritorio/app/cadastro/page.tsx`
+- [X] T024 [US2] Camada de dados do Escritório (supabase-js tipado: `livro`, `fornecedor`, `forma_pagamento`, `destinacao`, `movimento_estoque`, `lancamento_*`, `vw_saldo_livro`) em `apps/escritorio/lib/nuvem/*.ts` (por `contracts/supabase-operations.md`)
+- [X] T025 [P] [US2] Cadastro/preço (upsert `livro` por `sync_uid`, LWW, dedup por `codigo`) em `apps/escritorio/app/cadastro/page.tsx`
 - [ ] T026 [P] [US2] Pesquisa (livro + saldo de `vw_saldo_livro`; **custo médio via `@livraria/domain` (fold WASM)**) em `apps/escritorio/app/pesquisa/page.tsx`
 - [ ] T027 [P] [US2] Lançamentos (`lancamento_entrada`+`item_lancamento`+`movimento_estoque(entrada)`) em `apps/escritorio/app/lancamentos/page.tsx`
 - [ ] T028 [P] [US2] Fornecedores (CRUD por `sync_uid`, dedup `nome_norm`) em `apps/escritorio/app/fornecedores/page.tsx`
