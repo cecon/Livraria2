@@ -1,0 +1,53 @@
+name: build-wasm
+
+# Gera o pacote @livraria/domain (WASM do domínio, ADR-0019) num runner Linux
+# — a máquina de dev tem Smart App Control (enforce) que bloqueia wasm-pack local.
+# Compila crates/livraria-domain-wasm e commita packages/domain de volta na branch.
+on:
+  workflow_dispatch:
+  push:
+    branches: ["**"]
+    paths:
+      - "crates/livraria-domain/**"
+      - "crates/livraria-domain-wasm/**"
+      - ".github/workflows/wasm.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-wasm-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Instalar wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: "latest"
+
+      - name: Build @livraria/domain
+        working-directory: crates/livraria-domain-wasm
+        run: wasm-pack build --target web --out-dir ../../packages/domain --out-name index --release
+
+      - name: Commit do pacote gerado
+        run: |
+          # wasm-pack gera um .gitignore que ignora tudo no out-dir — remove p/ versionar.
+          rm -f packages/domain/.gitignore
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f packages/domain
+          if git diff --staged --quiet; then
+            echo "Nada mudou em packages/domain."
+          else
+            git commit -m "chore(008): build @livraria/domain (wasm) via CI [skip ci]"
+            git push
+          fi
