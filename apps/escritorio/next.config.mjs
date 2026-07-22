@@ -9,6 +9,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
   output: "standalone",
   outputFileTracingRoot: __dirname,
+  // Transpila os pacotes do workspace (ADR-0019/0020): TS/TSX + WASM.
+  transpilePackages: ["@livraria/ui", "@livraria/domain"],
 };
 
 export default nextConfig;

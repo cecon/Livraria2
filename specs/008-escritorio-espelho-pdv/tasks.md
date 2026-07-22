@@ -26,7 +26,7 @@ description: "Task list — Escritório espelho do PDV (paridade nuvem ↔ local
 - [X] T001 [P] Escrever ADR-0019 (Escritório reusa o domínio via WASM) em `docs/adr/0019-escritorio-reusa-dominio-wasm.md`
 - [X] T002 [P] Escrever ADR-0020 (UI compartilhada via `packages/ui` + workspace) em `docs/adr/0020-ui-compartilhada-workspace.md`
 - [X] T003 [P] Escrever ADR-0021 (Turno de operação: entidade de domínio, Pedido Nº por turno, ciclo abrir/encerrar, convergência) em `docs/adr/0021-turno-de-operacao.md`
-- [~] T004 Converter o repo em **npm workspaces** — **PARCIAL**: raiz com `workspaces: ["packages/*"]` (PDV + `@livraria/ui` + `@livraria/domain` linkados; `npm install`+`vite build` verdes). `apps/*` **adiado**: incluir o Escritório como membro quebra o `npm ci` do Dockerfile atual (lockfile próprio) — fazer junto com T016/T017 + rework do Docker.
+- [X] T004 Converter o repo em **npm workspaces**: raiz com `workspaces: ["packages/*","apps/*"]` + `transpilePackages` no `next.config.mjs`. PDV, Escritório, `@livraria/ui` e `@livraria/domain` linkados; `vite build` e `next build` verdes. ⚠️ **Consequência p/ T062**: o Escritório perdeu o lockfile próprio → o `Dockerfile` atual (`npm ci` dentro de `apps/escritorio`) precisa ser **reworkado** para buildar a partir da raiz do workspace antes do próximo deploy.
 - [ ] T005 Criar **Cargo workspace**: `Cargo.toml` raiz `[workspace]` com membros `crates/*` e `src-tauri` — **DIFERIDO**: adotado **path dependency** (`livraria-domain = { path = "../crates/livraria-domain" }`) em vez de workspace, para **não mover o `target/`/bundle do Tauri** (`src-tauri/target/...` esperado pela `tauri.conf.json`/`release.yml`). Workspace formal só se/quando trouxer ganho claro (ex.: `livraria-domain-wasm`), aí validado à parte.
 - [X] T006 [P] Estender `scripts/check-file-size.sh` (guardrail 300 linhas) para cobrir `packages/` e `crates/`
 
@@ -50,8 +50,8 @@ description: "Task list — Escritório espelho do PDV (paridade nuvem ↔ local
 
 - [X] T014 Extrair `packages/ui/`: tokens `@theme`/`:root`/`.dark` (de `src/index.css`), `components/ui/*`, `lib/utils` (`cn`); `package.json` `@livraria/ui`
 - [X] T015 Migrar o PDV (`src/`) para consumir `@livraria/ui` (remover cópias locais de `components/ui` e tokens; `@source` do Tailwind aponta para o pacote); PDV ainda builda
-- [ ] T016 Escritório: adicionar Tailwind v4 (`@tailwindcss/postcss` + `postcss.config`), importar tokens de `@livraria/ui` em `apps/escritorio/app/globals.css`, instalar `clsx`/`tailwind-merge`/`cva`/`lucide-react`/`next-themes`; corrigir alias `@/*`
-- [ ] T017 Escritório: marcar componentes interativos de `@livraria/ui` como `"use client"` onde necessário; `next build` verde
+- [X] T016 Escritório: adicionar Tailwind v4 (`@tailwindcss/postcss` + `postcss.config`), importar tokens de `@livraria/ui` em `apps/escritorio/app/globals.css`, instalar `clsx`/`tailwind-merge`/`cva`/`lucide-react`/`next-themes`; corrigir alias `@/*`
+- [X] T017 Escritório: marcar componentes interativos de `@livraria/ui` como `"use client"` onde necessário; `next build` verde
 
 **Checkpoint**: domínio compartilhado (nativo+WASM), UI compartilhada e regras elevadas prontos — user stories podem começar.
 
