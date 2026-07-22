@@ -27,7 +27,7 @@ description: "Task list — Escritório espelho do PDV (paridade nuvem ↔ local
 - [X] T002 [P] Escrever ADR-0020 (UI compartilhada via `packages/ui` + workspace) em `docs/adr/0020-ui-compartilhada-workspace.md`
 - [X] T003 [P] Escrever ADR-0021 (Turno de operação: entidade de domínio, Pedido Nº por turno, ciclo abrir/encerrar, convergência) em `docs/adr/0021-turno-de-operacao.md`
 - [ ] T004 Converter o repo em **npm workspaces**: `package.json` raiz com `workspaces: ["packages/*","apps/*"]`; `transpilePackages: ["@livraria/ui","@livraria/domain"]` em `apps/escritorio/next.config.mjs`
-- [ ] T005 Criar **Cargo workspace**: `Cargo.toml` raiz `[workspace]` com membros `crates/*` e `src-tauri`
+- [ ] T005 Criar **Cargo workspace**: `Cargo.toml` raiz `[workspace]` com membros `crates/*` e `src-tauri` — **DIFERIDO**: adotado **path dependency** (`livraria-domain = { path = "../crates/livraria-domain" }`) em vez de workspace, para **não mover o `target/`/bundle do Tauri** (`src-tauri/target/...` esperado pela `tauri.conf.json`/`release.yml`). Workspace formal só se/quando trouxer ganho claro (ex.: `livraria-domain-wasm`), aí validado à parte.
 - [X] T006 [P] Estender `scripts/check-file-size.sh` (guardrail 300 linhas) para cobrir `packages/` e `crates/`
 
 ---
@@ -38,8 +38,8 @@ description: "Task list — Escritório espelho do PDV (paridade nuvem ↔ local
 
 ### Domínio → crate → WASM
 
-- [ ] T007 Extrair o domínio puro para `crates/livraria-domain/` (mover `src-tauri/src/domain/*` → `crates/livraria-domain/src/`; `Cargo.toml` só com `serde`+`thiserror`)
-- [ ] T008 Apontar o PDV ao crate: dependência em `src-tauri/Cargo.toml` + ajustar `use crate::domain` → `livraria_domain`; `cargo test` verde (sem mudança de comportamento)
+- [X] T007 Extrair o domínio puro para `crates/livraria-domain/` (mover `src-tauri/src/domain/*` → `crates/livraria-domain/src/`; `Cargo.toml` só com `serde`+`thiserror`)
+- [X] T008 Apontar o PDV ao crate: dependência em `src-tauri/Cargo.toml` + ajustar `use crate::domain` → `livraria_domain`; `cargo test` verde (sem mudança de comportamento)
 - [ ] T009 [P] [refino ADR-0018] Adicionar função pura `clamp_baixa_venda(qtd, saldo)` em `crates/livraria-domain/src/estoque.rs`; `src-tauri/src/adapters/persistencia/pedido_repo.rs` passa a chamá-la (comportamento idêntico) + teste unitário
 - [ ] T010 [P] [refino ADR-0017] Adicionar função pura `baseline_saldo_inicial(estoque, soma_mov)` em `crates/livraria-domain/src/estoque.rs`; `application/estoque_setup.rs`/adapter passa a chamá-la + teste unitário
 - [ ] T011 Criar `crates/livraria-domain-wasm/` (`wasm-bindgen`+`serde-wasm-bindgen`) expondo as funções de `contracts/domain-wasm-api.md`

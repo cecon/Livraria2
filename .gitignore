@@ -38,3 +38,4 @@ dist-ssr
 # Rust / Tauri
 target/
 **/*.rs.bk
+crates/livraria-domain/Cargo.lock

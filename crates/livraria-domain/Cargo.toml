@@ -1,0 +1,13 @@
+# Domínio puro da Livraria 2 (Hexagonal — ADR-0002/0019).
+# Sem I/O, sem Tauri, sem banco: só regras. Compilável para nativo e wasm32.
+[package]
+name = "livraria-domain"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "livraria_domain"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
