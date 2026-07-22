@@ -9,6 +9,8 @@
     /* Path alias */
     "baseUrl": ".",
     "paths": {
+      "@/lib/utils": ["./packages/ui/src/utils"],
+      "@/components/ui/*": ["./packages/ui/src/ui/*"],
       "@/*": ["./src/*"]
     },
 
