@@ -86,10 +86,10 @@ description: "Task list — Escritório espelho do PDV (paridade nuvem ↔ local
 - [X] T027 [P] [US2] Lançamentos (`lancamento_entrada`+`item_lancamento`+`movimento_estoque(entrada)`) em `apps/escritorio/app/lancamentos/page.tsx`
 - [X] T028 [P] [US2] Fornecedores (CRUD por `sync_uid`, dedup `nome_norm`) em `apps/escritorio/app/fornecedores/page.tsx`
 - [X] T029 [P] [US2] Formas de Pagamento (CRUD, dedup `chave`) em `apps/escritorio/app/formas-pagamento/page.tsx`
-- [ ] T030 [P] [US2] Destinações (via `alocar_venda`/`validar_transferencia` do WASM) em `apps/escritorio/app/destinacoes/page.tsx`
+- [X] T030 [P] [US2] Destinações (via `alocar_venda`/`validar_transferencia` do WASM) em `apps/escritorio/app/destinacoes/page.tsx`
 - [X] T031 [P] [US2] Relatórios (mesmos números do PDV para o período) em `apps/escritorio/app/relatorios/page.tsx`
 - [ ] T032 [US2] Início/dashboard em paridade em `apps/escritorio/app/page.tsx`
-- [ ] T033 [US2] Estado de conexão (FR-010): bloquear gravação sem conexão + aviso, hook em `apps/escritorio/lib/conexao.ts`
+- [X] T033 [US2] Estado de conexão (FR-010): bloquear gravação sem conexão + aviso, hook em `apps/escritorio/lib/conexao.ts`
 - [ ] T034 [P] [US2] Integração ida-e-volta (grava no Escritório → aparece no PDV após sync) — quickstart Cenário 2
 - [ ] T035 [P] [US2] Conformidade **custo médio** WASM vs PDV nativo em vetores compartilhados
 - [ ] T064 [US2] **[FR-013 acesso]** Validar regras de acesso do Escritório: login por conta autenticada + RLS `to authenticated`; ação não permitida retorna mensagem clara e não expõe dados/operações além do permitido — em `apps/escritorio/middleware.ts` + teste
