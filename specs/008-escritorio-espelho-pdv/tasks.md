@@ -44,7 +44,7 @@ description: "Task list — Escritório espelho do PDV (paridade nuvem ↔ local
 - [X] T010 [P] [refino ADR-0017] Adicionar função pura `baseline_saldo_inicial(estoque, soma_mov)` em `crates/livraria-domain/src/estoque.rs`; `application/estoque_setup.rs`/adapter passa a chamá-la + teste unitário
 - [X] T011 Criar `crates/livraria-domain-wasm/` (`wasm-bindgen`+`serde-wasm-bindgen`) expondo as funções de `contracts/domain-wasm-api.md`
 - [X] T012 Pipeline `wasm-pack build` → pacote TS `packages/domain/` (`@livraria/domain`) com tipos + init assíncrono — **feito via CI** (`.github/workflows/wasm.yml`), pois a máquina de dev tem Smart App Control (enforce, os error 4551) que bloqueia `wasm-pack` local. O runner Linux gera `@livraria/domain` (index.js + index_bg.wasm + index.d.ts, fronteira `number`) e commita na branch. Regenerado a cada mudança nos crates de domínio.
-- [ ] T013 [P] Scaffolding do harness de conformidade: vetores de teste em `specs/008-escritorio-espelho-pdv/contracts/` compartilhados entre `cargo test` (nativo) e teste JS (WASM)
+- [X] T013 [P] Scaffolding do harness de conformidade: vetores de teste em `specs/008-escritorio-espelho-pdv/contracts/` compartilhados entre `cargo test` (nativo) e teste JS (WASM)
 
 ### UI compartilhada
 

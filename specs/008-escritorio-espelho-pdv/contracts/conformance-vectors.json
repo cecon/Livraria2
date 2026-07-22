@@ -1,0 +1,40 @@
+{
+  "_doc": "Vetores de conformidade PDV(nativo)↔Escritório(WASM). Mesma entrada → mesma saída. Usados por crates/livraria-domain/tests/conformance.rs e por conformance.mjs.",
+  "clamp_baixa_venda": [
+    { "in": [3, 10], "out": 3 },
+    { "in": [5, 2], "out": 2 },
+    { "in": [4, 0], "out": 0 },
+    { "in": [4, -5], "out": 0 }
+  ],
+  "baseline_saldo_inicial": [
+    { "in": [10, 0], "out": 10 },
+    { "in": [10, 4], "out": 6 },
+    { "in": [0, -61], "out": 61 },
+    { "in": [5, 5], "out": 0 }
+  ],
+  "diferenca_contagem": [
+    { "in": [5, 8], "out": 3 },
+    { "in": [5, 4], "out": -1 },
+    { "in": [5, 5], "out": 0 }
+  ],
+  "custo_medio_apos_entrada": [
+    { "in": [4, 0, 10, 1250], "out": 893 },
+    { "in": [10, 1000, 10, 2000], "out": 1500 },
+    { "in": [0, 0, 0, 500], "out": 0 }
+  ],
+  "parse_brl": [
+    { "in": "R$ 1.234,56", "out": 123456 },
+    { "in": "30,5", "out": 3050 },
+    { "in": "0,99", "out": 99 },
+    { "in": "30,567", "out": 3057 }
+  ],
+  "to_brl": [
+    { "in": 123456, "out": "R$ 1.234,56" },
+    { "in": 3000, "out": "R$ 30,00" },
+    { "in": 5, "out": "R$ 0,05" },
+    { "in": 1000000, "out": "R$ 10.000,00" }
+  ],
+  "recompor_ledger": [
+    { "in": [[10, 100], [10, 200], [-5, null]], "saldo": 15, "custo": 150 }
+  ]
+}
