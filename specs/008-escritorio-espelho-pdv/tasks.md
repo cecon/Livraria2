@@ -42,8 +42,8 @@ description: "Task list — Escritório espelho do PDV (paridade nuvem ↔ local
 - [X] T008 Apontar o PDV ao crate: dependência em `src-tauri/Cargo.toml` + ajustar `use crate::domain` → `livraria_domain`; `cargo test` verde (sem mudança de comportamento)
 - [X] T009 [P] [refino ADR-0018] Adicionar função pura `clamp_baixa_venda(qtd, saldo)` em `crates/livraria-domain/src/estoque.rs`; `src-tauri/src/adapters/persistencia/pedido_repo.rs` passa a chamá-la (comportamento idêntico) + teste unitário
 - [X] T010 [P] [refino ADR-0017] Adicionar função pura `baseline_saldo_inicial(estoque, soma_mov)` em `crates/livraria-domain/src/estoque.rs`; `application/estoque_setup.rs`/adapter passa a chamá-la + teste unitário
-- [ ] T011 Criar `crates/livraria-domain-wasm/` (`wasm-bindgen`+`serde-wasm-bindgen`) expondo as funções de `contracts/domain-wasm-api.md`
-- [ ] T012 Pipeline `wasm-pack build` → pacote TS `packages/domain/` (`@livraria/domain`) com tipos + init assíncrono
+- [X] T011 Criar `crates/livraria-domain-wasm/` (`wasm-bindgen`+`serde-wasm-bindgen`) expondo as funções de `contracts/domain-wasm-api.md`
+- [ ] T012 Pipeline `wasm-pack build` → pacote TS `packages/domain/` (`@livraria/domain`) com tipos + init assíncrono — **BLOQUEADO no ambiente**: `cargo install wasm-pack`/`wasm-bindgen-cli` falha por **política de Controle de Aplicativos do Windows** (os error 4551) ao rodar o executável recém-compilado. O crate `livraria-domain-wasm` **compila para wasm32** (validado); falta só gerar as ligações JS. Resolver com: (a) liberar a ferramenta na política de segurança, ou (b) rodar `wasm-pack build --target web --out-dir ../../packages/domain` em CI/outra máquina.
 - [ ] T013 [P] Scaffolding do harness de conformidade: vetores de teste em `specs/008-escritorio-espelho-pdv/contracts/` compartilhados entre `cargo test` (nativo) e teste JS (WASM)
 
 ### UI compartilhada
