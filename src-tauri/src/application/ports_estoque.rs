@@ -50,8 +50,9 @@ pub trait EstoqueRepo: Send + Sync {
     /// Extrato cronológico do livro com saldo resultante por linha (FR-050).
     async fn extrato(&self, codigo: &str, limite: i64) -> Result<Vec<MovimentoView>, RepoErro>;
 
-    /// Gera `saldo_inicial` por livro sem movimento (idempotente, FR-006).
-    /// Retorna quantos saldos iniciais foram criados.
+    /// Gera/repara o `saldo_inicial` (baseline) de cada livro que ainda não o tem
+    /// (idempotente, FR-006, ADR-0017): baseline = `estoque − Σ movimentos`, restaurando
+    /// `Σ == estoque` sem mexer no estoque cacheado. Retorna quantos baselines foram criados.
     async fn gerar_saldos_iniciais(&self) -> Result<u64, RepoErro>;
 
     /// Fornecedores já usados que começam com `prefixo` (FR-012).

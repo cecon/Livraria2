@@ -14,8 +14,9 @@ use livraria_2_lib::domain::livro::Livro;
 use livraria_2_lib::domain::pagamento::Turno;
 use livraria_2_lib::domain::pedido::{ItemPedido, Pedido, Recebimento};
 
-fn url_temp() -> (String, std::path::PathBuf) {
-    let path = std::env::temp_dir().join(format!("livraria_estoquerepo_{}.db", std::process::id()));
+fn url_temp(nome: &str) -> (String, std::path::PathBuf) {
+    let path = std::env::temp_dir()
+        .join(format!("livraria_estoquerepo_{}_{}.db", std::process::id(), nome));
     let _ = std::fs::remove_file(&path);
     (format!("sqlite://{}?mode=rwc", path.display()), path)
 }
@@ -59,9 +60,14 @@ async fn reconciliacao(estoque: &SeaEstoqueRepo, codigo: &str) -> i64 {
     estoque.extrato(codigo, 0).await.unwrap()[0].saldo_resultante
 }
 
+/// Σ das quantidades do ledger (independente de ordem).
+async fn soma_movimentos(estoque: &SeaEstoqueRepo, codigo: &str) -> i64 {
+    estoque.extrato(codigo, 0).await.unwrap().iter().map(|m| m.qtd).sum()
+}
+
 #[tokio::test]
 async fn ledger_reconcilia_e_custo_medio() {
-    let (url, path) = url_temp();
+    let (url, path) = url_temp("reconcilia");
     let db = conectar(&url).await.unwrap();
     inicializar_schema(&db).await.unwrap();
     let livros = SeaLivroRepo::new(db.clone());
@@ -107,6 +113,37 @@ async fn ledger_reconcilia_e_custo_medio() {
     // Fornecedor sugerido a partir da entrada (FR-012).
     let sugestoes = estoque.fornecedores_sugestoes("Edit", 5).await.unwrap();
     assert_eq!(sugestoes, vec!["Editora X".to_string()]);
+
+    let _ = std::fs::remove_file(&path);
+}
+
+/// ADR-0017: livro herdado do legado com movimento de venda mas SEM `saldo_inicial`
+/// (Σ ≠ estoque, como o A PONTE de produção) é reparado por `adotar` — cria o baseline
+/// `estoque − Σ`, restaurando `Σ == estoque` sem tocar no estoque cacheado.
+#[tokio::test]
+async fn adotar_repara_livro_com_movimento_sem_saldo_inicial() {
+    let (url, path) = url_temp("repara");
+    let db = conectar(&url).await.unwrap();
+    inicializar_schema(&db).await.unwrap();
+    let livros = SeaLivroRepo::new(db.clone());
+    let pedidos = SeaPedidoRepo::new(db.clone());
+    let estoque = SeaEstoqueRepo::new(db.clone());
+
+    // Estoque 128 e uma venda de 2 ANTES da adoção → há `saida_venda` mas nenhum
+    // `saldo_inicial`. Σ = -2, estoque = 126: ledger incompleto (Σ ≠ estoque).
+    livros.salvar(&livro("222", 128)).await.unwrap();
+    pedidos.registrar(&venda_de("222", 2)).await.unwrap();
+    assert_eq!(livros.por_codigo("222").await.unwrap().unwrap().estoque, 126);
+    assert_eq!(soma_movimentos(&estoque, "222").await, -2);
+
+    // adotar repara: 1 baseline (= 126 − (−2) = 128), Σ passa a bater com o estoque…
+    assert_eq!(estoque.gerar_saldos_iniciais().await.unwrap(), 1);
+    assert_eq!(soma_movimentos(&estoque, "222").await, 126);
+    // …sem alterar o estoque cacheado.
+    assert_eq!(livros.por_codigo("222").await.unwrap().unwrap().estoque, 126);
+
+    // Idempotente: segunda passada não cria nada.
+    assert_eq!(estoque.gerar_saldos_iniciais().await.unwrap(), 0);
 
     let _ = std::fs::remove_file(&path);
 }

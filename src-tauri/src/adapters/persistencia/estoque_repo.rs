@@ -152,12 +152,24 @@ impl EstoqueRepo for SeaEstoqueRepo {
     async fn gerar_saldos_iniciais(&self) -> Result<u64, RepoErro> {
         let txn = self.db.begin().await.map_err(erro)?;
         let backend = txn.get_database_backend();
-        // Livros que ainda não têm nenhum movimento (idempotente, FR-006).
+        // Baseline por livro que ainda NÃO tem `saldo_inicial` (ADR-0017). Cobre tanto os
+        // livros sem movimento algum quanto os herdados do legado que têm movimentos de venda
+        // mas nunca receberam baseline (ex.: A PONTE) — antes, o filtro "sem nenhum movimento"
+        // deixava esses de fora e o recompute do sync (ADR-0016) corrompia o estoque.
+        // A qtd é `estoque − Σ movimentos`, garantindo `Σ == estoque` (invariante SC-001, ADR-0008)
+        // SEM alterar o `estoque` cacheado. Idempotente: uma vez criado o `saldo_inicial`, ignora.
         let pendentes = txn
             .query_all(Statement::from_string(
                 backend,
-                "SELECT codigo, estoque FROM livro
-                 WHERE id NOT IN (SELECT DISTINCT livro_id FROM movimento_estoque)"
+                "SELECT l.codigo,
+                        l.estoque - COALESCE(
+                            (SELECT SUM(m.qtd) FROM movimento_estoque m WHERE m.livro_id = l.id), 0
+                        ) AS baseline
+                 FROM livro l
+                 WHERE NOT EXISTS (
+                     SELECT 1 FROM movimento_estoque s
+                     WHERE s.livro_id = l.id AND s.tipo = 'saldo_inicial'
+                 )"
                     .to_string(),
             ))
             .await
@@ -165,8 +177,8 @@ impl EstoqueRepo for SeaEstoqueRepo {
         let mut criados = 0u64;
         for row in &pendentes {
             let codigo: String = row.try_get("", "codigo").map_err(erro)?;
-            let estoque: i64 = row.try_get("", "estoque").map_err(erro)?;
-            inserir_movimento(&txn, &codigo, TipoMovimento::SaldoInicial, estoque, None, None, None, None)
+            let baseline: i64 = row.try_get("", "baseline").map_err(erro)?;
+            inserir_movimento(&txn, &codigo, TipoMovimento::SaldoInicial, baseline, None, None, None, None)
                 .await
                 .map_err(erro)?;
             criados += 1;
