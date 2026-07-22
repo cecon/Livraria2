@@ -1,71 +1,111 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
+import { useEffect, useMemo, useState } from "react";
+import { Input } from "@livraria/ui/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@livraria/ui/ui/table";
+import { listarLivros, type Livro } from "@/lib/nuvem/livro";
+import { listarSaldos, movimentosDoLivro } from "@/lib/nuvem/estoque";
+import { dominio } from "@/lib/dominio";
 import { reais } from "@/utils/texto";
+import { Carregando, Vazio } from "@/components/estados";
 
-type Saldo = { livro_uid: string; codigo: string; saldo: number };
-type Livro = { sync_uid: string; titulo: string };
-type Venda = { sync_uid: string; numero: number; data: string; total_centavos: number; operador_uid: string | null };
-type Operador = { sync_uid: string; usuario: string; nome: string | null };
+type Detalhe = { livro: Livro; saldo: number; custo: number };
 
-// T038/T044 — consulta de estoque (vw_saldo_livro) e vendas ("vendido por").
-export default function Consulta() {
-  const supabase = createClient();
-  const [estoque, setEstoque] = useState<{ codigo: string; titulo: string; saldo: number }[]>([]);
-  const [vendas, setVendas] = useState<(Venda & { operador: string })[]>([]);
+// Pesquisa — estoque & preço (US2/T026). Saldo pela view; custo médio pelo
+// MESMO domínio do PDV via WASM (@livraria/domain).
+export default function PesquisaPage() {
+  const [livros, setLivros] = useState<Livro[] | null>(null);
+  const [saldos, setSaldos] = useState<Map<string, number>>(new Map());
+  const [busca, setBusca] = useState("");
+  const [sel, setSel] = useState<Detalhe | null>(null);
+  const [calculando, setCalculando] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const [s, l, v, o] = await Promise.all([
-        supabase.from("vw_saldo_livro").select("*").order("codigo"),
-        supabase.from("livro").select("sync_uid,titulo").is("excluido_em", null),
-        supabase.from("pedido").select("sync_uid,numero,data,total_centavos,operador_uid").eq("cancelado", false).order("numero", { ascending: false }).limit(50),
-        supabase.from("usuario").select("sync_uid,usuario,nome"),
-      ]);
-      const titulos = new Map((l.data as Livro[] ?? []).map((x) => [x.sync_uid, x.titulo]));
-      setEstoque(
-        (s.data as Saldo[] ?? []).map((x) => ({ codigo: x.codigo, titulo: titulos.get(x.livro_uid) ?? x.codigo, saldo: x.saldo }))
-      );
-      const ops = new Map((o.data as Operador[] ?? []).map((x) => [x.sync_uid, x.nome || x.usuario]));
-      setVendas(
-        (v.data as Venda[] ?? []).map((x) => ({ ...x, operador: x.operador_uid ? ops.get(x.operador_uid) ?? "—" : "desconhecido" }))
-      );
+      const [ls, ss] = await Promise.all([listarLivros(), listarSaldos()]);
+      setLivros(ls);
+      setSaldos(ss);
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const filtrados = useMemo(() => {
+    const base = livros ?? [];
+    const q = busca.trim().toLowerCase();
+    const lista = q
+      ? base.filter((l) => `${l.codigo} ${l.titulo} ${l.autor ?? ""}`.toLowerCase().includes(q))
+      : base;
+    return lista.slice(0, 100);
+  }, [livros, busca]);
+
+  async function detalhar(l: Livro) {
+    setCalculando(true);
+    try {
+      const [movs, dom] = await Promise.all([movimentosDoLivro(l.sync_uid), dominio()]);
+      const r = dom.recompor_ledger(movs) as { saldo: number; custo_medio_centavos: number };
+      setSel({ livro: l, saldo: r.saldo, custo: r.custo_medio_centavos });
+    } finally {
+      setCalculando(false);
+    }
+  }
+
   return (
-    <main>
-      <p><a href="/">← voltar</a></p>
-      <h1>Estoque &amp; vendas</h1>
+    <main className="mx-auto max-w-5xl px-6 py-8">
+      <h1 className="text-2xl font-semibold">Pesquisa — estoque &amp; preço</h1>
 
-      <h2 style={{ fontSize: "1.1rem" }}>Estoque</h2>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <tbody>
-          {estoque.map((e) => (
-            <tr key={e.codigo} style={{ borderBottom: "1px solid #eee" }}>
-              <td>{e.titulo}</td>
-              <td style={{ textAlign: "right" }}>{e.saldo}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Input
+        className="mt-4 max-w-md"
+        placeholder="Buscar por código, título ou autor…"
+        value={busca}
+        onChange={(e) => setBusca(e.target.value)}
+      />
 
-      <h2 style={{ fontSize: "1.1rem", marginTop: 24 }}>Vendas recentes</h2>
-      {vendas.length === 0 && <p style={{ color: "#777" }}>Nenhuma venda sincronizada ainda.</p>}
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <tbody>
-          {vendas.map((v) => (
-            <tr key={v.sync_uid} style={{ borderBottom: "1px solid #eee" }}>
-              <td>#{v.numero}</td>
-              <td>{v.data?.slice(0, 10)}</td>
-              <td>vendido por {v.operador}</td>
-              <td style={{ textAlign: "right" }}>{reais(v.total_centavos)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {sel && (
+        <div className="mt-4 rounded-lg border p-4 text-sm">
+          <div className="font-medium">{sel.livro.titulo}</div>
+          <div className="mt-1 flex flex-wrap gap-6 text-muted-foreground">
+            <span>
+              Preço: <strong className="text-foreground">{reais(sel.livro.preco_centavos)}</strong>
+            </span>
+            <span>
+              Saldo: <strong className="text-foreground">{sel.saldo}</strong>
+            </span>
+            <span>
+              Custo médio: <strong className="text-foreground">{reais(sel.custo)}</strong>{" "}
+              <span className="text-xs">(via domínio/WASM)</span>
+            </span>
+          </div>
+        </div>
+      )}
+      {calculando && <p className="mt-2 text-xs text-muted-foreground">Calculando custo médio…</p>}
+
+      <div className="mt-4">
+        {livros === null ? (
+          <Carregando />
+        ) : filtrados.length === 0 ? (
+          <Vazio texto="Nenhum livro encontrado." />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Código</TableHead>
+                <TableHead>Título</TableHead>
+                <TableHead className="text-right">Saldo</TableHead>
+                <TableHead className="text-right">Preço</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtrados.map((l) => (
+                <TableRow key={l.sync_uid} className="cursor-pointer" onClick={() => detalhar(l)}>
+                  <TableCell className="font-mono text-xs">{l.codigo}</TableCell>
+                  <TableCell>{l.titulo}</TableCell>
+                  <TableCell className="text-right">{saldos.get(l.sync_uid) ?? 0}</TableCell>
+                  <TableCell className="text-right">{reais(l.preco_centavos)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
     </main>
   );
 }
