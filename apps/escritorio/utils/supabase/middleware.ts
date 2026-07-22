@@ -36,5 +36,14 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
+
+  // Senha temporária: enquanto a flag estiver setada, prende o usuário na troca
+  // de senha (exceto na própria rota). Ver app/trocar-senha.
+  const precisaTrocar = user?.user_metadata?.must_change_password === true;
+  if (user && precisaTrocar && !path.startsWith("/trocar-senha")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/trocar-senha";
+    return NextResponse.redirect(url);
+  }
   return supabaseResponse;
 }
