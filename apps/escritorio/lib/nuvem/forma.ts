@@ -51,3 +51,26 @@ export async function salvarForma(f: EntradaForma): Promise<{ error?: string }> 
   }
   return {};
 }
+
+export async function definirFormaAtiva(sync_uid: string, ativa: boolean): Promise<{ error?: string }> {
+  const sb = createClient();
+  const { error } = await sb.from("forma_pagamento").update({ ativa, atualizado_em: new Date().toISOString() }).eq("sync_uid", sync_uid);
+  return error ? { error: error.message } : {};
+}
+
+export async function excluirForma(sync_uid: string): Promise<{ error?: string }> {
+  const sb = createClient();
+  const agora = new Date().toISOString();
+  const { error } = await sb.from("forma_pagamento").update({ excluido_em: agora, atualizado_em: agora }).eq("sync_uid", sync_uid);
+  return error ? { error: error.message } : {};
+}
+
+export async function reordenarFormas(ordenadas: Forma[]): Promise<{ error?: string }> {
+  const sb = createClient();
+  const agora = new Date().toISOString();
+  for (let i = 0; i < ordenadas.length; i++) {
+    const { error } = await sb.from("forma_pagamento").update({ ordem: i, atualizado_em: agora }).eq("sync_uid", ordenadas[i].sync_uid);
+    if (error) return { error: error.message };
+  }
+  return {};
+}

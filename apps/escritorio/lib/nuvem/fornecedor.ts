@@ -46,3 +46,11 @@ export async function salvarFornecedor(f: EntradaFornecedor): Promise<{ error?: 
   }
   return {};
 }
+
+export async function inativarFornecedor(sync_uid: string): Promise<{ error?: string }> {
+  const sb = createClient();
+  const agora = new Date().toISOString();
+  const { error } = await sb.from("fornecedor").update({ ativo: false, excluido_em: agora, atualizado_em: agora }).eq("sync_uid", sync_uid);
+  if (error) return { error: error.message };
+  return {};
+}

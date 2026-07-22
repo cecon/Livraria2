@@ -43,3 +43,27 @@ export async function salvarDestinacao(d: EntradaDestinacao): Promise<{ error?: 
   }
   return {};
 }
+
+export async function definirDestinacaoAtiva(sync_uid: string, ativa: boolean): Promise<{ error?: string }> {
+  const sb = createClient();
+  const { error } = await sb.from("destinacao").update({ ativa, atualizado_em: new Date().toISOString() }).eq("sync_uid", sync_uid);
+  return error ? { error: error.message } : {};
+}
+
+export async function excluirDestinacao(sync_uid: string): Promise<{ error?: string }> {
+  const sb = createClient();
+  const agora = new Date().toISOString();
+  const { error } = await sb.from("destinacao").update({ excluido_em: agora, atualizado_em: agora }).eq("sync_uid", sync_uid);
+  return error ? { error: error.message } : {};
+}
+
+export async function reordenarDestinacoes(livresOrdenadas: Destinacao[]): Promise<{ error?: string }> {
+  const sb = createClient();
+  const agora = new Date().toISOString();
+  // "Loja" (sistema) fica em 0; as livres seguem a partir de 1.
+  for (let i = 0; i < livresOrdenadas.length; i++) {
+    const { error } = await sb.from("destinacao").update({ ordem: i + 1, atualizado_em: agora }).eq("sync_uid", livresOrdenadas[i].sync_uid);
+    if (error) return { error: error.message };
+  }
+  return {};
+}
