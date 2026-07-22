@@ -26,7 +26,7 @@ description: "Task list — Escritório espelho do PDV (paridade nuvem ↔ local
 - [X] T001 [P] Escrever ADR-0019 (Escritório reusa o domínio via WASM) em `docs/adr/0019-escritorio-reusa-dominio-wasm.md`
 - [X] T002 [P] Escrever ADR-0020 (UI compartilhada via `packages/ui` + workspace) em `docs/adr/0020-ui-compartilhada-workspace.md`
 - [X] T003 [P] Escrever ADR-0021 (Turno de operação: entidade de domínio, Pedido Nº por turno, ciclo abrir/encerrar, convergência) em `docs/adr/0021-turno-de-operacao.md`
-- [X] T004 Converter o repo em **npm workspaces**: raiz com `workspaces: ["packages/*","apps/*"]` + `transpilePackages` no `next.config.mjs`. PDV, Escritório, `@livraria/ui` e `@livraria/domain` linkados; `vite build` e `next build` verdes. ⚠️ **Consequência p/ T062**: o Escritório perdeu o lockfile próprio → o `Dockerfile` atual (`npm ci` dentro de `apps/escritorio`) precisa ser **reworkado** para buildar a partir da raiz do workspace antes do próximo deploy.
+- [X] T004 Converter o repo em **npm workspaces**: raiz com `workspaces: ["packages/*","apps/*"]` + `transpilePackages` no `next.config.mjs`. PDV, Escritório, `@livraria/ui` e `@livraria/domain` linkados; `vite build` e `next build` verdes. ✅ **Docker reworkado (T062)**: o `Dockerfile` agora builda da **raiz do workspace** (`docker build -f apps/escritorio/Dockerfile .`), `outputFileTracingRoot` na raiz, `.dockerignore` (exclui `src-tauri/target`). Imagem rebuildada e container no ar (47612).
 - [ ] T005 Criar **Cargo workspace**: `Cargo.toml` raiz `[workspace]` com membros `crates/*` e `src-tauri` — **DIFERIDO**: adotado **path dependency** (`livraria-domain = { path = "../crates/livraria-domain" }`) em vez de workspace, para **não mover o `target/`/bundle do Tauri** (`src-tauri/target/...` esperado pela `tauri.conf.json`/`release.yml`). Workspace formal só se/quando trouxer ganho claro (ex.: `livraria-domain-wasm`), aí validado à parte.
 - [X] T006 [P] Estender `scripts/check-file-size.sh` (guardrail 300 linhas) para cobrir `packages/` e `crates/`
 
@@ -150,7 +150,7 @@ description: "Task list — Escritório espelho do PDV (paridade nuvem ↔ local
 - [ ] T059 [P] Rodar quickstart.md (Cenários 1–7) fim-a-fim
 - [ ] T060 [P] Verificar guardrail ≤300 linhas nos arquivos novos (`packages/`, `crates/`, `apps/escritorio/`) e refatorar se necessário
 - [ ] T061 [P] Docs: atualizar `apps/escritorio/README.md` e `docs/deploy-007.md` para o build do WASM + UI compartilhada
-- [ ] T062 Rebuild + redeploy da imagem Docker do Escritório (com WASM + `@livraria/ui`) no Docker local (porta 47612)
+- [X] T062 Rebuild + redeploy da imagem Docker do Escritório (com WASM + `@livraria/ui`) no Docker local (porta 47612)
 - [ ] T063 [P] Paridade pt-BR: moeda `R$ 1.234,56`, busca sem acento/caixa (Princípio VI) nas telas do Escritório
 
 ---
