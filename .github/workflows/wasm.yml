@@ -38,6 +38,10 @@ jobs:
         working-directory: crates/livraria-domain-wasm
         run: wasm-pack build --target web --out-dir ../../packages/domain --out-name index --release
 
+      - name: Ajustar nome do pacote (@livraria/domain)
+        run: |
+          node -e "const f='packages/domain/package.json';const j=require('./'+f);j.name='@livraria/domain';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n');"
+
       - name: Commit do pacote gerado
         run: |
           # wasm-pack gera um .gitignore que ignora tudo no out-dir — remove p/ versionar.
