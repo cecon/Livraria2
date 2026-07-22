@@ -40,3 +40,10 @@ a.card {
   color: var(--destructive);
   margin-top: 8px;
 }
+
+/* Impressão de relatórios: esconde a navegação, só o conteúdo. */
+@media print {
+  aside {
+    display: none !important;
+  }
+}
