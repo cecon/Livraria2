@@ -115,6 +115,18 @@ pub fn diferenca_contagem(sistema: i64, contado: i64) -> i64 {
     contado - sistema
 }
 
+/// Baixa efetiva de uma venda (ADR-0018): nunca excede o saldo, nunca negativa.
+/// Regra única PDV↔nuvem — se `baixa < qtd`, houve estoque insuficiente (drift a sinalizar).
+pub fn clamp_baixa_venda(qtd: i64, saldo: i64) -> i64 {
+    qtd.min(saldo).max(0)
+}
+
+/// Quantidade do movimento `saldo_inicial` que completa o ledger (ADR-0017):
+/// `estoque − Σ movimentos`, garantindo `Σ == estoque` sem alterar o cache.
+pub fn baseline_saldo_inicial(estoque: i64, soma_movimentos: i64) -> i64 {
+    estoque - soma_movimentos
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -204,5 +216,21 @@ mod tests {
         assert_eq!(diferenca_contagem(5, 4), -1);
         assert_eq!(diferenca_contagem(5, 8), 3);
         assert_eq!(diferenca_contagem(5, 5), 0);
+    }
+
+    #[test]
+    fn clamp_baixa_limita_ao_saldo_e_ao_piso() {
+        assert_eq!(clamp_baixa_venda(3, 10), 3); // saldo suficiente
+        assert_eq!(clamp_baixa_venda(5, 2), 2); // limita ao saldo (drift)
+        assert_eq!(clamp_baixa_venda(4, 0), 0); // sem estoque
+        assert_eq!(clamp_baixa_venda(4, -5), 0); // saldo negativo → piso 0
+    }
+
+    #[test]
+    fn baseline_completa_o_ledger() {
+        assert_eq!(baseline_saldo_inicial(10, 0), 10); // sem movimentos → estoque
+        assert_eq!(baseline_saldo_inicial(10, 4), 6); // 10 − Σ(4)
+        assert_eq!(baseline_saldo_inicial(0, -61), 61); // legado com Σ negativo (ex.: A PONTE)
+        assert_eq!(baseline_saldo_inicial(5, 5), 0); // já completo
     }
 }

@@ -40,8 +40,8 @@ description: "Task list — Escritório espelho do PDV (paridade nuvem ↔ local
 
 - [X] T007 Extrair o domínio puro para `crates/livraria-domain/` (mover `src-tauri/src/domain/*` → `crates/livraria-domain/src/`; `Cargo.toml` só com `serde`+`thiserror`)
 - [X] T008 Apontar o PDV ao crate: dependência em `src-tauri/Cargo.toml` + ajustar `use crate::domain` → `livraria_domain`; `cargo test` verde (sem mudança de comportamento)
-- [ ] T009 [P] [refino ADR-0018] Adicionar função pura `clamp_baixa_venda(qtd, saldo)` em `crates/livraria-domain/src/estoque.rs`; `src-tauri/src/adapters/persistencia/pedido_repo.rs` passa a chamá-la (comportamento idêntico) + teste unitário
-- [ ] T010 [P] [refino ADR-0017] Adicionar função pura `baseline_saldo_inicial(estoque, soma_mov)` em `crates/livraria-domain/src/estoque.rs`; `application/estoque_setup.rs`/adapter passa a chamá-la + teste unitário
+- [X] T009 [P] [refino ADR-0018] Adicionar função pura `clamp_baixa_venda(qtd, saldo)` em `crates/livraria-domain/src/estoque.rs`; `src-tauri/src/adapters/persistencia/pedido_repo.rs` passa a chamá-la (comportamento idêntico) + teste unitário
+- [X] T010 [P] [refino ADR-0017] Adicionar função pura `baseline_saldo_inicial(estoque, soma_mov)` em `crates/livraria-domain/src/estoque.rs`; `application/estoque_setup.rs`/adapter passa a chamá-la + teste unitário
 - [ ] T011 Criar `crates/livraria-domain-wasm/` (`wasm-bindgen`+`serde-wasm-bindgen`) expondo as funções de `contracts/domain-wasm-api.md`
 - [ ] T012 Pipeline `wasm-pack build` → pacote TS `packages/domain/` (`@livraria/domain`) com tipos + init assíncrono
 - [ ] T013 [P] Scaffolding do harness de conformidade: vetores de teste em `specs/008-escritorio-espelho-pdv/contracts/` compartilhados entre `cargo test` (nativo) e teste JS (WASM)
