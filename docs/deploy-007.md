@@ -37,7 +37,7 @@ Serviços de Swarm **puxam** a imagem — não a constroem. Escolha:
 
 ### 1.3 Subir o stack no Portainer
 Portainer → **Stacks → Add stack** → cole `apps/escritorio/stack.yml` (ajuste `image:` se usou registry) → **Deploy**.
-O serviço sobe na porta **3000**.
+O serviço escuta na **3000 internamente** e é publicado na porta **externa não óbvia `47612`** (host/Swarm). Atrás de reverse proxy, prefira não publicar porta externa e rotear direto para `escritorio:3000`.
 
 ### 1.4 Domínio + HTTPS
 O escritório escuta na 3000 (HTTP). Publique atrás do seu **reverse proxy** (Traefik/nginx do Portainer):
@@ -81,6 +81,6 @@ Credenciais do usuário de serviço do PDV: **Memória do Projeto (Notion)**.
 - [ ] Contas do escritório criadas no Supabase Auth
 - [ ] Imagem do Next.js buildada (com as `--build-arg`)
 - [ ] (multi-nó) imagem no registry + `stack.yml` apontando pra ela
-- [ ] Stack no Portainer no ar (porta 3000) + reverse proxy/HTTPS
+- [ ] Stack no Portainer no ar (externa `47612` → interna 3000) + reverse proxy/HTTPS
 - [ ] Instalador do PDV gerado (`tauri build`) e instalado no notebook
 - [ ] `sync.json` criado na pasta de config do PDV (modelo: `docs/sync.example.json`)
