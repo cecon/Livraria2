@@ -14,6 +14,7 @@ export default defineConfig(async () => ({
     // UI compartilhada (ADR-0020): `@/components/ui/*` e `@/lib/utils` resolvem
     // para packages/ui (fonte única); o resto de `@` segue em ./src.
     alias: [
+      { find: /^@livraria\/ui\/nav$/, replacement: path.resolve(__dirname, "packages/ui/src/nav") },
       { find: /^@\/lib\/utils$/, replacement: path.resolve(__dirname, "packages/ui/src/utils") },
       { find: /^@\/components\/ui\//, replacement: path.resolve(__dirname, "packages/ui/src/ui") + "/" },
       { find: /^@\//, replacement: path.resolve(__dirname, "src") + "/" },

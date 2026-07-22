@@ -63,9 +63,9 @@ description: "Task list — Escritório espelho do PDV (paridade nuvem ↔ local
 
 **Independent Test**: telas equivalentes lado a lado (quickstart Cenário 1); 100% da navegação coincide (SC-001), zero telas divergentes (SC-004).
 
-- [ ] T018 [US1] Barra lateral com os 10 itens (rótulo/ícone/ordem/rota) de `contracts/ui-parity.md` em `packages/ui/` (compartilhada) e consumida pelo Escritório
-- [ ] T019 [US1] Layout do Escritório com sidebar + provider de tema (`next-themes`, classe `.dark`, chave `eldl-theme`) em `apps/escritorio/app/layout.tsx`
-- [ ] T020 [P] [US1] Toggle de tema (Sun/Moon) + marca "EL"/"Espaço do Livro" em paridade, em `apps/escritorio/app/layout.tsx`
+- [X] T018 [US1] Barra lateral com os 10 itens (rótulo/ícone/ordem/rota) de `contracts/ui-parity.md` em `packages/ui/` (compartilhada) e consumida pelo Escritório
+- [X] T019 [US1] Layout do Escritório com sidebar + provider de tema (`next-themes`, classe `.dark`, chave `eldl-theme`) em `apps/escritorio/app/layout.tsx`
+- [X] T020 [P] [US1] Toggle de tema (Sun/Moon) + marca "EL"/"Espaço do Livro" em paridade, em `apps/escritorio/app/layout.tsx`
 - [ ] T021 [US1] Realinhar cascas das telas existentes ao shadcn/rotas: `livros→/cadastro`, `consulta→/pesquisa`, `recebimento→/lancamentos`, `fornecedores`, `relatorios`, `operadores` em `apps/escritorio/app/*`
 - [ ] T022 [US1] Padronizar estados **carregando/vazio/erro** com componentes de `@livraria/ui` nas telas do Escritório
 - [ ] T023 [P] [US1] Checklist de paridade visual/navegação (comparação lado a lado) documentado e executado (quickstart Cenário 1)

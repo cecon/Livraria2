@@ -9,6 +9,7 @@
     /* Path alias */
     "baseUrl": ".",
     "paths": {
+      "@livraria/ui/nav": ["./packages/ui/src/nav"],
       "@/lib/utils": ["./packages/ui/src/utils"],
       "@/components/ui/*": ["./packages/ui/src/ui/*"],
       "@/*": ["./src/*"]
