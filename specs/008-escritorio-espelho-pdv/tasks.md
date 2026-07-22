@@ -83,7 +83,7 @@ description: "Task list — Escritório espelho do PDV (paridade nuvem ↔ local
 - [X] T024 [US2] Camada de dados do Escritório (supabase-js tipado: `livro`, `fornecedor`, `forma_pagamento`, `destinacao`, `movimento_estoque`, `lancamento_*`, `vw_saldo_livro`) em `apps/escritorio/lib/nuvem/*.ts` (por `contracts/supabase-operations.md`)
 - [X] T025 [P] [US2] Cadastro/preço (upsert `livro` por `sync_uid`, LWW, dedup por `codigo`) em `apps/escritorio/app/cadastro/page.tsx`
 - [X] T026 [P] [US2] Pesquisa (livro + saldo de `vw_saldo_livro`; **custo médio via `@livraria/domain` (fold WASM)**) em `apps/escritorio/app/pesquisa/page.tsx`
-- [ ] T027 [P] [US2] Lançamentos (`lancamento_entrada`+`item_lancamento`+`movimento_estoque(entrada)`) em `apps/escritorio/app/lancamentos/page.tsx`
+- [X] T027 [P] [US2] Lançamentos (`lancamento_entrada`+`item_lancamento`+`movimento_estoque(entrada)`) em `apps/escritorio/app/lancamentos/page.tsx`
 - [X] T028 [P] [US2] Fornecedores (CRUD por `sync_uid`, dedup `nome_norm`) em `apps/escritorio/app/fornecedores/page.tsx`
 - [X] T029 [P] [US2] Formas de Pagamento (CRUD, dedup `chave`) em `apps/escritorio/app/formas-pagamento/page.tsx`
 - [ ] T030 [P] [US2] Destinações (via `alocar_venda`/`validar_transferencia` do WASM) em `apps/escritorio/app/destinacoes/page.tsx`

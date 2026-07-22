@@ -1,26 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
+import { useEffect, useMemo, useState } from "react";
+import { Button } from "@livraria/ui/ui/button";
+import { Input } from "@livraria/ui/ui/input";
+import { Label } from "@livraria/ui/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@livraria/ui/ui/select";
+import { refsParaEntrada, registrarEntrada, type LivroRef, type FornecedorRef } from "@/lib/nuvem/lancamento";
+import { centavos } from "@/utils/texto";
 
-type Livro = { sync_uid: string; codigo: string; titulo: string };
-type Fornecedor = { sync_uid: string; nome: string };
-
-// centavos a partir de "12,50" / "12.50" / "12"
-function centavos(txt: string): number {
-  const n = parseFloat(txt.replace(/\./g, "").replace(",", "."));
-  return Number.isFinite(n) ? Math.round(n * 100) : 0;
-}
-
-// US1 — Receber livros: cria lançamento + item + movimento de entrada na nuvem,
-// como eventos crus (origem='escritorio'), relações por sync_uid. Funciona com o
-// notebook do PDV desligado; o PDV reflete ao sincronizar.
-export default function Recebimento() {
-  const supabase = createClient();
-  const [livros, setLivros] = useState<Livro[]>([]);
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-  const [livroUid, setLivroUid] = useState("");
-  const [fornecedorUid, setFornecedorUid] = useState("");
+// Lançamentos — receber livros (US2/T027). Escreve nota + item + movimento de
+// entrada na nuvem; o PDV reflete ao sincronizar.
+export default function LancamentosPage() {
+  const [livros, setLivros] = useState<LivroRef[]>([]);
+  const [fornecedores, setFornecedores] = useState<FornecedorRef[]>([]);
+  const [codigo, setCodigo] = useState("");
+  const [fornUid, setFornUid] = useState("");
   const [qtd, setQtd] = useState("");
   const [custo, setCusto] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
@@ -28,111 +22,97 @@ export default function Recebimento() {
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
-    (async () => {
-      const [l, f] = await Promise.all([
-        supabase.from("livro").select("sync_uid,codigo,titulo").is("excluido_em", null).order("titulo"),
-        supabase.from("fornecedor").select("sync_uid,nome").is("excluido_em", null).order("nome"),
-      ]);
-      setLivros((l.data as Livro[]) ?? []);
-      setFornecedores((f.data as Fornecedor[]) ?? []);
-    })();
-  }, [supabase]);
+    refsParaEntrada().then((r) => {
+      setLivros(r.livros);
+      setFornecedores(r.fornecedores);
+    });
+  }, []);
+
+  const mapaCodigo = useMemo(() => {
+    const m = new Map<string, LivroRef>();
+    for (const l of livros) m.set(l.codigo, l);
+    return m;
+  }, [livros]);
+  const livroSel = mapaCodigo.get(codigo.trim());
 
   async function receber(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
     setMsg(null);
     const q = parseInt(qtd, 10);
-    if (!livroUid || !Number.isFinite(q) || q <= 0) {
-      setErro("Escolha o livro e uma quantidade válida.");
+    if (!livroSel) {
+      setErro("Código de barras não encontrado no acervo.");
+      return;
+    }
+    if (!Number.isFinite(q) || q <= 0) {
+      setErro("Informe uma quantidade válida.");
       return;
     }
     setSalvando(true);
-    const custoC = centavos(custo);
-    const { data: sessao } = await supabase.auth.getUser();
-    const criadoPor = sessao.user?.id ?? null;
-    const agora = new Date().toISOString();
-    const lancUid = crypto.randomUUID();
-
-    const lanc = {
-      sync_uid: lancUid,
-      fornecedor_uid: fornecedorUid || null,
-      numero: null,
-      data: agora,
-      status: "finalizada",
-      finalizada_em: agora,
-      origem: "escritorio",
-      criado_por: criadoPor,
-      atualizado_em: agora,
-    };
-    const item = {
-      sync_uid: crypto.randomUUID(),
-      lancamento_uid: lancUid,
-      livro_uid: livroUid,
+    const { error } = await registrarEntrada({
+      livroUid: livroSel.sync_uid,
+      fornecedorUid: fornUid || null,
       qtd: q,
-      custo_unit_centavos: custoC,
-      origem: "escritorio",
-      criado_por: criadoPor,
-    };
-    const mov = {
-      sync_uid: crypto.randomUUID(),
-      livro_uid: livroUid,
-      tipo: "entrada",
-      qtd: q,
-      custo_unit_centavos: custoC,
-      criado_em: agora,
-      origem: "escritorio",
-      criado_por: criadoPor,
-    };
-
-    // Pai antes das filhas (FKs por sync_uid).
-    const r1 = await supabase.from("lancamento_entrada").insert(lanc);
-    const r2 = r1.error ? r1 : await supabase.from("item_lancamento").insert(item);
-    const r3 = r2.error ? r2 : await supabase.from("movimento_estoque").insert(mov);
+      custoCentavos: centavos(custo),
+    });
     setSalvando(false);
-
-    if (r1.error || r2.error || r3.error) {
-      setErro((r1.error || r2.error || r3.error)!.message);
+    if (error) {
+      setErro(error);
       return;
     }
-    const livro = livros.find((x) => x.sync_uid === livroUid);
-    setMsg(`Entrada de ${q} de "${livro?.titulo}" registrada. O PDV refletirá ao sincronizar.`);
+    setMsg(`Entrada de ${q} de “${livroSel.titulo}” registrada. O PDV refletirá ao sincronizar.`);
+    setCodigo("");
     setQtd("");
     setCusto("");
   }
 
   return (
-    <main>
-      <p><a href="/">← voltar</a></p>
-      <h1>Receber livros</h1>
-      <form onSubmit={receber}>
-        <label htmlFor="livro">Livro</label>
-        <select id="livro" value={livroUid} onChange={(e) => setLivroUid(e.target.value)}>
-          <option value="">— selecione —</option>
-          {livros.map((l) => (
-            <option key={l.sync_uid} value={l.sync_uid}>
-              {l.codigo} — {l.titulo}
-            </option>
-          ))}
-        </select>
+    <main className="mx-auto max-w-2xl px-6 py-8">
+      <h1 className="text-2xl font-semibold">Lançamentos — receber livros</h1>
 
-        <label htmlFor="forn">Fornecedor (opcional)</label>
-        <select id="forn" value={fornecedorUid} onChange={(e) => setFornecedorUid(e.target.value)}>
-          <option value="">— nenhum —</option>
-          {fornecedores.map((f) => (
-            <option key={f.sync_uid} value={f.sync_uid}>{f.nome}</option>
-          ))}
-        </select>
+      <form onSubmit={receber} className="mt-6 grid gap-4">
+        <div className="grid gap-1.5">
+          <Label htmlFor="codigo">Código de barras</Label>
+          <Input id="codigo" placeholder="Escaneie ou digite…" value={codigo} onChange={(e) => setCodigo(e.target.value)} />
+          <p className="text-xs text-muted-foreground">
+            {codigo.trim() ? (livroSel ? `✓ ${livroSel.titulo}` : "Livro não encontrado no acervo.") : " "}
+          </p>
+        </div>
 
-        <label htmlFor="qtd">Quantidade</label>
-        <input id="qtd" type="number" min={1} value={qtd} onChange={(e) => setQtd(e.target.value)} />
+        <div className="grid gap-1.5">
+          <Label>Fornecedor (opcional)</Label>
+          <Select value={fornUid} onValueChange={setFornUid}>
+            <SelectTrigger>
+              <SelectValue placeholder="— nenhum —" />
+            </SelectTrigger>
+            <SelectContent>
+              {fornecedores.map((f) => (
+                <SelectItem key={f.sync_uid} value={f.sync_uid}>
+                  {f.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <label htmlFor="custo">Custo unitário (R$)</label>
-        <input id="custo" inputMode="decimal" placeholder="0,00" value={custo} onChange={(e) => setCusto(e.target.value)} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label htmlFor="qtd">Quantidade</Label>
+            <Input id="qtd" type="number" min={1} value={qtd} onChange={(e) => setQtd(e.target.value)} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="custo">Custo unitário (R$)</Label>
+            <Input id="custo" inputMode="decimal" placeholder="0,00" value={custo} onChange={(e) => setCusto(e.target.value)} />
+          </div>
+        </div>
 
-        {erro && <p className="erro">{erro}</p>}
-        {msg && <p style={{ color: "#1a7f37", marginTop: 8 }}>{msg}</p>}
-        <button type="submit" disabled={salvando}>{salvando ? "Salvando…" : "Registrar entrada"}</button>
+        {erro && <p className="text-sm text-destructive">{erro}</p>}
+        {msg && <p className="text-sm text-[#1a7f37]">{msg}</p>}
+        <div>
+          <Button type="submit" disabled={salvando}>
+            {salvando ? "Salvando…" : "Registrar entrada"}
+          </Button>
+        </div>
       </form>
     </main>
   );
