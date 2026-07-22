@@ -222,3 +222,27 @@ Task: "Relatórios em apps/escritorio/app/relatorios/page.tsx"
 - Offline do PDV **invariante**: turno/venda funcionam sem internet no PDV; o Escritório é online.
 - ADRs 0019/0020/0021 são pré-requisito (Phase 1) — não implementar antes de registrá-los.
 - Commit após cada task ou grupo lógico; parar em cada checkpoint para validar a story.
+
+---
+
+## Handoff — o que sai desta feature para uma nova spec (feature 009)
+
+**Encerramento da 008**: entregues e no ar (paridade REAL, não só tema) — a fundação
+(domínio→WASM, `@livraria/ui`, workspace, Docker) + US1 (casca/tema/rotas) + **US2 retaguarda
+completa**: Início, Cadastro, Pesquisa, Lançamentos (nota multi-item), Fornecedores, Formas de
+Pagamento, Destinações, Relatórios, estado de conexão. Cada tela reconstruída a partir da rota real
+do PDV, com build validado; várias confirmadas ao vivo.
+
+**Migra para a feature 009 (operacional + pendências):**
+- **US4 — Turno de operação** (T036–T049, T066): entidade de domínio + WASM, migrations `m009`
+  (SQLite) e `0004_turno.sql` (nuvem), `TurnoRepo`, ciclo abrir/encerrar + fechamento de caixa,
+  Pedido Nº por turno. **ADR-0021 já registrado.**
+- **US3 — Venda e Inventário na nuvem** (T050–T057): checkout completo (exige turno) e contagem
+  de inventário; usa o domínio WASM (clamp, validar_conclusão, contagem).
+- **Pendências da US2**: Relatórios export **Excel/PDF** e **WhatsApp**; repasses/posição de
+  carimbos no relatório de vendas; testes T034/T035/T064/T065 (ida-e-volta, conformidade extra,
+  acesso, concorrência).
+
+**Base pronta para a 009**: crate `livraria-domain` + WASM (`@livraria/domain`) já expõem
+`clamp_baixa_venda`, `validar_conclusao`, `contagem_efetiva`, etc.; `packages/ui` e o workspace
+já montados; CI do WASM (`.github/workflows/wasm.yml`) regenera o pacote a cada mudança no domínio.
