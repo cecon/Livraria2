@@ -23,12 +23,12 @@ description: "Task list — Escritório espelho do PDV (paridade nuvem ↔ local
 
 **Purpose**: registrar decisões e transformar o repo em workspace.
 
-- [ ] T001 [P] Escrever ADR-0019 (Escritório reusa o domínio via WASM) em `docs/adr/0019-escritorio-reusa-dominio-wasm.md`
-- [ ] T002 [P] Escrever ADR-0020 (UI compartilhada via `packages/ui` + workspace) em `docs/adr/0020-ui-compartilhada-workspace.md`
-- [ ] T003 [P] Escrever ADR-0021 (Turno de operação: entidade de domínio, Pedido Nº por turno, ciclo abrir/encerrar, convergência) em `docs/adr/0021-turno-de-operacao.md`
+- [X] T001 [P] Escrever ADR-0019 (Escritório reusa o domínio via WASM) em `docs/adr/0019-escritorio-reusa-dominio-wasm.md`
+- [X] T002 [P] Escrever ADR-0020 (UI compartilhada via `packages/ui` + workspace) em `docs/adr/0020-ui-compartilhada-workspace.md`
+- [X] T003 [P] Escrever ADR-0021 (Turno de operação: entidade de domínio, Pedido Nº por turno, ciclo abrir/encerrar, convergência) em `docs/adr/0021-turno-de-operacao.md`
 - [ ] T004 Converter o repo em **npm workspaces**: `package.json` raiz com `workspaces: ["packages/*","apps/*"]`; `transpilePackages: ["@livraria/ui","@livraria/domain"]` em `apps/escritorio/next.config.mjs`
 - [ ] T005 Criar **Cargo workspace**: `Cargo.toml` raiz `[workspace]` com membros `crates/*` e `src-tauri`
-- [ ] T006 [P] Estender `scripts/check-file-size.sh` (guardrail 300 linhas) para cobrir `packages/` e `crates/`
+- [X] T006 [P] Estender `scripts/check-file-size.sh` (guardrail 300 linhas) para cobrir `packages/` e `crates/`
 
 ---
 
