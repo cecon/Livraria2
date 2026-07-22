@@ -9,6 +9,16 @@
 /* Tailwind v4 ignora node_modules; aponta explicitamente para os componentes do pacote. */
 @source "../../../packages/ui/src";
 
+/* Padding base das telas (em @layer base — utilities do Tailwind sobrepõem quando a
+   tela já foi migrada ao design system). Telas ainda não migradas ganham respiro. */
+@layer base {
+  main {
+    max-width: 960px;
+    margin-inline: auto;
+    padding: 24px 20px;
+  }
+}
+
 /* Estilos legados das telas atuais do Escritório — serão migrados ao design
    system na US1 (T021). Mantidos aqui para não quebrar as telas existentes. */
 a.card {

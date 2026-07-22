@@ -2,6 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
 // Home da retaguarda. Requer sessão (o middleware já redireciona; reforço aqui).
+// A navegação fica na barra lateral (paridade com o PDV) — aqui só as boas-vindas.
 export default async function Home() {
   const supabase = await createClient();
   const {
@@ -10,17 +11,14 @@ export default async function Home() {
   if (!user) redirect("/login");
 
   return (
-    <main>
-      <h1>Escritório — Livraria</h1>
-      <p>Logado como <strong>{user.email}</strong></p>
-      <nav className="nav">
-        <a className="card" href="/recebimento">📦 Receber livros</a>
-        <a className="card" href="/fornecedores">🏢 Fornecedores</a>
-        <a className="card" href="/livros">📚 Cadastro / preço</a>
-        <a className="card" href="/operadores">👤 Operadores</a>
-        <a className="card" href="/consulta">🔎 Estoque &amp; vendas</a>
-        <a className="card" href="/relatorios">📊 Relatórios</a>
-      </nav>
+    <main className="mx-auto max-w-5xl px-6 py-8">
+      <h1 className="text-2xl font-semibold">Escritório — Livraria</h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Logado como <strong className="text-foreground">{user.email}</strong>
+      </p>
+      <p className="mt-6 text-sm text-muted-foreground">
+        Use o menu à esquerda para navegar pelas seções.
+      </p>
     </main>
   );
 }
