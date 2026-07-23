@@ -75,8 +75,16 @@ pub(crate) const SPECS: &[Spec] = &[
     Spec {
         recurso: "usuario",
         mutavel: true,
-        default_insert: &[("senha_hash", "")],
-        cols: &[Col { nome: "usuario", tipo: Texto }, Col { nome: "nome", tipo: Texto }],
+        // Feature 010 (ADR-0019): `senha_hash` e `perfil` passam a sincronizar — assim um
+        // usuário criado na retaguarda loga no PDV (offline). O hash desce pelo pull normal
+        // (fica atrás do papel `authenticated`, mesmo boundary do login admin; bcrypt).
+        default_insert: &[],
+        cols: &[
+            Col { nome: "usuario", tipo: Texto },
+            Col { nome: "nome", tipo: Texto },
+            Col { nome: "perfil", tipo: Texto },
+            Col { nome: "senha_hash", tipo: Texto },
+        ],
         refs: &[],
     },
     Spec {

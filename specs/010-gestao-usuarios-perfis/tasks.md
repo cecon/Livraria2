@@ -29,8 +29,8 @@ description: "Task list — feature 010: gestão de usuários com perfis"
 - [ ] T004 WASM: expor `Perfil` + regras via wrappers `#[wasm_bindgen]` (padrão da 008) e **regenerar** `packages/domain` (`index.js`/`index.d.ts`/`index_bg.wasm`).
 - [X] T005 Migração local **`m010`**: `src-tauri/src/migration/m010.rs` — `ALTER TABLE usuario ADD COLUMN perfil TEXT NOT NULL DEFAULT 'operador'` (idempotente: ignora "duplicate column") + `UPDATE usuario SET perfil='admin' WHERE usuario='adm'`; registrar em `src-tauri/src/migration/mod.rs`.
 - [X] T006 Migração nuvem `apps/nuvem/migrations/0006_usuario_perfil.sql`: `add column if not exists perfil text not null default 'operador'` + `update usuario set perfil='admin' where usuario='adm'`; **aplicar** em produção (Management API).
-- [ ] T007 Nuvem `apps/nuvem/migrations/0007_rpc_usuarios.sql` (parte sync/proteção): `REVOKE SELECT (senha_hash) ON public.usuario FROM anon, authenticated` + RPC `sync_pull_usuarios(p_cursor timestamptz)` `SECURITY DEFINER` retornando linhas com `senha_hash`+`perfil`; `GRANT EXECUTE ... TO authenticated`; **aplicar**.
-- [ ] T008 PDV sync: `src-tauri/src/adapters/persistencia/replica_mapa.rs` — incluir `perfil` (e `senha_hash`) nas colunas sincronizadas de `usuario`; e `src-tauri/src/adapters/nuvem/supabase_sync.rs` — pull de `usuario` via `sync_pull_usuarios` (não mais `select *`).
+- [X] T007 Nuvem `apps/nuvem/migrations/0007_rpc_usuarios.sql` (parte sync/proteção): `REVOKE SELECT (senha_hash) ON public.usuario FROM anon, authenticated` + RPC `sync_pull_usuarios(p_cursor timestamptz)` `SECURITY DEFINER` retornando linhas com `senha_hash`+`perfil`; `GRANT EXECUTE ... TO authenticated`; **aplicar**.
+- [X] T008 PDV sync: `src-tauri/src/adapters/persistencia/replica_mapa.rs` — incluir `perfil` (e `senha_hash`) nas colunas sincronizadas de `usuario`; e `src-tauri/src/adapters/nuvem/supabase_sync.rs` — pull de `usuario` via `sync_pull_usuarios` (não mais `select *`).
 - [X] T009 PDV entity: `src-tauri/src/adapters/persistencia/entities/usuario.rs` ganha `perfil: String`; `usuario_repo` carrega/expõe o perfil (autenticação inalterada — ambos os perfis entram, FR-017).
 
 **Checkpoint**: `cargo test --lib` + `cargo test -p livraria-domain` verdes; PDV sincroniza `usuario` com `perfil`/`senha_hash` sem quebrar; nuvem tem `perfil` e o hash protegido.
@@ -46,7 +46,7 @@ description: "Task list — feature 010: gestão de usuários com perfis"
 - [X] T011 [US1] Nuvem (`0007`): RPC `definir_senha_usuario(p_admin,p_usuario,p_senha)` `SECURITY DEFINER` (admin ativo; senha ≥ mínimo; regrava só `senha_hash`+`atualizado_em`); **aplicar**.
 - [X] T012 [P] [US1] Escritório: `apps/escritorio/app/usuarios/page.tsx` — lista de usuários (Usuário · Nome · Perfil · Estado) lendo **colunas explícitas** (nunca `senha_hash`); estados vazio/carregando/erro; botão "Novo usuário".
 - [X] T013 [US1] Escritório: `apps/escritorio/app/usuarios/form-usuario.tsx` (form/modal de criação) — campos usuário/nome/perfil(radio)/senha; chama `criar_usuario`; validação client (usuário obrigatório, senha ≥ mínimo) + mensagens pt-BR.
-- [ ] T014 [US1] Verificar US1 — cadastro pela UI ✅ (SC-001, hash bcrypt, login ok); **login do novo usuário no PDV offline pende T008** (sync do senha_hash).
+- [X] T014 [US1] Verificar US1 — cadastro pela UI ✅ (SC-001, hash bcrypt, login ok); **login do novo usuário no PDV offline pende T008** (sync do senha_hash).
 
 **Checkpoint**: um admin cadastra usuários com perfil e senha; eles logam conforme o perfil. **MVP entregável.**
 
@@ -74,7 +74,7 @@ description: "Task list — feature 010: gestão de usuários com perfis"
 
 - [X] T020 [US3] Nuvem (`0007`): RPCs `editar_usuario(p_admin,p_usuario,p_nome,p_perfil)` e `desativar_usuario(p_admin,p_usuario)` `SECURITY DEFINER` com **guarda do último admin** (INV-2: bloquear rebaixar/desativar se `count(admins ativos)==1`); **aplicar**.
 - [X] T021 [P] [US3] Escritório: ações na lista/form (`apps/escritorio/app/usuarios/`) — **Editar** (nome/perfil), **Redefinir senha** (chama `definir_senha_usuario`), **Desativar/Reativar**; desabilitar rebaixar/desativar o último admin com motivo (reforçado pela RPC).
-- [ ] T022 [US3] PDV: após cada sincronização, se o **operador logado** ficou `excluido_em IS NOT NULL` → **logout forçado** e volta à seleção de operador (FR-018/D7). `src-tauri` (fluxo pós-sync + estado do operador).
+- [X] T022 [US3] PDV: após cada sincronização, se o **operador logado** ficou `excluido_em IS NOT NULL` → **logout forçado** e volta à seleção de operador (FR-018/D7). `src-tauri` (fluxo pós-sync + estado do operador).
 - [X] T023 [US3] Verificar US3 pelo `quickstart.md` (redefinir senha; promover operador→admin; bloquear último admin — SC-005; histórico de venda preservado — SC-006).
 
 **Checkpoint**: ciclo de vida completo do usuário, com invariante do último admin garantido no ponto de escrita.

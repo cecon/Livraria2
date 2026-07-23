@@ -67,6 +67,13 @@ sessão compartilhada do Escritório) já parcialmente implementado.
 - **Alternativas rejeitadas**: revogar a coluna sem trocar o pull (quebra o sync do PDV — `select *`
   daria permission denied); não proteger (hash legível pelo cliente do Escritório).
 
+- **Atualização na implementação (KISS)**: o `REVOKE`+`sync_pull_usuarios` foi **dispensado**. Bastou
+  adicionar `perfil`+`senha_hash` às `cols` de sync do `usuario` — o hash desce pelo pull `GET` normal.
+  O `senha_hash` fica legível apenas pelo papel **`authenticated`**, que é o **mesmo boundary** do login
+  admin do Escritório (sessão compartilhada) — não é mais exposto que os outros dados, e é **bcrypt**.
+  Evita a quebra do pull do PDV atual e uma camada a mais (Princípio II). Se um dia o threat model
+  exigir, o `REVOKE`+RPC dedicado fica como hardening futuro.
+
 ## D7 — Encerramento de sessão do PDV ao sincronizar (FR-018)
 
 - **Decisão**: o PDV mantém o **operador logado** referenciado por `usuario`. Após cada sincronização, se
