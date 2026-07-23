@@ -83,10 +83,10 @@ description: "Task list — feature 010: gestão de usuários com perfis"
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [ ] T024 [P] Registrar a conclusão do **Stage 3 do ADR-0019** (sync do `senha_hash` protegido) + o incremento de `perfil` — nota no `docs/adr/0019-*.md` (ou ADR novo se o time preferir).
-- [ ] T025 [P] Guardrail ≤300 linhas (`scripts/check-file-size.sh`) nos arquivos novos; dividir UI (lista/form) se estourar. Conferir também que **nenhum log/telemetria emite a senha** em texto (SC-004/FR-012).
-- [ ] T026 [P] Idempotência (Princípio IV): re-aplicar `m010` e `0006`/`0007` em base já migrada — sem erro, sem duplicar, sem perder dados.
-- [ ] T027 Passagem completa do `quickstart.md` (SC-001..006) + `cargo test --lib`/`cargo test -p livraria-domain` + build do Escritório (`npm run build -w apps/escritorio`).
+- [X] T024 [P] Registrar a conclusão do **Stage 3 do ADR-0019** (sync do `senha_hash` protegido) + o incremento de `perfil` — nota no `docs/adr/0019-*.md` (ou ADR novo se o time preferir).
+- [X] T025 [P] Guardrail ≤300 linhas (`scripts/check-file-size.sh`) nos arquivos novos; dividir UI (lista/form) se estourar. Conferir também que **nenhum log/telemetria emite a senha** em texto (SC-004/FR-012).
+- [X] T026 [P] Idempotência (Princípio IV): re-aplicar `m010` e `0006`/`0007` em base já migrada — sem erro, sem duplicar, sem perder dados.
+- [X] T027 Passagem completa do `quickstart.md` (SC-001..006) + `cargo test --lib`/`cargo test -p livraria-domain` + build do Escritório (`npm run build -w apps/escritorio`).
 
 ---
 
