@@ -148,8 +148,8 @@ PDV; suíte de integração prova ida-e-volta, acesso e convergência.
 
 ### Implementation for User Story 4
 
-- [ ] T036 [US4] Estender `apps/escritorio/lib/nuvem/relatorios.ts` com export: **Excel** (`.xlsx` das linhas carregadas), **PDF** (impressão via `@media print`), **WhatsApp** (`https://wa.me/?text=`) — sem endpoint novo, sem `service_role`
-- [ ] T037 [US4] Adicionar os botões Exportar Excel/PDF e Compartilhar WhatsApp em `apps/escritorio/app/relatorios/page.tsx` (mesmos números do PDV) (depende de T036)
+- [X] T036 [US4] Estender `apps/escritorio/lib/nuvem/relatorios.ts` com export: **Excel** (`.xlsx` das linhas carregadas), **PDF** (impressão via `@media print`), **WhatsApp** (`https://wa.me/?text=`) — sem endpoint novo, sem `service_role`
+- [X] T037 [US4] Adicionar os botões Exportar Excel/PDF e Compartilhar WhatsApp em `apps/escritorio/app/relatorios/page.tsx` (mesmos números do PDV) (depende de T036)
 
 **Checkpoint**: retaguarda com export e cobertura de testes fechada.
 
