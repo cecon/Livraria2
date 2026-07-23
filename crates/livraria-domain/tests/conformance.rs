@@ -2,7 +2,7 @@
 //! `@livraria/domain` (WASM) roda em `conformance.mjs`: mesma entrada → mesma saída.
 //! Se ambos passam sobre os mesmos vetores, PDV (nativo) e Escritório (WASM) são idênticos.
 
-use livraria_domain::{dinheiro::Dinheiro, estoque};
+use livraria_domain::{dinheiro::Dinheiro, estoque, turno_operacao};
 use serde_json::Value;
 
 const VECTORS: &str =
@@ -56,5 +56,16 @@ fn conformidade_nativa() {
         let (saldo, medio) = estoque::recompor_ledger(&movs);
         assert_eq!(saldo, i(&c["saldo"]));
         assert_eq!(medio.centavos(), i(&c["custo"]));
+    }
+    // Turno de operação (feature 009): numeração por turno e fechamento de caixa.
+    for c in casos(&v, "turno_proximo_numero") {
+        assert_eq!(turno_operacao::proximo_numero(i(&c["in"])), i(&c["out"]));
+    }
+    for c in casos(&v, "turno_encerrar") {
+        let f = turno_operacao::encerrar(
+            Dinheiro::de_centavos(i(&c["in"][0])),
+            Dinheiro::de_centavos(i(&c["in"][1])),
+        );
+        assert_eq!(f.diferenca, i(&c["out"]));
     }
 }

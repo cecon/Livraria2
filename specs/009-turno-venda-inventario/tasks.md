@@ -67,7 +67,7 @@ conferido/diferença); tentar abrir um segundo turno na mesma origem → bloquea
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T012 [P] [US1] Conformidade nativo↔WASM do turno em `crates/livraria-domain/tests/conformance.rs`: `proximo_numero`, `resumir_fechamento`, `encerrar` (mesmo input → mesmo output)
+- [X] T012 [P] [US1] Conformidade nativo↔WASM do turno em `crates/livraria-domain/tests/conformance.rs`: `proximo_numero`, `resumir_fechamento`, `encerrar` (mesmo input → mesmo output)
 - [ ] T013 [P] [US1] Teste de integração do ciclo do turno no Escritório em `apps/escritorio/lib/nuvem/__tests__/turno.test.ts`: abrir → contar → encerrar; e **bloqueio de segundo turno aberto** na mesma origem (D7)
 
 ### Implementation for User Story 1

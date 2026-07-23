@@ -36,5 +36,15 @@
   ],
   "recompor_ledger": [
     { "in": [[10, 100], [10, 200], [-5, null]], "saldo": 15, "custo": 150 }
+  ],
+  "turno_proximo_numero": [
+    { "in": 0, "out": 1 },
+    { "in": 1, "out": 2 },
+    { "in": 41, "out": 42 }
+  ],
+  "turno_encerrar": [
+    { "in": [15500, 15700], "out": 200 },
+    { "in": [15500, 15000], "out": -500 },
+    { "in": [10000, 10000], "out": 0 }
   ]
 }
