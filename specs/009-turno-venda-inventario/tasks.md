@@ -92,7 +92,7 @@ venda sem turno é bloqueada.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T019 [P] [US2] Conformidade nativo↔WASM da venda em `crates/livraria-domain/tests/conformance.rs`: `validar_conclusao_venda`, `troco_venda`, `restante_venda`, `clamp_baixa_venda`
+- [X] T019 [P] [US2] Conformidade nativo↔WASM da venda em `crates/livraria-domain/tests/conformance.rs`: `validar_conclusao_venda`, `troco_venda`, `restante_venda`, `clamp_baixa_venda`
 - [ ] T020 [P] [US2] Teste de integração de paridade da venda em `apps/escritorio/lib/nuvem/__tests__/venda.test.ts`: mesma entrada → mesma baixa/custo/troco; bloqueio sem turno; `numero_no_turno` sequencial
 
 ### Implementation for User Story 2
