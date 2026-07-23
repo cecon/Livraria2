@@ -15,16 +15,22 @@ export async function POST(request: NextRequest) {
 
   const supabase = await createClient();
 
-  // 1) credencial confere contra a tabela `usuario`?
-  const { data: ok, error } = await supabase.rpc("autenticar_usuario", {
+  // 1) credencial confere e devolve o **perfil** (feature 010, US2).
+  const { data: perfil, error } = await supabase.rpc("autenticar_perfil", {
     p_usuario: u,
     p_senha: String(senha),
   });
   if (error) {
     return NextResponse.json({ erro: "Falha ao autenticar." }, { status: 500 });
   }
-  if (ok !== true) {
-    return NextResponse.json({ erro: "Usuário ou senha inválidos." }, { status: 401 });
+  // Gate do Escritório: só **admin** entra (regra do domínio `pode_acessar_escritorio` —
+  // operador acessa só o PDV). NULL (credencial inválida / desativado) ou operador → negado,
+  // com mensagem genérica (FR-013, não revela o motivo).
+  if (perfil !== "admin") {
+    return NextResponse.json(
+      { erro: "Usuário ou senha inválidos, ou sem acesso ao escritório." },
+      { status: 403 },
+    );
   }
 
   // 2) abre a sessão de serviço compartilhada (dados via RLS authenticated).

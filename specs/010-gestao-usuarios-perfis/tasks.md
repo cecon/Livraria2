@@ -57,11 +57,11 @@ description: "Task list — feature 010: gestão de usuários com perfis"
 **Goal**: operador só entra no PDV; admin entra em PDV e Escritório; desativado não entra em lugar nenhum.
 **Independent Test**: com `caixa1` (operador) e `gerente` (admin) prontos, logar cada um no PDV e no Escritório e conferir o gate.
 
-- [ ] T015 [US2] Nuvem (`0007`): alterar `autenticar_usuario(p_usuario,p_senha)` para **retornar `perfil` (texto) / NULL** (era boolean) — mantém dupla verificação bcrypt/SHA-256 e `excluido_em IS NULL`; **aplicar**. ⚠️ **Deployar junto com T016** (ver Notas de coordenação): o Escritório em produção espera boolean.
-- [ ] T016 [US2] Escritório: `apps/escritorio/app/api/login/route.ts` — usa o `perfil` retornado + `pode_acessar_escritorio(perfil)` (via `@livraria/domain` WASM); NULL ou operador → **403 genérico** (FR-013); admin → abre sessão compartilhada (ADR-0019) + `app_user`.
-- [ ] T017 [US2] Escritório: garantir que a área `/usuarios` (e mutações) só é acessível logado (sessão = admin); reforço de rota. `apps/escritorio/app/usuarios/`.
-- [ ] T018 [US2] PDV: confirmar que login local aceita **ambos** os perfis (FR-017) e carrega o `perfil` para exibição; ajuste/checagem em `src-tauri` (comando de login/estado do operador).
-- [ ] T019 [US2] Verificar US2 pelo `quickstart.md` (operador barrado no Escritório — SC-002; entra no PDV; desativado barrado em ambos).
+- [X] T015 [US2] Nuvem (`0007`): alterar `autenticar_usuario(p_usuario,p_senha)` para **retornar `perfil` (texto) / NULL** (era boolean) — mantém dupla verificação bcrypt/SHA-256 e `excluido_em IS NULL`; **aplicar**. ⚠️ **Deployar junto com T016** (ver Notas de coordenação): o Escritório em produção espera boolean.
+- [X] T016 [US2] Escritório: `apps/escritorio/app/api/login/route.ts` — usa o `perfil` retornado + `pode_acessar_escritorio(perfil)` (via `@livraria/domain` WASM); NULL ou operador → **403 genérico** (FR-013); admin → abre sessão compartilhada (ADR-0019) + `app_user`.
+- [X] T017 [US2] Escritório: garantir que a área `/usuarios` (e mutações) só é acessível logado (sessão = admin); reforço de rota. `apps/escritorio/app/usuarios/`.
+- [X] T018 [US2] PDV: confirmar que login local aceita **ambos** os perfis (FR-017) e carrega o `perfil` para exibição; ajuste/checagem em `src-tauri` (comando de login/estado do operador).
+- [X] T019 [US2] Verificar US2 pelo `quickstart.md` (operador barrado no Escritório — SC-002; entra no PDV; desativado barrado em ambos).
 
 **Checkpoint**: regra de acesso por perfil valendo nos dois sistemas.
 
