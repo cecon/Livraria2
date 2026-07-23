@@ -3,6 +3,7 @@
 import {
   BookPlus,
   ClipboardList,
+  Clock,
   FileBarChart,
   HeartHandshake,
   Home,
@@ -24,6 +25,7 @@ export interface ItemNav {
 export const NAV_ITENS: ItemNav[] = [
   { to: "/", rotulo: "Início", Icon: Home, end: true },
   { to: "/venda", rotulo: "Venda", Icon: ShoppingCart, end: false },
+  { to: "/turnos", rotulo: "Turno", Icon: Clock, end: false },
   { to: "/cadastro", rotulo: "Cadastro", Icon: BookPlus, end: false },
   { to: "/pesquisa", rotulo: "Pesquisa", Icon: Search, end: false },
   { to: "/lancamentos", rotulo: "Lançamentos", Icon: PackagePlus, end: false },

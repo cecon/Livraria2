@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Printer } from "lucide-react";
+import { FileSpreadsheet, MessageCircle, Printer } from "lucide-react";
 import { Button } from "@livraria/ui/ui/button";
 import { Input } from "@livraria/ui/ui/input";
 import { Label } from "@livraria/ui/ui/label";
@@ -16,6 +16,16 @@ import {
   type RelatorioEstoque,
   type RelatorioDestinacoes,
 } from "@/lib/nuvem/relatorios";
+import {
+  baixarCSV,
+  compartilharWhatsApp,
+  csvVendas,
+  txtVendas,
+  csvEstoque,
+  txtEstoque,
+  csvDestinacoes,
+  txtDestinacoes,
+} from "@/lib/nuvem/exportar";
 
 const TIPOS = [
   { id: "dia", rotulo: "Relatório dia Inteiro", grupo: "Vendas" },
@@ -66,13 +76,30 @@ export default function RelatoriosPage() {
     }
   }
 
+  function exportarExcel() {
+    if (vendas) baixarCSV(`vendas-${vendas.data}.csv`, csvVendas(vendas));
+    else if (estoque) baixarCSV(`estoque-${hojeIso()}.csv`, csvEstoque(estoque));
+    else if (dest) baixarCSV(`destinacoes-${dest.inicio}.csv`, csvDestinacoes(dest));
+  }
+  function exportarWhatsApp() {
+    if (vendas) compartilharWhatsApp(txtVendas(vendas));
+    else if (estoque) compartilharWhatsApp(txtEstoque(estoque));
+    else if (dest) compartilharWhatsApp(txtDestinacoes(dest));
+  }
+
   if (vendas || estoque || dest) {
     return (
       <div className="mx-auto max-w-3xl p-6">
-        <div className="mb-4 flex gap-2 print:hidden">
+        <div className="mb-4 flex flex-wrap gap-2 print:hidden">
           <Button variant="outline" onClick={voltar}>← Voltar</Button>
-          <Button variant="outline" className="ml-auto" onClick={() => window.print()}>
-            <Printer size={15} /> Imprimir
+          <Button variant="outline" className="ml-auto" onClick={exportarExcel} title="Baixar em Excel (CSV)">
+            <FileSpreadsheet size={15} /> Excel
+          </Button>
+          <Button variant="outline" onClick={() => window.print()} title="Imprimir ou salvar em PDF">
+            <Printer size={15} /> PDF
+          </Button>
+          <Button variant="outline" onClick={exportarWhatsApp} title="Compartilhar resumo por WhatsApp">
+            <MessageCircle size={15} /> WhatsApp
           </Button>
         </div>
         {vendas && <VendasView rel={vendas} />}

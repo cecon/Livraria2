@@ -4,6 +4,7 @@
 // o troco é amarrado à forma de chave 'dinheiro' (FR-013).
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Banknote,
@@ -36,7 +37,9 @@ import {
   livroPorCodigo,
   proximoNumeroPedido,
   registrarVenda,
+  turnoAberto,
   type ErroIpc,
+  type TurnoAberto,
 } from "@/lib/ipc";
 
 /** Ícone por chave estável; formas criadas pelo usuário caem no genérico. */
@@ -61,6 +64,8 @@ export function Pdv() {
   const [pag, setPag] = useState<Pagamentos>(inicial?.pag ?? {});
   const [ocupado, setOcupado] = useState(false);
   const [concluida, setConcluida] = useState<VendaConcluidaInfo | null>(null);
+  const [turno, setTurno] = useState<TurnoAberto | null>(null);
+  const [turnoCarregado, setTurnoCarregado] = useState(false);
   const codigoRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -68,6 +73,11 @@ export function Pdv() {
     listarFormasAtivas()
       .then(setFormas)
       .catch(() => toast.error("Erro ao carregar as formas de pagamento"));
+    // Turno obrigatório para vender (FR-002): checa se há um aberto do operador.
+    turnoAberto(operadorAtual())
+      .then(setTurno)
+      .catch(() => setTurno(null))
+      .finally(() => setTurnoCarregado(true));
     codigoRef.current?.focus();
   }, []);
 
@@ -154,6 +164,10 @@ export function Pdv() {
   }
 
   async function receber() {
+    if (!turno) {
+      toast.error("Abra um turno antes de vender.");
+      return;
+    }
     if (itens.length === 0) {
       toast.error("Adicione itens ao pedido");
       return;
@@ -198,6 +212,14 @@ export function Pdv() {
   return (
     <div className="grid h-full grid-cols-[1fr_356px] gap-5 p-5">
       <div className="flex min-w-0 flex-col gap-4">
+        {turnoCarregado && !turno && (
+          <div className="flex items-center gap-3 rounded-lg border border-amber-500 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+            <span className="flex-1">Nenhum turno aberto. Abra um turno para registrar vendas.</span>
+            <Link to="/turnos" className="rounded-md bg-[#1f7a4d] px-3 py-1.5 text-white hover:bg-[#1a6a43]">
+              Abrir turno
+            </Link>
+          </div>
+        )}
         <div className="flex items-center gap-3">
           <span className="bg-muted rounded-md px-2 py-1 font-mono text-xs">
             Pedido Nº {numero ?? "—"}
@@ -286,7 +308,8 @@ export function Pdv() {
 
         <Button
           onClick={receber}
-          disabled={ocupado}
+          disabled={ocupado || !turno}
+          title={!turno ? "Abra um turno para vender" : undefined}
           className="mt-1 h-11 bg-[#1f7a4d] text-white hover:bg-[#1a6a43]"
         >
           Receber

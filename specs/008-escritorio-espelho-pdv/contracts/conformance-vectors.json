@@ -36,5 +36,29 @@
   ],
   "recompor_ledger": [
     { "in": [[10, 100], [10, 200], [-5, null]], "saldo": 15, "custo": 150 }
+  ],
+  "turno_proximo_numero": [
+    { "in": 0, "out": 1 },
+    { "in": 1, "out": 2 },
+    { "in": 41, "out": 42 }
+  ],
+  "turno_encerrar": [
+    { "in": [15500, 15700], "out": 200 },
+    { "in": [15500, 15000], "out": -500 },
+    { "in": [10000, 10000], "out": 0 }
+  ],
+  "troco_venda": [
+    { "itens": [[3000, 1]], "pagamentos": [[3, 5000]], "out": 2000 },
+    { "itens": [[3000, 2]], "pagamentos": [[3, 5000]], "out": 0 },
+    { "itens": [[3000, 1]], "pagamentos": [[1, 2000], [3, 2000]], "out": 1000 }
+  ],
+  "contagem_efetiva": [
+    { "in": ["parcial", 4, true], "out": 4 },
+    { "in": ["parcial", 0, false], "out": null },
+    { "in": ["total", 4, true], "out": 4 },
+    { "in": ["total", 0, false], "out": 0 }
+  ],
+  "resumir_inventario": [
+    { "in": [[5, 5], [3, 2], [1, 3], [0, 0]], "out": { "total": 4, "bateram": 2, "faltaram": 1, "sobraram": 1, "somaDiferencas": 1 } }
   ]
 }

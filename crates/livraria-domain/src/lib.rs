@@ -15,4 +15,5 @@ pub mod pagamento;
 pub mod pedido;
 pub mod sincronizacao;
 pub mod texto;
+pub mod turno_operacao;
 pub mod usuario;

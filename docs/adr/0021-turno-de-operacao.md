@@ -14,7 +14,7 @@ operação** (sessão com abrir/encerrar) e conter a numeração dentro dele.
 > **`TurnoOperacao`** em `crates/livraria-domain/src/turno_operacao.rs` — nunca reusar o nome `Turno`.
 
 ## Decisão (specs/008-escritorio-espelho-pdv/research.md D10–D13; clarify 2026-07-22)
-- **Entidade pura no domínio** `TurnoOperacao` (crate `livraria-domain`, também via WASM — ADR-0019), com
+- **Entidade pura no domínio** `TurnoOperacao` (crate `livraria-domain`, também via WASM — ADR-0022), com
   funções puras: `abrir(operador, caixa_inicial?)`, `pode_registrar_venda(status)`,
   `proximo_numero(qtd_no_turno) -> n`, `resumir_fechamento(pagamentos_do_turno) -> resumo`,
   `encerrar(resumo, conferido) -> {esperado, conferido, diferenca}`. Estado `Aberto`/`Encerrado`.
@@ -28,7 +28,7 @@ operação** (sessão com abrir/encerrar) e conter a numeração dentro dele.
   vs. conferido, diferença) é computado pelo domínio a partir dos `pagamento_pedido` do turno; a UI coleta
   o conferido; a diferença é registrada sem impedir o encerramento. Turno encerrado **não aceita** novas
   vendas.
-- **Esquema (idempotente, Princípio IV)**: `m009` (SQLite) e `0004_turno.sql` (nuvem, mirror com
+- **Esquema (idempotente, Princípio IV)**: `m009` (SQLite) e `0010_turno.sql` (nuvem, mirror com
   `sync_uid` + colunas de sync + RLS `to authenticated`) criam `turno_operacao` e adicionam
   `pedido.turno_uid`/`pedido.numero_no_turno` (FK por `sync_uid`). Pedidos legados sem turno toleram
   `turno_uid` nulo; turno só é exigido em **novas** vendas.
@@ -41,7 +41,7 @@ operação** (sessão com abrir/encerrar) e conter a numeração dentro dele.
 ## Consequências
 - **Positivas**: resolve a numeração com dois pontos de venda **sem colisão e sem quebrar o offline**;
   dá controle operacional (abrir/fechar caixa); regra única compartilhada PDV↔nuvem (DRY, via WASM).
-- **Custos/risco**: entidade + esquema novos nas duas pontas (migrations `m009`/`0004`); política de
+- **Custos/risco**: entidade + esquema novos nas duas pontas (migrations `m009`/`0006`); política de
   **turno esquecido aberto** (virada de dia) a definir (alerta/encerramento assistido, nunca em silêncio);
   telas novas de abrir/encerrar; pedidos legados sem `turno_uid` a tratar.
 - **Alternativas rejeitadas**: numeração global contínua com alocador central (quebra offline, reintroduz

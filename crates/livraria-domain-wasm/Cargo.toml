@@ -1,4 +1,4 @@
-# Ponte WASM do domínio (ADR-0019): expõe as regras puras para o Escritório (JS).
+# Ponte WASM do domínio (ADR-0022): expõe as regras puras para o Escritório (JS).
 # Não reimplementa nada — só embrulha `livraria-domain`.
 [package]
 name = "livraria-domain-wasm"

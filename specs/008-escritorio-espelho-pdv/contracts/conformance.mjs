@@ -30,6 +30,15 @@ for (const c of vetores.recompor_ledger) {
   eq("recompor_ledger.saldo", r.saldo, c.saldo);
   eq("recompor_ledger.custo", r.custo_medio_centavos, c.custo);
 }
+for (const c of vetores.turno_proximo_numero) eq("turno_proximo_numero", dom.turno_proximo_numero(c.in), c.out);
+for (const c of vetores.turno_encerrar) eq("turno_encerrar", dom.turno_encerrar(...c.in).diferencaCentavos, c.out);
+for (const c of vetores.troco_venda) {
+  const itens = c.itens.map(([precoCentavos, qtd]) => ({ precoCentavos, qtd }));
+  const pagamentos = c.pagamentos.map(([formaId, valorCentavos]) => ({ formaId, valorCentavos }));
+  eq("troco_venda", dom.troco_venda(itens, pagamentos), c.out);
+}
+for (const c of vetores.contagem_efetiva) eq("contagem_efetiva", dom.contagem_efetiva(c.in[0], c.in[1], c.in[2]), c.out);
+for (const c of vetores.resumir_inventario) eq("resumir_inventario", dom.resumir(c.in), c.out);
 
 if (falhas > 0) {
   console.error(`\n${falhas} divergência(s) PDV↔WASM.`);

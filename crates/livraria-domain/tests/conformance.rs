@@ -1,9 +1,33 @@
-//! Lado NATIVO do teste de conformidade (ADR-0019). Roda os mesmos vetores que o
+//! Lado NATIVO do teste de conformidade (ADR-0022). Roda os mesmos vetores que o
 //! `@livraria/domain` (WASM) roda em `conformance.mjs`: mesma entrada → mesma saída.
 //! Se ambos passam sobre os mesmos vetores, PDV (nativo) e Escritório (WASM) são idênticos.
 
-use livraria_domain::{dinheiro::Dinheiro, estoque};
+use livraria_domain::pagamento::Turno;
+use livraria_domain::pedido::{ItemPedido, Pedido, Recebimento};
+use livraria_domain::{dinheiro::Dinheiro, estoque, inventario, turno_operacao};
 use serde_json::Value;
+
+// Monta um Pedido a partir dos pares [preco,qtd] e [forma,valor] do vetor.
+fn pedido_do_vetor(c: &Value) -> Pedido {
+    let itens = c["itens"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|p| ItemPedido {
+            codigo: String::new(),
+            titulo: String::new(),
+            preco: Dinheiro::de_centavos(i(&p[0])),
+            qtd: i(&p[1]),
+        })
+        .collect();
+    let pagamentos = c["pagamentos"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|p| Recebimento { forma_id: i(&p[0]), valor: Dinheiro::de_centavos(i(&p[1])) })
+        .collect();
+    Pedido { numero: 0, cliente: String::new(), turno: Turno::Manha, data: String::new(), itens, pagamentos, operador: None }
+}
 
 const VECTORS: &str =
     include_str!("../../../specs/008-escritorio-espelho-pdv/contracts/conformance-vectors.json");
@@ -56,5 +80,38 @@ fn conformidade_nativa() {
         let (saldo, medio) = estoque::recompor_ledger(&movs);
         assert_eq!(saldo, i(&c["saldo"]));
         assert_eq!(medio.centavos(), i(&c["custo"]));
+    }
+    // Turno de operação (feature 009): numeração por turno e fechamento de caixa.
+    for c in casos(&v, "turno_proximo_numero") {
+        assert_eq!(turno_operacao::proximo_numero(i(&c["in"])), i(&c["out"]));
+    }
+    for c in casos(&v, "turno_encerrar") {
+        let f = turno_operacao::encerrar(
+            Dinheiro::de_centavos(i(&c["in"][0])),
+            Dinheiro::de_centavos(i(&c["in"][1])),
+        );
+        assert_eq!(f.diferenca, i(&c["out"]));
+    }
+    // Venda (feature 009): troco pelas mesmas regras do PDV.
+    for c in casos(&v, "troco_venda") {
+        assert_eq!(pedido_do_vetor(c).troco().centavos(), i(&c["out"]));
+    }
+    // Inventário (feature 009): contagem efetiva (parcial/total) e resumo.
+    for c in casos(&v, "contagem_efetiva") {
+        let modo = inventario::ModoInventario::de_str(c["in"][0].as_str().unwrap()).unwrap();
+        let tem = c["in"][2].as_bool().unwrap();
+        let contada = if tem { Some(i(&c["in"][1])) } else { None };
+        let esperado = if c["out"].is_null() { None } else { Some(i(&c["out"])) };
+        assert_eq!(inventario::contagem_efetiva(modo, contada), esperado);
+    }
+    for c in casos(&v, "resumir_inventario") {
+        let pares: Vec<(i64, i64)> = c["in"].as_array().unwrap().iter().map(|p| (i(&p[0]), i(&p[1]))).collect();
+        let r = inventario::resumir(&pares);
+        let o = &c["out"];
+        assert_eq!(r.total, i(&o["total"]));
+        assert_eq!(r.bateram, i(&o["bateram"]));
+        assert_eq!(r.faltaram, i(&o["faltaram"]));
+        assert_eq!(r.sobraram, i(&o["sobraram"]));
+        assert_eq!(r.soma_diferencas, i(&o["somaDiferencas"]));
     }
 }

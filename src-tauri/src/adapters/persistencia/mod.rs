@@ -19,6 +19,7 @@ pub mod pagamento_pedido_sql;
 pub mod pedido_repo;
 pub mod pedido_sql;
 pub mod relatorio_repo;
+pub mod turno_repo;
 pub mod usuario_repo;
 
 pub mod recompute;
@@ -60,7 +61,9 @@ pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     // m008 (feature 007): colunas de sincronização com a nuvem (ADR-0015/0016),
     // aditiva e idempotente, aplicada contra o schema final.
     crate::migration::m008::aplicar(db).await?;
-
+    // m009 (feature 009): turno de operação (ADR-0021) — tabela `turno_operacao`
+    // e colunas `pedido.turno_uid`/`numero_no_turno`, aditiva e idempotente.
+    crate::migration::m009::aplicar(db).await?;
     // m010 (feature 010): coluna `usuario.perfil` (operador|admin) — ADR-0019.
     crate::migration::m010::aplicar(db).await?;
     Ok(())

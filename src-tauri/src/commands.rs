@@ -9,6 +9,7 @@ use crate::adapters::persistencia::forma_pagamento_repo::SeaFormaPagamentoRepo;
 use crate::adapters::persistencia::livro_repo::SeaLivroRepo;
 use crate::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use crate::adapters::persistencia::relatorio_repo::SeaRelatorioRepo;
+use crate::adapters::persistencia::turno_repo::SeaTurnoRepo;
 use crate::adapters::persistencia::usuario_repo::SeaUsuarioRepo;
 use crate::adapters::relogio::RelogioSistema;
 use crate::application::dashboard;
@@ -17,7 +18,7 @@ use crate::application::erros::ErroApp;
 use crate::application::migracao::{self, RelatorioMigracao};
 use crate::application::ports::{LivroRepo, PedidoRepo};
 use crate::application::venda::VendaInput;
-use crate::application::{cadastro, pesquisa, venda};
+use crate::application::{cadastro, pesquisa, turno, venda};
 use crate::domain::categoria::Categoria;
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::livro::Livro;
@@ -126,22 +127,136 @@ pub async fn proximo_numero_pedido(state: tauri::State<'_, AppState>) -> Result<
 }
 
 /// Registra uma venda (US1, FR-015). Pagamentos por lista `{formaId, valorCentavos}`.
+/// Feature 009 (FR-002/FR-003): exige um turno aberto do operador e carimba
+/// `turno_uid`/`numero_no_turno` no pedido (numeração por turno, offline-safe).
 #[tauri::command]
 pub async fn registrar_venda(
     state: tauri::State<'_, AppState>,
     input: VendaInput,
 ) -> Result<PedidoDto, ErroDto> {
+    let operador = input.operador.clone().unwrap_or_default();
+    let turnos = SeaTurnoRepo::new(state.db.clone());
+    let turno = turno::turno_aberto(&turnos, &operador)
+        .await?
+        .ok_or(ErroApp::Dominio(crate::domain::erros::ErroDominio::VendaSemTurno))?;
+    let numero_no_turno = turno::proximo_numero_no_turno(&turnos, &turno.sync_uid).await?;
+
     let livros = SeaLivroRepo::new(state.db.clone());
     let pedidos = SeaPedidoRepo::new(state.db.clone());
     let formas = SeaFormaPagamentoRepo::new(state.db.clone());
     let pedido =
         venda::registrar_venda(input, &livros, &pedidos, &formas, &RelogioSistema).await?;
+
+    // Carimba o turno + Pedido Nº do turno no pedido recém-gravado (FR-003).
+    use sea_orm::{ConnectionTrait, Statement};
+    let backend = state.db.get_database_backend();
+    state
+        .db
+        .execute(Statement::from_sql_and_values(
+            backend,
+            "UPDATE pedido SET turno_uid = ?, numero_no_turno = ? WHERE numero = ?",
+            [turno.sync_uid.clone().into(), numero_no_turno.into(), pedido.numero.into()],
+        ))
+        .await
+        .map_err(|e| ErroDto { codigo: "PERSISTENCIA".into(), mensagem: e.to_string() })?;
+
     Ok(PedidoDto {
         numero: pedido.numero,
         total_centavos: pedido.total().centavos(),
         troco_centavos: pedido.troco().centavos(),
         total_itens: pedido.total_itens(),
     })
+}
+
+// ----- Turno de operação (feature 009, ADR-0021) -----
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TurnoAbertoDto {
+    pub sync_uid: String,
+    pub caixa_inicial_centavos: i64,
+    pub abertura: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResumoTurnoDto {
+    pub qtd_vendas: i64,
+    /// Totais por forma: `[formaId, centavos]` (informativos).
+    pub por_forma: Vec<(i64, i64)>,
+    pub esperado_dinheiro_centavos: i64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FechamentoDto {
+    pub esperado_centavos: i64,
+    pub conferido_centavos: i64,
+    pub diferenca_centavos: i64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TurnoHistoricoDto {
+    pub abertura: String,
+    pub encerramento: Option<String>,
+    pub status: String,
+    pub esperado_centavos: Option<i64>,
+    pub conferido_centavos: Option<i64>,
+    pub diferenca_centavos: Option<i64>,
+}
+
+/// Turno aberto do operador (ou `null`).
+#[tauri::command]
+pub async fn turno_aberto(state: tauri::State<'_, AppState>, operador: String) -> Result<Option<TurnoAbertoDto>, ErroDto> {
+    let repo = SeaTurnoRepo::new(state.db.clone());
+    Ok(turno::turno_aberto(&repo, &operador).await?.map(|t| TurnoAbertoDto {
+        sync_uid: t.sync_uid,
+        caixa_inicial_centavos: t.caixa_inicial_centavos,
+        abertura: t.abertura,
+    }))
+}
+
+/// Abre um turno (bloqueia se já houver um aberto do operador — D7).
+#[tauri::command]
+pub async fn turno_abrir(state: tauri::State<'_, AppState>, operador: String, caixa_inicial_centavos: i64) -> Result<TurnoAbertoDto, ErroDto> {
+    let repo = SeaTurnoRepo::new(state.db.clone());
+    let t = turno::abrir(&repo, &operador, caixa_inicial_centavos).await?;
+    Ok(TurnoAbertoDto { sync_uid: t.sync_uid, caixa_inicial_centavos: t.caixa_inicial_centavos, abertura: t.abertura })
+}
+
+/// Resumo de caixa ao vivo (esperado só-dinheiro + totais por forma).
+#[tauri::command]
+pub async fn turno_resumo(state: tauri::State<'_, AppState>, turno_uid: String) -> Result<ResumoTurnoDto, ErroDto> {
+    let repo = SeaTurnoRepo::new(state.db.clone());
+    let r = turno::resumo(&repo, &turno_uid).await?;
+    Ok(ResumoTurnoDto { qtd_vendas: r.qtd_vendas, por_forma: r.por_forma, esperado_dinheiro_centavos: r.esperado_dinheiro_centavos })
+}
+
+/// Encerra o turno com a conferência do dinheiro (fechamento de caixa).
+#[tauri::command]
+pub async fn turno_encerrar(state: tauri::State<'_, AppState>, turno_uid: String, conferido_centavos: i64) -> Result<FechamentoDto, ErroDto> {
+    let repo = SeaTurnoRepo::new(state.db.clone());
+    let f = turno::encerrar(&repo, &turno_uid, conferido_centavos).await?;
+    Ok(FechamentoDto { esperado_centavos: f.esperado_centavos, conferido_centavos: f.conferido_centavos, diferenca_centavos: f.diferenca_centavos })
+}
+
+/// Histórico de turnos do operador.
+#[tauri::command]
+pub async fn turno_listar(state: tauri::State<'_, AppState>, operador: String) -> Result<Vec<TurnoHistoricoDto>, ErroDto> {
+    let repo = SeaTurnoRepo::new(state.db.clone());
+    Ok(turno::listar(&repo, &operador)
+        .await?
+        .into_iter()
+        .map(|t| TurnoHistoricoDto {
+            abertura: t.abertura,
+            encerramento: t.encerramento,
+            status: t.status,
+            esperado_centavos: t.esperado_centavos,
+            conferido_centavos: t.conferido_centavos,
+            diferenca_centavos: t.diferenca_centavos,
+        })
+        .collect())
 }
 
 /// Pesquisa por título/autor, sem acento/caixa (US3, FR-021).

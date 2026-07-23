@@ -10,7 +10,7 @@ pub mod commands_fornecedor;
 pub mod commands_inventario;
 pub mod commands_lancamento;
 pub mod commands_sync;
-// Domínio extraído para o crate `livraria-domain` (ADR-0019). Re-exporta como
+// Domínio extraído para o crate `livraria-domain` (ADR-0022). Re-exporta como
 // `crate::domain` para manter todas as referências existentes (`crate::domain::…`).
 pub use livraria_domain as domain;
 pub mod migration;
@@ -101,6 +101,11 @@ pub fn run() {
             commands::inicializar_dados,
             commands::proximo_numero_pedido,
             commands::registrar_venda,
+            commands::turno_aberto,
+            commands::turno_abrir,
+            commands::turno_resumo,
+            commands::turno_encerrar,
+            commands::turno_listar,
             commands::livro_por_codigo,
             commands::buscar_por_texto,
             commands::salvar_livro,
