@@ -159,8 +159,8 @@ PDV; suíte de integração prova ida-e-volta, acesso e convergência.
 
 - [ ] T038 [P] Rodar a validação do `specs/009-turno-venda-inventario/quickstart.md` (5 cenários) e registrar resultados
 - [X] T039 [P] Verificar o gate de **≤300 linhas** em todos os arquivos de lógica novos (`.ts/.tsx/.rs/.css`); decompor o que passar
-- [ ] T040 [P] Conferir idempotência de `m009` e `0010_turno.sql` (re-aplicar não duplica/quebra) e o pt-BR/moeda em centavos nas telas novas
-- [ ] T041 Atualizar `docs/` (README/índice de ADR já saneado; nota da 009) e o `CLAUDE.md` se necessário
+- [X] T040 [P] Conferir idempotência de `m009` e `0010_turno.sql` e o pt-BR/moeda em centavos nas telas novas — `m009` com teste de idempotência verde; **`0010_turno.sql` APLICADA na nuvem** (projeto `fiqzcnnibwzthhjatxvq`) e verificada (`turno_operacao` + `pedido.turno_uid`/`numero_no_turno` + FK/RLS); moeda em centavos por construção
+- [X] T041 Atualizar `docs/` (README/índice de ADR saneado: 0022 + 0021→0006/0010) e `CLAUDE.md` (aponta para a 009) — feito ao longo da implementação
 
 ---
 
