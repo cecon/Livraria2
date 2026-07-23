@@ -1,5 +1,5 @@
 # Stack do Portainer Swarm para o app do escritório (feature 007).
-# 1) Build da imagem (ver README): docker build --build-arg ... -t livraria-escritorio:latest .
+# 1) Build da imagem (da RAIZ do repo, feature 008): docker build -f apps/escritorio/Dockerfile --build-arg ... -t livraria-escritorio:latest .
 # 2) No Portainer: Stacks → Add stack → cole este YAML (ajuste image se usar registry).
 version: "3.8"
 

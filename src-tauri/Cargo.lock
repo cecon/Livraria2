@@ -2583,6 +2583,7 @@ dependencies = [
  "bcrypt",
  "chrono",
  "csv",
+ "livraria-domain",
  "reqwest 0.12.28",
  "sea-orm",
  "sea-orm-migration",
@@ -2598,6 +2599,14 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "uuid",
+]
+
+[[package]]
+name = "livraria-domain"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror 2.0.18",
 ]
 
 [[package]]

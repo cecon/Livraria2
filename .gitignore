@@ -38,3 +38,5 @@ dist-ssr
 # Rust / Tauri
 target/
 **/*.rs.bk
+crates/livraria-domain/Cargo.lock
+crates/livraria-domain-wasm/Cargo.lock

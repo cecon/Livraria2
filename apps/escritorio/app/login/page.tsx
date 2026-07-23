@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@livraria/ui/ui/button";
+import { Input } from "@livraria/ui/ui/input";
+import { Label } from "@livraria/ui/ui/label";
 
-// Login por **usuário** (tabela `usuario`, ADR-0019) — a mesma identidade do PDV.
-// A validação e a sessão são estabelecidas server-side em /api/login.
+// Login por **usuário** (tabela `usuario`, ADR-0019) — mesma identidade do PDV.
+// Validação/sessão server-side em /api/login. UI no design system (@livraria/ui).
 export default function LoginPage() {
   const router = useRouter();
   const [usuario, setUsuario] = useState("");
@@ -32,31 +35,21 @@ export default function LoginPage() {
   }
 
   return (
-    <main>
-      <h1>Entrar — Escritório</h1>
-      <form onSubmit={entrar}>
-        <label htmlFor="usuario">Usuário</label>
-        <input
-          id="usuario"
-          type="text"
-          autoComplete="username"
-          value={usuario}
-          onChange={(e) => setUsuario(e.target.value)}
-          required
-        />
-        <label htmlFor="senha">Senha</label>
-        <input
-          id="senha"
-          type="password"
-          autoComplete="current-password"
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          required
-        />
-        {erro && <p className="erro">{erro}</p>}
-        <button type="submit" disabled={carregando}>
+    <main className="mx-auto max-w-sm px-4 py-16">
+      <h1 className="mb-6 text-xl font-semibold">Entrar — Escritório</h1>
+      <form onSubmit={entrar} className="flex flex-col gap-4">
+        <div className="grid gap-1.5">
+          <Label htmlFor="usuario">Usuário</Label>
+          <Input id="usuario" type="text" autoComplete="username" value={usuario} onChange={(e) => setUsuario(e.target.value)} required />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="senha">Senha</Label>
+          <Input id="senha" type="password" autoComplete="current-password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
+        </div>
+        {erro && <p className="text-sm text-destructive">{erro}</p>}
+        <Button type="submit" disabled={carregando}>
           {carregando ? "Entrando…" : "Entrar"}
-        </button>
+        </Button>
       </form>
     </main>
   );

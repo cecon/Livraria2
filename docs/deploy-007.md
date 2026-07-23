@@ -14,11 +14,13 @@
 ## 1) Escritório (Next.js) → imagem → Swarm
 
 ### 1.1 Build da imagem
-As `NEXT_PUBLIC_*` são embutidas **no build** (bundle do cliente), então vão como `--build-arg`:
+As `NEXT_PUBLIC_*` são embutidas **no build** (bundle do cliente), então vão como `--build-arg`.
+O Escritório agora consome os pacotes do workspace (`@livraria/ui`, `@livraria/domain`), então
+o build roda **da raiz do repositório** (contexto = raiz) com `-f apps/escritorio/Dockerfile` (feature 008):
 
 ```bash
-cd apps/escritorio
-docker build \
+# na RAIZ do repositório (não em apps/escritorio)
+docker build -f apps/escritorio/Dockerfile \
   --build-arg NEXT_PUBLIC_SUPABASE_URL=https://fiqzcnnibwzthhjatxvq.supabase.co \
   --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable-key-do-Notion> \
   -t livraria-escritorio:latest .
