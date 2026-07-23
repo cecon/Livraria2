@@ -158,7 +158,7 @@ PDV; suíte de integração prova ida-e-volta, acesso e convergência.
 ## Phase 7: Polish & Cross-Cutting Concerns
 
 - [ ] T038 [P] Rodar a validação do `specs/009-turno-venda-inventario/quickstart.md` (5 cenários) e registrar resultados
-- [ ] T039 [P] Verificar o gate de **≤300 linhas** em todos os arquivos de lógica novos (`.ts/.tsx/.rs/.css`); decompor o que passar
+- [X] T039 [P] Verificar o gate de **≤300 linhas** em todos os arquivos de lógica novos (`.ts/.tsx/.rs/.css`); decompor o que passar
 - [ ] T040 [P] Conferir idempotência de `m009` e `0010_turno.sql` (re-aplicar não duplica/quebra) e o pt-BR/moeda em centavos nas telas novas
 - [ ] T041 Atualizar `docs/` (README/índice de ADR já saneado; nota da 009) e o `CLAUDE.md` se necessário
 
