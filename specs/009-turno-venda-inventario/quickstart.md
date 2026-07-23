@@ -5,7 +5,7 @@ Guia de validação ponta-a-ponta (não é código de implementação). Prova os
 ## Pré-requisitos
 
 - Workspace da 008 montado (`npm ci` na raiz; `@livraria/ui` e `@livraria/domain` presentes em `packages/`).
-- Migrations aplicadas: **SQLite `m009`** (PDV) e **nuvem `0006_turno.sql`** (Supabase) — idempotentes
+- Migrations aplicadas: **SQLite `m009`** (PDV) e **nuvem `0010_turno.sql`** (Supabase) — idempotentes
   (re-aplicar não duplica).
 - WASM regenerado pelo CI com os novos wrappers (venda + turno).
 - Escritório rodando (Docker/dev) com login usuário/senha do #15; PDV em `tauri dev`.
@@ -58,6 +58,6 @@ Guia de validação ponta-a-ponta (não é código de implementação). Prova os
 ## Gate de constituição (checar antes de integrar)
 
 - Arquivos de lógica novos ≤ **300 linhas** (telas decompostas).
-- `m009` e `0006_turno.sql` **idempotentes** (re-aplicar não quebra/duplica).
+- `m009` e `0010_turno.sql` **idempotentes** (re-aplicar não quebra/duplica).
 - Nenhum `service_role` no cliente; operações exigem login (RLS).
-- ADRs saneados: **0022** (renumeração do WASM) e **0021 corrigido** (`0006_turno.sql`).
+- ADRs saneados: **0022** (renumeração do WASM) e **0021 corrigido** (`0010_turno.sql`).

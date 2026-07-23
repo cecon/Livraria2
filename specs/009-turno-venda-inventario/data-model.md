@@ -76,7 +76,7 @@ ALTER TABLE pedido ADD COLUMN turno_uid TEXT;         -- FK lógica por sync_uid
 ALTER TABLE pedido ADD COLUMN numero_no_turno INTEGER;
 ```
 
-## Esquema — Nuvem (`0006_turno.sql`, idempotente)
+## Esquema — Nuvem (`0010_turno.sql`, idempotente)
 
 Mirror com `sync_uid` + colunas de sync + RLS `to authenticated`, seguindo `0001_schema_espelho.sql`:
 

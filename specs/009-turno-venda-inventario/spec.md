@@ -120,7 +120,7 @@ A retaguarda (008) ficou com duas pendências: **exportar relatórios** (Excel/P
 
 #### Consistência e esquema
 
-- **FR-012**: O turno MUST persistir nas duas pontas por **migração idempotente**: no SQLite local e na nuvem (próximos números disponíveis: **`m009`** local e **`0006_turno.sql`** na nuvem — `0004`/`0005` já usadas).
+- **FR-012**: O turno MUST persistir nas duas pontas por **migração idempotente**: no SQLite local e na nuvem (próximos números disponíveis: **`m009`** local e **`0010_turno.sql`** na nuvem — `0004`/`0005` já usadas).
 - **FR-013**: As regras de negócio (turno, clamp de baixa, validação de venda, custo, contagem) MUST vir do **domínio compartilhado** (uma fonte de verdade), sem reimplementação divergente entre PDV e Escritório.
 
 ### Key Entities

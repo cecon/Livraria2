@@ -63,5 +63,7 @@ pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     // m009 (feature 009): turno de operação (ADR-0021) — tabela `turno_operacao`
     // e colunas `pedido.turno_uid`/`numero_no_turno`, aditiva e idempotente.
     crate::migration::m009::aplicar(db).await?;
+    // m010 (feature 010): coluna `usuario.perfil` (operador|admin) — ADR-0019.
+    crate::migration::m010::aplicar(db).await?;
     Ok(())
 }

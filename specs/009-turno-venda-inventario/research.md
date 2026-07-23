@@ -119,15 +119,16 @@ herdam a fundação da 008 (WASM, `@livraria/ui`, workspace) e as três clarific
 - **Alternativas**: usar `auth.uid()` → identidade única para todos (incorreto sob sessão compartilhada);
   seletor de operador por venda → duplicaria identidade e contrariaria o modelo do #15.
 
-## D11 — Migrations idempotentes: `m009` (SQLite) e `0006_turno.sql` (nuvem)
+## D11 — Migrations idempotentes: `m009` (SQLite) e `0010_turno.sql` (nuvem)
 
 - **Decisão**: **SQLite `m009`** aplicada imperativamente em `inicializar_schema()` após `m008` (estilo
   idempotente `aplicar` de m004/m006/m008): `CREATE TABLE IF NOT EXISTS turno_operacao (...)` + `ALTER TABLE
-  pedido ADD COLUMN turno_uid/numero_no_turno` tolerando "duplicate column". **Nuvem `0006_turno.sql`**: mirror
+  pedido ADD COLUMN turno_uid/numero_no_turno` tolerando "duplicate column". **Nuvem `0010_turno.sql`**: mirror
   `turno_operacao` (chave `sync_uid` + colunas de sync + índice `idx_turno_operacao_sinc on (sincronizado_em)`)
   + `ALTER TABLE pedido ADD COLUMN IF NOT EXISTS turno_uid/numero_no_turno` + RLS `to authenticated`.
 - **Racional**: Princípio IV (idempotência por comando); segue exatamente o padrão já verificado no repo (map do
-  Explore). O número **0006** é o próximo livre (0004/0005 foram do #15) — corrige a menção "0004" do ADR-0021.
+  Explore). O número **0010** é o próximo livre (0004/0005 do #15; 0006–0009 da feature 010) — corrige a
+  menção "0004" do ADR-0021.
 - **Alternativas**: registrar `m009` inline no `Migrator::migrations()` vec → também válido, mas as ALTERs com
   tolerância a coluna duplicada ficam mais limpas no estilo `aplicar` standalone.
 
@@ -162,7 +163,7 @@ herdam a fundação da 008 (WASM, `@livraria/ui`, workspace) e as três clarific
 
 - **Decisão**: (a) **renumerar** o ADR do "Escritório reusa domínio via WASM" de **0019 → 0022** (colisão com o
   `0019` de identidade unificada usuário/senha do #15), atualizando o índice/README de ADRs e as referências;
-  (b) **corrigir** ADR-0021 onde cita `0004_turno.sql` → **`0006_turno.sql`**.
+  (b) **corrigir** ADR-0021 onde cita `0004_turno.sql` → **`0010_turno.sql`**.
 - **Racional**: Princípio V exige ADRs consistentes; duas decisões com o mesmo número é dívida a sanear antes de
   implementar.
 - **Alternativas**: deixar a colisão → confunde rastreabilidade (rejeitado).

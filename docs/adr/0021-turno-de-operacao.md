@@ -28,7 +28,7 @@ operação** (sessão com abrir/encerrar) e conter a numeração dentro dele.
   vs. conferido, diferença) é computado pelo domínio a partir dos `pagamento_pedido` do turno; a UI coleta
   o conferido; a diferença é registrada sem impedir o encerramento. Turno encerrado **não aceita** novas
   vendas.
-- **Esquema (idempotente, Princípio IV)**: `m009` (SQLite) e `0006_turno.sql` (nuvem, mirror com
+- **Esquema (idempotente, Princípio IV)**: `m009` (SQLite) e `0010_turno.sql` (nuvem, mirror com
   `sync_uid` + colunas de sync + RLS `to authenticated`) criam `turno_operacao` e adicionam
   `pedido.turno_uid`/`pedido.numero_no_turno` (FK por `sync_uid`). Pedidos legados sem turno toleram
   `turno_uid` nulo; turno só é exigido em **novas** vendas.

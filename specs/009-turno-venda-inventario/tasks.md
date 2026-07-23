@@ -31,7 +31,7 @@ Escritório em `apps/escritorio/`, migração da nuvem em `apps/nuvem/migrations
 **Purpose**: sanear dívidas de ADR (Princípio V) e confirmar baseline verde antes de tocar código.
 
 - [X] T001 Renumerar ADR do WASM: `git mv docs/adr/0019-escritorio-reusa-dominio-wasm.md docs/adr/0022-escritorio-reusa-dominio-wasm.md`, atualizar título/refs internas e o índice/README de ADRs; ajustar a nota de colisão deixada na 008 (resolve a colisão com o `0019` de identidade usuário/senha do #15)
-- [X] T002 [P] Corrigir `docs/adr/0021-turno-de-operacao.md`: trocar todas as menções `0004_turno.sql` → `0006_turno.sql` (0004/0005 já usadas pelo #15)
+- [X] T002 [P] Corrigir `docs/adr/0021-turno-de-operacao.md`: trocar todas as menções `0004_turno.sql` → `0010_turno.sql` (0004/0005 já usadas pelo #15)
 - [X] T003 [P] Confirmar baseline verde na raiz do workspace: `npm ci`, `cargo check -p livraria-domain`, e `cargo check` do `src-tauri`; registrar que parte do baseline (sem mudanças)
 
 **Checkpoint**: ADRs consistentes; workspace compila. Pode iniciar a fundação.
@@ -49,7 +49,7 @@ Escritório em `apps/escritorio/`, migração da nuvem em `apps/nuvem/migrations
 - [X] T006 No mesmo `crates/livraria-domain-wasm/src/lib.rs`, adicionar wrappers WASM da **venda**: `validar_conclusao_venda`, `troco_venda`, `restante_venda` (embrulham `Pedido::{validar_conclusao,troco,restante}`) e do **inventário**: `contagem_efetiva`, `resumir` (embrulham `inventario::{contagem_efetiva,resumir}`) — depende de T005 (mesmo arquivo)
 - [ ] T007 Estender `packages/domain/` (wrapper TS) para reexportar as novas funções e commitar a regeneração do WASM pelo CI `.github/workflows/wasm.yml` (build no Linux por causa do Windows SAC); confirmar `@livraria/domain` com os novos símbolos em `index.d.ts`
 - [X] T008 Criar migração SQLite `src-tauri/src/migration/m009.rs` (idempotente, estilo `aplicar` de m008): `CREATE TABLE IF NOT EXISTS turno_operacao(...)` + `ALTER TABLE pedido ADD COLUMN turno_uid/numero_no_turno` tolerando "duplicate column"; wire `m009::aplicar(db)` em `src-tauri/src/adapters/persistencia/mod.rs` `inicializar_schema()` após `m008`
-- [X] T009 [P] Criar migração da nuvem `apps/nuvem/migrations/0006_turno.sql` (idempotente): mirror `turno_operacao` (`sync_uid` + colunas de sync), `CREATE INDEX IF NOT EXISTS idx_turno_operacao_sinc`, `ALTER TABLE pedido ADD COLUMN IF NOT EXISTS turno_uid/numero_no_turno`, e RLS `to authenticated` (padrão de `0002_rls_e_views.sql`)
+- [X] T009 [P] Criar migração da nuvem `apps/nuvem/migrations/0010_turno.sql` (idempotente): mirror `turno_operacao` (`sync_uid` + colunas de sync), `CREATE INDEX IF NOT EXISTS idx_turno_operacao_sinc`, `ALTER TABLE pedido ADD COLUMN IF NOT EXISTS turno_uid/numero_no_turno`, e RLS `to authenticated` (padrão de `0002_rls_e_views.sql`)
 - [X] T010 Inserir `turno_operacao` na `ORDEM_DEPENDENCIA` da sincronização **antes de `pedido`** e mapear a entidade nos dois lados do sync (adapters de sincronização do `src-tauri` que consomem `crates/livraria-domain/src/sincronizacao.rs`); campos mutáveis convergem por LWW
 - [X] T011 [P] Adicionar o item **Turno** (rota `/turnos`, ícone) ao `packages/ui/src/nav.tsx` (compartilhado) e registrar a rota `/turnos` no PDV em `src/App.tsx` (Venda/Inventário já existem no nav)
 
@@ -159,7 +159,7 @@ PDV; suíte de integração prova ida-e-volta, acesso e convergência.
 
 - [ ] T038 [P] Rodar a validação do `specs/009-turno-venda-inventario/quickstart.md` (5 cenários) e registrar resultados
 - [ ] T039 [P] Verificar o gate de **≤300 linhas** em todos os arquivos de lógica novos (`.ts/.tsx/.rs/.css`); decompor o que passar
-- [ ] T040 [P] Conferir idempotência de `m009` e `0006_turno.sql` (re-aplicar não duplica/quebra) e o pt-BR/moeda em centavos nas telas novas
+- [ ] T040 [P] Conferir idempotência de `m009` e `0010_turno.sql` (re-aplicar não duplica/quebra) e o pt-BR/moeda em centavos nas telas novas
 - [ ] T041 Atualizar `docs/` (README/índice de ADR já saneado; nota da 009) e o `CLAUDE.md` se necessário
 
 ---

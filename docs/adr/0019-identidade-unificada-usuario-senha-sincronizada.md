@@ -61,3 +61,15 @@ o hash "por papel" não basta.
 - **Sincronizar o hash sem proteção de coluna**: exporia o `senha_hash` ao browser da retaguarda.
 - **Manter D15 (senha só no PDV)**: impede gestão central de usuários — a dor que originou este ADR.
 - **argon2**: mais moderno, mas o `pgcrypto` não o suporta; bcrypt dá compatibilidade nuvem↔Rust.
+
+## Atualização — feature 010 (Stages 3–4 concluídos)
+A [feature 010](../../specs/010-gestao-usuarios-perfis/) fechou os estágios pendentes e adicionou
+**perfil** (`operador`/`admin`):
+- **Stage 3 (sync do `senha_hash`)** entregue de forma **simplificada** (KISS): `senha_hash` e `perfil`
+  entraram nas `cols` de sync do `usuario` — o hash desce pelo pull normal, protegido pelo papel
+  `authenticated` (mesmo boundary do login admin; bcrypt). O `REVOKE`+RPC dedicado foi dispensado (fica
+  como hardening futuro se o threat model exigir).
+- **Perfil + gate de acesso**: regra única no domínio (`livraria_domain::usuario`), Escritório só admin
+  (RPC `autenticar_perfil` + `/api/login`), PDV aceita ambos os perfis. Ver ADR/spec da feature 010.
+- **RPCs `SECURITY DEFINER`** para criar/editar/definir-senha/desativar (admin-only, guarda do último
+  admin no ponto de escrita).
