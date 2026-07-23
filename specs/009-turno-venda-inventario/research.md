@@ -106,12 +106,18 @@ herdam a fundação da 008 (WASM, `@livraria/ui`, workspace) e as três clarific
 
 ## D10 — Operador da venda/turno = usuário logado (modelo #15)
 
-- **Decisão**: `turno_operacao.operador_uid` e `pedido.operador_uid` referenciam o **usuário autenticado** do
-  Escritório (tabela `usuario`, login usuário/senha + sessão de serviço compartilhada do #15). Sem seletor de
-  operador extra — quem abre o turno é o operador.
-- **Racional**: o login vigente já identifica o operador (`app_user`/auth); FR/Assumptions da 009 dizem que esta
-  feature **não redefine acesso**. Mantém KISS.
-- **Alternativas**: seletor de operador por venda → duplicaria identidade e contrariaria o modelo do #15.
+- **Decisão**: `turno_operacao.operador_uid`, `pedido.operador_uid` e `criado_por` vêm do **`app_user`** (o
+  `usuario.sync_uid` real do operador logado, gravado no cookie pelo login do #15) — **não** de `auth.uid()`.
+  Sem seletor de operador extra — quem abre o turno é o operador.
+- **⚠️ Por que não `auth.uid()`**: o #15 abre uma **sessão de serviço compartilhada** (todos os operadores
+  usam a mesma sessão Supabase), então `auth.uid()` é **idêntico para todos**. Usá-lo carimbaria todos os
+  turnos/vendas com uma só identidade, quebrando "um turno aberto por operador" (FR-001) e o vínculo
+  operador↔venda (FR-002). A RLS `to authenticated` continua autenticando pela sessão compartilhada; a
+  **identidade do operador é de nível de aplicação** (`app_user`).
+- **Racional**: o login do #15 já identifica o operador no cookie `app_user`; a feature **não redefine acesso**.
+  Mantém KISS.
+- **Alternativas**: usar `auth.uid()` → identidade única para todos (incorreto sob sessão compartilhada);
+  seletor de operador por venda → duplicaria identidade e contrariaria o modelo do #15.
 
 ## D11 — Migrations idempotentes: `m009` (SQLite) e `0006_turno.sql` (nuvem)
 

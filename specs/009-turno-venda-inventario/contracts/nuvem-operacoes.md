@@ -2,8 +2,9 @@
 
 Implementadas em `apps/escritorio/lib/nuvem/{turno,venda,inventario,relatorios}.ts` com supabase-js. Padrão
 herdado da 008: upsert por `sync_uid` (`crypto.randomUUID()`), LWW por `atualizado_em`, soft-delete via
-`excluido_em`, `origem="escritorio"`, `criado_por` = usuário autenticado. Saldo derivado de `movimento_estoque`.
-Todas exigem **sessão autenticada** (RLS `to authenticated`).
+`excluido_em`, `origem="escritorio"`, `criado_por`/`operador_uid` = **`app_user`** (o `usuario.sync_uid` real
+do operador logado — **não** `auth.uid()`, compartilhado sob a sessão do #15; ver D10). Saldo derivado de
+`movimento_estoque`. Todas exigem **sessão autenticada** (RLS `to authenticated`).
 
 ## Turno (`lib/nuvem/turno.ts`)
 

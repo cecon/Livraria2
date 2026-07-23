@@ -20,8 +20,9 @@ do domínio. Dinheiro sempre em **inteiro de centavos**. Referências cruzadas p
 - `abrir(operador, caixa_inicial: Option<Dinheiro>) -> TurnoOperacao` — status `Aberto`.
 - `pode_registrar_venda(status) -> bool` — `true` só se `Aberto`.
 - `proximo_numero(qtd_no_turno: i64) -> i64` — `qtd_no_turno + 1` (1..n por turno).
-- `resumir_fechamento(pagamentos_do_turno, caixa_inicial) -> ResumoCaixa` — agrega **totais por forma**
-  (informativos) e computa o **esperado em dinheiro** = `caixa_inicial + Σ recebido na forma Dinheiro`.
+- `resumir_fechamento(pagamentos_do_turno, caixa_inicial, dinheiro_forma_id) -> ResumoCaixa` — agrega
+  **totais por forma** (informativos) e computa o **esperado em dinheiro** = `caixa_inicial + Σ recebido na
+  forma Dinheiro` (a forma Dinheiro é resolvida pela aplicação por `dinheiro_forma_id`, chave estável).
 - `encerrar(resumo, conferido_dinheiro: Dinheiro) -> Fechamento { esperado, conferido, diferenca }` —
   `diferenca = conferido − esperado`; não bloqueia se `diferenca ≠ 0`; muda status para `Encerrado`.
 
@@ -129,5 +130,6 @@ Interfaces que o Escritório implementa contra o Supabase (detalhe em `contracts
   (grava `movimento_estoque` tipo ajuste).
 
 Todas herdam o padrão dos adapters da 008: upsert por `sync_uid` (`crypto.randomUUID()`), LWW por
-`atualizado_em`, soft-delete via `excluido_em`, `origem="escritorio"`, `criado_por` do usuário autenticado,
-saldo derivado de `movimento_estoque` (nunca coluna).
+`atualizado_em`, soft-delete via `excluido_em`, `origem="escritorio"`, `criado_por`/`operador_uid` do
+**`app_user`** (o `usuario.sync_uid` real do operador logado — **não** `auth.uid()`, que é compartilhado sob
+a sessão de serviço do #15; ver D10 do research), saldo derivado de `movimento_estoque` (nunca coluna).

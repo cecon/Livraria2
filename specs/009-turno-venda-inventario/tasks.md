@@ -72,7 +72,7 @@ conferido/diferença); tentar abrir um segundo turno na mesma origem → bloquea
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Implementar a porta de turno na nuvem `apps/escritorio/lib/nuvem/turno.ts`: `abrirTurno(caixaInicial?)` (falha se já há turno `aberto` do operador nesta origem), `turnoAberto()`, `contarPedidosDoTurno(turnoUid)`, `encerrarTurno(turnoUid, conferidoDinheiro)` (usa `turno_resumir_fechamento`+`turno_encerrar` via `@livraria/domain`), `listarTurnos()`
+- [ ] T014 [US1] Implementar a porta de turno na nuvem `apps/escritorio/lib/nuvem/turno.ts`: `abrirTurno(caixaInicial?)` (falha se já há turno `aberto` do operador nesta origem), `turnoAberto()`, `contarPedidosDoTurno(turnoUid)`, `encerrarTurno(turnoUid, conferidoDinheiro)` (usa `turno_resumir_fechamento`+`turno_encerrar` via `@livraria/domain`), `listarTurnos()`. **Operador = `app_user`** (o `usuario.sync_uid` real do operador logado, lido do cookie do #15) — **não** `auth.uid()`, que é compartilhado sob a sessão de serviço (senão "um turno por operador" e o vínculo operador↔turno colapsam)
 - [ ] T015 [P] [US1] Componente `apps/escritorio/components/FechamentoCaixa.tsx`: totais por forma (informativos) + conferência do **dinheiro** (esperado vs. campo "conferido") + diferença (≤300 linhas)
 - [ ] T016 [US1] Tela `apps/escritorio/app/turnos/page.tsx`: estados sem-turno (Abrir + caixa inicial via `parse_brl`), turno-aberto (resumo ao vivo + Encerrar), histórico; usa `FechamentoCaixa` (depende de T014, T015)
 - [ ] T017 [US1] PDV — caso de uso e comandos do turno: `src-tauri/src/application/turno.rs` (abrir/encerrar sobre o domínio) + `#[tauri::command]` `turno_abrir`/`turno_encerrar`/`turno_aberto` em `src-tauri/src/commands.rs`, com repo `src-tauri/src/adapters/persistencia/turno_repo.rs` (grava em `turno_operacao`, idempotente); expor no `src/lib/ipc.ts`
@@ -97,11 +97,11 @@ venda sem turno é bloqueada.
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Porta de venda na nuvem `apps/escritorio/lib/nuvem/venda.ts`: pré-checa `turno_pode_registrar_venda`; `validar_conclusao_venda` (WASM); `numero_no_turno = turno_proximo_numero(contarPedidosDoTurno)`; baixa `clamp_baixa_venda` (saldo derivado via `recompor_ledger`/`vw_saldo_livro`); grava `pedido`→`item_pedido`→`pagamento_pedido`→`movimento_estoque`(saída)→`alocacao_venda`; `listarVendasDoDia()`
+- [ ] T021 [US2] Porta de venda na nuvem `apps/escritorio/lib/nuvem/venda.ts`: pré-checa `turno_pode_registrar_venda`; `validar_conclusao_venda` (WASM); `numero_no_turno = turno_proximo_numero(contarPedidosDoTurno)`; baixa `clamp_baixa_venda` (saldo derivado via `recompor_ledger`/`vw_saldo_livro`); grava `pedido`→`item_pedido`→`pagamento_pedido`→`movimento_estoque`(saída)→`alocacao_venda` (com `operador_uid`/`criado_por` = **`app_user`**, não `auth.uid()`); `listarVendasDoDia()`
 - [ ] T022 [P] [US2] Componente `apps/escritorio/components/Carrinho.tsx` (itens/qtd/total) reusando `EntradaProduto` existente (≤300 linhas)
 - [ ] T023 [P] [US2] Componente `apps/escritorio/components/FormasPagamento.tsx` (recebimento por forma + troco via `troco_venda`) (≤300 linhas)
 - [ ] T024 [P] [US2] Componente `apps/escritorio/components/VendaConcluida.tsx` (confirmação animada, classe `venda-concluida-card`) (≤300 linhas)
-- [ ] T025 [US2] Tela `apps/escritorio/app/venda/page.tsx`: checkout + aba "Lista de vendas"; **gate visual**: sem turno aberto, bloqueia e mostra CTA "Abrir turno" (FR-002); usa Carrinho/FormasPagamento/VendaConcluida (depende de T021–T024)
+- [ ] T025 [US2] Tela `apps/escritorio/app/venda/page.tsx`: checkout + aba "Lista de vendas"; **gate visual**: sem turno aberto, bloqueia e mostra CTA "Abrir turno" (FR-002); **sinalização de baixa parcial** (FR-008): quando `clamp_baixa_venda(qtd,saldo) < qtd`, exibir aviso "estoque insuficiente — baixa parcial" (sem bloquear, sem negativo); usa Carrinho/FormasPagamento/VendaConcluida (depende de T021–T024)
 - [ ] T026 [US2] PDV — passar `registrar_venda` a **exigir turno aberto** e estampar `turno_uid`/`numero_no_turno`: ajustar `src-tauri/src/application/venda.rs` + `src-tauri/src/commands.rs` (`proximo_numero_pedido`/`registrar_venda`) + `pedido_repo.rs`/`pedido_sql.rs` para persistir as novas colunas; refletir no `src/components/Pdv.tsx` (bloqueio sem turno)
 
 **Checkpoint**: venda idêntica PDV↔Escritório, sempre contida num turno.
@@ -118,7 +118,7 @@ equivalente do PDV; no modo total, não-contados contam 0.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T027 [P] [US3] Conformidade nativo↔WASM do inventário em `crates/livraria-domain/tests/conformance.rs`: `contagem_efetiva` (parcial/total) e `diferenca_contagem`
+- [ ] T027 [P] [US3] Conformidade nativo↔WASM do inventário em `crates/livraria-domain/tests/conformance.rs`: `contagem_efetiva` (parcial/total), `diferenca_contagem` e `resumir` (ResumoInventario) — cobre as funções de inventário da SC-005
 - [ ] T028 [P] [US3] Teste de integração da contagem em `apps/escritorio/lib/nuvem/__tests__/inventario.test.ts`: parcial só ajusta contados; total zera não-contados; ajustes = os do PDV
 
 ### Implementation for User Story 3
