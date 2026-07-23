@@ -72,10 +72,10 @@ description: "Task list — feature 010: gestão de usuários com perfis"
 **Goal**: admin edita nome/perfil, redefine senha, desativa/reativa; sistema protege o último admin; sessão do PDV cai ao sincronizar desativação.
 **Independent Test**: sobre usuários existentes, alterar perfil, redefinir senha, desativar; e tentar rebaixar/desativar o último admin (bloqueado).
 
-- [ ] T020 [US3] Nuvem (`0007`): RPCs `editar_usuario(p_admin,p_usuario,p_nome,p_perfil)` e `desativar_usuario(p_admin,p_usuario)` `SECURITY DEFINER` com **guarda do último admin** (INV-2: bloquear rebaixar/desativar se `count(admins ativos)==1`); **aplicar**.
-- [ ] T021 [P] [US3] Escritório: ações na lista/form (`apps/escritorio/app/usuarios/`) — **Editar** (nome/perfil), **Redefinir senha** (chama `definir_senha_usuario`), **Desativar/Reativar**; desabilitar rebaixar/desativar o último admin com motivo (reforçado pela RPC).
+- [X] T020 [US3] Nuvem (`0007`): RPCs `editar_usuario(p_admin,p_usuario,p_nome,p_perfil)` e `desativar_usuario(p_admin,p_usuario)` `SECURITY DEFINER` com **guarda do último admin** (INV-2: bloquear rebaixar/desativar se `count(admins ativos)==1`); **aplicar**.
+- [X] T021 [P] [US3] Escritório: ações na lista/form (`apps/escritorio/app/usuarios/`) — **Editar** (nome/perfil), **Redefinir senha** (chama `definir_senha_usuario`), **Desativar/Reativar**; desabilitar rebaixar/desativar o último admin com motivo (reforçado pela RPC).
 - [ ] T022 [US3] PDV: após cada sincronização, se o **operador logado** ficou `excluido_em IS NOT NULL` → **logout forçado** e volta à seleção de operador (FR-018/D7). `src-tauri` (fluxo pós-sync + estado do operador).
-- [ ] T023 [US3] Verificar US3 pelo `quickstart.md` (redefinir senha; promover operador→admin; bloquear último admin — SC-005; histórico de venda preservado — SC-006).
+- [X] T023 [US3] Verificar US3 pelo `quickstart.md` (redefinir senha; promover operador→admin; bloquear último admin — SC-005; histórico de venda preservado — SC-006).
 
 **Checkpoint**: ciclo de vida completo do usuário, com invariante do último admin garantido no ponto de escrita.
 
