@@ -102,7 +102,7 @@ venda sem turno é bloqueada.
 - [X] T023 [P] [US2] Componente `apps/escritorio/components/FormasPagamento.tsx` (recebimento por forma + troco via `troco_venda`) (≤300 linhas)
 - [X] T024 [P] [US2] Componente `apps/escritorio/components/VendaConcluida.tsx` (confirmação animada, classe `venda-concluida-card`) (≤300 linhas)
 - [X] T025 [US2] Tela `apps/escritorio/app/venda/page.tsx`: checkout + aba "Lista de vendas"; **gate visual**: sem turno aberto, bloqueia e mostra CTA "Abrir turno" (FR-002); **sinalização de baixa parcial** (FR-008): quando `clamp_baixa_venda(qtd,saldo) < qtd`, exibir aviso "estoque insuficiente — baixa parcial" (sem bloquear, sem negativo); usa Carrinho/FormasPagamento/VendaConcluida (depende de T021–T024)
-- [ ] T026 [US2] PDV — passar `registrar_venda` a **exigir turno aberto** e estampar `turno_uid`/`numero_no_turno`: ajustar `src-tauri/src/application/venda.rs` + `src-tauri/src/commands.rs` (`proximo_numero_pedido`/`registrar_venda`) + `pedido_repo.rs`/`pedido_sql.rs` para persistir as novas colunas; refletir no `src/components/Pdv.tsx` (bloqueio sem turno)
+- [X] T026 [US2] PDV — passar `registrar_venda` a **exigir turno aberto** e estampar `turno_uid`/`numero_no_turno`: ajustar `src-tauri/src/application/venda.rs` + `src-tauri/src/commands.rs` (`proximo_numero_pedido`/`registrar_venda`) + `pedido_repo.rs`/`pedido_sql.rs` para persistir as novas colunas; refletir no `src/components/Pdv.tsx` (bloqueio sem turno)
 
 **Checkpoint**: venda idêntica PDV↔Escritório, sempre contida num turno.
 

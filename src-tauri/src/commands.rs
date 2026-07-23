@@ -127,16 +127,39 @@ pub async fn proximo_numero_pedido(state: tauri::State<'_, AppState>) -> Result<
 }
 
 /// Registra uma venda (US1, FR-015). Pagamentos por lista `{formaId, valorCentavos}`.
+/// Feature 009 (FR-002/FR-003): exige um turno aberto do operador e carimba
+/// `turno_uid`/`numero_no_turno` no pedido (numeração por turno, offline-safe).
 #[tauri::command]
 pub async fn registrar_venda(
     state: tauri::State<'_, AppState>,
     input: VendaInput,
 ) -> Result<PedidoDto, ErroDto> {
+    let operador = input.operador.clone().unwrap_or_default();
+    let turnos = SeaTurnoRepo::new(state.db.clone());
+    let turno = turno::turno_aberto(&turnos, &operador)
+        .await?
+        .ok_or(ErroApp::Dominio(crate::domain::erros::ErroDominio::VendaSemTurno))?;
+    let numero_no_turno = turno::proximo_numero_no_turno(&turnos, &turno.sync_uid).await?;
+
     let livros = SeaLivroRepo::new(state.db.clone());
     let pedidos = SeaPedidoRepo::new(state.db.clone());
     let formas = SeaFormaPagamentoRepo::new(state.db.clone());
     let pedido =
         venda::registrar_venda(input, &livros, &pedidos, &formas, &RelogioSistema).await?;
+
+    // Carimba o turno + Pedido Nº do turno no pedido recém-gravado (FR-003).
+    use sea_orm::{ConnectionTrait, Statement};
+    let backend = state.db.get_database_backend();
+    state
+        .db
+        .execute(Statement::from_sql_and_values(
+            backend,
+            "UPDATE pedido SET turno_uid = ?, numero_no_turno = ? WHERE numero = ?",
+            [turno.sync_uid.clone().into(), numero_no_turno.into(), pedido.numero.into()],
+        ))
+        .await
+        .map_err(|e| ErroDto { codigo: "PERSISTENCIA".into(), mensagem: e.to_string() })?;
+
     Ok(PedidoDto {
         numero: pedido.numero,
         total_centavos: pedido.total().centavos(),
