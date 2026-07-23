@@ -65,6 +65,7 @@ impl UsuarioRepo for SeaUsuarioRepo {
                 usuario: Set("adm".to_string()),
                 senha_hash: Set(hash_senha("adm")),
                 nome: Set(Some("Administrador".to_string())),
+                perfil: Set("admin".to_string()),
             };
             UsuarioEntity::insert(am).exec(&self.db).await.map_err(erro)?;
         }

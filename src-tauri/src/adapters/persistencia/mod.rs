@@ -60,5 +60,8 @@ pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     // m008 (feature 007): colunas de sincronização com a nuvem (ADR-0015/0016),
     // aditiva e idempotente, aplicada contra o schema final.
     crate::migration::m008::aplicar(db).await?;
+
+    // m010 (feature 010): coluna `usuario.perfil` (operador|admin) — ADR-0019.
+    crate::migration::m010::aplicar(db).await?;
     Ok(())
 }

@@ -15,3 +15,4 @@ pub mod pagamento;
 pub mod pedido;
 pub mod sincronizacao;
 pub mod texto;
+pub mod usuario;
