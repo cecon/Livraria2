@@ -47,7 +47,7 @@ Escritório em `apps/escritorio/`, migração da nuvem em `apps/nuvem/migrations
 - [X] T004 Criar a entidade pura `crates/livraria-domain/src/turno_operacao.rs` com `TurnoOperacao`, `StatusTurno{Aberto,Encerrado}`, `ResumoCaixa`, `Fechamento` e as funções puras `abrir`, `pode_registrar_venda`, `proximo_numero`, `resumir_fechamento(pagamentos, caixa_inicial, dinheiro_forma_id)` (esperado **só do dinheiro** — clarify Q1), `encerrar(esperado, conferido)`; incluir testes `#[cfg(test)]` no arquivo (roda sem UI/banco). Registrar `pub mod turno_operacao;` em `crates/livraria-domain/src/lib.rs` (≤300 linhas — decompor se necessário)
 - [X] T005 Adicionar wrappers WASM do **turno** em `crates/livraria-domain-wasm/src/lib.rs`: `turno_pode_registrar_venda`, `turno_proximo_numero`, `turno_resumir_fechamento`, `turno_encerrar` (fronteira `f64`/`JsValue`, ver `contracts/wasm-api.md`)
 - [X] T006 No mesmo `crates/livraria-domain-wasm/src/lib.rs`, adicionar wrappers WASM da **venda**: `validar_conclusao_venda`, `troco_venda`, `restante_venda` (embrulham `Pedido::{validar_conclusao,troco,restante}`) e do **inventário**: `contagem_efetiva`, `resumir` (embrulham `inventario::{contagem_efetiva,resumir}`) — depende de T005 (mesmo arquivo)
-- [ ] T007 Estender `packages/domain/` (wrapper TS) para reexportar as novas funções e commitar a regeneração do WASM pelo CI `.github/workflows/wasm.yml` (build no Linux por causa do Windows SAC); confirmar `@livraria/domain` com os novos símbolos em `index.d.ts`
+- [X] T007 Estender `packages/domain/` (wrapper TS) para reexportar as novas funções e commitar a regeneração do WASM pelo CI `.github/workflows/wasm.yml` (build no Linux por causa do Windows SAC); confirmar `@livraria/domain` com os novos símbolos em `index.d.ts` — **feito**: `index.d.ts`/`index_bg.wasm` já expõem `turno_*`, `validar_conclusao_venda`, `troco_venda`, `restante_venda`, `contagem_efetiva`, `resumir`
 - [X] T008 Criar migração SQLite `src-tauri/src/migration/m009.rs` (idempotente, estilo `aplicar` de m008): `CREATE TABLE IF NOT EXISTS turno_operacao(...)` + `ALTER TABLE pedido ADD COLUMN turno_uid/numero_no_turno` tolerando "duplicate column"; wire `m009::aplicar(db)` em `src-tauri/src/adapters/persistencia/mod.rs` `inicializar_schema()` após `m008`
 - [X] T009 [P] Criar migração da nuvem `apps/nuvem/migrations/0010_turno.sql` (idempotente): mirror `turno_operacao` (`sync_uid` + colunas de sync), `CREATE INDEX IF NOT EXISTS idx_turno_operacao_sinc`, `ALTER TABLE pedido ADD COLUMN IF NOT EXISTS turno_uid/numero_no_turno`, e RLS `to authenticated` (padrão de `0002_rls_e_views.sql`)
 - [X] T010 Inserir `turno_operacao` na `ORDEM_DEPENDENCIA` da sincronização **antes de `pedido`** e mapear a entidade nos dois lados do sync (adapters de sincronização do `src-tauri` que consomem `crates/livraria-domain/src/sincronizacao.rs`); campos mutáveis convergem por LWW
@@ -232,3 +232,17 @@ US4 (export) pode andar em paralelo, com os testes de ida-e-volta ao final.
 - **Offline do PDV invariante**: numeração por turno é calculável por origem; a nuvem é aditiva/online.
 - Commit após cada tarefa ou grupo lógico; parar em cada checkpoint para validar a história isolada.
 - Segredos (ex.: `ESCRITORIO_EMAIL/SENHA` de produção) só no Notion — nunca no repo.
+
+## Pendências pós-merge (follow-up)
+
+O código funcional das 4 histórias está concluído e verde no domínio (83 testes + conformidade). Ficam
+como follow-up (exigem Supabase ao vivo, fora do escopo do merge):
+
+- **T013/T020/T028** — testes de integração de turno/venda/inventário no Escritório.
+- **T033/T034/T035** — ida-e-volta, acesso (RLS) e convergência concorrente (US4).
+- **T038** — validação manual do `quickstart.md` (5 cenários).
+
+**Ambiente de teste provisionado** para esses testes: **Supabase branch efêmero** `teste-009`
+(project ref `fqlxhrmvuvzzjznyjvhh`) com as 10 migrações + seed (adm/op1, formas, livro `TEST001`).
+Credenciais e passos de recriação/remoção → Notion (Memória do Projeto). Custo recorrente enquanto
+o branch existir — remover quando ocioso.
