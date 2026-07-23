@@ -42,11 +42,11 @@ description: "Task list — feature 010: gestão de usuários com perfis"
 **Goal**: um admin cria um usuário (identificador, nome, senha, perfil) que passa a logar onde o perfil permite, com a mesma credencial em PDV e Escritório.
 **Independent Test**: criar `caixa1` (operador) e `gerente` (admin); `caixa1` loga no PDV (offline pós-sync), `gerente` nos dois.
 
-- [ ] T010 [US1] Nuvem (`0007`): RPC `criar_usuario(p_admin,p_usuario,p_nome,p_senha,p_perfil)` `SECURITY DEFINER` — valida admin ativo (chamador), unicidade (INV-1), senha ≥ mínimo (INV-4), perfil válido; grava `senha_hash=crypt(p_senha,gen_salt('bf'))`, `perfil`, `atualizado_em`, `sync_uid`; **aplicar**.
-- [ ] T011 [US1] Nuvem (`0007`): RPC `definir_senha_usuario(p_admin,p_usuario,p_senha)` `SECURITY DEFINER` (admin ativo; senha ≥ mínimo; regrava só `senha_hash`+`atualizado_em`); **aplicar**.
-- [ ] T012 [P] [US1] Escritório: `apps/escritorio/app/usuarios/page.tsx` — lista de usuários (Usuário · Nome · Perfil · Estado) lendo **colunas explícitas** (nunca `senha_hash`); estados vazio/carregando/erro; botão "Novo usuário".
-- [ ] T013 [US1] Escritório: `apps/escritorio/app/usuarios/form-usuario.tsx` (form/modal de criação) — campos usuário/nome/perfil(radio)/senha; chama `criar_usuario`; validação client (usuário obrigatório, senha ≥ mínimo) + mensagens pt-BR.
-- [ ] T014 [US1] Verificar US1 pelo `quickstart.md` (cadastro < 1 min; operador loga no PDV offline pós-sync — SC-001/SC-003).
+- [X] T010 [US1] Nuvem (`0007`): RPC `criar_usuario(p_admin,p_usuario,p_nome,p_senha,p_perfil)` `SECURITY DEFINER` — valida admin ativo (chamador), unicidade (INV-1), senha ≥ mínimo (INV-4), perfil válido; grava `senha_hash=crypt(p_senha,gen_salt('bf'))`, `perfil`, `atualizado_em`, `sync_uid`; **aplicar**.
+- [X] T011 [US1] Nuvem (`0007`): RPC `definir_senha_usuario(p_admin,p_usuario,p_senha)` `SECURITY DEFINER` (admin ativo; senha ≥ mínimo; regrava só `senha_hash`+`atualizado_em`); **aplicar**.
+- [X] T012 [P] [US1] Escritório: `apps/escritorio/app/usuarios/page.tsx` — lista de usuários (Usuário · Nome · Perfil · Estado) lendo **colunas explícitas** (nunca `senha_hash`); estados vazio/carregando/erro; botão "Novo usuário".
+- [X] T013 [US1] Escritório: `apps/escritorio/app/usuarios/form-usuario.tsx` (form/modal de criação) — campos usuário/nome/perfil(radio)/senha; chama `criar_usuario`; validação client (usuário obrigatório, senha ≥ mínimo) + mensagens pt-BR.
+- [ ] T014 [US1] Verificar US1 — cadastro pela UI ✅ (SC-001, hash bcrypt, login ok); **login do novo usuário no PDV offline pende T008** (sync do senha_hash).
 
 **Checkpoint**: um admin cadastra usuários com perfil e senha; eles logam conforme o perfil. **MVP entregável.**
 
