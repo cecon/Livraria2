@@ -118,15 +118,15 @@ equivalente do PDV; no modo total, não-contados contam 0.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T027 [P] [US3] Conformidade nativo↔WASM do inventário em `crates/livraria-domain/tests/conformance.rs`: `contagem_efetiva` (parcial/total), `diferenca_contagem` e `resumir` (ResumoInventario) — cobre as funções de inventário da SC-005
+- [X] T027 [P] [US3] Conformidade nativo↔WASM do inventário em `crates/livraria-domain/tests/conformance.rs`: `contagem_efetiva` (parcial/total), `diferenca_contagem` e `resumir` (ResumoInventario) — cobre as funções de inventário da SC-005
 - [ ] T028 [P] [US3] Teste de integração da contagem em `apps/escritorio/lib/nuvem/__tests__/inventario.test.ts`: parcial só ajusta contados; total zera não-contados; ajustes = os do PDV
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] Porta de inventário `apps/escritorio/lib/nuvem/inventario.ts`: sessão **client-side** (rascunho em `localStorage`, modo parcial/total); `saldosParaContagem(codigos?)`; fechamento aplica `contagem_efetiva`+`diferenca_contagem` (WASM); `aplicarAjustes(ajustes)` grava `movimento_estoque` tipo `ajuste`
-- [ ] T030 [P] [US3] Componente `apps/escritorio/components/ContagemInventario.tsx`: seletor de modo + bipar (reusa `EntradaProduto`) + card +1/desfazer −1 (≤300 linhas)
-- [ ] T031 [P] [US3] Componente `apps/escritorio/components/RevisaoContagem.tsx`: tabela de divergências (reconciliação) antes de aplicar (≤300 linhas)
-- [ ] T032 [US3] Tela `apps/escritorio/app/inventario/page.tsx`: ciclo abrir/contar/revisar/fechar/cancelar usando ContagemInventario/RevisaoContagem (depende de T029–T031)
+- [X] T029 [US3] Porta de inventário `apps/escritorio/lib/nuvem/inventario.ts`: sessão **client-side** (rascunho em `localStorage`, modo parcial/total); `saldosParaContagem(codigos?)`; fechamento aplica `contagem_efetiva`+`diferenca_contagem` (WASM); `aplicarAjustes(ajustes)` grava `movimento_estoque` tipo `ajuste`
+- [X] T030 [P] [US3] Componente `apps/escritorio/components/ContagemInventario.tsx`: seletor de modo + bipar (reusa `EntradaProduto`) + card +1/desfazer −1 (≤300 linhas)
+- [X] T031 [P] [US3] Componente `apps/escritorio/components/RevisaoContagem.tsx`: tabela de divergências (reconciliação) antes de aplicar (≤300 linhas)
+- [X] T032 [US3] Tela `apps/escritorio/app/inventario/page.tsx`: ciclo abrir/contar/revisar/fechar/cancelar usando ContagemInventario/RevisaoContagem (depende de T029–T031)
 
 **Checkpoint**: inventário na nuvem produz os mesmos ajustes do PDV.
 

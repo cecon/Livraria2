@@ -37,6 +37,8 @@ for (const c of vetores.troco_venda) {
   const pagamentos = c.pagamentos.map(([formaId, valorCentavos]) => ({ formaId, valorCentavos }));
   eq("troco_venda", dom.troco_venda(itens, pagamentos), c.out);
 }
+for (const c of vetores.contagem_efetiva) eq("contagem_efetiva", dom.contagem_efetiva(c.in[0], c.in[1], c.in[2]), c.out);
+for (const c of vetores.resumir_inventario) eq("resumir_inventario", dom.resumir(c.in), c.out);
 
 if (falhas > 0) {
   console.error(`\n${falhas} divergência(s) PDV↔WASM.`);
