@@ -105,7 +105,25 @@ pub(crate) const SPECS: &[Spec] = &[
         ],
         refs: &[],
     },
-    // Venda: mutável (cancelamento); operador referencia usuario por `usuario`.
+    // Turno de operação (ADR-0021): mutável (status/encerramento → LWW). Operador
+    // referencia usuario por `usuario` (mesmo remap do pedido).
+    Spec {
+        recurso: "turno_operacao",
+        mutavel: true,
+        default_insert: &[],
+        cols: &[
+            Col { nome: "caixa_inicial_centavos", tipo: Inteiro },
+            Col { nome: "status", tipo: Texto },
+            Col { nome: "abertura", tipo: Texto },
+            Col { nome: "encerramento", tipo: Texto },
+            Col { nome: "esperado_centavos", tipo: Inteiro },
+            Col { nome: "conferido_centavos", tipo: Inteiro },
+            Col { nome: "diferenca_centavos", tipo: Inteiro },
+        ],
+        refs: &[Ref { uid_key: "operador_uid", col_local: "operador", pai: "usuario", chave_local_pai: "usuario" }],
+    },
+    // Venda: mutável (cancelamento); operador referencia usuario por `usuario`;
+    // turno_uid é o sync_uid do turno (pass-through, valida o pai existir).
     Spec {
         recurso: "pedido",
         mutavel: true,
@@ -118,8 +136,12 @@ pub(crate) const SPECS: &[Spec] = &[
             Col { nome: "total_centavos", tipo: Inteiro },
             Col { nome: "cancelado", tipo: Bool },
             Col { nome: "cancelado_em", tipo: Texto },
+            Col { nome: "numero_no_turno", tipo: Inteiro },
         ],
-        refs: &[Ref { uid_key: "operador_uid", col_local: "operador", pai: "usuario", chave_local_pai: "usuario" }],
+        refs: &[
+            Ref { uid_key: "operador_uid", col_local: "operador", pai: "usuario", chave_local_pai: "usuario" },
+            Ref { uid_key: "turno_uid", col_local: "turno_uid", pai: "turno_operacao", chave_local_pai: "sync_uid" },
+        ],
     },
     Spec {
         recurso: "item_pedido",

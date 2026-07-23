@@ -60,5 +60,8 @@ pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     // m008 (feature 007): colunas de sincronização com a nuvem (ADR-0015/0016),
     // aditiva e idempotente, aplicada contra o schema final.
     crate::migration::m008::aplicar(db).await?;
+    // m009 (feature 009): turno de operação (ADR-0021) — tabela `turno_operacao`
+    // e colunas `pedido.turno_uid`/`numero_no_turno`, aditiva e idempotente.
+    crate::migration::m009::aplicar(db).await?;
     Ok(())
 }
