@@ -1,0 +1,11 @@
+-- Feature 008 (ADR-0019): identidade unificada na tabela `usuario`. A senha passa a
+-- sincronizar para o PDV (offline-first), então a nuvem ganha a coluna `senha_hash`
+-- (antes omitida pela D15, agora superada). Aditiva e idempotente.
+--
+-- Hash: bcrypt para senhas novas; o PDV também aceita SHA-256 legado na verificação
+-- (migração sem quebrar logins). O VALOR do hash de cada usuário NÃO fica neste arquivo
+-- (segredo) — é semeado a partir do PDV/base real em passo operacional separado.
+--
+-- A proteção da coluna (revoke de SELECT + RPCs SECURITY DEFINER para autenticar/definir
+-- senha/pull do PDV) vem numa migração seguinte, junto da retaguarda (estágios 2b/4).
+alter table usuario add column if not exists senha_hash text not null default '';
