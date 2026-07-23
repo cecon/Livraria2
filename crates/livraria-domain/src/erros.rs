@@ -83,6 +83,12 @@ pub enum ErroDominio {
 
     #[error("venda com mais de {dias} dias não pode mais ser cancelada")]
     VendaAntiga { dias: i64 },
+
+    #[error("já existe um turno aberto — encerre-o antes de abrir outro")]
+    TurnoJaAberto,
+
+    #[error("é preciso abrir um turno antes de registrar vendas")]
+    VendaSemTurno,
 }
 
 impl ErroDominio {
@@ -116,6 +122,8 @@ impl ErroDominio {
             ErroDominio::TransferenciaInvalida => "TRANSFERENCIA_INVALIDA",
             ErroDominio::SaldoInsuficiente { .. } => "SALDO_INSUFICIENTE",
             ErroDominio::VendaAntiga { .. } => "VENDA_ANTIGA",
+            ErroDominio::TurnoJaAberto => "TURNO_JA_ABERTO",
+            ErroDominio::VendaSemTurno => "VENDA_SEM_TURNO",
         }
     }
 }

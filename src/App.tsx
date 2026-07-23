@@ -9,6 +9,7 @@ import { aplicarTema, temaInicial, type Tema } from "@/lib/theme";
 import { verificarAtualizacao } from "@/lib/updater";
 import Inicio from "@/routes/Inicio";
 import Venda from "@/routes/Venda";
+import Turnos from "@/routes/Turnos";
 import Cadastro from "@/routes/Cadastro";
 import Pesquisa from "@/routes/Pesquisa";
 import Lancamentos from "@/routes/Lancamentos";
@@ -71,6 +72,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Inicio />} />
             <Route path="/venda" element={<Venda />} />
+            <Route path="/turnos" element={<Turnos />} />
             <Route path="/cadastro" element={<Cadastro />} />
             <Route path="/pesquisa" element={<Pesquisa />} />
             <Route path="/lancamentos" element={<Lancamentos />} />

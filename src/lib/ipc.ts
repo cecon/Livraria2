@@ -80,6 +80,36 @@ export async function registrarVenda(
   return await invoke("registrar_venda", { input });
 }
 
+// --- Turno de operação (feature 009, ADR-0021) ---
+
+export type TurnoAberto = { syncUid: string; caixaInicialCentavos: number; abertura: string };
+export type ResumoTurno = { qtdVendas: number; porForma: [number, number][]; esperadoDinheiroCentavos: number };
+export type TurnoFechamento = { esperadoCentavos: number; conferidoCentavos: number; diferencaCentavos: number };
+export type TurnoHistorico = {
+  abertura: string;
+  encerramento: string | null;
+  status: string;
+  esperadoCentavos: number | null;
+  conferidoCentavos: number | null;
+  diferencaCentavos: number | null;
+};
+
+export async function turnoAberto(operador: string): Promise<TurnoAberto | null> {
+  return await invoke("turno_aberto", { operador });
+}
+export async function turnoAbrir(operador: string, caixaInicialCentavos: number): Promise<TurnoAberto> {
+  return await invoke("turno_abrir", { operador, caixaInicialCentavos });
+}
+export async function turnoResumo(turnoUid: string): Promise<ResumoTurno> {
+  return await invoke("turno_resumo", { turnoUid });
+}
+export async function turnoEncerrar(turnoUid: string, conferidoCentavos: number): Promise<TurnoFechamento> {
+  return await invoke("turno_encerrar", { turnoUid, conferidoCentavos });
+}
+export async function turnoListar(operador: string): Promise<TurnoHistorico[]> {
+  return await invoke("turno_listar", { operador });
+}
+
 export async function salvarLivro(livro: Livro): Promise<void> {
   await invoke("salvar_livro", { livro });
 }
