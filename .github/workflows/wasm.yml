@@ -1,6 +1,6 @@
 name: build-wasm
 
-# Gera o pacote @livraria/domain (WASM do domínio, ADR-0019) num runner Linux
+# Gera o pacote @livraria/domain (WASM do domínio, ADR-0022) num runner Linux
 # — a máquina de dev tem Smart App Control (enforce) que bloqueia wasm-pack local.
 # Compila crates/livraria-domain-wasm e commita packages/domain de volta na branch.
 on:

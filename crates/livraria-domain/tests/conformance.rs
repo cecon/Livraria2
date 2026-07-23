@@ -1,4 +1,4 @@
-//! Lado NATIVO do teste de conformidade (ADR-0019). Roda os mesmos vetores que o
+//! Lado NATIVO do teste de conformidade (ADR-0022). Roda os mesmos vetores que o
 //! `@livraria/domain` (WASM) roda em `conformance.mjs`: mesma entrada → mesma saída.
 //! Se ambos passam sobre os mesmos vetores, PDV (nativo) e Escritório (WASM) são idênticos.
 

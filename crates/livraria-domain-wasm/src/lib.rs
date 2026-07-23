@@ -1,4 +1,4 @@
-//! Ponte WASM do domínio (ADR-0019). Cada função apenas embrulha `livraria-domain`
+//! Ponte WASM do domínio (ADR-0022). Cada função apenas embrulha `livraria-domain`
 //! — a regra é única e vive no domínio. Fronteira em `f64` (convenção "number de
 //! centavos no TS"; evita BigInt); quantidades e centavos cabem com folga em 2^53.
 

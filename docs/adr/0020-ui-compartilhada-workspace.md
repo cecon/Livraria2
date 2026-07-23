@@ -16,7 +16,7 @@ Escritório garantiria **drift** a cada ajuste do PDV — contrário ao objetivo
 
 ## Decisão (specs/008-escritorio-espelho-pdv/research.md D5, D6)
 - **Tornar o repo um workspace** (npm workspaces para JS; Cargo workspace para o crate de domínio —
-  ADR-0019). Raiz: `workspaces: ["packages/*","apps/*"]`; Next usa `transpilePackages`.
+  ADR-0022). Raiz: `workspaces: ["packages/*","apps/*"]`; Next usa `transpilePackages`.
 - **Extrair `packages/ui` (`@livraria/ui`)** como fonte visual única: os tokens `@theme`/`:root`/`.dark`
   (de `src/index.css`), os componentes `components/ui/*` (shadcn) e `lib/utils` (`cn`). **PDV e Escritório
   consomem o mesmo pacote.**

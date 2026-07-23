@@ -10,7 +10,7 @@ pub mod commands_fornecedor;
 pub mod commands_inventario;
 pub mod commands_lancamento;
 pub mod commands_sync;
-// Domínio extraído para o crate `livraria-domain` (ADR-0019). Re-exporta como
+// Domínio extraído para o crate `livraria-domain` (ADR-0022). Re-exporta como
 // `crate::domain` para manter todas as referências existentes (`crate::domain::…`).
 pub use livraria_domain as domain;
 pub mod migration;

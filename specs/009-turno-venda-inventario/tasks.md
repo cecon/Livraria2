@@ -30,9 +30,9 @@ Escritório em `apps/escritorio/`, migração da nuvem em `apps/nuvem/migrations
 
 **Purpose**: sanear dívidas de ADR (Princípio V) e confirmar baseline verde antes de tocar código.
 
-- [ ] T001 Renumerar ADR do WASM: `git mv docs/adr/0019-escritorio-reusa-dominio-wasm.md docs/adr/0022-escritorio-reusa-dominio-wasm.md`, atualizar título/refs internas e o índice/README de ADRs; ajustar a nota de colisão deixada na 008 (resolve a colisão com o `0019` de identidade usuário/senha do #15)
-- [ ] T002 [P] Corrigir `docs/adr/0021-turno-de-operacao.md`: trocar todas as menções `0004_turno.sql` → `0006_turno.sql` (0004/0005 já usadas pelo #15)
-- [ ] T003 [P] Confirmar baseline verde na raiz do workspace: `npm ci`, `cargo check -p livraria-domain`, e `cargo check` do `src-tauri`; registrar que parte do baseline (sem mudanças)
+- [X] T001 Renumerar ADR do WASM: `git mv docs/adr/0019-escritorio-reusa-dominio-wasm.md docs/adr/0022-escritorio-reusa-dominio-wasm.md`, atualizar título/refs internas e o índice/README de ADRs; ajustar a nota de colisão deixada na 008 (resolve a colisão com o `0019` de identidade usuário/senha do #15)
+- [X] T002 [P] Corrigir `docs/adr/0021-turno-de-operacao.md`: trocar todas as menções `0004_turno.sql` → `0006_turno.sql` (0004/0005 já usadas pelo #15)
+- [X] T003 [P] Confirmar baseline verde na raiz do workspace: `npm ci`, `cargo check -p livraria-domain`, e `cargo check` do `src-tauri`; registrar que parte do baseline (sem mudanças)
 
 **Checkpoint**: ADRs consistentes; workspace compila. Pode iniciar a fundação.
 

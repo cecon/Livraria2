@@ -1,6 +1,10 @@
-# ADR-0019 — Escritório reusa o domínio (Rust) via WebAssembly
+# ADR-0022 — Escritório reusa o domínio (Rust) via WebAssembly
 
 **Status**: Aceito · **Data**: 2026-07-22
+
+> **Nota de renumeração (feature 009)**: originalmente registrado como ADR-0019, colidiu com o
+> `0019-identidade-unificada-usuario-senha-sincronizada.md` (merge da 008 × PR #15). Renumerado para
+> **0022** no saneamento da 009. Referências antigas a "ADR-0019 (WASM)" apontam para este arquivo.
 
 ## Contexto
 A feature 008 (specs/008-escritorio-espelho-pdv) exige que o app **Escritório** (Next.js, nuvem) execute
