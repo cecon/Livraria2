@@ -23,6 +23,24 @@ export function clamp_baixa_venda(qtd, saldo) {
 }
 
 /**
+ * Contagem efetiva no fechamento: parcial só ajusta contados; total zera
+ * não-contados. `tem_contada=false` significa livro não contado.
+ * @param {string} modo
+ * @param {number} contada
+ * @param {boolean} tem_contada
+ * @returns {any}
+ */
+export function contagem_efetiva(modo, contada, tem_contada) {
+    const ptr0 = passStringToWasm0(modo, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.contagem_efetiva(ptr0, len0, contada, tem_contada);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
  * Custo médio ponderado após uma entrada (centavos in/out).
  * @param {number} estoque_atual
  * @param {number} medio_centavos
@@ -76,6 +94,33 @@ export function recompor_ledger(movimentos) {
 }
 
 /**
+ * Restante a receber (centavos; 0 se pago ≥ total).
+ * @param {any} itens
+ * @param {any} pagamentos
+ * @returns {number}
+ */
+export function restante_venda(itens, pagamentos) {
+    const ret = wasm.restante_venda(itens, pagamentos);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return ret[0];
+}
+
+/**
+ * Resume os itens contados `[[sistema, contado], …]`.
+ * @param {any} itens
+ * @returns {any}
+ */
+export function resumir(itens) {
+    const ret = wasm.resumir(itens);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
  * Formata centavos como `R$ 1.234,56`.
  * @param {number} centavos
  * @returns {string}
@@ -91,6 +136,87 @@ export function to_brl(centavos) {
     } finally {
         wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
     }
+}
+
+/**
+ * Troco da venda (centavos; 0 se pago ≤ total).
+ * @param {any} itens
+ * @param {any} pagamentos
+ * @returns {number}
+ */
+export function troco_venda(itens, pagamentos) {
+    const ret = wasm.troco_venda(itens, pagamentos);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return ret[0];
+}
+
+/**
+ * Fechamento de caixa: diferença = conferido − esperado (pode ser < 0).
+ * @param {number} esperado_dinheiro_centavos
+ * @param {number} conferido_dinheiro_centavos
+ * @returns {any}
+ */
+export function turno_encerrar(esperado_dinheiro_centavos, conferido_dinheiro_centavos) {
+    const ret = wasm.turno_encerrar(esperado_dinheiro_centavos, conferido_dinheiro_centavos);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * Uma venda só pode ser registrada num turno "aberto".
+ * @param {string} status
+ * @returns {boolean}
+ */
+export function turno_pode_registrar_venda(status) {
+    const ptr0 = passStringToWasm0(status, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.turno_pode_registrar_venda(ptr0, len0);
+    return ret !== 0;
+}
+
+/**
+ * Próximo Pedido Nº do turno (1..n).
+ * @param {number} qtd_no_turno
+ * @returns {number}
+ */
+export function turno_proximo_numero(qtd_no_turno) {
+    const ret = wasm.turno_proximo_numero(qtd_no_turno);
+    return ret;
+}
+
+/**
+ * Resume o fechamento: totais por forma (informativos) + esperado só do dinheiro.
+ * @param {any} pagamentos_do_turno
+ * @param {number} caixa_inicial_centavos
+ * @param {number} dinheiro_forma_id
+ * @param {number} qtd_vendas
+ * @returns {any}
+ */
+export function turno_resumir_fechamento(pagamentos_do_turno, caixa_inicial_centavos, dinheiro_forma_id, qtd_vendas) {
+    const ret = wasm.turno_resumir_fechamento(pagamentos_do_turno, caixa_inicial_centavos, dinheiro_forma_id, qtd_vendas);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * Valida a conclusão da venda (≥1 item, pago ≥ total, troco só do dinheiro).
+ * @param {any} itens
+ * @param {any} pagamentos
+ * @param {number} dinheiro_forma_id
+ * @returns {any}
+ */
+export function validar_conclusao_venda(itens, pagamentos, dinheiro_forma_id) {
+    const ret = wasm.validar_conclusao_venda(itens, pagamentos, dinheiro_forma_id);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
 }
 function __wbg_get_imports() {
     const import0 = {
@@ -128,6 +254,10 @@ function __wbg_get_imports() {
             getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
             getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
         },
+        __wbg___wbindgen_in_aca499c5de7ff5e5: function(arg0, arg1) {
+            const ret = arg0 in arg1;
+            return ret;
+        },
         __wbg___wbindgen_is_bigint_2f76dc55065b4273: function(arg0) {
             const ret = typeof(arg0) === 'bigint';
             return ret;
@@ -139,6 +269,10 @@ function __wbg_get_imports() {
         __wbg___wbindgen_is_object_a27215656b807791: function(arg0) {
             const val = arg0;
             const ret = typeof(val) === 'object' && val !== null;
+            return ret;
+        },
+        __wbg___wbindgen_is_undefined_c05833b95a3cf397: function(arg0) {
+            const ret = arg0 === undefined;
             return ret;
         },
         __wbg___wbindgen_jsval_eq_e659fcf7b0e32763: function(arg0, arg1) {
@@ -182,6 +316,10 @@ function __wbg_get_imports() {
             const ret = arg0[arg1 >>> 0];
             return ret;
         },
+        __wbg_get_with_ref_key_6412cf3094599694: function(arg0, arg1) {
+            const ret = arg0[arg1];
+            return ret;
+        },
         __wbg_instanceof_ArrayBuffer_4480b9e0068a8adb: function(arg0) {
             let result;
             try {
@@ -222,6 +360,10 @@ function __wbg_get_imports() {
             const ret = arg0.length;
             return ret;
         },
+        __wbg_new_32b398fb48b6d94a: function() {
+            const ret = new Array();
+            return ret;
+        },
         __wbg_new_cd45aabdf6073e84: function(arg0) {
             const ret = new Uint8Array(arg0);
             return ret;
@@ -243,6 +385,9 @@ function __wbg_get_imports() {
         },
         __wbg_set_6be42768c690e380: function(arg0, arg1, arg2) {
             arg0[arg1] = arg2;
+        },
+        __wbg_set_8a16b38e4805b298: function(arg0, arg1, arg2) {
+            arg0[arg1 >>> 0] = arg2;
         },
         __wbg_value_a5d5488a9589444a: function(arg0) {
             const ret = arg0.value;
