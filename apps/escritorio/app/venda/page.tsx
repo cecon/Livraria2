@@ -12,7 +12,6 @@ import { EntradaProduto, type LivroBusca } from "@/components/EntradaProduto";
 import { Carrinho } from "@/components/Carrinho";
 import { FormasPagamento } from "@/components/FormasPagamento";
 import { VendaConcluida } from "@/components/VendaConcluida";
-import { parseBRLInput } from "@/lib/brl";
 import { reais } from "@/utils/texto";
 import { listarLivros } from "@/lib/nuvem/livro";
 import { listarSaldos } from "@/lib/nuvem/estoque";
@@ -26,7 +25,7 @@ export default function VendaPage() {
   const [livros, setLivros] = useState<LivroBusca[]>([]);
   const [formas, setFormas] = useState<Forma[]>([]);
   const [itens, setItens] = useState<ItemVenda[]>([]);
-  const [valores, setValores] = useState<Map<string, string>>(new Map());
+  const [valores, setValores] = useState<Map<string, number>>(new Map());
   const [busca, setBusca] = useState("");
   const [concluida, setConcluida] = useState<VendaResultado | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -52,7 +51,10 @@ export default function VendaPage() {
   }, []);
 
   const totalCentavos = useMemo(() => itens.reduce((s, i) => s + i.precoCentavos * i.qtd, 0), [itens]);
-  const pagoCentavos = useMemo(() => [...valores.values()].reduce((s, v) => s + parseBRLInput(v), 0), [valores]);
+  const pagoCentavos = useMemo(() => [...valores.values()].reduce((s, v) => s + v, 0), [valores]);
+  // Regra do PDV: não finaliza faltando valor (troco > 0 é permitido; a regra de
+  // "troco só do dinheiro" é validada pelo domínio ao concluir).
+  const falta = Math.max(0, totalCentavos - pagoCentavos);
 
   function adicionar(l: LivroBusca) {
     setItens((prev) => {
@@ -74,15 +76,19 @@ export default function VendaPage() {
   function remover(codigo: string) {
     setItens((prev) => prev.filter((i) => i.codigo !== codigo));
   }
-  function setValor(uid: string, v: string) {
-    setValores((prev) => new Map(prev).set(uid, v));
+  function setValor(uid: string, centavos: number) {
+    setValores((prev) => new Map(prev).set(uid, centavos));
+  }
+  // Botão da forma: recebe o que falta nela (paridade com o PDV).
+  function receberRestante(uid: string) {
+    setValor(uid, (valores.get(uid) ?? 0) + falta);
   }
 
   async function concluir() {
     if (!turno) return;
     setOcupado(true);
     const pagamentos = formas
-      .map((f) => ({ formaUid: f.sync_uid, valorCentavos: parseBRLInput(valores.get(f.sync_uid) ?? "") }))
+      .map((f) => ({ formaUid: f.sync_uid, valorCentavos: valores.get(f.sync_uid) ?? 0 }))
       .filter((p) => p.valorCentavos > 0);
     const { error, resultado } = await registrarVenda({ turnoUid: turno.sync_uid, itens, pagamentos });
     setOcupado(false);
@@ -146,9 +152,21 @@ export default function VendaPage() {
             </div>
           </div>
           <div className="bg-card space-y-4 rounded-lg border p-4">
-            <FormasPagamento formas={formas} valores={valores} onValor={setValor} totalCentavos={totalCentavos} pagoCentavos={pagoCentavos} />
-            <Button onClick={concluir} disabled={ocupado || itens.length === 0} className="h-10 w-full">
-              Concluir venda · {reais(totalCentavos)}
+            <FormasPagamento
+              formas={formas}
+              valores={valores}
+              onValor={setValor}
+              onReceberRestante={receberRestante}
+              totalCentavos={totalCentavos}
+              pagoCentavos={pagoCentavos}
+            />
+            <Button
+              onClick={concluir}
+              disabled={ocupado || itens.length === 0 || falta > 0}
+              className="h-10 w-full"
+              title={falta > 0 ? `Falta receber ${reais(falta)}` : undefined}
+            >
+              {falta > 0 ? `Falta ${reais(falta)}` : `Concluir venda · ${reais(totalCentavos)}`}
             </Button>
           </div>
         </div>
