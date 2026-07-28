@@ -58,10 +58,18 @@ for file in migrations/*.sql; do
   filename_sql="$(sql_escape "$filename")"
   hash_sql="$(sql_escape "$hash")"
 
-  current="$(scalar_sql "select coalesce((select sha256 from public.livraria_schema_migrations where version='${version_sql}'), '');")"
+  current_row="$(scalar_sql "select concat_ws('|', sha256, baseline::text)
+    from public.livraria_schema_migrations
+    where version='${version_sql}';")"
 
-  if [[ -n "$current" ]]; then
+  if [[ -n "$current_row" ]]; then
+    current="${current_row%%|*}"
+    baseline="${current_row##*|}"
     if [[ "$current" != "$hash" ]]; then
+      if [[ "$baseline" == "true" ]]; then
+        echo "Skipping ${filename}; already recorded as production baseline"
+        continue
+      fi
       echo "Hash mismatch for ${filename}; refusing to continue" >&2
       exit 1
     fi
