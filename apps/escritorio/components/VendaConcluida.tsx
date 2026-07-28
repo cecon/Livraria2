@@ -27,10 +27,9 @@ export function VendaConcluida({ resultado, onNova }: { resultado: VendaResultad
           </div>
         )}
       </div>
-      {resultado.parciais.length > 0 && (
+      {resultado.divergenciasEstoque > 0 && (
         <div className="bg-amber-50 text-amber-700 rounded-md p-2 text-left text-xs">
-          Baixa parcial (estoque insuficiente):{" "}
-          {resultado.parciais.map((p) => `${p.titulo} (${p.baixado}/${p.pedido})`).join(", ")}
+          Estoque gerou {resultado.divergenciasEstoque} divergencia(s) para revisao administrativa.
         </div>
       )}
       <Button onClick={onNova} className="h-9 w-full">

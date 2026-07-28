@@ -2,9 +2,9 @@
 
 import { seloEstoque } from "@/lib/types";
 
-export function StockBadge({ estoque }: { estoque: number }) {
+export function StockBadge({ estoque, rotulo = "Estoque" }: { estoque: number; rotulo?: string }) {
   const selo = seloEstoque(estoque);
-  const texto = selo === "esgotado" ? "Esgotado" : `Estoque ${estoque}`;
+  const texto = selo === "esgotado" ? `${rotulo} 0` : `${rotulo} ${estoque}`;
   const cor =
     selo === "esgotado"
       ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"

@@ -1,5 +1,11 @@
 // Camada de relatórios (US2/T031) — agrega no cliente (PostgREST não soma).
 import { createClient } from "@/utils/supabase/client";
+import {
+  montarItensRelatorioEstoque,
+  type ItemRelatorioEstoque,
+  type LivroEstoqueRaw,
+} from "./relatorios_estoque";
+export { montarItensRelatorioEstoque } from "./relatorios_estoque";
 
 export type LinhaValor = { rotulo: string; valorCentavos: number };
 export type ItemRel = { titulo: string; qtd: number; valorCentavos: number };
@@ -24,7 +30,7 @@ export type RelatorioVendas = {
 export type RelatorioEstoque = {
   titulos: number;
   valorTotalCentavos: number;
-  itens: { codigo: string; titulo: string; categoria: number; precoCentavos: number; estoque: number; valorCentavos: number }[];
+  itens: ItemRelatorioEstoque[];
 };
 
 export type RelatorioDestinacoes = {
@@ -47,12 +53,7 @@ export async function relatorioEstoque(): Promise<RelatorioEstoque> {
     sb.from("livro").select("sync_uid,codigo,titulo,categoria,preco_centavos").is("excluido_em", null),
   ]);
   const saldos = new Map((saldoRes.data as { livro_uid: string; saldo: number }[] ?? []).map((r) => [r.livro_uid, Number(r.saldo)]));
-  const itens = (livroRes.data as { sync_uid: string; codigo: string; titulo: string; categoria: number; preco_centavos: number }[] ?? [])
-    .map((l) => {
-      const estoque = saldos.get(l.sync_uid) ?? 0;
-      return { codigo: l.codigo, titulo: l.titulo, categoria: l.categoria, precoCentavos: Number(l.preco_centavos), estoque, valorCentavos: estoque * Number(l.preco_centavos) };
-    })
-    .sort((a, b) => a.titulo.localeCompare(b.titulo));
+  const itens = montarItensRelatorioEstoque((livroRes.data as LivroEstoqueRaw[]) ?? [], saldos);
   return { titulos: itens.length, valorTotalCentavos: itens.reduce((s, i) => s + i.valorCentavos, 0), itens };
 }
 

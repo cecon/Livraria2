@@ -1,21 +1,19 @@
-//! Comandos Tauri do inventário e pendências (US2/US5). Separado para respeitar
-//! o limite de 300 linhas (Princípio III).
+//! Comandos Tauri do inventario legado. As rotinas oficiais de inventario foram
+//! centralizadas no Escritorio/nuvem; o PDV preserva apenas venda, turno e consulta.
 
-use crate::adapters::persistencia::inventario_repo::SeaInventarioRepo;
-use crate::adapters::persistencia::livro_repo::SeaLivroRepo;
-use crate::application::erros::ErroApp;
-use crate::application::inventario;
 use crate::application::ports_inventario::{
-    DivergenciaView, FechamentoView, InventarioRepo, PendenciaView, RelatorioView, SessaoView,
+    DivergenciaView, FechamentoView, PendenciaView, RelatorioView, SessaoView,
 };
 use crate::commands::{AppState, ErroDto, LivroDto};
 use serde::Serialize;
 
-fn repo(state: &tauri::State<'_, AppState>) -> SeaInventarioRepo {
-    SeaInventarioRepo::new(state.db.clone())
+fn rotina_nuvem<T>() -> Result<T, ErroDto> {
+    Err(ErroDto {
+        codigo: "ROTINA_NUVEM".to_string(),
+        mensagem: "Inventario oficial fica no Escritorio/nuvem.".to_string(),
+    })
 }
 
-/// Resultado de bipagem serializável (livro convertido para DTO de fronteira).
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BipagemDto {
@@ -27,175 +25,124 @@ pub struct BipagemDto {
 
 #[tauri::command]
 pub async fn inventario_abrir(
-    state: tauri::State<'_, AppState>,
-    modo: String,
-    rotulo: Option<String>,
+    _state: tauri::State<'_, AppState>,
+    _modo: String,
+    _rotulo: Option<String>,
 ) -> Result<SessaoView, ErroDto> {
-    Ok(inventario::abrir(&modo, rotulo, &repo(&state)).await?)
+    rotina_nuvem()
 }
 
 #[tauri::command]
 pub async fn inventario_sessao_aberta(
-    state: tauri::State<'_, AppState>,
+    _state: tauri::State<'_, AppState>,
 ) -> Result<Option<SessaoView>, ErroDto> {
-    Ok(repo(&state).sessao_aberta().await.map_err(ErroApp::from)?)
+    rotina_nuvem()
 }
 
 #[tauri::command]
 pub async fn inventario_bipar(
-    state: tauri::State<'_, AppState>,
-    sessao_id: i64,
-    codigo_barras: String,
+    _state: tauri::State<'_, AppState>,
+    _sessao_id: i64,
+    _codigo_barras: String,
 ) -> Result<BipagemDto, ErroDto> {
-    let r = repo(&state)
-        .bipar(sessao_id, codigo_barras.trim())
-        .await
-        .map_err(ErroApp::from)?;
-    Ok(BipagemDto {
-        encontrado: r.livro.is_some(),
-        livro: r.livro.map(LivroDto::from),
-        qtd_contada: r.qtd_contada,
-        pendencia: r.pendencia,
-    })
+    rotina_nuvem()
 }
 
 #[tauri::command]
 pub async fn inventario_desbipar(
-    state: tauri::State<'_, AppState>,
-    sessao_id: i64,
-    codigo_barras: String,
+    _state: tauri::State<'_, AppState>,
+    _sessao_id: i64,
+    _codigo_barras: String,
 ) -> Result<BipagemDto, ErroDto> {
-    let r = repo(&state)
-        .desbipar(sessao_id, codigo_barras.trim())
-        .await
-        .map_err(ErroApp::from)?;
-    Ok(BipagemDto {
-        encontrado: r.livro.is_some(),
-        livro: r.livro.map(LivroDto::from),
-        qtd_contada: r.qtd_contada,
-        pendencia: r.pendencia,
-    })
+    rotina_nuvem()
 }
 
 #[tauri::command]
 pub async fn inventario_ajustar_item(
-    state: tauri::State<'_, AppState>,
-    sessao_id: i64,
-    codigo: String,
-    qtd_contada: i64,
+    _state: tauri::State<'_, AppState>,
+    _sessao_id: i64,
+    _codigo: String,
+    _qtd_contada: i64,
 ) -> Result<(), ErroDto> {
-    repo(&state)
-        .ajustar_item(sessao_id, &codigo, qtd_contada)
-        .await
-        .map_err(ErroApp::from)?;
-    Ok(())
+    rotina_nuvem()
 }
 
 #[tauri::command]
 pub async fn inventario_revisao(
-    state: tauri::State<'_, AppState>,
-    sessao_id: i64,
+    _state: tauri::State<'_, AppState>,
+    _sessao_id: i64,
 ) -> Result<Vec<DivergenciaView>, ErroDto> {
-    Ok(repo(&state).revisao(sessao_id).await.map_err(ErroApp::from)?)
+    rotina_nuvem()
 }
 
 #[tauri::command]
 pub async fn inventario_fechar(
-    state: tauri::State<'_, AppState>,
-    sessao_id: i64,
-    confirmar_total: Option<bool>,
+    _state: tauri::State<'_, AppState>,
+    _sessao_id: i64,
+    _confirmar_total: Option<bool>,
 ) -> Result<FechamentoView, ErroDto> {
-    Ok(repo(&state)
-        .fechar(sessao_id, confirmar_total.unwrap_or(false))
-        .await
-        .map_err(ErroApp::from)?)
+    rotina_nuvem()
 }
 
 #[tauri::command]
 pub async fn inventario_cancelar(
-    state: tauri::State<'_, AppState>,
-    sessao_id: i64,
+    _state: tauri::State<'_, AppState>,
+    _sessao_id: i64,
 ) -> Result<(), ErroDto> {
-    repo(&state).cancelar(sessao_id).await.map_err(ErroApp::from)?;
-    Ok(())
+    rotina_nuvem()
 }
 
 #[tauri::command]
 pub async fn inventario_divergencias(
-    state: tauri::State<'_, AppState>,
-    sessao_id: i64,
+    _state: tauri::State<'_, AppState>,
+    _sessao_id: i64,
 ) -> Result<Vec<DivergenciaView>, ErroDto> {
-    Ok(repo(&state)
-        .divergencias(sessao_id)
-        .await
-        .map_err(ErroApp::from)?)
+    rotina_nuvem()
 }
 
 #[tauri::command]
 pub async fn inventario_realizados(
-    state: tauri::State<'_, AppState>,
+    _state: tauri::State<'_, AppState>,
 ) -> Result<Vec<SessaoView>, ErroDto> {
-    Ok(repo(&state)
-        .sessoes_realizadas()
-        .await
-        .map_err(ErroApp::from)?)
+    rotina_nuvem()
 }
 
 #[tauri::command]
 pub async fn inventario_relatorio(
-    state: tauri::State<'_, AppState>,
-    sessao_id: i64,
+    _state: tauri::State<'_, AppState>,
+    _sessao_id: i64,
 ) -> Result<RelatorioView, ErroDto> {
-    Ok(repo(&state)
-        .relatorio_sessao(sessao_id)
-        .await
-        .map_err(ErroApp::from)?)
+    rotina_nuvem()
 }
 
 #[tauri::command]
 pub async fn inventario_pendencias(
-    state: tauri::State<'_, AppState>,
-    apenas_abertas: Option<bool>,
+    _state: tauri::State<'_, AppState>,
+    _apenas_abertas: Option<bool>,
 ) -> Result<Vec<PendenciaView>, ErroDto> {
-    Ok(repo(&state)
-        .pendencias(apenas_abertas.unwrap_or(true))
-        .await
-        .map_err(ErroApp::from)?)
+    rotina_nuvem()
 }
 
 #[tauri::command]
 pub async fn resolver_pendencia(
-    state: tauri::State<'_, AppState>,
-    pendencia_id: i64,
+    _state: tauri::State<'_, AppState>,
+    _pendencia_id: i64,
 ) -> Result<(), ErroDto> {
-    repo(&state)
-        .resolver_pendencia(pendencia_id)
-        .await
-        .map_err(ErroApp::from)?;
-    Ok(())
+    rotina_nuvem()
 }
 
 #[tauri::command]
 pub async fn reabrir_pendencia(
-    state: tauri::State<'_, AppState>,
-    pendencia_id: i64,
+    _state: tauri::State<'_, AppState>,
+    _pendencia_id: i64,
 ) -> Result<(), ErroDto> {
-    repo(&state)
-        .reabrir_pendencia(pendencia_id)
-        .await
-        .map_err(ErroApp::from)?;
-    Ok(())
+    rotina_nuvem()
 }
 
 #[tauri::command]
 pub async fn buscar_por_codigo_barras(
-    state: tauri::State<'_, AppState>,
-    codigo_barras: String,
+    _state: tauri::State<'_, AppState>,
+    _codigo_barras: String,
 ) -> Result<Option<LivroDto>, ErroDto> {
-    let livros = SeaLivroRepo::new(state.db.clone());
-    let l = livros
-        .por_codigo_barras_ou_codigo(codigo_barras.trim())
-        .await
-        .map_err(ErroApp::from)?;
-    Ok(l.map(LivroDto::from))
+    rotina_nuvem()
 }

@@ -104,7 +104,8 @@ fn erro(e: impl std::fmt::Display) -> RepoErro {
 fn url_pull(rest_url: &str, recurso: &str, cursor: &str) -> String {
     let c = if cursor.is_empty() { "1970-01-01T00:00:00Z" } else { cursor };
     let c = encode_query(c);
-    format!("{rest_url}/{recurso}?sincronizado_em=gt.{c}&order=sincronizado_em.asc&limit={LIMITE_PULL}")
+    let endpoint = if recurso == "livro" { "vw_produto_pdv" } else { recurso };
+    format!("{rest_url}/{endpoint}?sincronizado_em=gt.{c}&order=sincronizado_em.asc&limit={LIMITE_PULL}")
 }
 
 /// Encoding mínimo p/ timestamps em query string (`:` e `+`).
@@ -117,9 +118,10 @@ fn campo_texto(obj: &Value, campo: &str) -> Option<String> {
 }
 
 fn para_registro(recurso: &str, obj: Value) -> RegistroSync {
+    let sync_uid = campo_texto(&obj, "sync_uid").or_else(|| campo_texto(&obj, "livro_uid"));
     RegistroSync {
         recurso: recurso.to_string(),
-        sync_uid: campo_texto(&obj, "sync_uid").unwrap_or_default(),
+        sync_uid: sync_uid.unwrap_or_default(),
         atualizado_em: campo_texto(&obj, "atualizado_em"),
         excluido_em: campo_texto(&obj, "excluido_em"),
         dados: obj,
@@ -195,9 +197,20 @@ mod testes {
     #[test]
     fn url_pull_com_cursor_vazio_usa_epoch() {
         let u = url_pull("https://x.supabase.co/rest/v1", "livro", "");
-        assert!(u.contains("livro?sincronizado_em=gt.1970-01-01"));
+        assert!(u.contains("vw_produto_pdv?sincronizado_em=gt.1970-01-01"));
         assert!(u.contains("order=sincronizado_em.asc"));
         assert!(u.contains("limit=500"));
+    }
+
+    #[test]
+    fn produto_pdv_usa_livro_uid_como_sync_uid() {
+        let obj = json!({
+            "livro_uid": "u-1", "codigo": "789", "titulo": "L",
+            "saldo_publicado": 10, "sincronizado_em": "2026-07-20T10:00:00Z"
+        });
+        let r = para_registro("livro", obj);
+        assert_eq!(r.sync_uid, "u-1");
+        assert_eq!(r.dados["saldo_publicado"], 10);
     }
 
     #[test]

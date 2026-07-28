@@ -1,19 +1,19 @@
-// Venda (checkout) na nuvem (feature 009, US2). Exige turno aberto; usa as MESMAS
-// regras do PDV via WASM (validar_conclusao, clamp de baixa, troco). Grava
-// pedido → item_pedido → pagamento_pedido → movimento_estoque (saída).
-//
-// NOTA de escopo: a alocação de destinação de livros doados (alocacao_venda,
-// features 006/014) fica como refinamento — não integra os critérios de aceite da
-// US2 (estoque/custo/troco). A venda comum grava corretamente sem ela.
 "use client";
 
-import { createClient } from "@/utils/supabase/client";
 import { dominio } from "@/lib/dominio";
-import { operadorAtual } from "@/lib/nuvem/operador";
 import { listarFormas } from "@/lib/nuvem/forma";
+import { operadorAtual } from "@/lib/nuvem/operador";
 import { contarPedidosDoTurno } from "@/lib/nuvem/turno";
+import { createClient } from "@/utils/supabase/client";
 
-export type ItemVenda = { livroUid: string; codigo: string; titulo: string; precoCentavos: number; qtd: number };
+export type ItemVenda = {
+  livroUid: string;
+  codigo: string;
+  titulo: string;
+  precoCentavos: number;
+  qtd: number;
+};
+
 export type RecebimentoVenda = { formaUid: string; valorCentavos: number };
 
 export type VendaInput = {
@@ -23,18 +23,15 @@ export type VendaInput = {
   pagamentos: RecebimentoVenda[];
 };
 
-export type BaixaParcial = { codigo: string; titulo: string; pedido: number; baixado: number };
-
 export type VendaResultado = {
   numeroNoTurno: number;
   totalCentavos: number;
   trocoCentavos: number;
-  parciais: BaixaParcial[];
+  divergenciasEstoque: number;
 };
 
 const ORIGEM = "escritorio";
 
-// Turno derivado do horário (Manhã/Tarde) — mesma convenção do PDV (corte 13h).
 function turnoPorHora(): string {
   return new Date().getHours() < 13 ? "manha" : "tarde";
 }
@@ -45,7 +42,6 @@ export async function registrarVenda(input: VendaInput): Promise<{ error?: strin
 
   if (input.itens.length === 0) return { error: "Adicione ao menos um item." };
 
-  // Mapa de formas: uuid → id numérico (fronteira WASM) + id do Dinheiro.
   const formas = await listarFormas();
   const idPorUid = new Map<string, number>();
   let dinheiroId = -1;
@@ -59,7 +55,6 @@ export async function registrarVenda(input: VendaInput): Promise<{ error?: strin
     .filter((p) => p.valorCentavos > 0)
     .map((p) => ({ formaId: idPorUid.get(p.formaUid) ?? 0, valorCentavos: p.valorCentavos }));
 
-  // Validação de conclusão (mesma regra do PDV, via WASM).
   const val = dom.validar_conclusao_venda(itensWasm, pagsWasm, dinheiroId) as {
     ok: boolean;
     erro?: string;
@@ -67,13 +62,8 @@ export async function registrarVenda(input: VendaInput): Promise<{ error?: strin
   };
   if (!val.ok) return { error: mensagemErro(val) };
 
-  // Numeração: Pedido Nº por turno + número global contínuo.
   const numeroNoTurno = Number(dom.turno_proximo_numero(await contarPedidosDoTurno(input.turnoUid)));
   const numeroGlobal = await proximoNumeroGlobal(sb);
-
-  // Saldos correntes (derivados) para o clamp de baixa.
-  const saldos = await saldosDos(sb, input.itens.map((i) => i.livroUid));
-
   const op = await operadorAtual();
   const agora = new Date().toISOString();
   const pedidoUid = crypto.randomUUID();
@@ -90,18 +80,18 @@ export async function registrarVenda(input: VendaInput): Promise<{ error?: strin
     data: agora.slice(0, 10),
     total_centavos: totalCentavos,
     cancelado: false,
+    estoque_status: "rascunho",
     origem: ORIGEM,
     atualizado_em: agora,
     criado_por: op.uid,
   });
   if (ePedido) return { error: ePedido.message };
 
-  // Itens + movimentos de saída (baixa limitada ao saldo — clamp do domínio).
-  const parciais: BaixaParcial[] = [];
   for (const it of input.itens) {
-    await sb.from("item_pedido").insert({
+    const { error } = await sb.from("item_pedido").insert({
       sync_uid: crypto.randomUUID(),
       pedido_uid: pedidoUid,
+      livro_uid: it.livroUid,
       codigo: it.codigo,
       titulo: it.titulo,
       preco_centavos: it.precoCentavos,
@@ -110,27 +100,11 @@ export async function registrarVenda(input: VendaInput): Promise<{ error?: strin
       atualizado_em: agora,
       criado_por: op.uid,
     });
-    const saldo = saldos.get(it.livroUid) ?? 0;
-    const baixa = Number(dom.clamp_baixa_venda(it.qtd, saldo));
-    if (baixa < it.qtd) parciais.push({ codigo: it.codigo, titulo: it.titulo, pedido: it.qtd, baixado: baixa });
-    if (baixa > 0) {
-      await sb.from("movimento_estoque").insert({
-        sync_uid: crypto.randomUUID(),
-        livro_uid: it.livroUid,
-        tipo: "saida_venda",
-        qtd: -baixa,
-        referencia: String(numeroGlobal),
-        criado_em: agora,
-        origem: ORIGEM,
-        atualizado_em: agora,
-        criado_por: op.uid,
-      });
-    }
+    if (error) return { error: error.message };
   }
 
-  // Recebimentos por forma.
   for (const p of input.pagamentos.filter((r) => r.valorCentavos > 0)) {
-    await sb.from("pagamento_pedido").insert({
+    const { error } = await sb.from("pagamento_pedido").insert({
       sync_uid: crypto.randomUUID(),
       pedido_uid: pedidoUid,
       forma_uid: p.formaUid,
@@ -139,10 +113,19 @@ export async function registrarVenda(input: VendaInput): Promise<{ error?: strin
       atualizado_em: agora,
       criado_por: op.uid,
     });
+    if (error) return { error: error.message };
   }
 
+  const prontoEm = new Date().toISOString();
+  const { error: ePronta } = await sb
+    .from("pedido")
+    .update({ estoque_status: "pronta", estoque_pronta_em: prontoEm, atualizado_em: prontoEm })
+    .eq("sync_uid", pedidoUid);
+  if (ePronta) return { error: ePronta.message };
+
   const trocoCentavos = Number(dom.troco_venda(itensWasm, pagsWasm));
-  return { resultado: { numeroNoTurno, totalCentavos, trocoCentavos, parciais } };
+  const divergenciasEstoque = await contarDivergenciasAbertas(sb, pedidoUid);
+  return { resultado: { numeroNoTurno, totalCentavos, trocoCentavos, divergenciasEstoque } };
 }
 
 function mensagemErro(v: { erro?: string; faltaCentavos?: number }): string {
@@ -152,9 +135,9 @@ function mensagemErro(v: { erro?: string; faltaCentavos?: number }): string {
     case "PAGO_INSUFICIENTE":
       return "Pagamento insuficiente para concluir a venda.";
     case "TROCO_SEM_DINHEIRO":
-      return "O troco só pode sair do Dinheiro.";
+      return "O troco so pode sair do Dinheiro.";
     default:
-      return "Não foi possível concluir a venda.";
+      return "Nao foi possivel concluir a venda.";
   }
 }
 
@@ -163,16 +146,23 @@ async function proximoNumeroGlobal(sb: ReturnType<typeof createClient>): Promise
   return (data?.numero ? Number(data.numero) : 0) + 1;
 }
 
-async function saldosDos(sb: ReturnType<typeof createClient>, livroUids: string[]): Promise<Map<string, number>> {
-  const m = new Map<string, number>();
-  if (livroUids.length === 0) return m;
-  const { data } = await sb.from("vw_saldo_livro").select("livro_uid,saldo").in("livro_uid", livroUids);
-  for (const r of (data as { livro_uid: string; saldo: number }[]) ?? []) m.set(r.livro_uid, Number(r.saldo));
-  return m;
+async function contarDivergenciasAbertas(sb: ReturnType<typeof createClient>, pedidoUid: string): Promise<number> {
+  const { count } = await sb
+    .from("divergencia_estoque")
+    .select("sync_uid", { count: "exact", head: true })
+    .eq("pedido_uid", pedidoUid)
+    .eq("status", "aberta");
+  return count ?? 0;
 }
 
-// Vendas do dia (paridade com a aba "Lista de vendas" do PDV).
-export type VendaResumo = { sync_uid: string; numeroNoTurno: number | null; numero: number; cliente: string; totalCentavos: number; cancelado: boolean };
+export type VendaResumo = {
+  sync_uid: string;
+  numeroNoTurno: number | null;
+  numero: number;
+  cliente: string;
+  totalCentavos: number;
+  cancelado: boolean;
+};
 
 export async function listarVendasDoDia(): Promise<VendaResumo[]> {
   const sb = createClient();
@@ -183,6 +173,7 @@ export async function listarVendasDoDia(): Promise<VendaResumo[]> {
     .eq("data", hoje)
     .is("excluido_em", null)
     .order("numero_no_turno", { ascending: false });
+
   return ((data as Record<string, unknown>[]) ?? []).map((p) => ({
     sync_uid: p.sync_uid as string,
     numeroNoTurno: p.numero_no_turno == null ? null : Number(p.numero_no_turno),

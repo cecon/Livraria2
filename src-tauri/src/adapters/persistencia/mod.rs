@@ -66,5 +66,7 @@ pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     crate::migration::m009::aplicar(db).await?;
     // m010 (feature 010): coluna `usuario.perfil` (operador|admin) — ADR-0019.
     crate::migration::m010::aplicar(db).await?;
+    // m011 (feature 011): marcador de venda pronta para estoque oficial na nuvem.
+    crate::migration::m011::aplicar(db).await?;
     Ok(())
 }

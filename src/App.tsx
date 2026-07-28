@@ -10,13 +10,10 @@ import { verificarAtualizacao } from "@/lib/updater";
 import Inicio from "@/routes/Inicio";
 import Venda from "@/routes/Venda";
 import Turnos from "@/routes/Turnos";
-import Cadastro from "@/routes/Cadastro";
 import Pesquisa from "@/routes/Pesquisa";
-import Lancamentos from "@/routes/Lancamentos";
 import Fornecedores from "@/routes/Fornecedores";
 import FormasPagamento from "@/routes/FormasPagamento";
 import Destinacoes from "@/routes/Destinacoes";
-import Inventario from "@/routes/Inventario";
 import Relatorios from "@/routes/Relatorios";
 
 function App() {
@@ -73,13 +70,13 @@ function App() {
             <Route path="/" element={<Inicio />} />
             <Route path="/venda" element={<Venda />} />
             <Route path="/turnos" element={<Turnos />} />
-            <Route path="/cadastro" element={<Cadastro />} />
             <Route path="/pesquisa" element={<Pesquisa />} />
-            <Route path="/lancamentos" element={<Lancamentos />} />
+            <Route path="/cadastro" element={<Navigate to="/pesquisa" replace />} />
+            <Route path="/lancamentos" element={<Navigate to="/pesquisa" replace />} />
             <Route path="/fornecedores" element={<Fornecedores />} />
             <Route path="/formas-pagamento" element={<FormasPagamento />} />
             <Route path="/destinacoes" element={<Destinacoes />} />
-            <Route path="/inventario" element={<Inventario />} />
+            <Route path="/inventario" element={<Navigate to="/pesquisa" replace />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

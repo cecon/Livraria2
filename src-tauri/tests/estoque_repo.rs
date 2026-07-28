@@ -13,12 +13,55 @@ use livraria_2_lib::domain::dinheiro::Dinheiro;
 use livraria_2_lib::domain::livro::Livro;
 use livraria_2_lib::domain::pagamento::Turno;
 use livraria_2_lib::domain::pedido::{ItemPedido, Pedido, Recebimento};
+use sea_orm::{ConnectionTrait, Statement};
 
 fn url_temp(nome: &str) -> (String, std::path::PathBuf) {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
     let path = std::env::temp_dir()
-        .join(format!("livraria_estoquerepo_{}_{}.db", std::process::id(), nome));
+        .join(format!("livraria_estoquerepo_{}_{}_{}.db", std::process::id(), nome, nanos));
     let _ = std::fs::remove_file(&path);
     (format!("sqlite://{}?mode=rwc", path.display()), path)
+}
+
+#[tokio::test]
+async fn saldo_operacional_usa_publicado_menos_vendas_e_mais_cancelamentos_nao_sinc() {
+    let (url, path) = url_temp("saldo_operacional");
+    let db = conectar(&url).await.unwrap();
+    inicializar_schema(&db).await.unwrap();
+    let backend = db.get_database_backend();
+
+    db.execute(Statement::from_string(
+        backend,
+        "INSERT INTO livro (codigo,titulo,saldo_publicado) VALUES ('333','Saldo simples',10)".to_string(),
+    ))
+    .await
+    .unwrap();
+    db.execute(Statement::from_string(
+        backend,
+        "INSERT INTO pedido (numero,cliente,turno,data,total_centavos,cancelado,estoque_status) VALUES
+         (8001,'C','manha','2026-07-28',2000,0,'pronta'),
+         (8002,'C','manha','2026-07-28',1000,1,'pronta')"
+            .to_string(),
+    ))
+    .await
+    .unwrap();
+    db.execute(Statement::from_string(
+        backend,
+        "INSERT INTO item_pedido (pedido_numero,codigo,titulo,preco_centavos,qtd) VALUES
+         (8001,'333','Saldo simples',1000,2),
+         (8002,'333','Saldo simples',1000,1)"
+            .to_string(),
+    ))
+    .await
+    .unwrap();
+
+    let saldo = SeaEstoqueRepo::new(db.clone()).saldo_operacional("333").await.unwrap();
+    assert_eq!(saldo, 9);
+
+    let _ = std::fs::remove_file(&path);
 }
 
 fn livro(codigo: &str, estoque: i64) -> Livro {

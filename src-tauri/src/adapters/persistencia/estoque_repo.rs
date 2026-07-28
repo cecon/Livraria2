@@ -21,6 +21,38 @@ impl SeaEstoqueRepo {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
     }
+
+    pub async fn saldo_operacional(&self, codigo: &str) -> Result<i64, RepoErro> {
+        let row = self
+            .db
+            .query_one(Statement::from_sql_and_values(
+                self.db.get_database_backend(),
+                "SELECT
+                   l.saldo_publicado
+                   - COALESCE((
+                       SELECT SUM(i.qtd)
+                       FROM item_pedido i
+                       JOIN pedido p ON p.numero = i.pedido_numero
+                       WHERE i.codigo = l.codigo
+                         AND p.cancelado = 0
+                         AND p.sincronizado_em IS NULL
+                     ), 0)
+                   + COALESCE((
+                       SELECT SUM(i.qtd)
+                       FROM item_pedido i
+                       JOIN pedido p ON p.numero = i.pedido_numero
+                       WHERE i.codigo = l.codigo
+                         AND p.cancelado = 1
+                         AND p.sincronizado_em IS NULL
+                     ), 0) AS saldo
+                 FROM livro l
+                 WHERE l.codigo = ?",
+                [codigo.into()],
+            ))
+            .await
+            .map_err(erro)?;
+        Ok(row.and_then(|r| r.try_get::<i64>("", "saldo").ok()).unwrap_or(0))
+    }
 }
 
 fn erro(e: DbErr) -> RepoErro {

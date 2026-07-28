@@ -145,6 +145,10 @@ pub(crate) const SPECS: &[Spec] = &[
             Col { nome: "cancelado", tipo: Bool },
             Col { nome: "cancelado_em", tipo: Texto },
             Col { nome: "numero_no_turno", tipo: Inteiro },
+            Col { nome: "estoque_status", tipo: Texto },
+            Col { nome: "estoque_pronta_em", tipo: Texto },
+            Col { nome: "estoque_incorporada_em", tipo: Texto },
+            Col { nome: "estoque_estornada_em", tipo: Texto },
         ],
         refs: &[
             Ref { uid_key: "operador_uid", col_local: "operador", pai: "usuario", chave_local_pai: "usuario" },

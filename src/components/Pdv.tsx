@@ -121,6 +121,8 @@ export function Pdv() {
         { codigo: livro.codigo, titulo: livro.titulo, precoCentavos: livro.precoCentavos, qtd: q },
       ];
     });
+    const saldoOperacional = livro.saldoOperacional ?? livro.estoque;
+    toast.info(`Saldo operacional: ${saldoOperacional}`);
     setQtd("1");
   }
 

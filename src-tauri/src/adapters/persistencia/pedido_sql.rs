@@ -85,6 +85,13 @@ pub(crate) async fn inserir_cabecalho_e_itens(
         operador: Set(pedido.operador.clone()),
     };
     pedido::Entity::insert(pm).exec(txn).await?;
+    let pronto_em = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
+    txn.execute(Statement::from_sql_and_values(
+        txn.get_database_backend(),
+        "UPDATE pedido SET estoque_status = 'pronta', estoque_pronta_em = ? WHERE numero = ?",
+        [pronto_em.into(), pedido.numero.into()],
+    ))
+    .await?;
     super::pagamento_pedido_sql::inserir(txn, pedido.numero, &pedido.pagamentos).await?;
 
     for it in &pedido.itens {

@@ -6,7 +6,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { SyncStatus } from "./SyncStatus";
 import { OperadorAtual } from "./OperadorAtual";
 import { Moon, Sun } from "lucide-react";
-import { NAV_ITENS as ITENS } from "@livraria/ui/nav";
+import { NAV_ITENS_PDV as ITENS } from "@livraria/ui/nav";
 import type { Tema } from "@/lib/theme";
 
 interface Props {

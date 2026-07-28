@@ -4,7 +4,8 @@ import { createClient } from "@/utils/supabase/client";
 export const ROTULO_MOVIMENTO: Record<string, string> = {
   saldo_inicial: "Saldo inicial",
   entrada: "Entrada",
-  saida_venda: "Venda",
+  saida_venda: "Venda pronta",
+  estorno_venda: "Estorno de venda",
   ajuste: "Ajuste",
   contagem: "Inventário",
 };

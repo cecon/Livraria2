@@ -9,8 +9,8 @@ use async_trait::async_trait;
 use chrono::Local;
 use sea_orm::{
     ActiveModelTrait,
-    ActiveValue::{NotSet, Set},
-    ColumnTrait, ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait,
+    ActiveValue::Set,
+    ColumnTrait, ConnectionTrait, DatabaseConnection, DbErr, EntityTrait,
     QueryFilter, Statement, TransactionTrait,
 };
 

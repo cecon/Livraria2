@@ -28,5 +28,7 @@ As decisões nascem do `/speckit-plan` (ver `specs/001-sistema-estoque-vendas/re
 | [0021](0021-turno-de-operacao.md) | Turno de operação: entidade de domínio, Pedido Nº por turno, abrir/encerrar | Aceito |
 | [0022](0022-escritorio-reusa-dominio-wasm.md) | Escritório reusa o domínio (Rust) via WebAssembly (renumerado de 0019, colisão 008 × #15) | Aceito |
 
+| [0023](0023-estoque-oficial-nuvem-venda-pronta.md) | Estoque oficial na nuvem por venda pronta | Aceito |
+
 **Versionamento**: um arquivo por decisão, numeração sequencial. Mudança de decisão → novo ADR que
 "supersedes" o anterior (não reescrever o histórico).

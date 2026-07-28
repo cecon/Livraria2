@@ -3,7 +3,6 @@
 
 use crate::adapters::legado::mdb_importer::MdbImportador;
 use crate::adapters::persistencia::inicializar_schema;
-use crate::adapters::persistencia::dashboard_repo::SeaDashboardRepo;
 use crate::adapters::persistencia::estoque_repo::SeaEstoqueRepo;
 use crate::adapters::persistencia::forma_pagamento_repo::SeaFormaPagamentoRepo;
 use crate::adapters::persistencia::livro_repo::SeaLivroRepo;
@@ -12,7 +11,6 @@ use crate::adapters::persistencia::relatorio_repo::SeaRelatorioRepo;
 use crate::adapters::persistencia::turno_repo::SeaTurnoRepo;
 use crate::adapters::persistencia::usuario_repo::SeaUsuarioRepo;
 use crate::adapters::relogio::RelogioSistema;
-use crate::application::dashboard;
 use crate::application::relatorios::{self, RelatorioEstoque, RelatorioVendas};
 use crate::application::erros::ErroApp;
 use crate::application::migracao::{self, RelatorioMigracao};
@@ -59,6 +57,7 @@ pub struct LivroDto {
     pub preco_centavos: i64,
     pub categoria: i64,
     pub estoque: i64,
+    pub saldo_operacional: Option<i64>,
     pub descricao: Option<String>,
     #[serde(default)]
     pub custo_medio_centavos: i64,
@@ -73,6 +72,7 @@ impl From<Livro> for LivroDto {
             preco_centavos: l.preco.centavos(),
             categoria: l.categoria.to_i64(),
             estoque: l.estoque,
+            saldo_operacional: None,
             descricao: l.descricao,
             custo_medio_centavos: l.custo_medio.centavos(),
         }
@@ -168,97 +168,6 @@ pub async fn registrar_venda(
     })
 }
 
-// ----- Turno de operação (feature 009, ADR-0021) -----
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TurnoAbertoDto {
-    pub sync_uid: String,
-    pub caixa_inicial_centavos: i64,
-    pub abertura: String,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ResumoTurnoDto {
-    pub qtd_vendas: i64,
-    /// Totais por forma: `[formaId, centavos]` (informativos).
-    pub por_forma: Vec<(i64, i64)>,
-    pub esperado_dinheiro_centavos: i64,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FechamentoDto {
-    pub esperado_centavos: i64,
-    pub conferido_centavos: i64,
-    pub diferenca_centavos: i64,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TurnoHistoricoDto {
-    pub abertura: String,
-    pub encerramento: Option<String>,
-    pub status: String,
-    pub esperado_centavos: Option<i64>,
-    pub conferido_centavos: Option<i64>,
-    pub diferenca_centavos: Option<i64>,
-}
-
-/// Turno aberto do operador (ou `null`).
-#[tauri::command]
-pub async fn turno_aberto(state: tauri::State<'_, AppState>, operador: String) -> Result<Option<TurnoAbertoDto>, ErroDto> {
-    let repo = SeaTurnoRepo::new(state.db.clone());
-    Ok(turno::turno_aberto(&repo, &operador).await?.map(|t| TurnoAbertoDto {
-        sync_uid: t.sync_uid,
-        caixa_inicial_centavos: t.caixa_inicial_centavos,
-        abertura: t.abertura,
-    }))
-}
-
-/// Abre um turno (bloqueia se já houver um aberto do operador — D7).
-#[tauri::command]
-pub async fn turno_abrir(state: tauri::State<'_, AppState>, operador: String, caixa_inicial_centavos: i64) -> Result<TurnoAbertoDto, ErroDto> {
-    let repo = SeaTurnoRepo::new(state.db.clone());
-    let t = turno::abrir(&repo, &operador, caixa_inicial_centavos).await?;
-    Ok(TurnoAbertoDto { sync_uid: t.sync_uid, caixa_inicial_centavos: t.caixa_inicial_centavos, abertura: t.abertura })
-}
-
-/// Resumo de caixa ao vivo (esperado só-dinheiro + totais por forma).
-#[tauri::command]
-pub async fn turno_resumo(state: tauri::State<'_, AppState>, turno_uid: String) -> Result<ResumoTurnoDto, ErroDto> {
-    let repo = SeaTurnoRepo::new(state.db.clone());
-    let r = turno::resumo(&repo, &turno_uid).await?;
-    Ok(ResumoTurnoDto { qtd_vendas: r.qtd_vendas, por_forma: r.por_forma, esperado_dinheiro_centavos: r.esperado_dinheiro_centavos })
-}
-
-/// Encerra o turno com a conferência do dinheiro (fechamento de caixa).
-#[tauri::command]
-pub async fn turno_encerrar(state: tauri::State<'_, AppState>, turno_uid: String, conferido_centavos: i64) -> Result<FechamentoDto, ErroDto> {
-    let repo = SeaTurnoRepo::new(state.db.clone());
-    let f = turno::encerrar(&repo, &turno_uid, conferido_centavos).await?;
-    Ok(FechamentoDto { esperado_centavos: f.esperado_centavos, conferido_centavos: f.conferido_centavos, diferenca_centavos: f.diferenca_centavos })
-}
-
-/// Histórico de turnos do operador.
-#[tauri::command]
-pub async fn turno_listar(state: tauri::State<'_, AppState>, operador: String) -> Result<Vec<TurnoHistoricoDto>, ErroDto> {
-    let repo = SeaTurnoRepo::new(state.db.clone());
-    Ok(turno::listar(&repo, &operador)
-        .await?
-        .into_iter()
-        .map(|t| TurnoHistoricoDto {
-            abertura: t.abertura,
-            encerramento: t.encerramento,
-            status: t.status,
-            esperado_centavos: t.esperado_centavos,
-            conferido_centavos: t.conferido_centavos,
-            diferenca_centavos: t.diferenca_centavos,
-        })
-        .collect())
-}
-
 /// Pesquisa por título/autor, sem acento/caixa (US3, FR-021).
 #[tauri::command]
 pub async fn buscar_por_texto(
@@ -267,7 +176,7 @@ pub async fn buscar_por_texto(
 ) -> Result<Vec<LivroDto>, ErroDto> {
     let livros = SeaLivroRepo::new(state.db.clone());
     let ls = pesquisa::por_texto(&termo, &livros).await?;
-    Ok(ls.into_iter().map(LivroDto::from).collect())
+    livros_com_saldo_operacional(&state.db, ls).await
 }
 
 /// Busca um livro pelo código de barras (US1/US2/US3).
@@ -278,7 +187,28 @@ pub async fn livro_por_codigo(
 ) -> Result<Option<LivroDto>, ErroDto> {
     let livros = SeaLivroRepo::new(state.db.clone());
     let l = livros.por_codigo(&codigo).await.map_err(ErroApp::from)?;
-    Ok(l.map(LivroDto::from))
+    match l {
+        Some(livro) => Ok(Some(livro_com_saldo_operacional(&state.db, livro).await?)),
+        None => Ok(None),
+    }
+}
+
+async fn livro_com_saldo_operacional(db: &DatabaseConnection, livro: Livro) -> Result<LivroDto, ErroDto> {
+    let saldo = SeaEstoqueRepo::new(db.clone())
+        .saldo_operacional(&livro.codigo)
+        .await
+        .map_err(ErroApp::from)?;
+    let mut dto = LivroDto::from(livro);
+    dto.saldo_operacional = Some(saldo);
+    Ok(dto)
+}
+
+async fn livros_com_saldo_operacional(db: &DatabaseConnection, livros: Vec<Livro>) -> Result<Vec<LivroDto>, ErroDto> {
+    let mut out = Vec::with_capacity(livros.len());
+    for livro in livros {
+        out.push(livro_com_saldo_operacional(db, livro).await?);
+    }
+    Ok(out)
 }
 
 /// Inclui ou altera um livro (upsert por código), com validação (US2, FR-001).
@@ -308,55 +238,6 @@ pub async fn excluir_livro(
     let livros = SeaLivroRepo::new(state.db.clone());
     cadastro::excluir(&codigo, &livros).await?;
     Ok(())
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DashboardDto {
-    pub vendas_centavos: i64,
-    pub itens_vendidos: i64,
-    pub ticket_medio_centavos: i64,
-    pub total_livros: i64,
-    pub total_estoque: i64,
-    pub estoque_baixo: Vec<LivroDto>,
-    pub canceladas_qtd: i64,
-    pub canceladas_centavos: i64,
-}
-
-/// Intervalo de datas (ISO) para o período: "hoje" | "7dias" | "mes".
-fn intervalo_periodo(periodo: Option<&str>) -> (String, String) {
-    use chrono::{Datelike, Duration, Local, NaiveDate};
-    let hoje = Local::now().date_naive();
-    let inicio = match periodo {
-        // mesmo dia da semana anterior (ex.: domingo → domingo passado)
-        Some("7dias") => hoje - Duration::days(7),
-        Some("mes") => hoje.with_day(1).unwrap_or(hoje),
-        Some("ano") => NaiveDate::from_ymd_opt(hoje.year(), 1, 1).unwrap_or(hoje),
-        _ => hoje,
-    };
-    let fmt = |d: NaiveDate| d.format("%Y-%m-%d").to_string();
-    (fmt(inicio), fmt(hoje))
-}
-
-/// Indicadores do dashboard (US4, FR-030/031). `periodo` = hoje | 7dias | mes.
-#[tauri::command]
-pub async fn dashboard_do_dia(
-    state: tauri::State<'_, AppState>,
-    periodo: Option<String>,
-) -> Result<DashboardDto, ErroDto> {
-    let repo = SeaDashboardRepo::new(state.db.clone());
-    let (inicio, fim) = intervalo_periodo(periodo.as_deref());
-    let ind = dashboard::do_periodo(&inicio, &fim, &repo).await?;
-    Ok(DashboardDto {
-        vendas_centavos: ind.vendas_centavos,
-        itens_vendidos: ind.itens_vendidos,
-        ticket_medio_centavos: ind.ticket_medio_centavos,
-        total_livros: ind.total_livros,
-        total_estoque: ind.total_estoque,
-        estoque_baixo: ind.estoque_baixo.into_iter().map(LivroDto::from).collect(),
-        canceladas_qtd: ind.canceladas_qtd,
-        canceladas_centavos: ind.canceladas_centavos,
-    })
 }
 
 /// Autentica o gate de relatórios (US5, FR-040). Default adm/adm.
