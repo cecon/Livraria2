@@ -19,6 +19,7 @@ services:
     container_name: livraria-escritorio
     restart: unless-stopped
     ports:
+      # Porta externa nao obvia; o Next.js escuta na 3000 internamente.
       - "${ESCRITORIO_PORT:-47612}:3000"
     environment:
       NEXT_PUBLIC_SUPABASE_URL: https://fiqzcnnibwzthhjatxvq.supabase.co
