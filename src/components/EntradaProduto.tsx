@@ -103,7 +103,7 @@ export function EntradaProduto({
                   <span className="font-mono">{l.codigo}</span>
                 </div>
               </div>
-              <StockBadge estoque={l.estoque} />
+              <StockBadge estoque={l.saldoOperacional ?? l.estoque} rotulo="Saldo op." />
               <span className="font-mono text-sm">{brl(l.precoCentavos)}</span>
             </button>
           ))}

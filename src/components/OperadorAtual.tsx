@@ -10,9 +10,23 @@ export function OperadorAtual() {
 
   useEffect(() => {
     setAtual(operadorAtual());
-    listarOperadores()
-      .then(setOperadores)
-      .catch(() => setOperadores([]));
+    // Recarrega periodicamente: após o sync, um operador desativado some da lista
+    // (listar_operadores filtra excluido_em). Se o operador ATUAL foi desativado,
+    // limpa a seleção — "logout forçado" da atribuição (feature 010, FR-018).
+    const carregar = () =>
+      listarOperadores()
+        .then((ops) => {
+          setOperadores(ops);
+          const at = operadorAtual();
+          if (at && !ops.some((o) => o.usuario === at)) {
+            setOperadorAtual("");
+            setAtual("");
+          }
+        })
+        .catch(() => setOperadores([]));
+    carregar();
+    const id = setInterval(carregar, 30000);
+    return () => clearInterval(id);
   }, []);
 
   // Só aparece se houver operadores cadastrados além do admin.

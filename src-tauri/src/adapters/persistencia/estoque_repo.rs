@@ -6,7 +6,7 @@ use super::estoque_sql::{inserir_entrada_item, inserir_movimento};
 use super::livro_repo::para_dominio;
 use crate::application::ports::RepoErro;
 use crate::application::ports_estoque::{EntradaCmd, EstoqueRepo, MovimentoView};
-use crate::domain::estoque::TipoMovimento;
+use crate::domain::estoque::{baseline_saldo_inicial, TipoMovimento};
 use crate::domain::livro::Livro;
 use async_trait::async_trait;
 use sea_orm::{
@@ -20,6 +20,38 @@ pub struct SeaEstoqueRepo {
 impl SeaEstoqueRepo {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
+    }
+
+    pub async fn saldo_operacional(&self, codigo: &str) -> Result<i64, RepoErro> {
+        let row = self
+            .db
+            .query_one(Statement::from_sql_and_values(
+                self.db.get_database_backend(),
+                "SELECT
+                   l.saldo_publicado
+                   - COALESCE((
+                       SELECT SUM(i.qtd)
+                       FROM item_pedido i
+                       JOIN pedido p ON p.numero = i.pedido_numero
+                       WHERE i.codigo = l.codigo
+                         AND p.cancelado = 0
+                         AND p.sincronizado_em IS NULL
+                     ), 0)
+                   + COALESCE((
+                       SELECT SUM(i.qtd)
+                       FROM item_pedido i
+                       JOIN pedido p ON p.numero = i.pedido_numero
+                       WHERE i.codigo = l.codigo
+                         AND p.cancelado = 1
+                         AND p.sincronizado_em IS NULL
+                     ), 0) AS saldo
+                 FROM livro l
+                 WHERE l.codigo = ?",
+                [codigo.into()],
+            ))
+            .await
+            .map_err(erro)?;
+        Ok(row.and_then(|r| r.try_get::<i64>("", "saldo").ok()).unwrap_or(0))
     }
 }
 
@@ -161,10 +193,14 @@ impl EstoqueRepo for SeaEstoqueRepo {
         let pendentes = txn
             .query_all(Statement::from_string(
                 backend,
+                // Traz `estoque` e `Σ movimentos` crus; o baseline (estoque − Σ) é
+                // calculado pela regra do domínio `baseline_saldo_inicial` (ADR-0017),
+                // regra única compartilhada com o Escritório/WASM.
                 "SELECT l.codigo,
-                        l.estoque - COALESCE(
+                        l.estoque AS estoque,
+                        COALESCE(
                             (SELECT SUM(m.qtd) FROM movimento_estoque m WHERE m.livro_id = l.id), 0
-                        ) AS baseline
+                        ) AS soma_mov
                  FROM livro l
                  WHERE NOT EXISTS (
                      SELECT 1 FROM movimento_estoque s
@@ -177,7 +213,9 @@ impl EstoqueRepo for SeaEstoqueRepo {
         let mut criados = 0u64;
         for row in &pendentes {
             let codigo: String = row.try_get("", "codigo").map_err(erro)?;
-            let baseline: i64 = row.try_get("", "baseline").map_err(erro)?;
+            let estoque: i64 = row.try_get("", "estoque").map_err(erro)?;
+            let soma_mov: i64 = row.try_get("", "soma_mov").map_err(erro)?;
+            let baseline = baseline_saldo_inicial(estoque, soma_mov);
             inserir_movimento(&txn, &codigo, TipoMovimento::SaldoInicial, baseline, None, None, None, None)
                 .await
                 .map_err(erro)?;

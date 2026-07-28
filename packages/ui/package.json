@@ -1,0 +1,16 @@
+{
+  "name": "@livraria/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./ui/*": "./src/ui/*.tsx",
+    "./utils": "./src/utils.ts",
+    "./nav": "./src/nav.tsx",
+    "./theme.css": "./theme.css"
+  },
+  "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19"
+  }
+}

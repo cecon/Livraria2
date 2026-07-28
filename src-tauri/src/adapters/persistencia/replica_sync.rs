@@ -49,11 +49,12 @@ impl ReplicaLocalRepo for SeaReplicaSync {
             vec![],
         )
         .await?;
-        let sql = format!(
-            "SELECT {} AS j, sync_uid AS u FROM {} t WHERE sincronizado_em IS NULL",
-            expr_json(s),
-            recurso
-        );
+        let filtro = if recurso == "movimento_estoque" {
+            "sincronizado_em IS NULL AND tipo NOT IN ('saida_venda','estorno')"
+        } else {
+            "sincronizado_em IS NULL"
+        };
+        let sql = format!("SELECT {} AS j, sync_uid AS u FROM {} t WHERE {filtro}", expr_json(s), recurso);
         let rows = self
             .db
             .query_all(Statement::from_string(self.backend(), sql))
@@ -152,6 +153,15 @@ impl ReplicaLocalRepo for SeaReplicaSync {
                     continue;
                 }
                 return Err(e);
+            }
+            if recurso == "livro" {
+                if let Some(saldo) = reg.dados.get("saldo_publicado").and_then(|v| v.as_i64()) {
+                    self.exec(
+                        "UPDATE livro SET saldo_publicado = ? WHERE sync_uid = ?".to_string(),
+                        vec![saldo.into(), reg.sync_uid.clone().into()],
+                    )
+                    .await?;
+                }
             }
         }
         Ok(())

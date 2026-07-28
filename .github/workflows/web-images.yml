@@ -1,0 +1,65 @@
+name: web-images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/escritorio/**"
+      - "apps/nuvem/migrations/**"
+      - "apps/nuvem/migrator/**"
+      - "packages/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/web-images.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: web-images-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  ESCRITORIO_IMAGE: ghcr.io/cecon/livraria2-escritorio
+  MIGRATOR_IMAGE: ghcr.io/cecon/livraria2-migrator
+  NEXT_PUBLIC_SUPABASE_URL: https://fiqzcnnibwzthhjatxvq.supabase.co
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Escritorio
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/escritorio/Dockerfile
+          push: true
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ env.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          tags: |
+            ${{ env.ESCRITORIO_IMAGE }}:latest
+            ${{ env.ESCRITORIO_IMAGE }}:${{ github.sha }}
+
+      - name: Build and push Migrator
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/nuvem/migrator/Dockerfile
+          push: true
+          tags: |
+            ${{ env.MIGRATOR_IMAGE }}:latest
+            ${{ env.MIGRATOR_IMAGE }}:${{ github.sha }}

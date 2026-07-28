@@ -3,21 +3,20 @@
 
 use crate::adapters::legado::mdb_importer::MdbImportador;
 use crate::adapters::persistencia::inicializar_schema;
-use crate::adapters::persistencia::dashboard_repo::SeaDashboardRepo;
 use crate::adapters::persistencia::estoque_repo::SeaEstoqueRepo;
 use crate::adapters::persistencia::forma_pagamento_repo::SeaFormaPagamentoRepo;
 use crate::adapters::persistencia::livro_repo::SeaLivroRepo;
 use crate::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use crate::adapters::persistencia::relatorio_repo::SeaRelatorioRepo;
+use crate::adapters::persistencia::turno_repo::SeaTurnoRepo;
 use crate::adapters::persistencia::usuario_repo::SeaUsuarioRepo;
 use crate::adapters::relogio::RelogioSistema;
-use crate::application::dashboard;
 use crate::application::relatorios::{self, RelatorioEstoque, RelatorioVendas};
 use crate::application::erros::ErroApp;
 use crate::application::migracao::{self, RelatorioMigracao};
 use crate::application::ports::{LivroRepo, PedidoRepo};
 use crate::application::venda::VendaInput;
-use crate::application::{cadastro, pesquisa, venda};
+use crate::application::{cadastro, pesquisa, turno, venda};
 use crate::domain::categoria::Categoria;
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::livro::Livro;
@@ -58,6 +57,7 @@ pub struct LivroDto {
     pub preco_centavos: i64,
     pub categoria: i64,
     pub estoque: i64,
+    pub saldo_operacional: Option<i64>,
     pub descricao: Option<String>,
     #[serde(default)]
     pub custo_medio_centavos: i64,
@@ -72,6 +72,7 @@ impl From<Livro> for LivroDto {
             preco_centavos: l.preco.centavos(),
             categoria: l.categoria.to_i64(),
             estoque: l.estoque,
+            saldo_operacional: None,
             descricao: l.descricao,
             custo_medio_centavos: l.custo_medio.centavos(),
         }
@@ -126,16 +127,39 @@ pub async fn proximo_numero_pedido(state: tauri::State<'_, AppState>) -> Result<
 }
 
 /// Registra uma venda (US1, FR-015). Pagamentos por lista `{formaId, valorCentavos}`.
+/// Feature 009 (FR-002/FR-003): exige um turno aberto do operador e carimba
+/// `turno_uid`/`numero_no_turno` no pedido (numeração por turno, offline-safe).
 #[tauri::command]
 pub async fn registrar_venda(
     state: tauri::State<'_, AppState>,
     input: VendaInput,
 ) -> Result<PedidoDto, ErroDto> {
+    let operador = input.operador.clone().unwrap_or_default();
+    let turnos = SeaTurnoRepo::new(state.db.clone());
+    let turno = turno::turno_aberto(&turnos, &operador)
+        .await?
+        .ok_or(ErroApp::Dominio(crate::domain::erros::ErroDominio::VendaSemTurno))?;
+    let numero_no_turno = turno::proximo_numero_no_turno(&turnos, &turno.sync_uid).await?;
+
     let livros = SeaLivroRepo::new(state.db.clone());
     let pedidos = SeaPedidoRepo::new(state.db.clone());
     let formas = SeaFormaPagamentoRepo::new(state.db.clone());
     let pedido =
         venda::registrar_venda(input, &livros, &pedidos, &formas, &RelogioSistema).await?;
+
+    // Carimba o turno + Pedido Nº do turno no pedido recém-gravado (FR-003).
+    use sea_orm::{ConnectionTrait, Statement};
+    let backend = state.db.get_database_backend();
+    state
+        .db
+        .execute(Statement::from_sql_and_values(
+            backend,
+            "UPDATE pedido SET turno_uid = ?, numero_no_turno = ? WHERE numero = ?",
+            [turno.sync_uid.clone().into(), numero_no_turno.into(), pedido.numero.into()],
+        ))
+        .await
+        .map_err(|e| ErroDto { codigo: "PERSISTENCIA".into(), mensagem: e.to_string() })?;
+
     Ok(PedidoDto {
         numero: pedido.numero,
         total_centavos: pedido.total().centavos(),
@@ -152,7 +176,7 @@ pub async fn buscar_por_texto(
 ) -> Result<Vec<LivroDto>, ErroDto> {
     let livros = SeaLivroRepo::new(state.db.clone());
     let ls = pesquisa::por_texto(&termo, &livros).await?;
-    Ok(ls.into_iter().map(LivroDto::from).collect())
+    livros_com_saldo_operacional(&state.db, ls).await
 }
 
 /// Busca um livro pelo código de barras (US1/US2/US3).
@@ -163,7 +187,28 @@ pub async fn livro_por_codigo(
 ) -> Result<Option<LivroDto>, ErroDto> {
     let livros = SeaLivroRepo::new(state.db.clone());
     let l = livros.por_codigo(&codigo).await.map_err(ErroApp::from)?;
-    Ok(l.map(LivroDto::from))
+    match l {
+        Some(livro) => Ok(Some(livro_com_saldo_operacional(&state.db, livro).await?)),
+        None => Ok(None),
+    }
+}
+
+async fn livro_com_saldo_operacional(db: &DatabaseConnection, livro: Livro) -> Result<LivroDto, ErroDto> {
+    let saldo = SeaEstoqueRepo::new(db.clone())
+        .saldo_operacional(&livro.codigo)
+        .await
+        .map_err(ErroApp::from)?;
+    let mut dto = LivroDto::from(livro);
+    dto.saldo_operacional = Some(saldo);
+    Ok(dto)
+}
+
+async fn livros_com_saldo_operacional(db: &DatabaseConnection, livros: Vec<Livro>) -> Result<Vec<LivroDto>, ErroDto> {
+    let mut out = Vec::with_capacity(livros.len());
+    for livro in livros {
+        out.push(livro_com_saldo_operacional(db, livro).await?);
+    }
+    Ok(out)
 }
 
 /// Inclui ou altera um livro (upsert por código), com validação (US2, FR-001).
@@ -193,55 +238,6 @@ pub async fn excluir_livro(
     let livros = SeaLivroRepo::new(state.db.clone());
     cadastro::excluir(&codigo, &livros).await?;
     Ok(())
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DashboardDto {
-    pub vendas_centavos: i64,
-    pub itens_vendidos: i64,
-    pub ticket_medio_centavos: i64,
-    pub total_livros: i64,
-    pub total_estoque: i64,
-    pub estoque_baixo: Vec<LivroDto>,
-    pub canceladas_qtd: i64,
-    pub canceladas_centavos: i64,
-}
-
-/// Intervalo de datas (ISO) para o período: "hoje" | "7dias" | "mes".
-fn intervalo_periodo(periodo: Option<&str>) -> (String, String) {
-    use chrono::{Datelike, Duration, Local, NaiveDate};
-    let hoje = Local::now().date_naive();
-    let inicio = match periodo {
-        // mesmo dia da semana anterior (ex.: domingo → domingo passado)
-        Some("7dias") => hoje - Duration::days(7),
-        Some("mes") => hoje.with_day(1).unwrap_or(hoje),
-        Some("ano") => NaiveDate::from_ymd_opt(hoje.year(), 1, 1).unwrap_or(hoje),
-        _ => hoje,
-    };
-    let fmt = |d: NaiveDate| d.format("%Y-%m-%d").to_string();
-    (fmt(inicio), fmt(hoje))
-}
-
-/// Indicadores do dashboard (US4, FR-030/031). `periodo` = hoje | 7dias | mes.
-#[tauri::command]
-pub async fn dashboard_do_dia(
-    state: tauri::State<'_, AppState>,
-    periodo: Option<String>,
-) -> Result<DashboardDto, ErroDto> {
-    let repo = SeaDashboardRepo::new(state.db.clone());
-    let (inicio, fim) = intervalo_periodo(periodo.as_deref());
-    let ind = dashboard::do_periodo(&inicio, &fim, &repo).await?;
-    Ok(DashboardDto {
-        vendas_centavos: ind.vendas_centavos,
-        itens_vendidos: ind.itens_vendidos,
-        ticket_medio_centavos: ind.ticket_medio_centavos,
-        total_livros: ind.total_livros,
-        total_estoque: ind.total_estoque,
-        estoque_baixo: ind.estoque_baixo.into_iter().map(LivroDto::from).collect(),
-        canceladas_qtd: ind.canceladas_qtd,
-        canceladas_centavos: ind.canceladas_centavos,
-    })
 }
 
 /// Autentica o gate de relatórios (US5, FR-040). Default adm/adm.

@@ -65,7 +65,9 @@ for f in "${files[@]:-}"; do
   [ -z "${f:-}" ] && continue
   # ignora dependências/builds
   case "$f" in
-    */node_modules/*|*/target/*|*/dist/*|src/components/ui/*) continue ;;
+    # Ignora dependências/builds e componentes shadcn gerados (PDV e pacote de UI compartilhado).
+    # crates/ e packages/ (exceto os componentes gerados) SÃO verificados normalmente.
+    */node_modules/*|*/target/*|*/dist/*|*/.next/*|src/components/ui/*|packages/ui/src/ui/*|*/packages/ui/src/ui/*) continue ;;
   esac
   n=$(count_significant "$f")
   if [ "$n" -gt "$LIMIT" ]; then

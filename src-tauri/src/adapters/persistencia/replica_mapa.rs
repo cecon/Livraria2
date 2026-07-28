@@ -75,8 +75,16 @@ pub(crate) const SPECS: &[Spec] = &[
     Spec {
         recurso: "usuario",
         mutavel: true,
-        default_insert: &[("senha_hash", "")],
-        cols: &[Col { nome: "usuario", tipo: Texto }, Col { nome: "nome", tipo: Texto }],
+        // Feature 010 (ADR-0019): `senha_hash` e `perfil` passam a sincronizar — assim um
+        // usuário criado na retaguarda loga no PDV (offline). O hash desce pelo pull normal
+        // (fica atrás do papel `authenticated`, mesmo boundary do login admin; bcrypt).
+        default_insert: &[],
+        cols: &[
+            Col { nome: "usuario", tipo: Texto },
+            Col { nome: "nome", tipo: Texto },
+            Col { nome: "perfil", tipo: Texto },
+            Col { nome: "senha_hash", tipo: Texto },
+        ],
         refs: &[],
     },
     Spec {
@@ -105,7 +113,25 @@ pub(crate) const SPECS: &[Spec] = &[
         ],
         refs: &[],
     },
-    // Venda: mutável (cancelamento); operador referencia usuario por `usuario`.
+    // Turno de operação (ADR-0021): mutável (status/encerramento → LWW). Operador
+    // referencia usuario por `usuario` (mesmo remap do pedido).
+    Spec {
+        recurso: "turno_operacao",
+        mutavel: true,
+        default_insert: &[],
+        cols: &[
+            Col { nome: "caixa_inicial_centavos", tipo: Inteiro },
+            Col { nome: "status", tipo: Texto },
+            Col { nome: "abertura", tipo: Texto },
+            Col { nome: "encerramento", tipo: Texto },
+            Col { nome: "esperado_centavos", tipo: Inteiro },
+            Col { nome: "conferido_centavos", tipo: Inteiro },
+            Col { nome: "diferenca_centavos", tipo: Inteiro },
+        ],
+        refs: &[Ref { uid_key: "operador_uid", col_local: "operador", pai: "usuario", chave_local_pai: "usuario" }],
+    },
+    // Venda: mutável (cancelamento); operador referencia usuario por `usuario`;
+    // turno_uid é o sync_uid do turno (pass-through, valida o pai existir).
     Spec {
         recurso: "pedido",
         mutavel: true,
@@ -118,8 +144,16 @@ pub(crate) const SPECS: &[Spec] = &[
             Col { nome: "total_centavos", tipo: Inteiro },
             Col { nome: "cancelado", tipo: Bool },
             Col { nome: "cancelado_em", tipo: Texto },
+            Col { nome: "numero_no_turno", tipo: Inteiro },
+            Col { nome: "estoque_status", tipo: Texto },
+            Col { nome: "estoque_pronta_em", tipo: Texto },
+            Col { nome: "estoque_incorporada_em", tipo: Texto },
+            Col { nome: "estoque_estornada_em", tipo: Texto },
         ],
-        refs: &[Ref { uid_key: "operador_uid", col_local: "operador", pai: "usuario", chave_local_pai: "usuario" }],
+        refs: &[
+            Ref { uid_key: "operador_uid", col_local: "operador", pai: "usuario", chave_local_pai: "usuario" },
+            Ref { uid_key: "turno_uid", col_local: "turno_uid", pai: "turno_operacao", chave_local_pai: "sync_uid" },
+        ],
     },
     Spec {
         recurso: "item_pedido",

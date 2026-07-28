@@ -9,6 +9,8 @@ pub struct Model {
     pub usuario: String,
     pub senha_hash: String,
     pub nome: Option<String>,
+    /// Perfil de acesso (m010): `operador` | `admin`. Ver `livraria_domain::usuario::Perfil`.
+    pub perfil: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

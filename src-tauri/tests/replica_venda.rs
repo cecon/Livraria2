@@ -44,3 +44,24 @@ async fn venda_remapeia_operador_pedido_e_forma_por_sync_uid() {
     assert_eq!(pag.dados["forma_uid"], serde_json::json!(uid_forma), "forma_id→forma.sync_uid");
     println!("OK: remap de venda (operador/pedido/forma) por sync_uid");
 }
+
+#[tokio::test]
+async fn venda_sincroniza_pronta_sem_movimento_local_de_estoque() {
+    let db = Database::connect("sqlite::memory:").await.unwrap();
+    inicializar_schema(&db).await.unwrap();
+
+    exec(&db, "INSERT INTO usuario (usuario,senha_hash,nome) VALUES ('maria','h','Maria')".into()).await;
+    exec(&db, "INSERT INTO livro (codigo,titulo) VALUES ('790','L2')".into()).await;
+    exec(&db, "INSERT INTO pedido (numero,cliente,turno,data,total_centavos,operador,estoque_status) VALUES (5001,'C','manha','2026-07-20',3000,'maria','pronta')".into()).await;
+    exec(&db, "INSERT INTO item_pedido (pedido_numero,codigo,titulo,preco_centavos,qtd) VALUES (5001,'790','L2',1000,3)".into()).await;
+    exec(&db, "INSERT INTO movimento_estoque (livro_id,tipo,qtd,referencia,criado_em) VALUES ((SELECT id FROM livro WHERE codigo='790'),'saida_venda',-3,'5001','2026-07-20T10:00:00')".into()).await;
+
+    let repo = SeaReplicaSync::new(db.clone());
+    for r in ["usuario", "livro", "pedido", "item_pedido", "movimento_estoque"] {
+        repo.pendentes(r).await.unwrap();
+    }
+
+    let ped = &repo.pendentes("pedido").await.unwrap()[0];
+    assert_eq!(ped.dados["estoque_status"], serde_json::json!("pronta"));
+    assert!(repo.pendentes("movimento_estoque").await.unwrap().is_empty());
+}

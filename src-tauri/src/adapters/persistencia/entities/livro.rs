@@ -14,6 +14,7 @@ pub struct Model {
     pub preco_centavos: i64,
     pub categoria: i64,
     pub estoque: i64,
+    pub saldo_publicado: i64,
     pub descricao: Option<String>,
     pub busca_norm: String,
     pub ativo: bool,

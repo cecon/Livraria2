@@ -1,21 +1,44 @@
-# Stack do Portainer Swarm para o app do escritório (feature 007).
-# 1) Build da imagem (ver README): docker build --build-arg ... -t livraria-escritorio:latest .
-# 2) No Portainer: Stacks → Add stack → cole este YAML (ajuste image se usar registry).
-version: "3.8"
+# Compose do ambiente web local/prod-local em Docker Desktop.
+# As imagens sao publicadas no GHCR pelo workflow `.github/workflows/web-images.yml`.
+# Watchtower atualiza os containers quando `:latest` muda apos merge na main.
 
 services:
-  escritorio:
-    image: livraria-escritorio:latest
-    ports:
-      # Porta EXTERNA (host) não óbvia — o Next.js escuta na 3000 internamente.
-      - "47612:3000"
+  migrator:
+    image: ghcr.io/cecon/livraria2-migrator:latest
+    container_name: livraria-migrator
+    restart: unless-stopped
     environment:
-      # As NEXT_PUBLIC_* já ficam embutidas no build; aqui só reforço em runtime.
+      SUPABASE_PROJECT_REF: fiqzcnnibwzthhjatxvq
+      SUPABASE_DB_PASSWORD: ${SUPABASE_DB_PASSWORD}
+      MIGRATION_BASELINE_UP_TO: ${MIGRATION_BASELINE_UP_TO:-0011_estoque_oficial_venda}
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  escritorio:
+    image: ghcr.io/cecon/livraria2-escritorio:latest
+    container_name: livraria-escritorio
+    restart: unless-stopped
+    ports:
+      # Porta externa nao obvia; o Next.js escuta na 3000 internamente.
+      - "${ESCRITORIO_PORT:-47612}:3000"
+    environment:
       NEXT_PUBLIC_SUPABASE_URL: https://fiqzcnnibwzthhjatxvq.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+      ESCRITORIO_EMAIL: ${ESCRITORIO_EMAIL}
+      ESCRITORIO_SENHA: ${ESCRITORIO_SENHA}
       NODE_ENV: production
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      update_config:
-        order: start-first
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: livraria-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      DOCKER_API_VERSION: "1.40"
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_POLL_INTERVAL: "300"
+      WATCHTOWER_INCLUDE_RESTARTING: "true"

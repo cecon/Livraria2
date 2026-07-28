@@ -1,0 +1,13 @@
+# Contexto de build enxuto (o Dockerfile do Escritório builda da raiz do workspace).
+# Fora o que é pesado/gerado — em especial src-tauri/target (pode ter GBs).
+.git
+node_modules
+**/node_modules
+target
+src-tauri/target
+crates/*/target
+dist
+**/.next
+apps/escritorio/.next
+**/*.log
+.DS_Store

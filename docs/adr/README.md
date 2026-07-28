@@ -23,6 +23,12 @@ As decisões nascem do `/speckit-plan` (ver `specs/001-sistema-estoque-vendas/re
 | [0016](0016-sync-identidade-convergencia.md) | Sincronização: identidade estável, deduplicação e convergência idempotente | Aceito |
 | [0017](0017-saldo-inicial-obrigatorio-ledger-completo.md) | Estoque: `saldo_inicial` obrigatório e reparo do ledger incompleto | Aceito |
 | [0018](0018-baixa-venda-limitada-ao-estoque-cacheado.md) | Baixa de venda limitada ao estoque cacheado: drift silencioso quando o cache diverge | Aceito |
+| [0019](0019-identidade-unificada-usuario-senha-sincronizada.md) | Identidade unificada na tabela `usuario` + login usuário/senha na retaguarda (PR #15) | Aceito |
+| [0020](0020-ui-compartilhada-workspace.md) | UI compartilhada via `packages/ui` + workspace | Aceito |
+| [0021](0021-turno-de-operacao.md) | Turno de operação: entidade de domínio, Pedido Nº por turno, abrir/encerrar | Aceito |
+| [0022](0022-escritorio-reusa-dominio-wasm.md) | Escritório reusa o domínio (Rust) via WebAssembly (renumerado de 0019, colisão 008 × #15) | Aceito |
+
+| [0023](0023-estoque-oficial-nuvem-venda-pronta.md) | Estoque oficial na nuvem por venda pronta | Aceito |
 
 **Versionamento**: um arquivo por decisão, numeração sequencial. Mudança de decisão → novo ADR que
 "supersedes" o anterior (não reescrever o histórico).

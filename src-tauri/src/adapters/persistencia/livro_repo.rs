@@ -110,6 +110,7 @@ impl LivroRepo for SeaLivroRepo {
             preco_centavos: Set(l.preco.centavos()),
             categoria: Set(l.categoria.to_i64()),
             estoque: Set(l.estoque),
+            saldo_publicado: Set(l.estoque),
             descricao: Set(l.descricao.clone()),
             busca_norm: Set(l.busca_norm()),
             ativo: Set(true),

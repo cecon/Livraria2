@@ -30,7 +30,13 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const publica = path.startsWith("/login") || path.startsWith("/_next") || path === "/favicon.ico";
+  // `/api` é público no gate: as rotas de auth (login/logout) tratam a própria sessão
+  // e o login precisa rodar ANTES de existir sessão.
+  const publica =
+    path.startsWith("/login") ||
+    path.startsWith("/api") ||
+    path.startsWith("/_next") ||
+    path === "/favicon.ico";
   if (!user && !publica) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";

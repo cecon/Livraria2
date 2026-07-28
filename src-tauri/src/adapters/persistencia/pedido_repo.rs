@@ -3,14 +3,14 @@
 
 use super::entities::{item_pedido, pedido};
 use crate::application::ports::{PedidoRepo, RepoErro};
-use crate::domain::estoque::TipoMovimento;
+use crate::domain::estoque::{clamp_baixa_venda, TipoMovimento};
 use crate::domain::pedido::Pedido;
 use async_trait::async_trait;
 use chrono::Local;
 use sea_orm::{
     ActiveModelTrait,
-    ActiveValue::{NotSet, Set},
-    ColumnTrait, ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait,
+    ActiveValue::Set,
+    ColumnTrait, ConnectionTrait, DatabaseConnection, DbErr, EntityTrait,
     QueryFilter, Statement, TransactionTrait,
 };
 
@@ -66,7 +66,7 @@ impl PedidoRepo for SeaPedidoRepo {
                 .map_err(erro)?
                 .and_then(|r| r.try_get::<i64>("", "estoque").ok())
                 .unwrap_or(0);
-            let baixa = it.qtd.min(estoque_atual).max(0);
+            let baixa = clamp_baixa_venda(it.qtd, estoque_atual);
             if baixa > 0 {
                 // Consome carimbos ANTES da baixa física (livre = estoque − Σ carimbos)
                 // e grava as alocações do item na MESMA transação (FR-008/FR-009).

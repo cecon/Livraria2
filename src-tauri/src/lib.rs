@@ -3,6 +3,7 @@
 pub mod adapters;
 pub mod application;
 pub mod commands;
+pub mod commands_dashboard;
 pub mod commands_destinacao;
 pub mod commands_estoque;
 pub mod commands_formas;
@@ -10,7 +11,10 @@ pub mod commands_fornecedor;
 pub mod commands_inventario;
 pub mod commands_lancamento;
 pub mod commands_sync;
-pub mod domain;
+pub mod commands_turno;
+// Domínio extraído para o crate `livraria-domain` (ADR-0022). Re-exporta como
+// `crate::domain` para manter todas as referências existentes (`crate::domain::…`).
+pub use livraria_domain as domain;
 pub mod migration;
 
 use commands::AppState;
@@ -99,6 +103,11 @@ pub fn run() {
             commands::inicializar_dados,
             commands::proximo_numero_pedido,
             commands::registrar_venda,
+            commands_turno::turno_aberto,
+            commands_turno::turno_abrir,
+            commands_turno::turno_resumo,
+            commands_turno::turno_encerrar,
+            commands_turno::turno_listar,
             commands::livro_por_codigo,
             commands::buscar_por_texto,
             commands::salvar_livro,
@@ -106,7 +115,7 @@ pub fn run() {
             commands::livros_recentes,
             commands::livros_pagina,
             commands::migrar_legado,
-            commands::dashboard_do_dia,
+            commands_dashboard::dashboard_do_dia,
             commands::autenticar,
             commands::relatorio_vendas,
             commands::relatorio_estoque,

@@ -56,6 +56,7 @@ export interface Livro {
   precoCentavos: number;
   categoria: number;
   estoque: number;
+  saldoOperacional?: number | null;
   descricao?: string | null;
   custoMedioCentavos?: number;
 }

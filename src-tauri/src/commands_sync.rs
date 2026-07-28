@@ -79,11 +79,16 @@ pub async fn status_sincronizacao(state: tauri::State<'_, AppState>) -> Result<S
     let backend = state.db.get_database_backend();
     let mut pendentes = 0i64;
     for recurso in ORDEM_DEPENDENCIA {
+        let filtro = if *recurso == "movimento_estoque" {
+            "sincronizado_em IS NULL AND tipo NOT IN ('saida_venda','estorno')"
+        } else {
+            "sincronizado_em IS NULL"
+        };
         let rows = state
             .db
             .query_all(Statement::from_string(
                 backend,
-                format!("SELECT COUNT(*) AS n FROM {recurso} WHERE sincronizado_em IS NULL"),
+                format!("SELECT COUNT(*) AS n FROM {recurso} WHERE {filtro}"),
             ))
             .await
             .map_err(|e| e.to_string())?;
