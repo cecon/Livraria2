@@ -2,6 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 
+async function autenticarPerfil(usuario: string, senha: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) {
+    return { perfil: null, error: new Error("Supabase nao configurado") };
+  }
+
+  const response = await fetch(`${url}/rest/v1/rpc/autenticar_perfil`, {
+    method: "POST",
+    headers: {
+      apikey: key,
+      authorization: `Bearer ${key}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ p_usuario: usuario, p_senha: senha }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    return { perfil: null, error: new Error(`RPC autenticar_perfil HTTP ${response.status}`) };
+  }
+
+  return { perfil: await response.json(), error: null };
+}
+
 // Login da retaguarda por usuário/senha da tabela `usuario` (ADR-0019). Valida a
 // credencial pelo RPC `autenticar_usuario` (SECURITY DEFINER — o hash nunca sai do
 // Postgres) e, em caso positivo, abre a **sessão compartilhada** da retaguarda para
@@ -16,10 +41,7 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
 
   // 1) credencial confere e devolve o **perfil** (feature 010, US2).
-  const { data: perfil, error } = await supabase.rpc("autenticar_perfil", {
-    p_usuario: u,
-    p_senha: String(senha),
-  });
+  const { perfil, error } = await autenticarPerfil(u, String(senha));
   if (error) {
     return NextResponse.json({ erro: "Falha ao autenticar." }, { status: 500 });
   }
