@@ -17,7 +17,7 @@ export function AppSidebar() {
   const dark = mounted && resolvedTheme === "dark";
 
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col bg-zinc-900 text-zinc-100">
+    <aside className="flex min-h-screen w-64 shrink-0 self-stretch bg-zinc-900 text-zinc-100">
       <div className="flex items-center gap-2 px-5 py-4">
         <div className="grid h-8 w-8 place-items-center rounded-md bg-[#1f7a4d] text-sm font-bold text-white">
           EL

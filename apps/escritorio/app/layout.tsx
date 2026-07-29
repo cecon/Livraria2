@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Shell } from "@/components/Shell";
@@ -10,14 +11,15 @@ export const metadata: Metadata = {
   description: "Retaguarda: recebimento, cadastros e consultas.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const usuario = (await cookies()).get("app_user")?.value ?? null;
   // suppressHydrationWarning: o next-themes ajusta a classe do <html> antes da hidratação.
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body>
         <Providers>
           <ConexaoBanner />
-          <Shell>{children}</Shell>
+          <Shell usuario={usuario}>{children}</Shell>
           <Toaster />
         </Providers>
       </body>
