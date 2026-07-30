@@ -64,3 +64,19 @@ nunca e reescrita). A migracao `0012_republica_saldo_pdv.sql` fecha o loop:
   de `replica_sync` (nao passa por LWW).
 
 Correcao 100% na nuvem; o PDV nao volta a ser fonte contabil de estoque.
+
+## Nota — incorporacao tolerante a ordem de sync (migracao 0013)
+
+A baixa oficial e disparada por trigger no `pedido` quando `estoque_status='pronta'`. Mas o sync
+empurra pais->filhas (`ORDEM_DEPENDENCIA`): o `pedido` chega na nuvem ANTES dos `item_pedido`
+(a FK exige o pai primeiro). O trigger disparava, nao encontrava itens e marcava o pedido como
+`divergente` ("venda sem itens"), sem nunca reprocessar quando os itens chegavam ~centenas de ms
+depois — a baixa nunca acontecia (toda venda divergia). A migracao `0013_incorporar_venda_apos_itens.sql`:
+
+- Extrai a incorporacao para `incorporar_pedido(uuid)` idempotente (cria `saida_venda` faltante com
+  `on conflict do nothing`; marca `incorporada` so quando ha itens).
+- O trigger de `pedido` pronta passa a delegar; sem itens ainda, **apenas espera** (nao marca
+  `divergente`).
+- Novo trigger `trg_item_incorpora` em `item_pedido` (after insert): quando o item chega e o pedido
+  esta `pronta`, chama `incorporar_pedido` — fechando a corrida. Como o push em lote e um unico
+  INSERT multi-linha, todos os itens ja estao visiveis quando o trigger AFTER dispara.
