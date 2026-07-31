@@ -233,15 +233,18 @@ impl PedidoRepo for SeaPedidoRepo {
                 .await
                 .map_err(erro)?;
         }
-        // Devolve ao estoque o que a venda baixou (estorno no ledger).
+        // Devolve ao estoque o que a venda baixou (estorno no ledger LOCAL — filtrado do push;
+        // a baixa/estorno OFICIAL é efeito da nuvem, ADR-0023). Mantido até a migração de carimbos.
         super::pedido_sql::estornar_saidas(&txn, numero, None).await.map_err(erro)?;
+        // FR-002 (feature 012): o cancelamento vira FATO que sobe. Zerar `sincronizado_em` re-marca o
+        // pedido como pendente (o push filtra por `sincronizado_em IS NULL`) e bumpar `atualizado_em`
+        // garante o LWW — a nuvem recebe `cancelado=true` e estorna oficialmente (trigger 0013/0012).
+        let agora = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
         txn.execute(Statement::from_sql_and_values(
             txn.get_database_backend(),
-            "UPDATE pedido SET cancelado = 1, cancelado_em = ? WHERE numero = ? AND cancelado = 0",
-            [
-                Local::now().format("%Y-%m-%dT%H:%M:%S").to_string().into(),
-                numero.into(),
-            ],
+            "UPDATE pedido SET cancelado = 1, cancelado_em = ?, atualizado_em = ?, sincronizado_em = NULL \
+             WHERE numero = ? AND cancelado = 0",
+            [agora.clone().into(), agora.into(), numero.into()],
         ))
         .await
         .map_err(erro)?;
