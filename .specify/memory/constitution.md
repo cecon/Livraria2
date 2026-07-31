@@ -1,17 +1,20 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.0.0 → 1.1.0
-Bump rationale: Emenda MINOR — expansão material de orientação na seção "Restrições Técnicas &
-Stack" para permitir **sincronização opcional com uma base na nuvem**, preservando o funcionamento
-offline do PDV como invariante. Motivada pela feature 007 (specs/007-sincronizacao-nuvem): o
-escritório precisa operar com o notebook desligado e o PDV precisa vender sem internet. Nenhum
-princípio (I–VI) foi removido ou redefinido; a mudança é aditiva e condicionada a ADRs.
+Version change: 1.1.0 → 2.0.0
+Bump rationale: MAJOR — **redefinição** do invariante offline do PDV para a realidade atual: a
+CONTABILIDADE OFICIAL de estoque (baixa por venda, estorno, entrada de nota, ajuste de inventário)
+deixa de ser função offline do PDV e passa a ser RESPONSABILIDADE DA NUVEM; o PDV produz FATOS
+(venda/cancelamento) e CONSUME o saldo publicado, mantendo offline apenas venda/cancelamento/consulta
+(saldo operacional). Motivada pelas features 011 (fase 1, em produção) e 012 e registrada em ADR-0023
+(estoque oficial na nuvem) e ADR-0024 (PDV consumidor). É uma redefinição de governança (não mera
+expansão), por isso MAJOR; princípios I–VI seguem inalterados.
 
 Modified principles: nenhum (I–VI inalterados)
 Modified sections:
-  - Restrições Técnicas & Stack — "Sem backend HTTP; funcionamento offline" passa a permitir sync
-    com nuvem sob invariante de offline do PDV + login/RLS + segredos fora do binário (ADR-0015/0016)
+  - Restrições Técnicas & Stack — invariante offline redefinido: offline garante VENDA/CANCELAMENTO/
+    CONSULTA (saldo operacional); a contabilidade oficial e as funções de retaguarda (entrada,
+    inventário, edição de cadastros) vivem na nuvem e podem exigir conexão (ADR-0023/0024)
 Added principles: nenhum
 Added sections: nenhuma
 Removed sections: nenhuma
@@ -23,9 +26,10 @@ Templates de dependência:
   - .specify/templates/checklist-template.md .... ✅ alinhado
   - .specify/templates/constitution-template.md . ℹ️ é o template fonte; não alterado
 
-Propagação (feature 007):
-  - CLAUDE.md .................................. ⚠️ atualizar referência "(v1.0.0)" → "(v1.1.0)"
-  - docs/adr/0015, docs/adr/0016 ............... ✅ registram a decisão de sync
+Propagação (feature 012):
+  - CLAUDE.md .................................. ⚠️ atualizar referência "(v1.1.0)" → "(v2.0.0)"
+  - docs/adr/0023, docs/adr/0024 ............... ✅ registram estoque oficial na nuvem + PDV consumidor
+  - specs/012-pdv-nuvem-manda/plan.md .......... ✅ Constitution Check alinhado ao invariante redefinido
 
 Follow-up TODOs: nenhum.
 -->
@@ -126,9 +130,15 @@ O sistema MUST preservar o modelo mental e o vocabulário dos usuários atuais.
 
 - **Shell desktop**: Tauri 2. **UI**: React + TypeScript + shadcn/ui + Tailwind. **Núcleo/adapters de
   sistema**: Rust quando apropriado. **Dados**: SQLite local como base de operação.
-- **Funcionamento offline do PDV é INVARIANTE**: o ponto de venda MUST operar por completo sem
-  internet (venda, baixa de estoque, consulta), com o SQLite local como fonte de operação. Nenhuma
-  funcionalidade essencial do PDV pode depender de conectividade.
+- **Funcionamento offline do PDV é INVARIANTE (operação de balcão)**: o ponto de venda MUST operar por
+  completo sem internet para **vender, cancelar e consultar saldo**, com o SQLite local como fonte de
+  operação do balcão. A consulta offline usa o **saldo operacional** (saldo publicado pela nuvem ±
+  fatos locais ainda não sincronizados). A **contabilidade oficial de estoque** — baixa por venda,
+  estorno, entrada de nota e ajuste de inventário — é **responsabilidade da nuvem**, convergindo por
+  idempotência (ADR-0023/0024): o PDV produz **fatos** (venda/cancelamento) e **consome** o saldo
+  publicado, não mantém o ledger oficial. Funções administrativas de retaguarda (entrada de notas,
+  inventário, edição de cadastros) vivem na nuvem e podem exigir conexão. Nenhuma funcionalidade
+  essencial de **venda** pode depender de conectividade.
 - **Sincronização opcional com a nuvem é PERMITIDA** (emenda 1.1.0), desde que: (a) seja **aditiva** e
   o PDV continue 100% funcional offline; (b) a nuvem seja um **espelho/hub** que converge por
   idempotência (upsert por identidade estável), nunca a única fonte de operação do PDV; (c) o acesso
@@ -167,4 +177,4 @@ O sistema MUST preservar o modelo mental e o vocabulário dos usuários atuais.
 - Esta constituição reside em `.specify/memory/constitution.md` e é a fonte de orientação de runtime para
   o agente e para os colaboradores.
 
-**Version**: 1.1.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-20
+**Version**: 2.0.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-31
