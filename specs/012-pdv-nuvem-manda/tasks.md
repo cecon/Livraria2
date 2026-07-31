@@ -87,9 +87,9 @@ description: "Task list — feature 012: PDV de responsabilidade reduzida — fa
 
 **Independent Test**: lançar nota na retaguarda → saldo sobe e republica → PDV mostra o novo saldo; PDV sem a função; idempotente.
 
-- [ ] T019 [US3] Nuvem `apps/nuvem/migrations/0014_lancar_entrada.sql`: RPC `lancar_entrada(...)` `SECURITY DEFINER` — cria `movimento_estoque` `tipo='entrada'` por item (idempotente por (nota,item)), atualiza custo, valida admin. `GRANT ... TO authenticated`. **Aplicar** (com dry-run/rollback, padrão 0012/0013).
-- [ ] T020 [P] [US3] Teste de homologação `apps/nuvem/tests/0014_lancar_entrada.sql`: idempotência + republicação (saldo sobe uma vez).
-- [ ] T021 [US3] Retaguarda `apps/escritorio/app/entrada/…` + `lib/nuvem/entrada.ts`: tela de lançar nota (fornecedor, itens, custo) chamando a RPC; erros pt-BR.
+- [X] T019 [US3] Lado nuvem da entrada — **já existe** (espelho, feature 008): `apps/escritorio/lib/nuvem/lancamento.ts` "Dar entrada" insere `movimento_estoque` `tipo='entrada'` por item e **republica via o trigger 0012**. Sem RPC/migração nova (a tentativa `0014` foi removida por redundância).
+- [X] T020 [P] [US3] N/A — sem RPC nova; a republicação é coberta pelo teste do `0012`.
+- [X] T021 [US3] Retaguarda de lançar nota — **já existe**: `apps/escritorio/app/lancamentos/page.tsx` + `lib/nuvem/lancamento.ts`.
 - [ ] T022 [US3] Remover a entrada de nota do PDV **por completo**: (a) UI/fluxo de lançamento + comandos em `src-tauri/`; (b) **remover do sync** `lancamento_entrada`/`item_lancamento` — `crates/livraria-domain/src/sincronizacao.rs` (`ORDEM_DEPENDENCIA` + ajustar os testes de ordenação nas linhas ~108-109) e `src-tauri/src/adapters/persistencia/replica_mapa.rs` (SPECS); (c) **dropar** as tabelas via migração local idempotente `src-tauri/src/migration/m012.rs` (`DROP TABLE IF EXISTS item_lancamento; DROP TABLE IF EXISTS lancamento_entrada;` — filha antes da pai). Histórico preservado na nuvem.
 - [ ] T023 [US3] Verificar US3 pelo `quickstart.md` (SC-005 entrada; PDV sem a função).
 
@@ -103,9 +103,9 @@ description: "Task list — feature 012: PDV de responsabilidade reduzida — fa
 
 **Independent Test**: registrar contagem na retaguarda → `ajuste` (delta) → saldo reflete → republica; PDV sem inventário; idempotente.
 
-- [ ] T024 [US4] Nuvem `apps/nuvem/migrations/0015_ajustar_inventario.sql`: RPC `ajustar_inventario(...)` — cria `movimento_estoque` `tipo='ajuste'` `qtd = contado − saldo` por item (idempotente por (sessão,item)), valida admin. **Aplicar**.
-- [ ] T025 [P] [US4] Teste de homologação `apps/nuvem/tests/0015_ajustar_inventario.sql`: idempotência (mesma contagem não duplica) + republicação.
-- [ ] T026 [US4] Retaguarda `apps/escritorio/app/inventario/…` + `lib/nuvem/inventario.ts`: contagem/ajuste **responsivo** (usável no balcão pelo celular), chamando a RPC.
+- [X] T024 [US4] Lado nuvem do inventário — **já existe** (espelho): `apps/escritorio/lib/nuvem/inventario.ts::aplicarContagem` insere `movimento_estoque` (ajuste) e **republica via 0012**. Sem RPC/migração nova (a tentativa `0015` foi removida por redundância).
+- [X] T025 [P] [US4] N/A — sem RPC nova; republicação coberta pelo teste do `0012`.
+- [X] T026 [US4] Retaguarda de inventário — **já existe**: `apps/escritorio/app/inventario/page.tsx` + `lib/nuvem/inventario.ts`.
 - [ ] T027 [US4] Remover o inventário do PDV **por completo**: `src/components/InventarioScanner.tsx` + comandos/`inventario_sql.rs` em `src-tauri/`; **dropar** as tabelas (locais, fora do sync) via migração idempotente `src-tauri/src/migration/m013.rs` (`DROP TABLE IF EXISTS item_contagem; DROP TABLE IF EXISTS sessao_inventario;` — filha antes da pai).
 - [ ] T028 [US4] Verificar US4 pelo `quickstart.md` (SC-005 inventário; PDV sem a função).
 
@@ -119,11 +119,11 @@ description: "Task list — feature 012: PDV de responsabilidade reduzida — fa
 
 **Independent Test**: destinar na retaguarda → saldos por destinação mudam (total inalterado) e republicam; PDV lê, sem oferecer a operação.
 
-- [ ] T029 [FR-012] Nuvem `apps/nuvem/migrations/0016_destinar_estoque.sql`: RPC `destinar_estoque(...)` — `transferencia_destinacao` compensatória (mecânica da 006, agora na nuvem), idempotente por (livro,de,para,ref), valida admin. **Aplicar**.
-- [ ] T030 [FR-012] **Deferir** a publicação de saldos por destinação para o PDV: com `DestinarEstoque` removido não há consumidor no caixa (YAGNI). Registrar a decisão; publicar só se/quando surgir uma tela no PDV que os use.
-- [ ] T031 [FR-012] Retaguarda `apps/escritorio/app/estoque/destinar/…`: tela de destinar chamando a RPC.
-- [ ] T032 [FR-012] Remover `src/components/DestinarEstoque.tsx` (operação) do PDV, mantendo a **leitura** dos saldos por destinação.
-- [ ] T033 [P] [FR-012] Teste de homologação `apps/nuvem/tests/0016_destinar_estoque.sql`: total inalterado + saldos por destinação corretos + idempotência.
+- [X] T029 [FR-012] Lado nuvem de destinar — **já existe** (espelho): `apps/escritorio/lib/nuvem/destinacao.ts` (cadastro + transferência). Sem RPC/migração nova (a `0016` nem chegou a ser escrita).
+- [X] T030 [FR-012] **Deferido**: publicação de saldos por destinação para o PDV — com `DestinarEstoque` removido do PDV não há consumidor (YAGNI). Decisão registrada.
+- [X] T031 [FR-012] Retaguarda de destinar — **já existe** no escritório (`destinacao.ts`).
+- [X] T032 [FR-012] `src/components/DestinarEstoque.tsx` **removido** do PDV (varredura de código morto).
+- [X] T033 [P] [FR-012] N/A — sem RPC nova.
 
 **Checkpoint**: carimbos seguem o estoque para a nuvem; PDV só consome.
 

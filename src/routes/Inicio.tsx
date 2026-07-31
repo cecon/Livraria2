@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { BookPlus, FileBarChart, Search, ShoppingCart } from "lucide-react";
+import { FileBarChart, Search, ShoppingCart } from "lucide-react";
 import { brl } from "@/lib/format";
 import { operadorAtual } from "@/lib/operador";
 import { turnoAberto, type TurnoAberto } from "@/lib/ipc";
@@ -12,7 +12,6 @@ import { vendasDoTurno, type VendaTurno } from "@/lib/ipc-turno";
 
 const ACOES = [
   { to: "/venda", rotulo: "Nova Venda", Icon: ShoppingCart, destaque: true },
-  { to: "/cadastro", rotulo: "Cadastrar Livro", Icon: BookPlus, destaque: false },
   { to: "/pesquisa", rotulo: "Pesquisar", Icon: Search, destaque: false },
   { to: "/relatorios", rotulo: "Relatórios", Icon: FileBarChart, destaque: false },
 ];

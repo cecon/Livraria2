@@ -119,10 +119,12 @@ src/components/
 │    InventarioScanner, telas de lançamento de entrada
 └── ResumoCard.tsx → tela inicial = lista de vendas do turno
 
-apps/nuvem/migrations/
-├── 0014_lancar_entrada.sql        # RPC lancar_entrada (movimento 'entrada' +qtd) → republica
-├── 0015_ajustar_inventario.sql    # RPC ajustar_inventario (movimento 'ajuste' = contado−saldo) → republica
-└── 0016_destinar_estoque.sql      # RPC destinar_estoque (transferência livre↔carimbos) → republica
+apps/nuvem/                        # SEM migração nova: o lado nuvem de entrada, inventário e
+                                   #   destinar JÁ EXISTE no escritório (espelho, feature 008 —
+                                   #   lancamento.ts / inventario.ts / destinacao.ts, escrita
+                                   #   direta em movimento_estoque/transferencia_destinacao) e JÁ
+                                   #   republica pro PDV via o trigger 0012 (fase 1). A 012 não
+                                   #   reescreve isso; só remove do PDV.
 
 apps/escritorio/
 ├── app/cadastros/…                 # edição fornecedor/forma/destinação (autoridade)

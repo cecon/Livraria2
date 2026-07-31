@@ -64,18 +64,13 @@ function App() {
         />
         <main className="flex-1 overflow-auto">
           <Routes>
+            {/* PDV consumidor (feature 012): cadastro/lançamento/inventário e a edição de
+                cadastros (fornecedor/forma/destinação) vivem na nuvem — não há telas aqui.
+                URLs antigas caem no catch-all abaixo. */}
             <Route path="/" element={<Inicio />} />
             <Route path="/venda" element={<Venda />} />
             <Route path="/turnos" element={<Turnos />} />
             <Route path="/pesquisa" element={<Pesquisa />} />
-            <Route path="/cadastro" element={<Navigate to="/pesquisa" replace />} />
-            <Route path="/lancamentos" element={<Navigate to="/pesquisa" replace />} />
-            {/* Cadastros de autoridade da nuvem (feature 012, US2): sem janela de
-                edição no PDV — a edição vive no escritório. Os dados descem pelo sync. */}
-            <Route path="/fornecedores" element={<Navigate to="/pesquisa" replace />} />
-            <Route path="/formas-pagamento" element={<Navigate to="/pesquisa" replace />} />
-            <Route path="/destinacoes" element={<Navigate to="/pesquisa" replace />} />
-            <Route path="/inventario" element={<Navigate to="/pesquisa" replace />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

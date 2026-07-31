@@ -40,3 +40,6 @@ target/
 **/*.rs.bk
 crates/livraria-domain/Cargo.lock
 crates/livraria-domain-wasm/Cargo.lock
+
+# Backups/dumps de banco — NUNCA versionar (dados/segredos de producao)
+backups/
