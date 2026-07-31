@@ -5,15 +5,35 @@ import { createClient } from "@/utils/supabase/server";
 async function autenticarPerfil(usuario: string, senha: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key) {
+  const email = process.env.ESCRITORIO_EMAIL;
+  const password = process.env.ESCRITORIO_SENHA;
+  if (!url || !key || !email || !password) {
     return { perfil: null, error: new Error("Supabase nao configurado") };
+  }
+
+  const auth = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: {
+      apikey: key,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+    cache: "no-store",
+  });
+  if (!auth.ok) {
+    return { perfil: null, error: new Error(`Auth servico HTTP ${auth.status}`) };
+  }
+  const session = await auth.json().catch(() => ({}));
+  const token = typeof session.access_token === "string" ? session.access_token : null;
+  if (!token) {
+    return { perfil: null, error: new Error("Auth servico sem token") };
   }
 
   const response = await fetch(`${url}/rest/v1/rpc/autenticar_perfil`, {
     method: "POST",
     headers: {
       apikey: key,
-      authorization: `Bearer ${key}`,
+      authorization: `Bearer ${token}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({ p_usuario: usuario, p_senha: senha }),
