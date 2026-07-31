@@ -47,3 +47,36 @@ cancelamento:
   ou reprocessado mais de uma vez.
 - Deploy em producao exige backup/snapshot antes da migracao e validacao de reaplicacao em
   ambiente equivalente.
+
+## Nota — republicacao do saldo para o PDV (migracao 0012)
+
+O saldo oficial so retorna ao PDV se o produto for **republicado**: `vw_produto_pdv` usa
+`livro.sincronizado_em` como marca de publicacao e o pull do PDV so re-busca livros com
+`sincronizado_em > cursor`. Sem bumpar `sincronizado_em` quando o estoque muda, o `saldo_publicado`
+nunca desce de volta (o PDV mostra "saldo op. 0" apos atualizar, porque a coluna local nasce em 0 e
+nunca e reescrita). A migracao `0012_republica_saldo_pdv.sql` fecha o loop:
+
+- Trigger `trg_mov_republica_livro` em `movimento_estoque` (insert/update/delete) faz
+  `update livro set sincronizado_em = now()` do livro afetado — qualquer mudanca de estoque oficial
+  (venda pronta, estorno de cancelamento, ajuste manual) republica o produto.
+- Backfill unico (`update livro set sincronizado_em = now()`) destrava os PDVs ja atualizados sem
+  exigir novo build: no proximo sync eles re-baixam `saldo_publicado` via o caminho incondicional
+  de `replica_sync` (nao passa por LWW).
+
+Correcao 100% na nuvem; o PDV nao volta a ser fonte contabil de estoque.
+
+## Nota — incorporacao tolerante a ordem de sync (migracao 0013)
+
+A baixa oficial e disparada por trigger no `pedido` quando `estoque_status='pronta'`. Mas o sync
+empurra pais->filhas (`ORDEM_DEPENDENCIA`): o `pedido` chega na nuvem ANTES dos `item_pedido`
+(a FK exige o pai primeiro). O trigger disparava, nao encontrava itens e marcava o pedido como
+`divergente` ("venda sem itens"), sem nunca reprocessar quando os itens chegavam ~centenas de ms
+depois — a baixa nunca acontecia (toda venda divergia). A migracao `0013_incorporar_venda_apos_itens.sql`:
+
+- Extrai a incorporacao para `incorporar_pedido(uuid)` idempotente (cria `saida_venda` faltante com
+  `on conflict do nothing`; marca `incorporada` so quando ha itens).
+- O trigger de `pedido` pronta passa a delegar; sem itens ainda, **apenas espera** (nao marca
+  `divergente`).
+- Novo trigger `trg_item_incorpora` em `item_pedido` (after insert): quando o item chega e o pedido
+  esta `pronta`, chama `incorporar_pedido` — fechando a corrida. Como o push em lote e um unico
+  INSERT multi-linha, todos os itens ja estao visiveis quando o trigger AFTER dispara.
