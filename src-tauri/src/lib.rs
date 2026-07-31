@@ -3,13 +3,9 @@
 pub mod adapters;
 pub mod application;
 pub mod commands;
-pub mod commands_dashboard;
 pub mod commands_destinacao;
 pub mod commands_estoque;
 pub mod commands_formas;
-pub mod commands_fornecedor;
-pub mod commands_inventario;
-pub mod commands_lancamento;
 pub mod commands_sync;
 pub mod commands_turno;
 // Domínio extraído para o crate `livraria-domain` (ADR-0022). Re-exporta como
@@ -116,7 +112,6 @@ pub fn run() {
             commands::livros_recentes,
             commands::livros_pagina,
             commands::migrar_legado,
-            commands_dashboard::dashboard_do_dia,
             commands::autenticar,
             commands::relatorio_vendas,
             commands::relatorio_estoque,
@@ -129,33 +124,6 @@ pub fn run() {
             commands_sync::status_sincronizacao,
             commands_sync::seed_inicial,
             commands_sync::listar_operadores,
-            commands_inventario::inventario_abrir,
-            commands_inventario::inventario_sessao_aberta,
-            commands_inventario::inventario_bipar,
-            commands_inventario::inventario_desbipar,
-            commands_inventario::inventario_ajustar_item,
-            commands_inventario::inventario_revisao,
-            commands_inventario::inventario_fechar,
-            commands_inventario::inventario_cancelar,
-            commands_inventario::inventario_divergencias,
-            commands_inventario::inventario_realizados,
-            commands_inventario::inventario_relatorio,
-            commands_inventario::inventario_pendencias,
-            commands_inventario::resolver_pendencia,
-            commands_inventario::reabrir_pendencia,
-            commands_inventario::buscar_por_codigo_barras,
-            commands_fornecedor::fornecedores_listar,
-            commands_fornecedor::fornecedor_salvar,
-            commands_fornecedor::fornecedor_excluir,
-            commands_lancamento::lancamentos_listar,
-            commands_lancamento::lancamento_obter,
-            commands_lancamento::lancamento_criar,
-            commands_lancamento::lancamento_definir_fornecedor,
-            commands_lancamento::lancamento_adicionar_item,
-            commands_lancamento::lancamento_remover_item,
-            commands_lancamento::lancamento_excluir,
-            commands_lancamento::lancamento_finalizar,
-            commands_lancamento::lancamento_cancelar,
             commands_destinacao::destinacoes_listar,
             commands_destinacao::destinacoes_listar_ativas,
             commands_destinacao::destinacao_criar,
