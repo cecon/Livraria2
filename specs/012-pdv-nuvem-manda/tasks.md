@@ -73,8 +73,8 @@ description: "Task list — feature 012: PDV de responsabilidade reduzida — fa
 
 **Independent Test**: com turno aberto e vendas, a home lista as vendas do turno; sem turno, estado vazio.
 
-- [ ] T016 [US5] `src-tauri/src/commands_dashboard.rs` — substituir os indicadores de estoque (`total_livros`/`total_estoque`/`estoque_baixo`) por `dashboard_do_turno()` retornando as vendas do turno aberto (`numero`, `total_centavos`, hora, situação).
-- [ ] T017 [US5] Front do PDV — tela inicial = **lista de vendas do turno** (`src/components/ResumoCard.tsx`/home): renderiza a lista + estado vazio ("abra o turno"). Remover os cartões de estoque.
+- [X] T016 [US5] `src-tauri/src/commands_dashboard.rs` — substituir os indicadores de estoque (`total_livros`/`total_estoque`/`estoque_baixo`) por `dashboard_do_turno()` retornando as vendas do turno aberto (`numero`, `total_centavos`, hora, situação).
+- [X] T017 [US5] Front do PDV — tela inicial = **lista de vendas do turno** (`src/components/ResumoCard.tsx`/home): renderiza a lista + estado vazio ("abra o turno"). Remover os cartões de estoque.
 - [ ] T018 [US5] Verificar US5 pelo `quickstart.md` (SC-006).
 
 **Checkpoint**: home do PDV coerente com o novo papel; 100% offline.

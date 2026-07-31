@@ -136,3 +136,41 @@ pub async fn turno_listar(state: tauri::State<'_, AppState>, operador: String) -
         })
         .collect())
 }
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VendaTurnoDto {
+    pub numero: i64,
+    pub data: String,
+    pub total_centavos: i64,
+    pub cancelada: bool,
+}
+
+/// Vendas do turno aberto (feature 012, US5) — base da nova tela inicial do PDV.
+/// Lista local (100% offline): número, data/hora, valor e situação.
+#[tauri::command]
+pub async fn vendas_do_turno(
+    state: tauri::State<'_, AppState>,
+    turno_uid: String,
+) -> Result<Vec<VendaTurnoDto>, ErroDto> {
+    let backend = state.db.get_database_backend();
+    let rows = state
+        .db
+        .query_all(Statement::from_sql_and_values(
+            backend,
+            "SELECT numero, data, total_centavos, cancelado FROM pedido \
+             WHERE turno_uid = ? ORDER BY numero DESC",
+            [turno_uid.into()],
+        ))
+        .await
+        .map_err(|e| ErroDto { codigo: "PERSISTENCIA".into(), mensagem: e.to_string() })?;
+    Ok(rows
+        .into_iter()
+        .map(|r| VendaTurnoDto {
+            numero: r.try_get("", "numero").unwrap_or(0),
+            data: r.try_get("", "data").unwrap_or_default(),
+            total_centavos: r.try_get("", "total_centavos").unwrap_or(0),
+            cancelada: r.try_get::<i64>("", "cancelado").unwrap_or(0) != 0,
+        })
+        .collect())
+}

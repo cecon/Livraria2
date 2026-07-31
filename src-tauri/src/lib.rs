@@ -108,6 +108,7 @@ pub fn run() {
             commands_turno::turno_resumo,
             commands_turno::turno_encerrar,
             commands_turno::turno_listar,
+            commands_turno::vendas_do_turno,
             commands::livro_por_codigo,
             commands::buscar_por_texto,
             commands::salvar_livro,

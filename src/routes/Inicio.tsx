@@ -1,21 +1,14 @@
-// Tela Início / Dashboard (US4, FR-030/031).
-// Nota (004/US6): o card "Migração / Sincronização do legado" foi removido da UI;
-// o comando de backend `migrar_legado` permanece registrado (ver git para o card).
+// Tela Início (feature 012, US5): lista de vendas do turno aberto.
+// O dashboard de estoque/analytics saiu — o estoque oficial vive na nuvem
+// (ADR-0023/0024). O PDV mostra o operacional do turno (100% offline).
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { BookPlus, FileBarChart, Search, ShoppingCart } from "lucide-react";
-import { StockBadge } from "@/components/StockBadge";
-import { Cover } from "@/components/Cover";
 import { brl } from "@/lib/format";
-import { dashboardDoDia, type DashboardDia, type PeriodoDash } from "@/lib/ipc";
-
-const PERIODOS: { id: PeriodoDash; rotulo: string }[] = [
-  { id: "hoje", rotulo: "Hoje" },
-  { id: "7dias", rotulo: "Últimos 7 dias" },
-  { id: "mes", rotulo: "Do mês" },
-  { id: "ano", rotulo: "Ano" },
-];
+import { operadorAtual } from "@/lib/operador";
+import { turnoAberto, type TurnoAberto } from "@/lib/ipc";
+import { vendasDoTurno, type VendaTurno } from "@/lib/ipc-turno";
 
 const ACOES = [
   { to: "/venda", rotulo: "Nova Venda", Icon: ShoppingCart, destaque: true },
@@ -25,27 +18,50 @@ const ACOES = [
 ];
 
 export default function Inicio() {
-  const [dash, setDash] = useState<DashboardDia | null>(null);
-  const [periodo, setPeriodo] = useState<PeriodoDash>("hoje");
+  const operador = operadorAtual();
+  const [turno, setTurno] = useState<TurnoAberto | null>(null);
+  const [vendas, setVendas] = useState<VendaTurno[]>([]);
+  const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
+    let vivo = true;
+    async function carregar() {
+      setCarregando(true);
+      if (!operador) {
+        if (vivo) {
+          setTurno(null);
+          setVendas([]);
+          setCarregando(false);
+        }
+        return;
+      }
+      try {
+        const t = await turnoAberto(operador);
+        if (!vivo) return;
+        setTurno(t);
+        setVendas(t ? await vendasDoTurno(t.syncUid) : []);
+      } catch {
+        if (vivo) {
+          setTurno(null);
+          setVendas([]);
+        }
+      } finally {
+        if (vivo) setCarregando(false);
+      }
+    }
     carregar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodo]);
+    return () => {
+      vivo = false;
+    };
+  }, [operador]);
 
-  function carregar() {
-    dashboardDoDia(periodo).then(setDash).catch(() => setDash(null));
-  }
-
-  const periodoRotulo =
-    PERIODOS.find((p) => p.id === periodo)?.rotulo.toLowerCase() ?? "hoje";
-
-  const baixoCount = dash?.estoqueBaixo.length ?? 0;
   const hoje = new Date().toLocaleDateString("pt-BR", {
     weekday: "long",
     day: "numeric",
     month: "long",
   });
+  const ativas = vendas.filter((v) => !v.cancelada);
+  const totalTurno = ativas.reduce((s, v) => s + v.totalCentavos, 0);
 
   return (
     <div className="mx-auto max-w-4xl p-6">
@@ -57,42 +73,7 @@ export default function Inicio() {
         <div className="text-muted-foreground text-sm capitalize">{hoje}</div>
       </div>
 
-      <div className="mt-5 flex gap-1">
-        {PERIODOS.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => setPeriodo(p.id)}
-            className={`rounded-md border px-3 py-1 text-xs transition-colors ${
-              periodo === p.id
-                ? "border-[#1f7a4d] bg-[#1f7a4d] text-white"
-                : "bg-card hover:bg-muted/50"
-            }`}
-          >
-            {p.rotulo}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-3 grid grid-cols-4 gap-3">
-        <Stat rotulo="Vendas" sub={periodoRotulo} valor={brl(dash?.vendasCentavos ?? 0)} />
-        <Stat
-          rotulo="Itens vendidos"
-          sub={periodoRotulo}
-          valor={String(dash?.itensVendidos ?? 0)}
-        />
-        <Stat
-          rotulo="Ticket médio"
-          sub={periodoRotulo}
-          valor={brl(dash?.ticketMedioCentavos ?? 0)}
-        />
-        <Stat
-          rotulo="Livros / estoque"
-          sub="atual"
-          valor={`${dash?.totalLivros ?? 0} / ${(dash?.totalEstoque ?? 0).toLocaleString("pt-BR")}`}
-        />
-      </div>
-
-      <div className="mt-3 grid grid-cols-4 gap-3">
+      <div className="mt-5 grid grid-cols-4 gap-3">
         {ACOES.map(({ to, rotulo, Icon, destaque }) => (
           <Link
             key={to}
@@ -107,69 +88,60 @@ export default function Inicio() {
         ))}
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-4">
-        <div className="bg-card col-span-2 rounded-xl border p-5">
-          <h2 className="text-sm font-semibold">Estoque baixo</h2>
-          <div className="mt-3 space-y-2">
-            {baixoCount === 0 ? (
-              <div className="text-muted-foreground text-sm">Tudo em ordem.</div>
-            ) : (
-              dash?.estoqueBaixo.slice(0, 8).map((l) => (
-                <div key={l.codigo} className="flex items-center gap-2">
-                  <Cover titulo={l.titulo} tamanho="sm" />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm">{l.titulo}</div>
-                    {l.autor && (
-                      <div className="text-muted-foreground truncate text-[11px]">
-                        {l.autor}
-                      </div>
-                    )}
+      <div className="bg-card mt-5 rounded-xl border p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Vendas do turno</h2>
+          {turno && (
+            <span className="text-muted-foreground text-xs">
+              {ativas.length} venda(s) · {brl(totalTurno)}
+            </span>
+          )}
+        </div>
+
+        <div className="mt-3">
+          {!operador ? (
+            <p className="text-muted-foreground text-sm">
+              Selecione o operador do caixa (barra lateral) para ver o turno.
+            </p>
+          ) : carregando ? (
+            <p className="text-muted-foreground text-sm">Carregando…</p>
+          ) : !turno ? (
+            <p className="text-muted-foreground text-sm">
+              Nenhum turno aberto.{" "}
+              <Link to="/turnos" className="text-[#1f7a4d] underline">
+                Abrir turno
+              </Link>{" "}
+              para começar.
+            </p>
+          ) : vendas.length === 0 ? (
+            <p className="text-muted-foreground text-sm">Nenhuma venda neste turno ainda.</p>
+          ) : (
+            <div className="divide-y">
+              {vendas.map((v) => (
+                <div key={v.numero} className="flex items-center justify-between py-2">
+                  <div className="min-w-0">
+                    <span className="font-mono text-sm">Pedido {v.numero}</span>
+                    <span className="text-muted-foreground ml-2 text-xs">{v.data}</span>
                   </div>
-                  <StockBadge estoque={l.estoque} />
+                  <div className="flex items-center gap-3">
+                    {v.cancelada && (
+                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                        cancelada
+                      </span>
+                    )}
+                    <span
+                      className={`font-mono text-sm ${
+                        v.cancelada ? "text-muted-foreground line-through" : ""
+                      }`}
+                    >
+                      {brl(v.totalCentavos)}
+                    </span>
+                  </div>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="bg-card rounded-xl border p-5">
-          <h2 className="text-sm font-semibold">Vendas canceladas</h2>
-          <p className="text-muted-foreground text-[12px] capitalize">{periodoRotulo}</p>
-          <div className="mt-3">
-            <div className="font-mono text-3xl font-bold text-amber-600">
-              {dash?.canceladasQtd ?? 0}
+              ))}
             </div>
-            <div className="text-muted-foreground mt-1 text-sm">
-              venda(s) · {brl(dash?.canceladasCentavos ?? 0)}
-            </div>
-          </div>
+          )}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function Stat({
-  rotulo,
-  valor,
-  sub,
-  alerta,
-}: {
-  rotulo: string;
-  valor: string;
-  sub?: string;
-  alerta?: boolean;
-}) {
-  return (
-    <div className="bg-card rounded-xl border p-4">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="text-muted-foreground text-[11px] uppercase">{rotulo}</span>
-        {sub && <span className="text-muted-foreground text-[10px]">{sub}</span>}
-      </div>
-      <div
-        className={`mt-1 font-mono text-xl font-bold ${alerta ? "text-amber-600" : ""}`}
-      >
-        {valor}
       </div>
     </div>
   );
