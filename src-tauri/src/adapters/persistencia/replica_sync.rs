@@ -40,6 +40,11 @@ impl SeaReplicaSync {
 impl ReplicaLocalRepo for SeaReplicaSync {
     async fn pendentes(&self, recurso: &str) -> Result<Vec<RegistroSync>, RepoErro> {
         let Some(s) = spec(recurso) else { return Ok(vec![]) };
+        // Cadastros de autoridade da nuvem (feature 012, US2): pull-only — o PDV nunca
+        // empurra fornecedor/forma_pagamento/destinacao (a edição vive no escritório).
+        if super::replica_mapa::pull_only(recurso) {
+            return Ok(vec![]);
+        }
         // Atribui sync_uid (lazy) às linhas novas — inserts do app não o preenchem.
         self.exec(
             format!(

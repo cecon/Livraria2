@@ -244,6 +244,12 @@ pub(crate) fn spec(recurso: &str) -> Option<&'static Spec> {
     SPECS.iter().find(|s| s.recurso == recurso)
 }
 
+/// Cadastros cuja autoridade é a nuvem (feature 012, US2 / "a nuvem manda"):
+/// o PDV **lê** (pull) mas **nunca empurra** (push). A edição vive no escritório.
+pub(crate) fn pull_only(recurso: &str) -> bool {
+    matches!(recurso, "fornecedor" | "forma_pagamento" | "destinacao")
+}
+
 /// `json_object(...)` que produz a linha no formato da nuvem (bool 0/1→true/false;
 /// `atualizado_em` vazio→null; FKs → `*_uid` pela chave do pai).
 pub(crate) fn expr_json(s: &Spec) -> String {

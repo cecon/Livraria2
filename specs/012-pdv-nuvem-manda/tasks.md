@@ -58,8 +58,8 @@ description: "Task list — feature 012: PDV de responsabilidade reduzida — fa
 **Independent Test**: no PDV não há criar/editar/excluir esses cadastros; alteração na nuvem reflete no PDV no próximo sync; a venda ainda usa a forma de pagamento (leitura).
 
 - [ ] T011 [US2] Remover comandos de escrita do PDV: `src-tauri/src/commands_formas.rs` (`criar_forma`/`excluir_forma`) e equivalentes de fornecedor/destinação (ou torná-los no-op explícito com erro pt-BR "edição só na retaguarda").
-- [ ] T012 [P] [US2] Remover/ocultar telas de edição no PDV: `src/components/FormaPagamentoForm.tsx`, `FornecedorForm.tsx`, `DestinacaoForm.tsx` (manter seleção/consulta onde a venda precisa, ex.: seletor de forma de pagamento).
-- [ ] T013 [US2] `src-tauri/src/adapters/persistencia/replica_mapa.rs` — tornar `fornecedor`/`forma_pagamento`/`destinacao` **pull-only** (o PDV não os empurra); confirmar que continuam sendo baixados.
+- [X] T012 [P] [US2] Remover/ocultar telas de edição no PDV: `src/components/FormaPagamentoForm.tsx`, `FornecedorForm.tsx`, `DestinacaoForm.tsx` (manter seleção/consulta onde a venda precisa, ex.: seletor de forma de pagamento).
+- [X] T013 [US2] `src-tauri/src/adapters/persistencia/replica_mapa.rs` — tornar `fornecedor`/`forma_pagamento`/`destinacao` **pull-only** (o PDV não os empurra); confirmar que continuam sendo baixados.
 - [ ] T014 [US2] Retaguarda: edição de `fornecedor`/`forma_pagamento`/`destinacao` (autoridade) em `apps/escritorio/app/cadastros/…`, reusando o padrão da 010 (rota server/RPC que escreve no Postgres + sync).
 - [ ] T015 [US2] Verificar US2 pelo `quickstart.md` (SC-003 zero cadastro com origem no PDV; alteração na nuvem chega ao PDV).
 

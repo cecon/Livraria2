@@ -11,9 +11,6 @@ import Inicio from "@/routes/Inicio";
 import Venda from "@/routes/Venda";
 import Turnos from "@/routes/Turnos";
 import Pesquisa from "@/routes/Pesquisa";
-import Fornecedores from "@/routes/Fornecedores";
-import FormasPagamento from "@/routes/FormasPagamento";
-import Destinacoes from "@/routes/Destinacoes";
 import Relatorios from "@/routes/Relatorios";
 
 function App() {
@@ -73,9 +70,11 @@ function App() {
             <Route path="/pesquisa" element={<Pesquisa />} />
             <Route path="/cadastro" element={<Navigate to="/pesquisa" replace />} />
             <Route path="/lancamentos" element={<Navigate to="/pesquisa" replace />} />
-            <Route path="/fornecedores" element={<Fornecedores />} />
-            <Route path="/formas-pagamento" element={<FormasPagamento />} />
-            <Route path="/destinacoes" element={<Destinacoes />} />
+            {/* Cadastros de autoridade da nuvem (feature 012, US2): sem janela de
+                edição no PDV — a edição vive no escritório. Os dados descem pelo sync. */}
+            <Route path="/fornecedores" element={<Navigate to="/pesquisa" replace />} />
+            <Route path="/formas-pagamento" element={<Navigate to="/pesquisa" replace />} />
+            <Route path="/destinacoes" element={<Navigate to="/pesquisa" replace />} />
             <Route path="/inventario" element={<Navigate to="/pesquisa" replace />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="*" element={<Navigate to="/" replace />} />
