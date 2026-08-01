@@ -95,6 +95,11 @@ impl ReplicaLocalRepo for SeaReplicaSync {
 
     async fn aplicar(&self, recurso: &str, registros: &[RegistroSync]) -> Result<(), RepoErro> {
         let Some(s) = spec(recurso) else { return Ok(()) };
+        // Feature 012: o dado que VEM da nuvem nasce sincronizado — o pull marca
+        // `sincronizado_em` na mesma sentença (no INSERT e no DO UPDATE do LWW).
+        // Assim ele não é re-enviado no próximo ciclo; se a linha local for mais
+        // nova (LWW recusa o update), ela permanece pendente e sobe normalmente.
+        let agora = chrono::Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
         for reg in registros {
             let mut colunas: Vec<String> = vec![];
             let mut placeholders: Vec<String> = vec![];
@@ -122,6 +127,7 @@ impl ReplicaLocalRepo for SeaReplicaSync {
                 ("origem", Value::String(Some(Box::new(txt("origem", "pdv"))))),
                 ("atualizado_em", Value::String(Some(Box::new(txt("atualizado_em", ""))))),
                 ("excluido_em", valor(&reg.dados, "excluido_em", Tipo::Texto)),
+                ("sincronizado_em", Value::String(Some(Box::new(agora.clone())))),
             ] {
                 colunas.push(col.to_string());
                 placeholders.push("?".into());
@@ -132,7 +138,7 @@ impl ReplicaLocalRepo for SeaReplicaSync {
                 .iter()
                 .map(|c| c.nome.to_string())
                 .chain(s.refs.iter().map(|r| r.col_local.to_string()))
-                .chain(["origem", "atualizado_em", "excluido_em"].map(String::from))
+                .chain(["origem", "atualizado_em", "excluido_em", "sincronizado_em"].map(String::from))
                 .map(|c| format!("{c}=excluded.{c}"))
                 .collect();
             let conflito = if s.mutavel {
