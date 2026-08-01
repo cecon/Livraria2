@@ -92,37 +92,9 @@ pub struct RepasseDestinacao {
 
 #[async_trait]
 pub trait DestinacaoRepo: Send + Sync {
-    // --- cadastro (US3) ---
+    // Feature 012 ("a nuvem manda"): o CADASTRO e a operação de DESTINAR estoque
+    // (transferir carimbos) vivem na nuvem. O PDV só LÊ o que o relatório precisa.
     async fn listar(&self) -> Result<Vec<Destinacao>, RepoErro>;
-    async fn listar_ativas(&self) -> Result<Vec<Destinacao>, RepoErro>;
-    async fn por_id(&self, id: i64) -> Result<Option<Destinacao>, RepoErro>;
-    /// Usada em saldo (qtd>0), alocação de venda ou transferência (FR-004/FR-007).
-    async fn em_uso(&self, id: i64) -> Result<bool, RepoErro>;
-    async fn criar(&self, nome: &str, nome_norm: &str, ordem: i64) -> Result<Destinacao, RepoErro>;
-    async fn renomear(&self, id: i64, nome: &str, nome_norm: &str) -> Result<(), RepoErro>;
-    async fn definir_ativa(&self, id: i64, ativa: bool) -> Result<(), RepoErro>;
-    /// Nova ordem das destinações livres; a Loja permanece em 0 (FR-002).
-    async fn reordenar(&self, ids: &[i64]) -> Result<(), RepoErro>;
-    async fn excluir(&self, id: i64) -> Result<(), RepoErro>;
-
-    // --- destinar estoque (US1) ---
-    async fn saldos_livro(&self, livro_codigo: &str) -> Result<SaldoLivro, RepoErro>;
-    /// Move carimbo atomicamente (upsert saldos + registro). Guards de negócio
-    /// ficam no caso de uso; aqui só a mecânica transacional.
-    async fn transferir(
-        &self,
-        livro_codigo: &str,
-        de: Option<i64>,
-        para: Option<i64>,
-        qtd: i64,
-        motivo: Option<String>,
-    ) -> Result<SaldoLivro, RepoErro>;
-    async fn transferencias_livro(
-        &self,
-        livro_codigo: &str,
-    ) -> Result<Vec<TransferenciaReg>, RepoErro>;
-
-    // --- apuração (US2) ---
     /// Datas ISO inclusivas. Só pedidos não cancelados (estorno retroativo — FR-010).
     async fn relatorio(&self, inicio: &str, fim: &str) -> Result<RelatorioDestinacoes, RepoErro>;
     /// Repasse do relatório de vendas: por destinação ESPECIAL, livros + total.

@@ -2,8 +2,7 @@
 //! carimbo: transferência (US1), leitura de saldos e histórico. O consumo nas
 //! saídas (venda/perda) entra pelos mesmos helpers (D4).
 
-use super::estoque_sql::agora;
-use crate::application::ports_destinacao::{CarimboSaldo, SaldoLivro, TransferenciaReg};
+use crate::application::ports_destinacao::CarimboSaldo;
 use crate::domain::alocacao::{alocar_perda, alocar_venda, Alocacao};
 use sea_orm::{ConnectionTrait, DbErr, Statement};
 
@@ -49,29 +48,6 @@ pub(crate) async fn carimbos_ordenados<C: ConnectionTrait>(
         .collect()
 }
 
-/// Saldos de um livro: físico, carimbos em ordem e livre (resíduo — D1).
-pub(crate) async fn saldos_livro<C: ConnectionTrait>(
-    conn: &C,
-    livro_codigo: &str,
-) -> Result<SaldoLivro, DbErr> {
-    let livro_id = livro_id_por_codigo(conn, livro_codigo).await?;
-    let row = conn
-        .query_one(Statement::from_sql_and_values(
-            conn.get_database_backend(),
-            "SELECT estoque FROM livro WHERE id = ?",
-            [livro_id.into()],
-        ))
-        .await?
-        .ok_or_else(|| DbErr::Custom("livro não encontrado".into()))?;
-    let estoque: i64 = row.try_get("", "estoque")?;
-    let carimbos = carimbos_ordenados(conn, livro_id).await?;
-    let carimbado: i64 = carimbos.iter().map(|c| c.qtd).sum();
-    Ok(SaldoLivro {
-        estoque,
-        livre: estoque - carimbado,
-        carimbos,
-    })
-}
 
 /// Soma `delta` ao carimbo (upsert); remove a linha quando zera (tabela enxuta).
 pub(crate) async fn somar_carimbo<C: ConnectionTrait>(
@@ -97,73 +73,7 @@ pub(crate) async fn somar_carimbo<C: ConnectionTrait>(
     Ok(())
 }
 
-/// Move carimbo entre origem e destino (`None` = livre) e registra a trilha (FR-007).
-/// Guards de negócio ficam no caso de uso; aqui só a mecânica atômica.
-pub(crate) async fn transferir<C: ConnectionTrait>(
-    conn: &C,
-    livro_codigo: &str,
-    de: Option<i64>,
-    para: Option<i64>,
-    qtd: i64,
-    motivo: Option<String>,
-) -> Result<(), DbErr> {
-    let livro_id = livro_id_por_codigo(conn, livro_codigo).await?;
-    if let Some(id) = de {
-        somar_carimbo(conn, livro_id, id, -qtd).await?;
-    }
-    if let Some(id) = para {
-        somar_carimbo(conn, livro_id, id, qtd).await?;
-    }
-    conn.execute(Statement::from_sql_and_values(
-        conn.get_database_backend(),
-        "INSERT INTO transferencia_destinacao
-            (livro_id, de_destinacao_id, para_destinacao_id, qtd, motivo, criado_em)
-         VALUES (?, ?, ?, ?, ?, ?)",
-        [
-            livro_id.into(),
-            de.into(),
-            para.into(),
-            qtd.into(),
-            motivo.into(),
-            agora().into(),
-        ],
-    ))
-    .await?;
-    Ok(())
-}
 
-/// Histórico de transferências do livro, mais recente primeiro (US1).
-pub(crate) async fn transferencias_livro<C: ConnectionTrait>(
-    conn: &C,
-    livro_codigo: &str,
-) -> Result<Vec<TransferenciaReg>, DbErr> {
-    let livro_id = livro_id_por_codigo(conn, livro_codigo).await?;
-    let rows = conn
-        .query_all(Statement::from_sql_and_values(
-            conn.get_database_backend(),
-            "SELECT t.id AS id, dd.nome AS de, dp.nome AS para, t.qtd AS qtd,
-                    t.motivo AS motivo, t.criado_em AS criado_em
-             FROM transferencia_destinacao t
-             LEFT JOIN destinacao dd ON dd.id = t.de_destinacao_id
-             LEFT JOIN destinacao dp ON dp.id = t.para_destinacao_id
-             WHERE t.livro_id = ?
-             ORDER BY t.id DESC",
-            [livro_id.into()],
-        ))
-        .await?;
-    rows.into_iter()
-        .map(|r| {
-            Ok(TransferenciaReg {
-                id: r.try_get("", "id")?,
-                de: r.try_get("", "de").ok(),
-                para: r.try_get("", "para").ok(),
-                qtd: r.try_get("", "qtd")?,
-                motivo: r.try_get("", "motivo").ok().flatten(),
-                criado_em: r.try_get("", "criado_em")?,
-            })
-        })
-        .collect()
-}
 
 /// Ordem de consumo dos saldos numa saída (D4).
 #[derive(Clone, Copy, PartialEq)]

@@ -112,64 +112,6 @@ impl crate::application::ports_destinacao::DestinacaoRepo for FakeDestinacoes {
     async fn listar(&self) -> Result<Vec<crate::domain::destinacao::Destinacao>, RepoErro> {
         Ok(vec![])
     }
-    async fn listar_ativas(&self) -> Result<Vec<crate::domain::destinacao::Destinacao>, RepoErro> {
-        Ok(vec![])
-    }
-    async fn por_id(
-        &self,
-        _id: i64,
-    ) -> Result<Option<crate::domain::destinacao::Destinacao>, RepoErro> {
-        Ok(None)
-    }
-    async fn em_uso(&self, _id: i64) -> Result<bool, RepoErro> {
-        Ok(false)
-    }
-    async fn criar(
-        &self,
-        _nome: &str,
-        _norm: &str,
-        _ordem: i64,
-    ) -> Result<crate::domain::destinacao::Destinacao, RepoErro> {
-        unimplemented!()
-    }
-    async fn renomear(&self, _id: i64, _n: &str, _nn: &str) -> Result<(), RepoErro> {
-        Ok(())
-    }
-    async fn definir_ativa(&self, _id: i64, _a: bool) -> Result<(), RepoErro> {
-        Ok(())
-    }
-    async fn reordenar(&self, _ids: &[i64]) -> Result<(), RepoErro> {
-        Ok(())
-    }
-    async fn excluir(&self, _id: i64) -> Result<(), RepoErro> {
-        Ok(())
-    }
-    async fn saldos_livro(
-        &self,
-        _codigo: &str,
-    ) -> Result<crate::application::ports_destinacao::SaldoLivro, RepoErro> {
-        Ok(crate::application::ports_destinacao::SaldoLivro {
-            estoque: 0,
-            livre: 0,
-            carimbos: vec![],
-        })
-    }
-    async fn transferir(
-        &self,
-        _codigo: &str,
-        _de: Option<i64>,
-        _para: Option<i64>,
-        _qtd: i64,
-        _motivo: Option<String>,
-    ) -> Result<crate::application::ports_destinacao::SaldoLivro, RepoErro> {
-        unimplemented!()
-    }
-    async fn transferencias_livro(
-        &self,
-        _codigo: &str,
-    ) -> Result<Vec<crate::application::ports_destinacao::TransferenciaReg>, RepoErro> {
-        Ok(vec![])
-    }
     async fn relatorio(
         &self,
         _inicio: &str,
