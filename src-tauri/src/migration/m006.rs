@@ -93,10 +93,31 @@ pub async fn migrar(db: &DatabaseConnection) -> Result<RelatorioM006, DbErr> {
     )
     .await?;
 
-    // 2) Feature 012 ("a nuvem manda"): NÃO semeia mais as formas. Num install
-    //    limpo a tabela nasce vazia e as formas descem da nuvem no 1º sync
-    //    (forma_pagamento é pull-only, US2) — assim nada de seed sobe/duplica.
-    //    (O `SEED` segue usado abaixo apenas para o backfill das colunas `val_*`.)
+    // 2) Seed CONDICIONAL (feature 012, "a nuvem manda"): só semeia as formas
+    //    quando há dados LEGADOS de pagamento (val_* > 0) para backfillar — aí as
+    //    formas são necessárias para vincular `pagamento_pedido`. Num install
+    //    limpo (sem val_*), NÃO semeia: a tabela nasce vazia e as formas descem
+    //    da nuvem no 1º sync (forma_pagamento é pull-only, US2), sem seed subindo.
+    let tem_legado = conta(
+        &txn,
+        "SELECT count(*) AS n FROM pedido
+         WHERE (val_cartao + val_dinheiro + val_pix + val_ministerio + val_vale) > 0",
+    )
+    .await?;
+    if tem_legado > 0 {
+        for (ordem, chave, rotulo, de_sistema, _) in SEED {
+            exec(
+                &txn,
+                &format!(
+                    "INSERT INTO forma_pagamento (chave, rotulo, de_sistema, ativa, ordem)
+                     SELECT '{chave}', '{rotulo}', {}, 1, {ordem}
+                     WHERE NOT EXISTS (SELECT 1 FROM forma_pagamento WHERE chave = '{chave}')",
+                    i64::from(*de_sistema)
+                ),
+            )
+            .await?;
+        }
+    }
 
     // 3) Novo `pedido` (sem val_*) + junção referenciando `pedido_new`; depois o
     //    backfill esparso: cada val_* > 0 vira uma linha vinculada pela chave.

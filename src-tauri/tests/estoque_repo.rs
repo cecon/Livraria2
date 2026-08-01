@@ -2,6 +2,8 @@
 //! saldo inicial idempotente, reconciliação Σ movimentos == estoque após venda,
 //! custo médio na entrada, ajuste não-negativo e imutabilidade (append-only).
 
+mod common;
+
 use livraria_2_lib::adapters::persistencia::estoque_repo::SeaEstoqueRepo;
 use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
 use livraria_2_lib::adapters::persistencia::pedido_repo::SeaPedidoRepo;
@@ -31,6 +33,7 @@ async fn saldo_operacional_usa_publicado_menos_vendas_e_mais_cancelamentos_nao_s
     let (url, path) = url_temp("saldo_operacional");
     let db = conectar(&url).await.unwrap();
     inicializar_schema(&db).await.unwrap();
+    common::semear_formas(&db).await; // feature 012: as formas viriam da nuvem
     let backend = db.get_database_backend();
 
     db.execute(Statement::from_string(
@@ -113,6 +116,7 @@ async fn ledger_reconcilia_e_custo_medio() {
     let (url, path) = url_temp("reconcilia");
     let db = conectar(&url).await.unwrap();
     inicializar_schema(&db).await.unwrap();
+    common::semear_formas(&db).await; // feature 012: as formas viriam da nuvem
     let livros = SeaLivroRepo::new(db.clone());
     let pedidos = SeaPedidoRepo::new(db.clone());
     let estoque = SeaEstoqueRepo::new(db.clone());
@@ -168,6 +172,7 @@ async fn adotar_repara_livro_com_movimento_sem_saldo_inicial() {
     let (url, path) = url_temp("repara");
     let db = conectar(&url).await.unwrap();
     inicializar_schema(&db).await.unwrap();
+    common::semear_formas(&db).await; // feature 012: as formas viriam da nuvem
     let livros = SeaLivroRepo::new(db.clone());
     let pedidos = SeaPedidoRepo::new(db.clone());
     let estoque = SeaEstoqueRepo::new(db.clone());

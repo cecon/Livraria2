@@ -2,6 +2,8 @@
 //! nome normalizado, em uso) e transferência de carimbos (saldos, histórico,
 //! invariante Σ carimbos ≤ estoque, físico intocado) — ADR-0014.
 
+mod common;
+
 use livraria_2_lib::adapters::persistencia::destinacao_repo::SeaDestinacaoRepo;
 use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
 use livraria_2_lib::adapters::persistencia::{conectar, inicializar_schema};
@@ -24,7 +26,8 @@ fn url_temp(tag: &str) -> (String, std::path::PathBuf) {
 async fn setup(tag: &str) -> (DatabaseConnection, SeaDestinacaoRepo, std::path::PathBuf) {
     let (url, path) = url_temp(tag);
     let db = conectar(&url).await.unwrap();
-    inicializar_schema(&db).await.unwrap(); // m007 semeia a Loja
+    inicializar_schema(&db).await.unwrap();
+    common::semear_loja(&db).await; // feature 012: a Loja viria da nuvem
     (db.clone(), SeaDestinacaoRepo::new(db), path)
 }
 

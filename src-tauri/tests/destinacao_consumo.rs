@@ -3,6 +3,8 @@
 //! inverso; estorno de venda devolve ao carimbo certo; janela de 5 dias;
 //! relatório + posição atual fecham com o total (SC-003/SC-004).
 
+mod common;
+
 use livraria_2_lib::adapters::persistencia::destinacao_repo::SeaDestinacaoRepo;
 use livraria_2_lib::adapters::persistencia::estoque_repo::SeaEstoqueRepo;
 use livraria_2_lib::adapters::persistencia::fornecedor_repo::SeaFornecedorRepo;
@@ -48,6 +50,8 @@ async fn setup(tag: &str) -> (DatabaseConnection, std::path::PathBuf) {
     let (url, path) = url_temp(tag);
     let db = conectar(&url).await.unwrap();
     inicializar_schema(&db).await.unwrap();
+    common::semear_loja(&db).await; // feature 012: Loja + formas viriam da nuvem
+    common::semear_formas(&db).await;
     (db, path)
 }
 

@@ -1,6 +1,8 @@
 //! Testes de integração do cadastro de formas (US2): guards de sistema/em uso/
 //! última ativa, rótulo duplicado normalizado e reativação conflitante (D9).
 
+mod common;
+
 use livraria_2_lib::adapters::persistencia::forma_pagamento_repo::SeaFormaPagamentoRepo;
 use livraria_2_lib::adapters::persistencia::{conectar, inicializar_schema};
 use livraria_2_lib::application::erros::ErroApp;
@@ -18,7 +20,8 @@ fn url_temp(tag: &str) -> (String, std::path::PathBuf) {
 async fn setup(tag: &str) -> (DatabaseConnection, SeaFormaPagamentoRepo, std::path::PathBuf) {
     let (url, path) = url_temp(tag);
     let db = conectar(&url).await.unwrap();
-    inicializar_schema(&db).await.unwrap(); // m006 semeia as 7 formas
+    inicializar_schema(&db).await.unwrap();
+    common::semear_formas(&db).await; // feature 012: as formas viriam da nuvem
     let repo = SeaFormaPagamentoRepo::new(db.clone());
     (db, repo, path)
 }

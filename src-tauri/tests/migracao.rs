@@ -1,6 +1,8 @@
 //! Teste de integração da migração contra o legado REAL (FR-065..069, SC-009).
 //! Pula automaticamente se o `.mdb` ou o `mdb-export` não estiverem disponíveis.
 
+mod common;
+
 use livraria_2_lib::adapters::legado::mdb_importer::MdbImportador;
 use livraria_2_lib::adapters::persistencia::forma_pagamento_repo::SeaFormaPagamentoRepo;
 use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
@@ -31,6 +33,7 @@ async fn migra_legado_real_idempotente() {
 
     let db = conectar(&url).await.unwrap();
     inicializar_schema(&db).await.unwrap();
+    common::semear_formas(&db).await; // feature 012: import de legado vincula pagamentos às formas (que viriam da nuvem)
     let imp = MdbImportador::new(mdb);
     let livros = SeaLivroRepo::new(db.clone());
     let pedidos = SeaPedidoRepo::new(db.clone());

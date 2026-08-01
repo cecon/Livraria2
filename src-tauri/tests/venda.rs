@@ -1,5 +1,7 @@
 //! Teste de integração da venda (US1, SC-002): persiste pedido e baixa estoque.
 
+mod common;
+
 use livraria_2_lib::adapters::persistencia::forma_pagamento_repo::SeaFormaPagamentoRepo;
 use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
 use livraria_2_lib::adapters::persistencia::pedido_repo::SeaPedidoRepo;
@@ -39,6 +41,7 @@ async fn venda_persiste_e_baixa_estoque() {
     let (url, path) = url_temp();
     let db = conectar(&url).await.expect("conectar");
     inicializar_schema(&db).await.expect("migrar");
+    common::semear_formas(&db).await; // feature 012: as formas viriam da nuvem
 
     let livros = SeaLivroRepo::new(db.clone());
     let pedidos = SeaPedidoRepo::new(db.clone());
@@ -105,6 +108,7 @@ async fn resumo_turno_conta_vendas_pagamentos_e_pendencias_sync() {
     let (url, path) = url_temp();
     let db = conectar(&url).await.expect("conectar");
     inicializar_schema(&db).await.expect("migrar");
+    common::semear_formas(&db).await; // feature 012: as formas viriam da nuvem
 
     let forma_id = db
         .query_one(Statement::from_string(

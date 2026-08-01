@@ -20,7 +20,7 @@ async fn conta(db: &sea_orm::DatabaseConnection, sql: &str) -> i32 {
 }
 
 #[tokio::test]
-async fn m007_cria_tabelas_e_semeia_loja_idempotente() {
+async fn m007_cria_tabelas_sem_semear_loja() {
     let (url, path) = url_temp();
     let db = conectar(&url).await.expect("conectar");
 
@@ -43,7 +43,9 @@ async fn m007_cria_tabelas_e_semeia_loja_idempotente() {
         assert_eq!(n, 1, "tabela {tabela} deve existir");
     }
 
-    // Seed único da Loja, mesmo re-aplicando as sentenças da m007 diretamente.
+    // Feature 012 ("a nuvem manda"): a m007 NÃO semeia mais a "Loja". Num install
+    // limpo a destinação de sistema desce da nuvem no 1º sync (pull-only, US2).
+    // Re-aplicar as sentenças da m007 continua idempotente (não cria destinação).
     for sql in livraria_2_lib::migration::m007_sql() {
         db.execute(Statement::from_string(
             db.get_database_backend(),
@@ -52,18 +54,8 @@ async fn m007_cria_tabelas_e_semeia_loja_idempotente() {
         .await
         .expect("re-aplicar sentença da m007");
     }
-    let loja = conta(&db, "SELECT count(*) AS n FROM destinacao WHERE de_sistema = 1").await;
-    assert_eq!(loja, 1, "Loja semeada exatamente uma vez");
-    let nome = db
-        .query_one(Statement::from_string(
-            db.get_database_backend(),
-            "SELECT nome AS n FROM destinacao WHERE de_sistema = 1".to_string(),
-        ))
-        .await
-        .unwrap()
-        .unwrap();
-    let nome: String = nome.try_get("", "n").unwrap();
-    assert_eq!(nome, "Loja");
+    let seed = conta(&db, "SELECT count(*) AS n FROM destinacao WHERE de_sistema = 1").await;
+    assert_eq!(seed, 0, "m007 não semeia destinação de sistema (vem da nuvem)");
 
     let _ = std::fs::remove_file(&path);
 }
