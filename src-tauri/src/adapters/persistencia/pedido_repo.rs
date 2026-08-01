@@ -73,14 +73,9 @@ impl PedidoRepo for SeaPedidoRepo {
                 let livro_id = super::destinacao_sql::livro_id_por_codigo(&txn, &it.codigo)
                     .await
                     .map_err(erro)?;
-                let alocacoes = super::destinacao_sql::consumir_carimbos(
-                    &txn,
-                    livro_id,
-                    baixa,
-                    super::destinacao_sql::ModoConsumo::Venda,
-                )
-                .await
-                .map_err(erro)?;
+                let alocacoes = super::destinacao_sql::consumir_carimbos(&txn, livro_id, baixa)
+                    .await
+                    .map_err(erro)?;
                 let item_id: i64 = txn
                     .query_one(Statement::from_sql_and_values(
                         backend,

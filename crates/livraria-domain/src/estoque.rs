@@ -1,9 +1,8 @@
 //! Regras puras da razão de movimentos de estoque (ADR-0008/0009).
-//! Sem UI, sem banco: custo médio ponderado, derivação de custo, ajuste não-negativo,
-//! diferença de contagem. Dinheiro em centavos (ADR-0005).
+//! Sem UI, sem banco: custo médio ponderado, fold do ledger, diferença de
+//! contagem, baseline de saldo inicial. Dinheiro em centavos (ADR-0005).
 
 use super::dinheiro::Dinheiro;
-use super::erros::ErroDominio;
 
 /// Tipo de um movimento de estoque. Persistido como texto estável.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -81,34 +80,6 @@ pub fn recompor_ledger(movimentos: &[(i64, Option<i64>)]) -> (i64, Dinheiro) {
     (saldo, medio)
 }
 
-/// Deriva (custo_unitário, custo_total) em centavos a partir do que o usuário informou.
-/// Informe `unit` OU `total` (FR-010a). Exige `qtd > 0`.
-pub fn derivar_custos(
-    total: Option<i64>,
-    unit: Option<i64>,
-    qtd: i64,
-) -> Result<(i64, i64), ErroDominio> {
-    if qtd <= 0 {
-        return Err(ErroDominio::QuantidadeInvalida);
-    }
-    match (unit, total) {
-        (Some(u), _) if u >= 0 => Ok((u, u * qtd)),
-        (None, Some(t)) if t >= 0 => Ok((round_div(t, qtd), t)),
-        _ => Err(ErroDominio::DadosInvalidos(
-            "informe o custo unitário ou o total".into(),
-        )),
-    }
-}
-
-/// Aplica um ajuste de estoque; barra resultado negativo (FR-043).
-pub fn aplicar_ajuste(estoque: i64, delta: i64) -> Result<i64, ErroDominio> {
-    let resultado = estoque + delta;
-    if resultado < 0 {
-        return Err(ErroDominio::EstoqueNegativo);
-    }
-    Ok(resultado)
-}
-
 /// Diferença de uma contagem de inventário: `contado − sistema` (FR-027).
 /// O estoque final passa a ser exatamente o valor contado.
 pub fn diferenca_contagem(sistema: i64, contado: i64) -> i64 {
@@ -173,42 +144,6 @@ mod tests {
     fn custo_medio_estoque_zero() {
         let medio = custo_medio_apos_entrada(0, Dinheiro::ZERO, 0, Dinheiro::de_centavos(500));
         assert_eq!(medio.centavos(), 0);
-    }
-
-    #[test]
-    fn derivar_do_unitario() {
-        assert_eq!(derivar_custos(None, Some(1250), 10), Ok((1250, 12500)));
-    }
-
-    #[test]
-    fn derivar_do_total() {
-        // total 12500 / 10 = 1250
-        assert_eq!(derivar_custos(Some(12500), None, 10), Ok((1250, 12500)));
-        // total 1000 / 3 = 333,33 -> 333 (half-up)
-        assert_eq!(derivar_custos(Some(1000), None, 3).unwrap().0, 333);
-        // total 1000 / 8 = 125 exato
-        assert_eq!(derivar_custos(Some(1000), None, 8).unwrap().0, 125);
-    }
-
-    #[test]
-    fn derivar_qtd_invalida() {
-        assert_eq!(derivar_custos(Some(100), None, 0), Err(ErroDominio::QuantidadeInvalida));
-    }
-
-    #[test]
-    fn derivar_sem_custo() {
-        assert!(matches!(
-            derivar_custos(None, None, 5),
-            Err(ErroDominio::DadosInvalidos(_))
-        ));
-    }
-
-    #[test]
-    fn ajuste_barra_negativo() {
-        assert_eq!(aplicar_ajuste(3, -2), Ok(1));
-        assert_eq!(aplicar_ajuste(3, -3), Ok(0));
-        assert_eq!(aplicar_ajuste(3, -5), Err(ErroDominio::EstoqueNegativo));
-        assert_eq!(aplicar_ajuste(0, 3), Ok(3));
     }
 
     #[test]

@@ -2,12 +2,10 @@
 //! movimento e atualiza o saldo materializado de `livro` na MESMA transação.
 
 use super::entities::livro::Entity as LivroEntity;
-use super::estoque_sql::{inserir_entrada_item, inserir_movimento};
-use super::livro_repo::para_dominio;
+use super::estoque_sql::inserir_movimento;
 use crate::application::ports::RepoErro;
-use crate::application::ports_estoque::{EntradaCmd, EstoqueRepo, MovimentoView};
+use crate::application::ports_estoque::{EstoqueRepo, MovimentoView};
 use crate::domain::estoque::{baseline_saldo_inicial, TipoMovimento};
-use crate::domain::livro::Livro;
 use async_trait::async_trait;
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, DbErr, EntityTrait, Statement, TransactionTrait,
@@ -59,83 +57,8 @@ fn erro(e: DbErr) -> RepoErro {
     RepoErro::Persistencia(e.to_string())
 }
 
-async fn buscar_livro(db: &DatabaseConnection, codigo: &str) -> Result<Livro, RepoErro> {
-    use super::entities::livro;
-    use sea_orm::{ColumnTrait, QueryFilter};
-    let m = LivroEntity::find()
-        .filter(livro::Column::Codigo.eq(codigo))
-        .one(db)
-        .await
-        .map_err(erro)?
-        .ok_or_else(|| RepoErro::Persistencia("livro não encontrado".into()))?;
-    Ok(para_dominio(m))
-}
-
 #[async_trait]
 impl EstoqueRepo for SeaEstoqueRepo {
-    async fn registrar_entrada(&self, cmd: EntradaCmd) -> Result<Livro, RepoErro> {
-        let txn = self.db.begin().await.map_err(erro)?;
-        // Delega ao helper compartilhado (D3a) — mesma mecânica usada pela finalização de nota.
-        inserir_entrada_item(
-            &txn,
-            &cmd.livro_codigo,
-            cmd.qtd,
-            cmd.custo_unit_centavos,
-            Some(cmd.fornecedor.clone()),
-            None,
-        )
-        .await
-        .map_err(erro)?;
-        txn.commit().await.map_err(erro)?;
-        buscar_livro(&self.db, &cmd.livro_codigo).await
-    }
-
-    async fn registrar_ajuste(
-        &self,
-        codigo: &str,
-        delta: i64,
-        motivo: &str,
-    ) -> Result<Livro, RepoErro> {
-        let txn = self.db.begin().await.map_err(erro)?;
-        let backend = txn.get_database_backend();
-        if delta < 0 {
-            // Perda consome livre → carimbos (ordem inversa da venda — FR-012),
-            // ANTES da baixa física (o livre é derivado do estoque atual).
-            let livro_id = super::destinacao_sql::livro_id_por_codigo(&txn, codigo)
-                .await
-                .map_err(erro)?;
-            super::destinacao_sql::consumir_carimbos(
-                &txn,
-                livro_id,
-                -delta,
-                super::destinacao_sql::ModoConsumo::Perda,
-            )
-            .await
-            .map_err(erro)?;
-        }
-        inserir_movimento(
-            &txn,
-            codigo,
-            TipoMovimento::Ajuste,
-            delta,
-            None,
-            None,
-            Some(motivo.to_string()),
-            None,
-        )
-        .await
-        .map_err(erro)?;
-        txn.execute(Statement::from_sql_and_values(
-            backend,
-            "UPDATE livro SET estoque = estoque + ? WHERE codigo = ?",
-            [delta.into(), codigo.into()],
-        ))
-        .await
-        .map_err(erro)?;
-        txn.commit().await.map_err(erro)?;
-        buscar_livro(&self.db, codigo).await
-    }
-
     async fn extrato(&self, codigo: &str, limite: i64) -> Result<Vec<MovimentoView>, RepoErro> {
         use super::entities::livro;
         use super::entities::movimento_estoque::{Column, Entity as MovEntity};
@@ -223,29 +146,5 @@ impl EstoqueRepo for SeaEstoqueRepo {
         }
         txn.commit().await.map_err(erro)?;
         Ok(criados)
-    }
-
-    async fn fornecedores_sugestoes(
-        &self,
-        prefixo: &str,
-        limite: i64,
-    ) -> Result<Vec<String>, RepoErro> {
-        let backend = self.db.get_database_backend();
-        let padrao = format!("{}%", prefixo);
-        let rows = self
-            .db
-            .query_all(Statement::from_sql_and_values(
-                backend,
-                "SELECT DISTINCT fornecedor FROM movimento_estoque
-                 WHERE fornecedor IS NOT NULL AND fornecedor <> '' AND fornecedor LIKE ?
-                 ORDER BY fornecedor LIMIT ?",
-                [padrao.into(), limite.into()],
-            ))
-            .await
-            .map_err(erro)?;
-        Ok(rows
-            .iter()
-            .filter_map(|r| r.try_get::<String>("", "fornecedor").ok())
-            .collect())
     }
 }

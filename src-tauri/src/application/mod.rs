@@ -1,7 +1,6 @@
 //! Camada de aplicação (Hexagonal): portas e casos de uso.
 //! Orquestra o domínio e fala com o mundo externo apenas por meio das portas.
 
-pub mod ajuste;
 pub mod cancelamento;
 pub mod erros;
 #[cfg(test)]

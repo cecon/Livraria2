@@ -3,7 +3,7 @@
 //! saídas (venda/perda) entra pelos mesmos helpers (D4).
 
 use crate::application::ports_destinacao::CarimboSaldo;
-use crate::domain::alocacao::{alocar_perda, alocar_venda, Alocacao};
+use crate::domain::alocacao::{alocar_venda, Alocacao};
 use sea_orm::{ConnectionTrait, DbErr, Statement};
 
 /// Resolve o id do livro pelo código (identidade da UI — ADR-0012).
@@ -75,23 +75,14 @@ pub(crate) async fn somar_carimbo<C: ConnectionTrait>(
 
 
 
-/// Ordem de consumo dos saldos numa saída (D4).
-#[derive(Clone, Copy, PartialEq)]
-pub(crate) enum ModoConsumo {
-    /// Carimbos na ordem do cadastro (Loja 1ª) → livre. Retorna alocações p/ gravar.
-    Venda,
-    /// Livre → carimbos na ordem (protege o compromisso com o doador).
-    Perda,
-}
-
-/// Consome `qtd` dos saldos do livro. **Chamar ANTES da baixa física** — o livre
-/// é derivado do estoque atual (`estoque − Σ carimbos`). Decrementa os carimbos
-/// consumidos e retorna as alocações (inclusive a parte do livre, `None`).
+/// Consome `qtd` dos saldos do livro numa VENDA (carimbos na ordem do cadastro,
+/// Loja 1ª → livre). **Chamar ANTES da baixa física** — o livre é derivado do
+/// estoque atual (`estoque − Σ carimbos`). Decrementa os carimbos consumidos e
+/// retorna as alocações (inclusive a parte do livre, `None`).
 pub(crate) async fn consumir_carimbos<C: ConnectionTrait>(
     conn: &C,
     livro_id: i64,
     qtd: i64,
-    modo: ModoConsumo,
 ) -> Result<Vec<Alocacao>, DbErr> {
     if qtd <= 0 {
         return Ok(vec![]);
@@ -108,11 +99,7 @@ pub(crate) async fn consumir_carimbos<C: ConnectionTrait>(
     let carimbos = carimbos_ordenados(conn, livro_id).await?;
     let pares: Vec<(i64, i64)> = carimbos.iter().map(|c| (c.destinacao_id, c.qtd)).collect();
     let livre = estoque - pares.iter().map(|(_, q)| q).sum::<i64>();
-    let alocacoes = match modo {
-        ModoConsumo::Venda => alocar_venda(&pares, livre, qtd),
-        ModoConsumo::Perda => alocar_perda(livre, &pares, qtd),
-    }
-    .map_err(|e| DbErr::Custom(e.to_string()))?;
+    let alocacoes = alocar_venda(&pares, livre, qtd).map_err(|e| DbErr::Custom(e.to_string()))?;
     for a in &alocacoes {
         if let Some(id) = a.destinacao_id {
             somar_carimbo(conn, livro_id, id, -a.qtd).await?;

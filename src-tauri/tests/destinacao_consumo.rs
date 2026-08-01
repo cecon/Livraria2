@@ -11,7 +11,6 @@
 mod common;
 
 use livraria_2_lib::adapters::persistencia::destinacao_repo::SeaDestinacaoRepo;
-use livraria_2_lib::adapters::persistencia::estoque_repo::SeaEstoqueRepo;
 use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
 use livraria_2_lib::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use livraria_2_lib::adapters::persistencia::relatorio_repo::SeaRelatorioRepo;
@@ -21,7 +20,6 @@ use livraria_2_lib::application::destinacoes as dest;
 use livraria_2_lib::application::erros::ErroApp;
 use livraria_2_lib::application::ports::{PedidoRepo, RelatorioRepo, Relogio};
 use livraria_2_lib::application::ports_destinacao::DestinacaoRepo;
-use livraria_2_lib::application::ports_estoque::EstoqueRepo;
 use livraria_2_lib::domain::categoria::Categoria;
 use livraria_2_lib::domain::dinheiro::Dinheiro;
 use livraria_2_lib::domain::livro::Livro;
@@ -145,18 +143,6 @@ async fn estoque_de(db: &DatabaseConnection, codigo: &str) -> i64 {
     escalar(db, "SELECT estoque AS v FROM livro WHERE codigo = ?", vec![codigo.into()]).await
 }
 
-/// Saldo livre: `estoque − Σ carimbos` (pertence à Loja por definição — D1).
-async fn livre(db: &DatabaseConnection, codigo: &str) -> i64 {
-    escalar(
-        db,
-        "SELECT (l.estoque - COALESCE(\
-             (SELECT SUM(ds.qtd) FROM destinacao_saldo ds WHERE ds.livro_id = l.id), 0)) AS v \
-         FROM livro l WHERE l.codigo = ?",
-        vec![codigo.into()],
-    )
-    .await
-}
-
 /// Quantidade carimbada de um livro numa destinação (0 se não houver linha).
 async fn carimbo_qtd(db: &DatabaseConnection, codigo: &str, destinacao_id: i64) -> i64 {
     escalar(
@@ -255,36 +241,6 @@ async fn venda_antiga_bloqueada_apos_5_dias() {
         outro => panic!("esperava VENDA_ANTIGA, veio {outro:?}"),
     }
     cancelamento::cancelar_venda(2, &pedidos, &RelogioFixo).await.unwrap(); // dentro da janela
-
-    let _ = std::fs::remove_file(&path);
-}
-
-#[tokio::test]
-async fn perdas_protegem_carimbos_ajuste() {
-    let (db, path) = setup("perdas").await;
-    let estoque = SeaEstoqueRepo::new(db.clone());
-    let missoes = criar_dest(&db, "Missões").await;
-
-    // Ajuste negativo: livre 5 + Missões 10 → perda de 3 não toca Missões (FR-012).
-    semear_livro(&db, "444", 15, 2000).await;
-    carimbo(&db, "444", missoes, 10).await;
-    estoque.registrar_ajuste("444", -3, "quebra").await.unwrap();
-    assert_eq!(
-        (estoque_de(&db, "444").await, livre(&db, "444").await, carimbo_qtd(&db, "444", missoes).await),
-        (12, 2, 10)
-    );
-    // Perda além do livre avança pelos carimbos.
-    estoque.registrar_ajuste("444", -11, "quebra maior").await.unwrap();
-    assert_eq!(
-        (estoque_de(&db, "444").await, livre(&db, "444").await, carimbo_qtd(&db, "444", missoes).await),
-        (1, 0, 1)
-    );
-    // Ajuste positivo entra como livre.
-    estoque.registrar_ajuste("444", 4, "achado").await.unwrap();
-    assert_eq!((livre(&db, "444").await, carimbo_qtd(&db, "444", missoes).await), (4, 1));
-
-    // (Feature 012: o estorno de nota de entrada saiu do PDV — lançamento vive na
-    // nuvem. A proteção de carimbos por perda/ajuste segue coberta acima.)
 
     let _ = std::fs::remove_file(&path);
 }
