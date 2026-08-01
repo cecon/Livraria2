@@ -60,15 +60,6 @@ mod tests {
         async fn por_codigo(&self, _c: &str) -> Result<Option<Livro>, RepoErro> {
             Ok(Some(livro(self.estoque)))
         }
-        async fn salvar(&self, _l: &Livro) -> Result<(), RepoErro> {
-            Ok(())
-        }
-        async fn inativar(&self, _c: &str) -> Result<(), RepoErro> {
-            Ok(())
-        }
-        async fn recentes(&self, _l: i64) -> Result<Vec<Livro>, RepoErro> {
-            Ok(vec![])
-        }
         async fn buscar_texto(&self, _t: &str, _l: i64) -> Result<Vec<Livro>, RepoErro> {
             Ok(vec![])
         }

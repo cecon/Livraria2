@@ -19,15 +19,6 @@ impl LivroRepo for FakeLivros {
     async fn por_codigo(&self, codigo: &str) -> Result<Option<Livro>, RepoErro> {
         Ok(self.acervo.iter().find(|l| l.codigo == codigo).cloned())
     }
-    async fn salvar(&self, _l: &Livro) -> Result<(), RepoErro> {
-        Ok(())
-    }
-    async fn inativar(&self, _codigo: &str) -> Result<(), RepoErro> {
-        Ok(())
-    }
-    async fn recentes(&self, _limite: i64) -> Result<Vec<Livro>, RepoErro> {
-        Ok(vec![])
-    }
     async fn buscar_texto(&self, _t: &str, _l: i64) -> Result<Vec<Livro>, RepoErro> {
         Ok(vec![])
     }

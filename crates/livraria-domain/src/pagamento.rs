@@ -76,41 +76,6 @@ impl ChaveSistema {
             ChaveSistema::Vale => "vale",
         }
     }
-
-    /// Mapeia o código de método do legado (`vdmetodo`) para a chave (ADR-0006/0013).
-    /// "C" (cartão de crédito do legado) → Crédito; desconhecidos caem em Dinheiro.
-    pub fn de_legado_metodo(codigo: &str) -> ChaveSistema {
-        match codigo.trim().to_uppercase().as_str() {
-            "C" => ChaveSistema::Credito,
-            "P" => ChaveSistema::Pix,
-            "M" => ChaveSistema::Ministerio,
-            "V" => ChaveSistema::Vale,
-            _ => ChaveSistema::Dinheiro, // "D" e desconhecidos
-        }
-    }
-}
-
-/// Ids das formas de sistema já resolvidos (chave → id) pela aplicação, para uso
-/// em contextos sem acesso ao banco — ex.: o importador do legado (FR-018).
-#[derive(Debug, Clone, Copy)]
-pub struct FormaIds {
-    pub credito: i64,
-    pub dinheiro: i64,
-    pub pix: i64,
-    pub ministerio: i64,
-    pub vale: i64,
-}
-
-impl FormaIds {
-    pub fn id_de(self, chave: ChaveSistema) -> i64 {
-        match chave {
-            ChaveSistema::Credito => self.credito,
-            ChaveSistema::Dinheiro => self.dinheiro,
-            ChaveSistema::Pix => self.pix,
-            ChaveSistema::Ministerio => self.ministerio,
-            ChaveSistema::Vale => self.vale,
-        }
-    }
 }
 
 /// Turno derivado do horário de conclusão da venda (corte ~13h).
@@ -166,16 +131,6 @@ mod tests {
             ativa: true,
             ordem: 0,
         }
-    }
-
-    #[test]
-    fn metodo_legado_mapeia_por_chave() {
-        assert_eq!(ChaveSistema::de_legado_metodo("C"), ChaveSistema::Credito);
-        assert_eq!(ChaveSistema::de_legado_metodo("p"), ChaveSistema::Pix);
-        assert_eq!(ChaveSistema::de_legado_metodo("M"), ChaveSistema::Ministerio);
-        assert_eq!(ChaveSistema::de_legado_metodo("V"), ChaveSistema::Vale);
-        assert_eq!(ChaveSistema::de_legado_metodo("d"), ChaveSistema::Dinheiro);
-        assert_eq!(ChaveSistema::de_legado_metodo("?"), ChaveSistema::Dinheiro);
     }
 
     #[test]

@@ -19,7 +19,7 @@ use livraria_2_lib::adapters::persistencia::{conectar, inicializar_schema};
 use livraria_2_lib::application::cancelamento;
 use livraria_2_lib::application::destinacoes as dest;
 use livraria_2_lib::application::erros::ErroApp;
-use livraria_2_lib::application::ports::{LivroRepo, PedidoRepo, RelatorioRepo, Relogio};
+use livraria_2_lib::application::ports::{PedidoRepo, RelatorioRepo, Relogio};
 use livraria_2_lib::application::ports_destinacao::DestinacaoRepo;
 use livraria_2_lib::application::ports_estoque::EstoqueRepo;
 use livraria_2_lib::domain::categoria::Categoria;

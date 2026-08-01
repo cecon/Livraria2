@@ -2,7 +2,6 @@
 //! Orquestra o domínio e fala com o mundo externo apenas por meio das portas.
 
 pub mod ajuste;
-pub mod cadastro;
 pub mod cancelamento;
 pub mod dashboard;
 pub mod erros;
@@ -12,7 +11,6 @@ pub mod estoque_setup;
 pub mod extrato;
 pub mod formas_pagamento;
 pub mod fornecedores;
-pub mod migracao;
 pub mod pesquisa;
 pub mod destinacoes;
 pub mod ports;
