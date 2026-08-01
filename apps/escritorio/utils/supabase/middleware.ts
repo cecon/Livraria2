@@ -1,10 +1,11 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { requiredEnv } from "@/utils/env";
 
 type CookieItem = { name: string; value: string; options: CookieOptions };
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+const supabaseUrl = requiredEnv("NEXT_PUBLIC_SUPABASE_URL");
+const supabaseKey = requiredEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
 
 // Atualiza a sessão e protege rotas: sem sessão → redireciona para /login.
 export async function updateSession(request: NextRequest) {

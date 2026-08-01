@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
+import { cleanEnv } from "@/utils/env";
 
 async function autenticarPerfil(usuario: string, senha: string) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  const email = process.env.ESCRITORIO_EMAIL;
-  const password = process.env.ESCRITORIO_SENHA;
+  const url = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const key = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+  const email = cleanEnv(process.env.ESCRITORIO_EMAIL);
+  const password = cleanEnv(process.env.ESCRITORIO_SENHA);
   if (!url || !key || !email || !password) {
     return { perfil: null, error: new Error("Supabase nao configurado") };
   }
@@ -76,8 +77,8 @@ export async function POST(request: NextRequest) {
   }
 
   // 2) abre a sessão de serviço compartilhada (dados via RLS authenticated).
-  const email = process.env.ESCRITORIO_EMAIL;
-  const password = process.env.ESCRITORIO_SENHA;
+  const email = cleanEnv(process.env.ESCRITORIO_EMAIL);
+  const password = cleanEnv(process.env.ESCRITORIO_SENHA);
   if (!email || !password) {
     return NextResponse.json({ erro: "Sessão de serviço não configurada." }, { status: 500 });
   }
