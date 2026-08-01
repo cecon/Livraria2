@@ -42,6 +42,11 @@ impl SeaEstoqueRepo {
                        WHERE i.codigo = l.codigo
                          AND p.cancelado = 1
                          AND p.sincronizado_em IS NULL
+                         -- Só compensa o cancelamento de venda JÁ incorporada ao
+                         -- saldo_publicado (a nuvem baixou o −1). Venda criada e
+                         -- cancelada offline continua 'pronta' — nunca baixou, então
+                         -- o +1 seria dupla contagem (bug 121→122 antes do sync).
+                         AND p.estoque_status = 'incorporada'
                      ), 0) AS saldo
                  FROM livro l
                  WHERE l.codigo = ?",
