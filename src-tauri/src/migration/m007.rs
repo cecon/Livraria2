@@ -46,10 +46,8 @@ pub const UP: &[&str] = &[
         valor_centavos INTEGER NOT NULL
     )",
     "CREATE INDEX IF NOT EXISTS idx_aloc_pedido ON alocacao_venda(pedido_numero)",
-    // Seed da destinação de sistema (padrão). Nome renomeável; a identidade é de_sistema=1.
-    "INSERT INTO destinacao (nome, nome_norm, de_sistema, ativa, ordem)
-     SELECT 'Loja', 'loja', 1, 1, 0
-     WHERE NOT EXISTS (SELECT 1 FROM destinacao WHERE de_sistema = 1)",
+    // Feature 012 ("a nuvem manda"): NÃO semeia mais a "Loja". Num install limpo a
+    // destinação de sistema desce da nuvem no 1º sync (destinacao é pull-only, US2).
 ];
 
 #[async_trait::async_trait]
