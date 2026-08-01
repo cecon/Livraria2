@@ -8,5 +8,4 @@ pub mod livro;
 pub mod movimento_estoque;
 pub mod pagamento_pedido;
 pub mod pedido;
-pub mod pendencia_cadastro;
 pub mod usuario;
