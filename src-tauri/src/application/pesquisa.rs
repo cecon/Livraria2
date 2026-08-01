@@ -5,11 +5,6 @@ use crate::application::ports::LivroRepo;
 use crate::domain::livro::Livro;
 use crate::domain::texto::normalize;
 
-/// Busca por código de barras exato.
-pub async fn por_codigo(codigo: &str, livros: &dyn LivroRepo) -> Result<Option<Livro>, ErroApp> {
-    Ok(livros.por_codigo(codigo.trim()).await?)
-}
-
 /// Busca por título/autor, insensível a acento e caixa (FR-021).
 pub async fn por_texto(termo: &str, livros: &dyn LivroRepo) -> Result<Vec<Livro>, ErroApp> {
     let norm = normalize(termo);
