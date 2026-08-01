@@ -40,12 +40,10 @@ pub fn run() {
                 tauri::async_runtime::block_on(async {
                     let db = adapters::persistencia::conectar(&url).await?;
                     adapters::persistencia::inicializar_schema(&db).await?;
-                    // Gate de relatórios: garante o admin padrão (adm/adm).
-                    use application::ports::UsuarioRepo;
-                    adapters::persistencia::usuario_repo::SeaUsuarioRepo::new(db.clone())
-                        .garantir_admin()
-                        .await
-                        .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
+                    // Feature 012 ("a nuvem manda"): o PDV NÃO semeia mais o admin.
+                    // Num install limpo o banco nasce sem usuários e os baixa da nuvem
+                    // (com senha_hash + perfil — feature 010) no 1º sync. Assim nada de
+                    // seed sobe/corrompe a nuvem e o cadastro de usuários vive só lá.
                     // Razão de movimentos: gera saldo inicial por livro (idempotente, FR-006).
                     let estoque_repo =
                         adapters::persistencia::estoque_repo::SeaEstoqueRepo::new(db.clone());
