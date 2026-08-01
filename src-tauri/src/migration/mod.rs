@@ -12,6 +12,8 @@ pub mod m008;
 pub mod m009;
 pub mod m010;
 pub mod m011;
+pub mod m012;
+pub mod m013;
 
 pub struct Migrator;
 

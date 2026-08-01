@@ -7,8 +7,6 @@ mod common;
 
 use livraria_2_lib::adapters::persistencia::destinacao_repo::SeaDestinacaoRepo;
 use livraria_2_lib::adapters::persistencia::estoque_repo::SeaEstoqueRepo;
-use livraria_2_lib::adapters::persistencia::fornecedor_repo::SeaFornecedorRepo;
-use livraria_2_lib::adapters::persistencia::lancamento_repo::SeaLancamentoRepo;
 use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
 use livraria_2_lib::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use livraria_2_lib::adapters::persistencia::relatorio_repo::SeaRelatorioRepo;
@@ -18,7 +16,7 @@ use livraria_2_lib::application::erros::ErroApp;
 use livraria_2_lib::application::ports::{
     LivroRepo, PedidoRepo, Relogio, RelatorioRepo,
 };
-use livraria_2_lib::application::ports_compras::{FornecedorRepo, LancamentoRepo};
+use livraria_2_lib::application::ports_compras::FornecedorRepo;
 use livraria_2_lib::application::ports_destinacao::DestinacaoRepo;
 use livraria_2_lib::application::ports_estoque::EstoqueRepo;
 use livraria_2_lib::application::cancelamento;
@@ -198,7 +196,7 @@ async fn venda_antiga_bloqueada_apos_5_dias() {
 }
 
 #[tokio::test]
-async fn perdas_protegem_carimbos_ajuste_e_estorno_de_nota() {
+async fn perdas_protegem_carimbos_ajuste() {
     let (db, path) = setup("perdas").await;
     let repo = SeaDestinacaoRepo::new(db.clone());
     let estoque = SeaEstoqueRepo::new(db.clone());
@@ -219,28 +217,8 @@ async fn perdas_protegem_carimbos_ajuste_e_estorno_de_nota() {
     let s = dest::saldos_livro("444", &repo).await.unwrap();
     assert_eq!((s.livre, qtd_de(&s, missoes.id)), (4, 1));
 
-    // Estorno de nota de entrada consome como perda (edge case da spec).
-    let lanc = SeaLancamentoRepo::new(db.clone());
-    semear_livro(&db, "555", 0, 2000).await;
-    let doador = SeaFornecedorRepo::new(db.clone())
-        .salvar(&livraria_2_lib::domain::fornecedor::Fornecedor {
-            id: 0,
-            nome: "Doações".into(),
-            documento: None,
-            telefone: None,
-            email: None,
-            observacoes: None,
-            ativo: true,
-        })
-        .await
-        .unwrap();
-    let nota = lanc.criar(Some(doador.id)).await.unwrap();
-    lanc.adicionar_item(nota.id, "555", 10, 0).await.unwrap();
-    livraria_2_lib::application::lancamentos::finalizar(nota.id, &lanc).await.unwrap();
-    carimbo(&repo, "555", missoes.id, 8).await; // 8 carimbadas, 2 livres
-    livraria_2_lib::application::lancamentos::cancelar(nota.id, &lanc).await.unwrap();
-    let s = dest::saldos_livro("555", &repo).await.unwrap();
-    assert_eq!((s.estoque, s.livre, qtd_de(&s, missoes.id)), (0, 0, 0));
+    // (Feature 012: o estorno de nota de entrada saiu do PDV — lançamento vive na
+    // nuvem. A proteção de carimbos por perda/ajuste segue coberta acima.)
 
     let _ = std::fs::remove_file(&path);
 }

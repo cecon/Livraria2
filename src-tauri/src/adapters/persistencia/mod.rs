@@ -9,11 +9,6 @@ pub mod estoque_repo;
 pub mod estoque_sql;
 pub mod forma_pagamento_repo;
 pub mod fornecedor_repo;
-pub mod inventario_relatorio_sql;
-pub mod inventario_repo;
-pub mod inventario_sql;
-pub mod lancamento_repo;
-pub mod lancamento_sql;
 pub mod livro_repo;
 pub mod pagamento_pedido_sql;
 pub mod pedido_repo;
@@ -68,5 +63,8 @@ pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     crate::migration::m010::aplicar(db).await?;
     // m011 (feature 011): marcador de venda pronta para estoque oficial na nuvem.
     crate::migration::m011::aplicar(db).await?;
+    // m012/m013 (feature 012): drop das tabelas de lancamento/inventario (saem do PDV).
+    crate::migration::m012::aplicar(db).await?;
+    crate::migration::m013::aplicar(db).await?;
     Ok(())
 }

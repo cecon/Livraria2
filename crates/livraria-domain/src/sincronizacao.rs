@@ -20,13 +20,11 @@ pub const ORDEM_DEPENDENCIA: &[&str] = &[
     // Dependem dos pais acima.
     "turno_operacao",           // operador -> usuario (antes de pedido; ADR-0021)
     "pedido",                   // operador -> usuario; turno -> turno_operacao
-    "lancamento_entrada",       // -> fornecedor
     "movimento_estoque",        // -> livro
     "transferencia_destinacao", // -> livro, destinacao
     // Dependem do nível anterior.
     "item_pedido",      // -> pedido
     "pagamento_pedido", // -> pedido, forma_pagamento
-    "item_lancamento",  // -> lancamento_entrada, livro
     "alocacao_venda",   // -> pedido, item_pedido, destinacao
 ];
 
@@ -105,8 +103,6 @@ mod testes {
         assert!(pos("usuario") < pos("pedido")); // operador
         assert!(pos("usuario") < pos("turno_operacao")); // operador do turno
         assert!(pos("turno_operacao") < pos("pedido")); // pedido.turno_uid -> turno_operacao
-        assert!(pos("fornecedor") < pos("lancamento_entrada"));
-        assert!(pos("lancamento_entrada") < pos("item_lancamento"));
         assert!(pos("destinacao") < pos("alocacao_venda"));
         assert!(pos("item_pedido") < pos("alocacao_venda"));
     }

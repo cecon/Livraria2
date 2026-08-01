@@ -8,7 +8,6 @@ use livraria_2_lib::adapters::persistencia::{conectar, inicializar_schema};
 use livraria_2_lib::application::erros::ErroApp;
 use livraria_2_lib::application::formas_pagamento as uc;
 use livraria_2_lib::application::ports::FormaPagamentoRepo;
-use livraria_2_lib::domain::erros::ErroDominio;
 use sea_orm::{ConnectionTrait, DatabaseConnection, Statement};
 
 fn url_temp(tag: &str) -> (String, std::path::PathBuf) {
