@@ -2,6 +2,8 @@
 //! `pedido.operador` (texto → usuario.sync_uid), `pedido_numero` (→ pedido.sync_uid),
 //! `forma_id` (→ forma_pagamento.sync_uid). Sem rede — base SQLite migrada.
 
+mod common;
+
 use livraria_2_lib::adapters::persistencia::inicializar_schema;
 use livraria_2_lib::adapters::persistencia::replica_sync::SeaReplicaSync;
 use livraria_2_lib::application::ports_sync::ReplicaLocalRepo;
@@ -20,6 +22,7 @@ async fn escalar(db: &DatabaseConnection, sql: String) -> String {
 async fn venda_remapeia_operador_pedido_e_forma_por_sync_uid() {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     inicializar_schema(&db).await.unwrap();
+    common::semear_formas(&db).await; // feature 012: as formas viriam da nuvem
 
     exec(&db, "INSERT INTO usuario (usuario,senha_hash,nome) VALUES ('joao','h','João')".into()).await;
     exec(&db, "INSERT INTO livro (codigo,titulo) VALUES ('789','L')".into()).await;

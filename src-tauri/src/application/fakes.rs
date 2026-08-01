@@ -19,15 +19,6 @@ impl LivroRepo for FakeLivros {
     async fn por_codigo(&self, codigo: &str) -> Result<Option<Livro>, RepoErro> {
         Ok(self.acervo.iter().find(|l| l.codigo == codigo).cloned())
     }
-    async fn salvar(&self, _l: &Livro) -> Result<(), RepoErro> {
-        Ok(())
-    }
-    async fn inativar(&self, _codigo: &str) -> Result<(), RepoErro> {
-        Ok(())
-    }
-    async fn recentes(&self, _limite: i64) -> Result<Vec<Livro>, RepoErro> {
-        Ok(vec![])
-    }
     async fn buscar_texto(&self, _t: &str, _l: i64) -> Result<Vec<Livro>, RepoErro> {
         Ok(vec![])
     }
@@ -92,24 +83,6 @@ impl FormaPagamentoRepo for FakeFormas {
     async fn por_chave(&self, chave: &str) -> Result<Option<FormaPagamento>, RepoErro> {
         Ok(self.listar().await?.into_iter().find(|x| x.chave == chave))
     }
-    async fn em_uso(&self, _id: i64) -> Result<bool, RepoErro> {
-        Ok(false)
-    }
-    async fn criar(&self, _c: &str, _r: &str, _a: bool, _o: i64) -> Result<FormaPagamento, RepoErro> {
-        unimplemented!()
-    }
-    async fn renomear(&self, _id: i64, _r: &str) -> Result<(), RepoErro> {
-        Ok(())
-    }
-    async fn definir_ativa(&self, _id: i64, _a: bool) -> Result<(), RepoErro> {
-        Ok(())
-    }
-    async fn reordenar(&self, _ids: &[i64]) -> Result<(), RepoErro> {
-        Ok(())
-    }
-    async fn excluir(&self, _id: i64) -> Result<(), RepoErro> {
-        Ok(())
-    }
 }
 
 pub struct RelogioFixo;
@@ -128,64 +101,6 @@ pub struct FakeDestinacoes;
 #[async_trait]
 impl crate::application::ports_destinacao::DestinacaoRepo for FakeDestinacoes {
     async fn listar(&self) -> Result<Vec<crate::domain::destinacao::Destinacao>, RepoErro> {
-        Ok(vec![])
-    }
-    async fn listar_ativas(&self) -> Result<Vec<crate::domain::destinacao::Destinacao>, RepoErro> {
-        Ok(vec![])
-    }
-    async fn por_id(
-        &self,
-        _id: i64,
-    ) -> Result<Option<crate::domain::destinacao::Destinacao>, RepoErro> {
-        Ok(None)
-    }
-    async fn em_uso(&self, _id: i64) -> Result<bool, RepoErro> {
-        Ok(false)
-    }
-    async fn criar(
-        &self,
-        _nome: &str,
-        _norm: &str,
-        _ordem: i64,
-    ) -> Result<crate::domain::destinacao::Destinacao, RepoErro> {
-        unimplemented!()
-    }
-    async fn renomear(&self, _id: i64, _n: &str, _nn: &str) -> Result<(), RepoErro> {
-        Ok(())
-    }
-    async fn definir_ativa(&self, _id: i64, _a: bool) -> Result<(), RepoErro> {
-        Ok(())
-    }
-    async fn reordenar(&self, _ids: &[i64]) -> Result<(), RepoErro> {
-        Ok(())
-    }
-    async fn excluir(&self, _id: i64) -> Result<(), RepoErro> {
-        Ok(())
-    }
-    async fn saldos_livro(
-        &self,
-        _codigo: &str,
-    ) -> Result<crate::application::ports_destinacao::SaldoLivro, RepoErro> {
-        Ok(crate::application::ports_destinacao::SaldoLivro {
-            estoque: 0,
-            livre: 0,
-            carimbos: vec![],
-        })
-    }
-    async fn transferir(
-        &self,
-        _codigo: &str,
-        _de: Option<i64>,
-        _para: Option<i64>,
-        _qtd: i64,
-        _motivo: Option<String>,
-    ) -> Result<crate::application::ports_destinacao::SaldoLivro, RepoErro> {
-        unimplemented!()
-    }
-    async fn transferencias_livro(
-        &self,
-        _codigo: &str,
-    ) -> Result<Vec<crate::application::ports_destinacao::TransferenciaReg>, RepoErro> {
         Ok(vec![])
     }
     async fn relatorio(

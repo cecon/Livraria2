@@ -5,14 +5,13 @@ use crate::application::ports::{LivroRepo, RepoErro};
 use crate::domain::categoria::Categoria;
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::livro::Livro;
-use crate::domain::texto::normalize;
 use async_trait::async_trait;
 use chrono::Local;
 use sea_orm::sea_query::{Expr, OnConflict};
 use sea_orm::{
     ActiveValue::{NotSet, Set},
-    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, QuerySelect,
+    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder,
+    QuerySelect,
 };
 
 pub struct SeaLivroRepo {
@@ -24,50 +23,59 @@ impl SeaLivroRepo {
         Self { db }
     }
 
-    /// Bipagem (FR-042): casa o valor lido contra `codigo` (o código de barras
-    /// EAN/ISBN, agora a chave única do livro).
-    pub async fn por_codigo_barras_ou_codigo(
-        &self,
-        valor: &str,
-    ) -> Result<Option<Livro>, RepoErro> {
-        let m = LivroEntity::find()
-            .filter(livro::Column::Ativo.eq(true))
-            .filter(livro::Column::Codigo.eq(valor))
-            .one(&self.db)
+    /// Semeia/atualiza um livro no acervo. Em PRODUÇÃO o acervo desce da nuvem
+    /// (a porta `LivroRepo` é só leitura); este método existe para a suíte de
+    /// integração montar o estado como se tivesse vindo do sync. Upsert por
+    /// `codigo` (código de barras) — editar NÃO sobrescreve o saldo (FR-002).
+    pub async fn salvar(&self, l: &Livro) -> Result<(), RepoErro> {
+        let agora = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
+        let am = ActiveModel {
+            id: NotSet, // auto-increment; o upsert casa por `codigo` (único)
+            codigo: Set(l.codigo.clone()),
+            titulo: Set(l.titulo.clone()),
+            autor: Set(l.autor.clone()),
+            preco_centavos: Set(l.preco.centavos()),
+            categoria: Set(l.categoria.to_i64()),
+            estoque: Set(l.estoque),
+            saldo_publicado: Set(l.estoque),
+            descricao: Set(l.descricao.clone()),
+            busca_norm: Set(l.busca_norm()),
+            ativo: Set(true),
+            atualizado_em: Set(agora),
+            // custo_medio nasce com o valor do domínio e NÃO entra no update_columns.
+            custo_medio_centavos: Set(l.custo_medio.centavos()),
+        };
+        LivroEntity::insert(am)
+            .on_conflict(
+                OnConflict::column(livro::Column::Codigo)
+                    .update_columns([
+                        livro::Column::Titulo,
+                        livro::Column::Autor,
+                        livro::Column::PrecoCentavos,
+                        livro::Column::Categoria,
+                        // Estoque NÃO entra: ao editar um livro, o saldo é preservado.
+                        livro::Column::Descricao,
+                        livro::Column::BuscaNorm,
+                        livro::Column::Ativo,
+                        livro::Column::AtualizadoEm,
+                    ])
+                    .to_owned(),
+            )
+            .exec(&self.db)
             .await
             .map_err(erro)?;
-        Ok(m.map(para_dominio))
+        Ok(())
     }
 
-    /// Lista paginada de livros ativos (mais recentes primeiro), com busca opcional
-    /// por título/autor (sem acento), código ou código de barras. Retorna (itens, total).
-    /// `pagina` é 1-based.
-    pub async fn listar_pagina(
-        &self,
-        termo: &str,
-        pagina: u64,
-        por_pagina: u64,
-    ) -> Result<(Vec<Livro>, i64), RepoErro> {
-        let mut q = LivroEntity::find().filter(livro::Column::Ativo.eq(true));
-        let t = termo.trim();
-        if !t.is_empty() {
-            let norm = format!("%{}%", normalize(t));
-            let bruto = format!("%{}%", t);
-            q = q.filter(
-                Condition::any()
-                    .add(livro::Column::BuscaNorm.like(norm))
-                    .add(livro::Column::Codigo.like(bruto)),
-            );
-        }
-        let pager = q
-            .order_by_desc(livro::Column::AtualizadoEm)
-            .paginate(&self.db, por_pagina.max(1));
-        let total = pager.num_items().await.map_err(erro)? as i64;
-        let ms = pager
-            .fetch_page(pagina.saturating_sub(1))
+    /// Soft-delete por `codigo` (infra de teste — ver `salvar`).
+    pub async fn inativar(&self, codigo: &str) -> Result<(), RepoErro> {
+        LivroEntity::update_many()
+            .col_expr(livro::Column::Ativo, Expr::value(false))
+            .filter(livro::Column::Codigo.eq(codigo))
+            .exec(&self.db)
             .await
             .map_err(erro)?;
-        Ok((ms.into_iter().map(para_dominio).collect(), total))
+        Ok(())
     }
 }
 
@@ -98,71 +106,6 @@ impl LivroRepo for SeaLivroRepo {
             .await
             .map_err(erro)?;
         Ok(m.map(para_dominio))
-    }
-
-    async fn salvar(&self, l: &Livro) -> Result<(), RepoErro> {
-        let agora = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
-        let am = ActiveModel {
-            id: NotSet, // auto-increment; o upsert casa por `codigo` (único)
-            codigo: Set(l.codigo.clone()),
-            titulo: Set(l.titulo.clone()),
-            autor: Set(l.autor.clone()),
-            preco_centavos: Set(l.preco.centavos()),
-            categoria: Set(l.categoria.to_i64()),
-            estoque: Set(l.estoque),
-            saldo_publicado: Set(l.estoque),
-            descricao: Set(l.descricao.clone()),
-            busca_norm: Set(l.busca_norm()),
-            ativo: Set(true),
-            atualizado_em: Set(agora),
-            // custo_medio é gerido pela entrada de mercadoria; no insert nasce com o valor
-            // do domínio (0 em cadastro novo) e NÃO entra no update_columns para não ser
-            // sobrescrito ao editar o livro.
-            custo_medio_centavos: Set(l.custo_medio.centavos()),
-        };
-        LivroEntity::insert(am)
-            .on_conflict(
-                OnConflict::column(livro::Column::Codigo)
-                    .update_columns([
-                        livro::Column::Titulo,
-                        livro::Column::Autor,
-                        livro::Column::PrecoCentavos,
-                        livro::Column::Categoria,
-                        // Estoque NÃO entra: ao editar um livro, o saldo é preservado.
-                        // Estoque só muda por movimento (entrada/ajuste/venda/inventário).
-                        livro::Column::Descricao,
-                        livro::Column::BuscaNorm,
-                        livro::Column::Ativo,
-                        livro::Column::AtualizadoEm,
-                    ])
-                    .to_owned(),
-            )
-            .exec(&self.db)
-            .await
-            .map_err(erro)?;
-        Ok(())
-    }
-
-    async fn inativar(&self, codigo: &str) -> Result<(), RepoErro> {
-        // PK passou a ser `id`; o soft-delete continua endereçando o livro por `codigo`.
-        LivroEntity::update_many()
-            .col_expr(livro::Column::Ativo, Expr::value(false))
-            .filter(livro::Column::Codigo.eq(codigo))
-            .exec(&self.db)
-            .await
-            .map_err(erro)?;
-        Ok(())
-    }
-
-    async fn recentes(&self, limite: i64) -> Result<Vec<Livro>, RepoErro> {
-        let ms = LivroEntity::find()
-            .filter(livro::Column::Ativo.eq(true))
-            .order_by_desc(livro::Column::AtualizadoEm)
-            .limit(limite as u64)
-            .all(&self.db)
-            .await
-            .map_err(erro)?;
-        Ok(ms.into_iter().map(para_dominio).collect())
     }
 
     async fn buscar_texto(&self, termo_norm: &str, limite: i64) -> Result<Vec<Livro>, RepoErro> {

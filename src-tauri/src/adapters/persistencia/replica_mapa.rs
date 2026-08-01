@@ -177,28 +177,9 @@ pub(crate) const SPECS: &[Spec] = &[
             rid("forma_uid", "forma_id", "forma_pagamento"),
         ],
     },
-    Spec {
-        recurso: "lancamento_entrada",
-        mutavel: true,
-        default_insert: &[],
-        cols: &[
-            Col { nome: "numero", tipo: Texto },
-            Col { nome: "data", tipo: Texto },
-            Col { nome: "status", tipo: Texto },
-            Col { nome: "finalizada_em", tipo: Texto },
-        ],
-        refs: &[rid("fornecedor_uid", "fornecedor_id", "fornecedor")],
-    },
-    Spec {
-        recurso: "item_lancamento",
-        mutavel: false,
-        default_insert: &[],
-        cols: &[Col { nome: "qtd", tipo: Inteiro }, Col { nome: "custo_unit_centavos", tipo: Inteiro }],
-        refs: &[
-            rid("lancamento_uid", "lancamento_id", "lancamento_entrada"),
-            rid("livro_uid", "livro_id", "livro"),
-        ],
-    },
+    // Feature 012: lançamento de nota saiu do PDV (entrada vive na nuvem) — as
+    // tabelas locais foram dropadas (m012); nada de lancamento_entrada/item_lancamento
+    // no sync.
     // Estoque: evento append-only; FK livro por sync_uid.
     Spec {
         recurso: "movimento_estoque",
@@ -242,6 +223,12 @@ pub(crate) const SPECS: &[Spec] = &[
 
 pub(crate) fn spec(recurso: &str) -> Option<&'static Spec> {
     SPECS.iter().find(|s| s.recurso == recurso)
+}
+
+/// Cadastros cuja autoridade é a nuvem (feature 012, US2 / "a nuvem manda"):
+/// o PDV **lê** (pull) mas **nunca empurra** (push). A edição vive no escritório.
+pub(crate) fn pull_only(recurso: &str) -> bool {
+    matches!(recurso, "fornecedor" | "forma_pagamento" | "destinacao")
 }
 
 /// `json_object(...)` que produz a linha no formato da nuvem (bool 0/1→true/false;

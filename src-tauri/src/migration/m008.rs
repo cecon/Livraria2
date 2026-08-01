@@ -16,8 +16,6 @@ pub const TABELAS_SYNC: &[&str] = &[
     "item_pedido",
     "pagamento_pedido",
     "forma_pagamento",
-    "lancamento_entrada",
-    "item_lancamento",
     "fornecedor",
     "destinacao",
     "transferencia_destinacao",

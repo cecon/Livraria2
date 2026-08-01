@@ -30,14 +30,6 @@ pub fn estado_boot(boot: tauri::State<'_, BootState>) -> EstadoBootDto {
     }
 }
 
-/// Todas as formas, por ordem (inclui inativas — tela de cadastro).
-#[tauri::command]
-pub async fn listar_formas(
-    state: tauri::State<'_, AppState>,
-) -> Result<Vec<FormaPagamento>, ErroDto> {
-    let repo = SeaFormaPagamentoRepo::new(state.db.clone());
-    Ok(formas_pagamento::listar(&repo).await?)
-}
 
 /// Só ativas, por ordem (PDV — FR-012).
 #[tauri::command]
@@ -48,56 +40,7 @@ pub async fn listar_formas_ativas(
     Ok(formas_pagamento::listar_ativas(&repo).await?)
 }
 
-/// Cria uma forma livre (FR-005).
-#[tauri::command]
-pub async fn criar_forma(
-    state: tauri::State<'_, AppState>,
-    rotulo: String,
-    ativa: bool,
-) -> Result<FormaPagamento, ErroDto> {
-    let repo = SeaFormaPagamentoRepo::new(state.db.clone());
-    Ok(formas_pagamento::criar(&rotulo, ativa, &repo).await?)
-}
 
-/// Renomeia mantendo a identidade (FR-006).
-#[tauri::command]
-pub async fn renomear_forma(
-    state: tauri::State<'_, AppState>,
-    id: i64,
-    rotulo: String,
-) -> Result<FormaPagamento, ErroDto> {
-    let repo = SeaFormaPagamentoRepo::new(state.db.clone());
-    Ok(formas_pagamento::renomear(id, &rotulo, &repo).await?)
-}
 
-/// Ativa/desativa (FR-007); reativação com nome conflitante é bloqueada (D9).
-#[tauri::command]
-pub async fn definir_forma_ativa(
-    state: tauri::State<'_, AppState>,
-    id: i64,
-    ativa: bool,
-) -> Result<FormaPagamento, ErroDto> {
-    let repo = SeaFormaPagamentoRepo::new(state.db.clone());
-    Ok(formas_pagamento::definir_ativa(id, ativa, &repo).await?)
-}
 
-/// Reordena a exibição (FR-008).
-#[tauri::command]
-pub async fn reordenar_formas(
-    state: tauri::State<'_, AppState>,
-    ids_ordenados: Vec<i64>,
-) -> Result<Vec<FormaPagamento>, ErroDto> {
-    let repo = SeaFormaPagamentoRepo::new(state.db.clone());
-    Ok(formas_pagamento::reordenar(&ids_ordenados, &repo).await?)
-}
 
-/// Exclui forma livre nunca usada (FR-009); em uso/de sistema → erro claro.
-#[tauri::command]
-pub async fn excluir_forma(
-    state: tauri::State<'_, AppState>,
-    id: i64,
-) -> Result<(), ErroDto> {
-    let repo = SeaFormaPagamentoRepo::new(state.db.clone());
-    formas_pagamento::excluir(id, &repo).await?;
-    Ok(())
-}

@@ -119,10 +119,12 @@ async fn reaplicar_e_noop_idempotente() {
 }
 
 #[tokio::test]
-async fn base_vazia_converge() {
+async fn base_vazia_nao_semeia_formas() {
+    // Feature 012 ("a nuvem manda"): sem dados legados (val_*), o seed condicional
+    // NÃO cria formas — num install limpo elas descem da nuvem no 1º sync.
     let (db, path) = base_antiga("vazia").await;
     let rel = m006::aplicar(&db).await.unwrap().expect("deve migrar");
-    assert_eq!(rel.formas_semeadas, 7);
+    assert_eq!(rel.formas_semeadas, 0, "base limpa não semeia formas (vêm da nuvem)");
     assert_eq!(rel.pedidos, 0);
     assert_eq!(rel.linhas_pagamento, 0);
     assert!(m006::aplicar(&db).await.unwrap().is_none());

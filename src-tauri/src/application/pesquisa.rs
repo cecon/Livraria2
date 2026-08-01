@@ -5,11 +5,6 @@ use crate::application::ports::LivroRepo;
 use crate::domain::livro::Livro;
 use crate::domain::texto::normalize;
 
-/// Busca por código de barras exato.
-pub async fn por_codigo(codigo: &str, livros: &dyn LivroRepo) -> Result<Option<Livro>, ErroApp> {
-    Ok(livros.por_codigo(codigo.trim()).await?)
-}
-
 /// Busca por título/autor, insensível a acento e caixa (FR-021).
 pub async fn por_texto(termo: &str, livros: &dyn LivroRepo) -> Result<Vec<Livro>, ErroApp> {
     let norm = normalize(termo);
@@ -35,15 +30,6 @@ mod tests {
     impl LivroRepo for EspiaRepo {
         async fn por_codigo(&self, _c: &str) -> Result<Option<Livro>, RepoErro> {
             Ok(None)
-        }
-        async fn salvar(&self, _l: &Livro) -> Result<(), RepoErro> {
-            Ok(())
-        }
-        async fn inativar(&self, _c: &str) -> Result<(), RepoErro> {
-            Ok(())
-        }
-        async fn recentes(&self, _l: i64) -> Result<Vec<Livro>, RepoErro> {
-            Ok(vec![])
         }
         async fn buscar_texto(&self, termo: &str, _l: i64) -> Result<Vec<Livro>, RepoErro> {
             *self.ultimo_termo.lock().unwrap() = termo.to_string();

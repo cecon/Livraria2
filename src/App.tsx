@@ -11,9 +11,6 @@ import Inicio from "@/routes/Inicio";
 import Venda from "@/routes/Venda";
 import Turnos from "@/routes/Turnos";
 import Pesquisa from "@/routes/Pesquisa";
-import Fornecedores from "@/routes/Fornecedores";
-import FormasPagamento from "@/routes/FormasPagamento";
-import Destinacoes from "@/routes/Destinacoes";
 import Relatorios from "@/routes/Relatorios";
 
 function App() {
@@ -67,16 +64,13 @@ function App() {
         />
         <main className="flex-1 overflow-auto">
           <Routes>
+            {/* PDV consumidor (feature 012): cadastro/lançamento/inventário e a edição de
+                cadastros (fornecedor/forma/destinação) vivem na nuvem — não há telas aqui.
+                URLs antigas caem no catch-all abaixo. */}
             <Route path="/" element={<Inicio />} />
             <Route path="/venda" element={<Venda />} />
             <Route path="/turnos" element={<Turnos />} />
             <Route path="/pesquisa" element={<Pesquisa />} />
-            <Route path="/cadastro" element={<Navigate to="/pesquisa" replace />} />
-            <Route path="/lancamentos" element={<Navigate to="/pesquisa" replace />} />
-            <Route path="/fornecedores" element={<Fornecedores />} />
-            <Route path="/formas-pagamento" element={<FormasPagamento />} />
-            <Route path="/destinacoes" element={<Destinacoes />} />
-            <Route path="/inventario" element={<Navigate to="/pesquisa" replace />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

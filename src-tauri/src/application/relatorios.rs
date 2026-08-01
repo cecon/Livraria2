@@ -212,24 +212,6 @@ mod tests {
         async fn por_chave(&self, chave: &str) -> Result<Option<FormaPagamento>, RepoErro> {
             Ok(self.listar().await?.into_iter().find(|f| f.chave == chave))
         }
-        async fn em_uso(&self, _id: i64) -> Result<bool, RepoErro> {
-            Ok(true)
-        }
-        async fn criar(&self, _c: &str, _r: &str, _a: bool, _o: i64) -> Result<FormaPagamento, RepoErro> {
-            unimplemented!()
-        }
-        async fn renomear(&self, _id: i64, _r: &str) -> Result<(), RepoErro> {
-            Ok(())
-        }
-        async fn definir_ativa(&self, _id: i64, _a: bool) -> Result<(), RepoErro> {
-            Ok(())
-        }
-        async fn reordenar(&self, _ids: &[i64]) -> Result<(), RepoErro> {
-            Ok(())
-        }
-        async fn excluir(&self, _id: i64) -> Result<(), RepoErro> {
-            Ok(())
-        }
     }
 
     #[tokio::test]

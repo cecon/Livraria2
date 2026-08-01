@@ -2,30 +2,30 @@
 //! venda consome carimbos em ordem (Loja 1ª) → livre; perdas/estornos fazem o
 //! inverso; estorno de venda devolve ao carimbo certo; janela de 5 dias;
 //! relatório + posição atual fecham com o total (SC-003/SC-004).
+//!
+//! Feature 012 ("a nuvem manda"): o CADASTRO de destinação e a operação de
+//! DESTINAR (transferir carimbos) saíram do PDV — vivem na nuvem. Os testes
+//! montam o estado pós-sync direto no banco (helpers SQL locais abaixo) e
+//! exercitam a mecânica que PERMANECE local: consumo na venda/perda e estorno.
+
+mod common;
 
 use livraria_2_lib::adapters::persistencia::destinacao_repo::SeaDestinacaoRepo;
-use livraria_2_lib::adapters::persistencia::estoque_repo::SeaEstoqueRepo;
-use livraria_2_lib::adapters::persistencia::fornecedor_repo::SeaFornecedorRepo;
-use livraria_2_lib::adapters::persistencia::lancamento_repo::SeaLancamentoRepo;
 use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
 use livraria_2_lib::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use livraria_2_lib::adapters::persistencia::relatorio_repo::SeaRelatorioRepo;
 use livraria_2_lib::adapters::persistencia::{conectar, inicializar_schema};
+use livraria_2_lib::application::cancelamento;
 use livraria_2_lib::application::destinacoes as dest;
 use livraria_2_lib::application::erros::ErroApp;
-use livraria_2_lib::application::ports::{
-    LivroRepo, PedidoRepo, Relogio, RelatorioRepo,
-};
-use livraria_2_lib::application::ports_compras::{FornecedorRepo, LancamentoRepo};
+use livraria_2_lib::application::ports::{PedidoRepo, RelatorioRepo, Relogio};
 use livraria_2_lib::application::ports_destinacao::DestinacaoRepo;
-use livraria_2_lib::application::ports_estoque::EstoqueRepo;
-use livraria_2_lib::application::cancelamento;
 use livraria_2_lib::domain::categoria::Categoria;
 use livraria_2_lib::domain::dinheiro::Dinheiro;
 use livraria_2_lib::domain::livro::Livro;
 use livraria_2_lib::domain::pagamento::Turno;
 use livraria_2_lib::domain::pedido::{ItemPedido, Pedido, Recebimento};
-use sea_orm::DatabaseConnection;
+use sea_orm::{ConnectionTrait, DatabaseConnection, Statement};
 
 fn url_temp(tag: &str) -> (String, std::path::PathBuf) {
     let path =
@@ -48,6 +48,8 @@ async fn setup(tag: &str) -> (DatabaseConnection, std::path::PathBuf) {
     let (url, path) = url_temp(tag);
     let db = conectar(&url).await.unwrap();
     inicializar_schema(&db).await.unwrap();
+    common::semear_loja(&db).await; // feature 012: Loja + formas viriam da nuvem
+    common::semear_formas(&db).await;
     (db, path)
 }
 
@@ -87,18 +89,70 @@ fn pedido(numero: i64, data: &str, codigo: &str, qtd: i64, preco: i64) -> Pedido
     }
 }
 
-async fn carimbo(repo: &SeaDestinacaoRepo, codigo: &str, para: i64, qtd: i64) {
-    dest::transferir(codigo, None, Some(para), qtd, None, repo)
+// --- Helpers de carimbo (estado pós-sync montado direto no banco) --------------
+// A nuvem entrega o cadastro de destinação e os carimbos já resolvidos; aqui
+// reproduzimos esse estado com SQL, sem depender de comandos de edição no PDV.
+
+async fn escalar(db: &DatabaseConnection, sql: &str, params: Vec<sea_orm::Value>) -> i64 {
+    db.query_one(Statement::from_sql_and_values(db.get_database_backend(), sql, params))
         .await
-        .unwrap();
+        .unwrap()
+        .map(|r| r.try_get::<i64>("", "v").unwrap())
+        .unwrap_or(0)
 }
 
-fn qtd_de(s: &livraria_2_lib::application::ports_destinacao::SaldoLivro, id: i64) -> i64 {
-    s.carimbos
-        .iter()
-        .find(|c| c.destinacao_id == id)
-        .map(|c| c.qtd)
-        .unwrap_or(0)
+/// Cria uma destinação especial (como se tivesse descido da nuvem) e retorna o id.
+async fn criar_dest(db: &DatabaseConnection, nome: &str) -> i64 {
+    db.execute(Statement::from_sql_and_values(
+        db.get_database_backend(),
+        "INSERT INTO destinacao (nome, nome_norm, de_sistema, ativa, ordem, sync_uid) \
+         VALUES (?, ?, 0, 1, 1, lower(hex(randomblob(16))))",
+        [nome.into(), nome.to_lowercase().into()],
+    ))
+    .await
+    .unwrap();
+    escalar(db, "SELECT id AS v FROM destinacao WHERE nome = ?", vec![nome.into()]).await
+}
+
+/// Id da destinação de sistema "Loja" (ordem 0).
+async fn loja_id(db: &DatabaseConnection) -> i64 {
+    escalar(
+        db,
+        "SELECT id AS v FROM destinacao WHERE de_sistema = 1 ORDER BY ordem, id LIMIT 1",
+        vec![],
+    )
+    .await
+}
+
+/// Carimba `qtd` do livro para a destinação (upsert — mesma mecânica da nuvem).
+async fn carimbo(db: &DatabaseConnection, codigo: &str, destinacao_id: i64, qtd: i64) {
+    let livro_id =
+        escalar(db, "SELECT id AS v FROM livro WHERE codigo = ?", vec![codigo.into()]).await;
+    db.execute(Statement::from_sql_and_values(
+        db.get_database_backend(),
+        "INSERT INTO destinacao_saldo (livro_id, destinacao_id, qtd) VALUES (?, ?, ?) \
+         ON CONFLICT(livro_id, destinacao_id) DO UPDATE SET qtd = qtd + excluded.qtd",
+        [livro_id.into(), destinacao_id.into(), qtd.into()],
+    ))
+    .await
+    .unwrap();
+}
+
+/// Estoque físico do livro.
+async fn estoque_de(db: &DatabaseConnection, codigo: &str) -> i64 {
+    escalar(db, "SELECT estoque AS v FROM livro WHERE codigo = ?", vec![codigo.into()]).await
+}
+
+/// Quantidade carimbada de um livro numa destinação (0 se não houver linha).
+async fn carimbo_qtd(db: &DatabaseConnection, codigo: &str, destinacao_id: i64) -> i64 {
+    escalar(
+        db,
+        "SELECT COALESCE((SELECT ds.qtd FROM destinacao_saldo ds \
+             JOIN livro l ON l.id = ds.livro_id \
+             WHERE l.codigo = ? AND ds.destinacao_id = ?), 0) AS v",
+        vec![codigo.into(), destinacao_id.into()],
+    )
+    .await
 }
 
 #[tokio::test]
@@ -110,17 +164,16 @@ async fn venda_na_fronteira_estorno_e_relatorio() {
     // Livro 80 un. × R$ 50; carimbos Loja 1 + Missões 70 (livre 9).
     // Ordem de baixa da venda: Loja → Missões → livre.
     semear_livro(&db, "111", 80, 5000).await;
-    let loja_id = dest::listar(&repo).await.unwrap()[0].id;
-    let missoes = dest::criar("Missões", &repo).await.unwrap();
-    carimbo(&repo, "111", loja_id, 1).await;
-    carimbo(&repo, "111", missoes.id, 70).await;
+    let loja = loja_id(&db).await;
+    let missoes = criar_dest(&db, "Missões").await;
+    carimbo(&db, "111", loja, 1).await;
+    carimbo(&db, "111", missoes, 70).await;
 
     // Vende 2: 1 do carimbo Loja + 1 de Missões (fronteira — US2 cenário 2/3).
     pedidos.registrar(&pedido(1, "2026-07-05", "111", 2, 5000)).await.unwrap();
-    let s = dest::saldos_livro("111", &repo).await.unwrap();
-    assert_eq!(s.estoque, 78);
-    assert_eq!(qtd_de(&s, loja_id), 0);
-    assert_eq!(qtd_de(&s, missoes.id), 69);
+    assert_eq!(estoque_de(&db, "111").await, 78);
+    assert_eq!(carimbo_qtd(&db, "111", loja).await, 0);
+    assert_eq!(carimbo_qtd(&db, "111", missoes).await, 69);
 
     // Detalhe da venda: 1 un. Loja + 1 un. Missões, R$ 50 cada (FR-013).
     let vendas = SeaRelatorioRepo::new(db.clone()).vendas("2026-07-05", "dia").await.unwrap();
@@ -135,7 +188,7 @@ async fn venda_na_fronteira_estorno_e_relatorio() {
     assert_eq!(r.linhas.iter().map(|l| l.valor_centavos).sum::<i64>(), r.total_centavos);
     assert_eq!(r.linhas[0].nome, "Loja");
     assert_eq!(r.linhas[0].valor_centavos, 5000);
-    assert_eq!(r.posicao_atual.iter().find(|p| p.destinacao_id == missoes.id).unwrap().qtd, 69);
+    assert_eq!(r.posicao_atual.iter().find(|p| p.destinacao_id == missoes).unwrap().qtd, 69);
 
     // Repasse do fechamento: só destinações especiais (a Loja não é repasse).
     let rep = repo.repasse("2026-07-05", "dia").await.unwrap();
@@ -145,15 +198,14 @@ async fn venda_na_fronteira_estorno_e_relatorio() {
 
     // Estorno (mesmo dia): devolve ao carimbo certo, inclusive Loja (FR-010/SC-004).
     cancelamento::cancelar_venda(1, &pedidos, &RelogioFixo).await.unwrap();
-    let s = dest::saldos_livro("111", &repo).await.unwrap();
-    assert_eq!(s.estoque, 80);
-    assert_eq!(qtd_de(&s, loja_id), 1);
-    assert_eq!(qtd_de(&s, missoes.id), 70);
+    assert_eq!(estoque_de(&db, "111").await, 80);
+    assert_eq!(carimbo_qtd(&db, "111", loja).await, 1);
+    assert_eq!(carimbo_qtd(&db, "111", missoes).await, 70);
     // Retroativo no relatório + idempotente (2º cancelamento não duplica).
     cancelamento::cancelar_venda(1, &pedidos, &RelogioFixo).await.unwrap();
     let r = dest::relatorio("2026-07-05", "2026-07-05", &repo).await.unwrap();
     assert_eq!(r.total_centavos, 0);
-    assert_eq!(qtd_de(&dest::saldos_livro("111", &repo).await.unwrap(), loja_id), 1);
+    assert_eq!(carimbo_qtd(&db, "111", loja).await, 1);
 
     let _ = std::fs::remove_file(&path);
 }
@@ -189,54 +241,6 @@ async fn venda_antiga_bloqueada_apos_5_dias() {
         outro => panic!("esperava VENDA_ANTIGA, veio {outro:?}"),
     }
     cancelamento::cancelar_venda(2, &pedidos, &RelogioFixo).await.unwrap(); // dentro da janela
-
-    let _ = std::fs::remove_file(&path);
-}
-
-#[tokio::test]
-async fn perdas_protegem_carimbos_ajuste_e_estorno_de_nota() {
-    let (db, path) = setup("perdas").await;
-    let repo = SeaDestinacaoRepo::new(db.clone());
-    let estoque = SeaEstoqueRepo::new(db.clone());
-    let missoes = dest::criar("Missões", &repo).await.unwrap();
-
-    // Ajuste negativo: livre 5 + Missões 10 → perda de 3 não toca Missões (FR-012).
-    semear_livro(&db, "444", 15, 2000).await;
-    carimbo(&repo, "444", missoes.id, 10).await;
-    estoque.registrar_ajuste("444", -3, "quebra").await.unwrap();
-    let s = dest::saldos_livro("444", &repo).await.unwrap();
-    assert_eq!((s.estoque, s.livre, qtd_de(&s, missoes.id)), (12, 2, 10));
-    // Perda além do livre avança pelos carimbos.
-    estoque.registrar_ajuste("444", -11, "quebra maior").await.unwrap();
-    let s = dest::saldos_livro("444", &repo).await.unwrap();
-    assert_eq!((s.estoque, s.livre, qtd_de(&s, missoes.id)), (1, 0, 1));
-    // Ajuste positivo entra como livre.
-    estoque.registrar_ajuste("444", 4, "achado").await.unwrap();
-    let s = dest::saldos_livro("444", &repo).await.unwrap();
-    assert_eq!((s.livre, qtd_de(&s, missoes.id)), (4, 1));
-
-    // Estorno de nota de entrada consome como perda (edge case da spec).
-    let lanc = SeaLancamentoRepo::new(db.clone());
-    semear_livro(&db, "555", 0, 2000).await;
-    let doador = SeaFornecedorRepo::new(db.clone())
-        .salvar(&livraria_2_lib::domain::fornecedor::Fornecedor {
-            id: 0,
-            nome: "Doações".into(),
-            documento: None,
-            telefone: None,
-            email: None,
-            observacoes: None,
-            ativo: true,
-        })
-        .await
-        .unwrap();
-    let nota = lanc.criar(Some(doador.id)).await.unwrap();
-    lanc.adicionar_item(nota.id, "555", 10, 0).await.unwrap();
-    livraria_2_lib::application::lancamentos::finalizar(nota.id, &lanc).await.unwrap();
-    carimbo(&repo, "555", missoes.id, 8).await; // 8 carimbadas, 2 livres
-    livraria_2_lib::application::lancamentos::cancelar(nota.id, &lanc).await.unwrap();
-    let s = dest::saldos_livro("555", &repo).await.unwrap();
-    assert_eq!((s.estoque, s.livre, qtd_de(&s, missoes.id)), (0, 0, 0));
 
     let _ = std::fs::remove_file(&path);
 }

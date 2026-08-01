@@ -3,13 +3,9 @@
 pub mod adapters;
 pub mod application;
 pub mod commands;
-pub mod commands_dashboard;
 pub mod commands_destinacao;
 pub mod commands_estoque;
 pub mod commands_formas;
-pub mod commands_fornecedor;
-pub mod commands_inventario;
-pub mod commands_lancamento;
 pub mod commands_sync;
 pub mod commands_turno;
 // Domínio extraído para o crate `livraria-domain` (ADR-0022). Re-exporta como
@@ -44,12 +40,10 @@ pub fn run() {
                 tauri::async_runtime::block_on(async {
                     let db = adapters::persistencia::conectar(&url).await?;
                     adapters::persistencia::inicializar_schema(&db).await?;
-                    // Gate de relatórios: garante o admin padrão (adm/adm).
-                    use application::ports::UsuarioRepo;
-                    adapters::persistencia::usuario_repo::SeaUsuarioRepo::new(db.clone())
-                        .garantir_admin()
-                        .await
-                        .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
+                    // Feature 012 ("a nuvem manda"): o PDV NÃO semeia mais o admin.
+                    // Num install limpo o banco nasce sem usuários e os baixa da nuvem
+                    // (com senha_hash + perfil — feature 010) no 1º sync. Assim nada de
+                    // seed sobe/corrompe a nuvem e o cadastro de usuários vive só lá.
                     // Razão de movimentos: gera saldo inicial por livro (idempotente, FR-006).
                     let estoque_repo =
                         adapters::persistencia::estoque_repo::SeaEstoqueRepo::new(db.clone());
@@ -93,14 +87,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands_formas::estado_boot,
-            commands_formas::listar_formas,
             commands_formas::listar_formas_ativas,
-            commands_formas::criar_forma,
-            commands_formas::renomear_forma,
-            commands_formas::definir_forma_ativa,
-            commands_formas::reordenar_formas,
-            commands_formas::excluir_forma,
-            commands::inicializar_dados,
             commands::proximo_numero_pedido,
             commands::registrar_venda,
             commands_turno::turno_aberto,
@@ -108,63 +95,19 @@ pub fn run() {
             commands_turno::turno_resumo,
             commands_turno::turno_encerrar,
             commands_turno::turno_listar,
+            commands_turno::vendas_do_turno,
             commands::livro_por_codigo,
             commands::buscar_por_texto,
-            commands::salvar_livro,
-            commands::excluir_livro,
-            commands::livros_recentes,
-            commands::livros_pagina,
-            commands::migrar_legado,
-            commands_dashboard::dashboard_do_dia,
             commands::autenticar,
             commands::relatorio_vendas,
             commands::relatorio_estoque,
-            commands::excluir_item_pedido,
             commands::excluir_pedido,
             commands::salvar_arquivo,
-            commands_estoque::registrar_ajuste,
             commands_estoque::extrato_livro,
             commands_sync::sincronizar_agora,
             commands_sync::status_sincronizacao,
             commands_sync::seed_inicial,
             commands_sync::listar_operadores,
-            commands_inventario::inventario_abrir,
-            commands_inventario::inventario_sessao_aberta,
-            commands_inventario::inventario_bipar,
-            commands_inventario::inventario_desbipar,
-            commands_inventario::inventario_ajustar_item,
-            commands_inventario::inventario_revisao,
-            commands_inventario::inventario_fechar,
-            commands_inventario::inventario_cancelar,
-            commands_inventario::inventario_divergencias,
-            commands_inventario::inventario_realizados,
-            commands_inventario::inventario_relatorio,
-            commands_inventario::inventario_pendencias,
-            commands_inventario::resolver_pendencia,
-            commands_inventario::reabrir_pendencia,
-            commands_inventario::buscar_por_codigo_barras,
-            commands_fornecedor::fornecedores_listar,
-            commands_fornecedor::fornecedor_salvar,
-            commands_fornecedor::fornecedor_excluir,
-            commands_lancamento::lancamentos_listar,
-            commands_lancamento::lancamento_obter,
-            commands_lancamento::lancamento_criar,
-            commands_lancamento::lancamento_definir_fornecedor,
-            commands_lancamento::lancamento_adicionar_item,
-            commands_lancamento::lancamento_remover_item,
-            commands_lancamento::lancamento_excluir,
-            commands_lancamento::lancamento_finalizar,
-            commands_lancamento::lancamento_cancelar,
-            commands_destinacao::destinacoes_listar,
-            commands_destinacao::destinacoes_listar_ativas,
-            commands_destinacao::destinacao_criar,
-            commands_destinacao::destinacao_renomear,
-            commands_destinacao::destinacao_definir_ativa,
-            commands_destinacao::destinacao_reordenar,
-            commands_destinacao::destinacao_excluir,
-            commands_destinacao::destinacao_saldos_livro,
-            commands_destinacao::destinacao_transferir,
-            commands_destinacao::destinacao_transferencias_livro,
             commands_destinacao::relatorio_destinacoes,
         ])
         .run(tauri::generate_context!())

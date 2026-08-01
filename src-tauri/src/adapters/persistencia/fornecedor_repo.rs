@@ -1,16 +1,16 @@
-//! Implementação SeaORM da porta `FornecedorRepo` (ADR-0011).
+//! Implementação SeaORM da porta `FornecedorRepo` (ADR-0011). Feature 012: o
+//! cadastro de fornecedor vive na nuvem; o PDV só SEMEIA (boot) a partir dos
+//! textos históricos de `movimento_estoque.fornecedor`, para o sync empurrar.
 
 use super::entities::fornecedor::{self, ActiveModel, Entity as FornecedorEntity};
 use crate::application::ports::RepoErro;
 use crate::application::ports_compras::FornecedorRepo;
-use crate::domain::fornecedor::Fornecedor;
 use crate::domain::texto::normalize;
 use async_trait::async_trait;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::{
     ActiveValue::{NotSet, Set},
-    ColumnTrait, ConnectionTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder,
-    Statement,
+    ConnectionTrait, DatabaseConnection, DbErr, EntityTrait, Statement,
 };
 
 pub struct SeaFornecedorRepo {
@@ -27,84 +27,8 @@ fn erro(e: DbErr) -> RepoErro {
     RepoErro::Persistencia(e.to_string())
 }
 
-fn para_dominio(m: fornecedor::Model) -> Fornecedor {
-    Fornecedor {
-        id: m.id,
-        nome: m.nome,
-        documento: m.documento,
-        telefone: m.telefone,
-        email: m.email,
-        observacoes: m.observacoes,
-        ativo: m.ativo,
-    }
-}
-
 #[async_trait]
 impl FornecedorRepo for SeaFornecedorRepo {
-    async fn listar(&self, termo: &str) -> Result<Vec<Fornecedor>, RepoErro> {
-        let mut q = FornecedorEntity::find().filter(fornecedor::Column::Ativo.eq(true));
-        let t = termo.trim();
-        if !t.is_empty() {
-            q = q.filter(fornecedor::Column::NomeNorm.like(format!("%{}%", normalize(t))));
-        }
-        let ms = q
-            .order_by_asc(fornecedor::Column::Nome)
-            .all(&self.db)
-            .await
-            .map_err(erro)?;
-        Ok(ms.into_iter().map(para_dominio).collect())
-    }
-
-    async fn por_id(&self, id: i64) -> Result<Option<Fornecedor>, RepoErro> {
-        let m = FornecedorEntity::find_by_id(id)
-            .one(&self.db)
-            .await
-            .map_err(erro)?;
-        Ok(m.map(para_dominio))
-    }
-
-    async fn existe_nome(&self, nome_norm: &str, exceto_id: i64) -> Result<bool, RepoErro> {
-        let achado = FornecedorEntity::find()
-            .filter(fornecedor::Column::NomeNorm.eq(nome_norm))
-            .filter(fornecedor::Column::Id.ne(exceto_id))
-            .one(&self.db)
-            .await
-            .map_err(erro)?;
-        Ok(achado.is_some())
-    }
-
-    async fn salvar(&self, f: &Fornecedor) -> Result<Fornecedor, RepoErro> {
-        let am = ActiveModel {
-            id: if f.id == 0 { NotSet } else { Set(f.id) },
-            nome: Set(f.nome.trim().to_string()),
-            nome_norm: Set(f.nome_norm()),
-            documento: Set(f.documento.clone()),
-            telefone: Set(f.telefone.clone()),
-            email: Set(f.email.clone()),
-            observacoes: Set(f.observacoes.clone()),
-            ativo: Set(true),
-        };
-        let m = if f.id == 0 {
-            FornecedorEntity::insert(am)
-                .exec_with_returning(&self.db)
-                .await
-                .map_err(erro)?
-        } else {
-            FornecedorEntity::update(am).exec(&self.db).await.map_err(erro)?
-        };
-        Ok(para_dominio(m))
-    }
-
-    async fn excluir(&self, id: i64) -> Result<(), RepoErro> {
-        let am = ActiveModel {
-            id: Set(id),
-            ativo: Set(false),
-            ..Default::default()
-        };
-        FornecedorEntity::update(am).exec(&self.db).await.map_err(erro)?;
-        Ok(())
-    }
-
     async fn semear(&self) -> Result<u64, RepoErro> {
         let backend = self.db.get_database_backend();
         let rows = self
