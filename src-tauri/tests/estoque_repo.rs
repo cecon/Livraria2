@@ -8,7 +8,8 @@ use livraria_2_lib::adapters::persistencia::estoque_repo::SeaEstoqueRepo;
 use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
 use livraria_2_lib::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use livraria_2_lib::adapters::persistencia::{conectar, inicializar_schema};
-use livraria_2_lib::application::ports::{LivroRepo, PedidoRepo};
+use livraria_2_lib::application::cancelamento;
+use livraria_2_lib::application::ports::{LivroRepo, PedidoRepo, Relogio};
 use livraria_2_lib::application::ports_estoque::EstoqueRepo;
 use livraria_2_lib::domain::categoria::Categoria;
 use livraria_2_lib::domain::dinheiro::Dinheiro;
@@ -29,7 +30,7 @@ fn url_temp(nome: &str) -> (String, std::path::PathBuf) {
 }
 
 #[tokio::test]
-async fn saldo_operacional_usa_publicado_menos_vendas_e_mais_cancelamentos_nao_sinc() {
+async fn saldo_operacional_desconta_pronta_e_so_compensa_cancelamento_incorporado() {
     let (url, path) = url_temp("saldo_operacional");
     let db = conectar(&url).await.unwrap();
     inicializar_schema(&db).await.unwrap();
@@ -42,11 +43,17 @@ async fn saldo_operacional_usa_publicado_menos_vendas_e_mais_cancelamentos_nao_s
     ))
     .await
     .unwrap();
+    // 8001: venda ATIVA ainda 'pronta' (não baixou o saldo_publicado) → desconta 2.
+    // 8002: venda INCORPORADA e cancelada (a nuvem baixou o −3, o cancelamento
+    //       pendente restaura) → soma 3.
+    // 8003: venda criada e cancelada OFFLINE (segue 'pronta', nunca baixou) → 0.
+    //       É o bug 121→122: sem o filtro `estoque_status='incorporada'`, somaria 5.
     db.execute(Statement::from_string(
         backend,
         "INSERT INTO pedido (numero,cliente,turno,data,total_centavos,cancelado,estoque_status) VALUES
          (8001,'C','manha','2026-07-28',2000,0,'pronta'),
-         (8002,'C','manha','2026-07-28',1000,1,'pronta')"
+         (8002,'C','manha','2026-07-28',3000,1,'incorporada'),
+         (8003,'C','manha','2026-07-28',5000,1,'pronta')"
             .to_string(),
     ))
     .await
@@ -55,14 +62,16 @@ async fn saldo_operacional_usa_publicado_menos_vendas_e_mais_cancelamentos_nao_s
         backend,
         "INSERT INTO item_pedido (pedido_numero,codigo,titulo,preco_centavos,qtd) VALUES
          (8001,'333','Saldo simples',1000,2),
-         (8002,'333','Saldo simples',1000,1)"
+         (8002,'333','Saldo simples',1000,3),
+         (8003,'333','Saldo simples',1000,5)"
             .to_string(),
     ))
     .await
     .unwrap();
 
+    // 10 − 2 (pronta ativa) + 3 (cancelamento incorporado) + 0 (cancelamento pronta) = 11.
     let saldo = SeaEstoqueRepo::new(db.clone()).saldo_operacional("333").await.unwrap();
-    assert_eq!(saldo, 9);
+    assert_eq!(saldo, 11);
 
     let _ = std::fs::remove_file(&path);
 }
@@ -99,6 +108,44 @@ fn venda_de(codigo: &str, qtd: i64) -> Pedido {
             valor: Dinheiro::de_centavos(qtd * 3000),
         }],
     }
+}
+
+struct RelogioFixo;
+impl Relogio for RelogioFixo {
+    fn hora_atual(&self) -> u32 {
+        10
+    }
+    fn hoje_iso(&self) -> String {
+        "2026-06-24".to_string() // dentro da janela de 5 dias da venda (2026-06-23)
+    }
+}
+
+/// Incidente A PONTE: livro em 121 (da nuvem), vende 1 → 120, cancela offline →
+/// deve VOLTAR a 121, não 122. Fluxo real (registrar 'pronta' + cancelar_venda),
+/// sem sincronizar — o cancelamento de venda 'pronta' não pode somar de volta.
+#[tokio::test]
+async fn venda_e_cancelamento_offline_devolvem_o_saldo_operacional() {
+    let (url, path) = url_temp("venda_cancel_offline");
+    let db = conectar(&url).await.unwrap();
+    inicializar_schema(&db).await.unwrap();
+    common::semear_formas(&db).await; // feature 012: formas viriam da nuvem
+    let livros = SeaLivroRepo::new(db.clone());
+    let pedidos = SeaPedidoRepo::new(db.clone());
+    let estoque = SeaEstoqueRepo::new(db.clone());
+
+    // saldo_publicado nasce = estoque no salvar (livro que "desceu da nuvem" com 121).
+    livros.salvar(&livro("APONTE", 121)).await.unwrap();
+    assert_eq!(estoque.saldo_operacional("APONTE").await.unwrap(), 121);
+
+    // Vende 1 (fica 'pronta', ainda não baixou o saldo_publicado): 121 → 120.
+    pedidos.registrar(&venda_de("APONTE", 1)).await.unwrap();
+    assert_eq!(estoque.saldo_operacional("APONTE").await.unwrap(), 120);
+
+    // Cancela offline (nunca sincronizou) → 121, NÃO 122.
+    cancelamento::cancelar_venda(1, &pedidos, &RelogioFixo).await.unwrap();
+    assert_eq!(estoque.saldo_operacional("APONTE").await.unwrap(), 121);
+
+    let _ = std::fs::remove_file(&path);
 }
 
 /// Σ das quantidades do ledger (independente de ordem).
