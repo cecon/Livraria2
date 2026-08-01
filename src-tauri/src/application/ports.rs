@@ -56,20 +56,6 @@ pub trait FormaPagamentoRepo: Send + Sync {
     async fn por_id(&self, id: i64) -> Result<Option<FormaPagamento>, RepoErro>;
     /// Resolve uma forma de sistema pela chave estável (troco/legado — FR-001a).
     async fn por_chave(&self, chave: &str) -> Result<Option<FormaPagamento>, RepoErro>;
-    /// Existe alguma linha em `pagamento_pedido` para a forma? (FR-009/FR-017)
-    async fn em_uso(&self, id: i64) -> Result<bool, RepoErro>;
-    async fn criar(
-        &self,
-        chave: &str,
-        rotulo: &str,
-        ativa: bool,
-        ordem: i64,
-    ) -> Result<FormaPagamento, RepoErro>;
-    async fn renomear(&self, id: i64, rotulo: &str) -> Result<(), RepoErro>;
-    async fn definir_ativa(&self, id: i64, ativa: bool) -> Result<(), RepoErro>;
-    /// Reordena todas as formas conforme a posição dos ids na lista (FR-008).
-    async fn reordenar(&self, ids: &[i64]) -> Result<(), RepoErro>;
-    async fn excluir(&self, id: i64) -> Result<(), RepoErro>;
 }
 
 /// Pedidos reconstruídos do legado + divergências encontradas (FR-067a).
