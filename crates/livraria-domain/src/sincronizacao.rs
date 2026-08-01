@@ -1,11 +1,9 @@
 //! Regras puras da sincronização com a nuvem (ADR-0015/0016).
 //!
 //! Sem I/O, sem rede, sem SeaORM/Tauri: só decisões — ordem de dependência
-//! (pais→filhas), last-write-wins, deduplicação por chave natural, propagação de
-//! exclusão (soft delete) e detecção de órfã. O adapter/aplicação usam estas
-//! funções; a fala com a nuvem fica na borda.
-
-use std::collections::HashSet;
+//! (pais→filhas), last-write-wins, deduplicação por chave natural e propagação de
+//! exclusão (soft delete). O adapter/aplicação usam estas funções; a fala com a
+//! nuvem fica na borda.
 
 /// Recursos sincronizáveis na **ordem de dependência** (pais antes de filhas).
 /// Push, seed e aplicação de pull seguem esta ordem para respeitar as FKs
@@ -65,16 +63,6 @@ pub fn decidir_aplicacao(local_atualizado_em: Option<&str>, remoto_atualizado_em
         None => Decisao::Inserir,
         Some(local) if remoto_atualizado_em > local => Decisao::Atualizar,
         Some(_) => Decisao::Ignorar,
-    }
-}
-
-/// Um registro-filho é **órfão** se sua referência (obrigatória) a um pai não
-/// existe no conjunto de pais conhecidos (FR-012, D11). Referência opcional
-/// ausente (`None`) não é órfã.
-pub fn e_orfao(referencia_pai: Option<&str>, pais_conhecidos: &HashSet<String>) -> bool {
-    match referencia_pai {
-        Some(uid) => !pais_conhecidos.contains(uid),
-        None => false,
     }
 }
 
@@ -141,15 +129,6 @@ mod testes {
             decidir_aplicacao(Some("2026-07-20T10:00:00Z"), "2026-07-20T10:00:00Z"),
             Decisao::Ignorar
         );
-    }
-
-    #[test]
-    fn orfa_quando_pai_ausente() {
-        let mut pais = HashSet::new();
-        pais.insert("uid-livro-1".to_string());
-        assert!(!e_orfao(Some("uid-livro-1"), &pais)); // pai existe
-        assert!(e_orfao(Some("uid-livro-2"), &pais)); // pai ausente -> órfã
-        assert!(!e_orfao(None, &pais)); // referência opcional ausente não é órfã
     }
 
     #[test]

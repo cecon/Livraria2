@@ -7,7 +7,6 @@ pub mod destinacao;
 pub mod dinheiro;
 pub mod erros;
 pub mod estoque;
-pub mod fornecedor;
 pub mod inventario;
 pub mod lancamento;
 pub mod livro;

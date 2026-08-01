@@ -1,10 +1,9 @@
-//! Teste de integração do FornecedorRepo (US1, T011): dedup por nome_norm,
-//! soft-delete, semear idempotente a partir de movimento_estoque.fornecedor.
+//! Teste de integração do FornecedorRepo (T011). Feature 012: o cadastro vive na
+//! nuvem; o PDV só SEMEIA (idempotente) a partir de `movimento_estoque.fornecedor`.
 
 use livraria_2_lib::adapters::persistencia::fornecedor_repo::SeaFornecedorRepo;
 use livraria_2_lib::adapters::persistencia::{conectar, inicializar_schema};
 use livraria_2_lib::application::ports_compras::FornecedorRepo;
-use livraria_2_lib::domain::fornecedor::Fornecedor;
 use sea_orm::{ConnectionTrait, Statement};
 
 fn url_temp() -> (String, std::path::PathBuf) {
@@ -13,36 +12,27 @@ fn url_temp() -> (String, std::path::PathBuf) {
     (format!("sqlite://{}?mode=rwc", path.display()), path)
 }
 
-fn forn(nome: &str) -> Fornecedor {
-    Fornecedor {
-        id: 0,
-        nome: nome.into(),
-        documento: None,
-        telefone: None,
-        email: None,
-        observacoes: None,
-        ativo: true,
-    }
+async fn conta(db: &sea_orm::DatabaseConnection, nome_norm: &str) -> i64 {
+    let row = db
+        .query_one(Statement::from_sql_and_values(
+            db.get_database_backend(),
+            "SELECT COUNT(*) AS n FROM fornecedor WHERE nome_norm = ?",
+            [nome_norm.into()],
+        ))
+        .await
+        .unwrap()
+        .unwrap();
+    row.try_get::<i64>("", "n").unwrap()
 }
 
 #[tokio::test]
-async fn dedup_soft_delete_e_semear() {
+async fn semear_dedup_e_idempotente() {
     let (url, path) = url_temp();
     let db = conectar(&url).await.unwrap();
     inicializar_schema(&db).await.unwrap();
     let repo = SeaFornecedorRepo::new(db.clone());
 
-    // Insere e checa dedup por nome_norm ("editora x" == "EDITORA X").
-    let f = repo.salvar(&forn("Editora X")).await.unwrap();
-    assert_eq!(f.id, 1);
-    assert!(repo.existe_nome("editora x", 0).await.unwrap());
-    assert!(!repo.existe_nome("editora x", 1).await.unwrap()); // exceto ele mesmo
-
-    // Soft-delete: some da listagem.
-    repo.excluir(1).await.unwrap();
-    assert!(repo.listar("").await.unwrap().is_empty());
-
-    // Semear: cria movimentos com fornecedores distintos e semeia.
+    // Movimentos com fornecedores distintos (um repetido) alimentam o semear.
     db.execute(Statement::from_string(
         db.get_database_backend(),
         "INSERT INTO livro (codigo, titulo, preco_centavos, categoria, estoque, busca_norm, ativo, atualizado_em, custo_medio_centavos)
@@ -61,11 +51,12 @@ async fn dedup_soft_delete_e_semear() {
         .await
         .unwrap();
     }
+
     let criados = repo.semear().await.unwrap();
     assert_eq!(criados, 2); // "Editora Vida" e "EDITORA SBB" (distintos)
-    // Idempotente: re-semear não cria de novo.
+    // Idempotente: re-semear não cria de novo, e não duplica o nome_norm.
     assert_eq!(repo.semear().await.unwrap(), 0);
-    assert_eq!(repo.listar("vida").await.unwrap().len(), 1);
+    assert_eq!(conta(&db, "editora vida").await, 1);
 
     let _ = std::fs::remove_file(&path);
 }
