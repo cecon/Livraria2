@@ -55,28 +55,6 @@ pub trait FormaPagamentoRepo: Send + Sync {
 }
 
 
-/// Resumo agregado das vendas de um dia (dashboard).
-pub struct ResumoDia {
-    pub total_centavos: i64,
-    pub num_pedidos: i64,
-    pub itens_vendidos: i64,
-    /// Vendas canceladas no período (não entram nos totais acima).
-    pub num_canceladas: i64,
-    pub total_canceladas_centavos: i64,
-}
-
-/// Porta de leitura para o dashboard (US4).
-#[async_trait]
-pub trait DashboardRepo: Send + Sync {
-    /// Resumo de vendas no intervalo [inicio, fim] (datas ISO inclusivas).
-    async fn resumo_periodo(&self, inicio: &str, fim: &str) -> Result<ResumoDia, RepoErro>;
-    async fn estoque_baixo(&self, limite: i64) -> Result<Vec<Livro>, RepoErro>;
-    /// Total de livros ativos no acervo (nº de títulos).
-    async fn total_livros(&self) -> Result<i64, RepoErro>;
-    /// Soma das unidades em estoque (todos os livros ativos).
-    async fn total_estoque(&self) -> Result<i64, RepoErro>;
-}
-
 /// Linha de item num relatório de vendas.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]

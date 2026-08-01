@@ -3,7 +3,6 @@
 
 pub mod ajuste;
 pub mod cancelamento;
-pub mod dashboard;
 pub mod erros;
 #[cfg(test)]
 pub mod fakes;
