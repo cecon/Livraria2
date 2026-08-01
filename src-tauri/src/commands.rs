@@ -1,8 +1,6 @@
 //! Porta de entrada Tauri: estado, DTOs de fronteira e comandos (`invoke`).
 //! DTOs em camelCase espelham `src/lib/types.ts` (contracts/tauri-commands.md).
 
-use crate::adapters::legado::mdb_importer::MdbImportador;
-use crate::adapters::persistencia::inicializar_schema;
 use crate::adapters::persistencia::estoque_repo::SeaEstoqueRepo;
 use crate::adapters::persistencia::forma_pagamento_repo::SeaFormaPagamentoRepo;
 use crate::adapters::persistencia::livro_repo::SeaLivroRepo;
@@ -13,12 +11,9 @@ use crate::adapters::persistencia::usuario_repo::SeaUsuarioRepo;
 use crate::adapters::relogio::RelogioSistema;
 use crate::application::relatorios::{self, RelatorioEstoque, RelatorioVendas};
 use crate::application::erros::ErroApp;
-use crate::application::migracao::{self, RelatorioMigracao};
-use crate::application::ports::{LivroRepo, PedidoRepo};
+use crate::application::ports::LivroRepo;
 use crate::application::venda::VendaInput;
-use crate::application::{cadastro, pesquisa, turno, venda};
-use crate::domain::categoria::Categoria;
-use crate::domain::dinheiro::Dinheiro;
+use crate::application::{pesquisa, turno, venda};
 use crate::domain::livro::Livro;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -79,21 +74,6 @@ impl From<Livro> for LivroDto {
     }
 }
 
-impl LivroDto {
-    fn para_dominio(self) -> Livro {
-        Livro {
-            codigo: self.codigo,
-            titulo: self.titulo,
-            autor: self.autor,
-            preco: Dinheiro::de_centavos(self.preco_centavos),
-            categoria: Categoria::de_i64(self.categoria),
-            estoque: self.estoque,
-            descricao: self.descricao,
-            custo_medio: Dinheiro::de_centavos(self.custo_medio_centavos),
-        }
-    }
-}
-
 /// Página de livros (lista + total) para paginação no banco.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -111,13 +91,6 @@ pub struct PedidoDto {
     pub total_itens: i64,
 }
 
-/// Aplica as migrations idempotentes sob demanda (FR-061).
-#[tauri::command]
-pub async fn inicializar_dados(state: tauri::State<'_, AppState>) -> Result<(), String> {
-    inicializar_schema(&state.db)
-        .await
-        .map_err(|e| e.to_string())
-}
 
 /// Próximo número de pedido (FR-017).
 #[tauri::command]
@@ -211,34 +184,7 @@ async fn livros_com_saldo_operacional(db: &DatabaseConnection, livros: Vec<Livro
     Ok(out)
 }
 
-/// Inclui ou altera um livro (upsert por código), com validação (US2, FR-001).
-#[tauri::command]
-pub async fn salvar_livro(
-    state: tauri::State<'_, AppState>,
-    livro: LivroDto,
-) -> Result<(), ErroDto> {
-    let livros = SeaLivroRepo::new(state.db.clone());
-    cadastro::salvar(livro.para_dominio(), &livros).await?;
-    // Livro novo recebe seu movimento `saldo_inicial` (idempotente; no-op se já tem
-    // movimento). Mantém a invariante Σ movimentos == estoque desde a criação (FR-006).
-    use crate::application::ports_estoque::EstoqueRepo;
-    SeaEstoqueRepo::new(state.db.clone())
-        .gerar_saldos_iniciais()
-        .await
-        .map_err(crate::application::erros::ErroApp::from)?;
-    Ok(())
-}
 
-/// Exclui (soft-delete) um livro (US2, FR-001).
-#[tauri::command]
-pub async fn excluir_livro(
-    state: tauri::State<'_, AppState>,
-    codigo: String,
-) -> Result<(), ErroDto> {
-    let livros = SeaLivroRepo::new(state.db.clone());
-    cadastro::excluir(&codigo, &livros).await?;
-    Ok(())
-}
 
 /// Autentica o gate de relatórios (US5, FR-040). Default adm/adm.
 #[tauri::command]
@@ -284,16 +230,6 @@ pub fn salvar_arquivo(caminho: String, conteudo: Vec<u8>) -> Result<(), String> 
     std::fs::write(&caminho, &conteudo).map_err(|e| e.to_string())
 }
 
-/// Remove um item de um pedido e recalcula o total (correção de dados — US5).
-#[tauri::command]
-pub async fn excluir_item_pedido(
-    state: tauri::State<'_, AppState>,
-    id: i64,
-) -> Result<(), ErroDto> {
-    let pedidos = SeaPedidoRepo::new(state.db.clone());
-    pedidos.excluir_item(id).await.map_err(ErroApp::from)?;
-    Ok(())
-}
 
 /// Relatório de estoque (US5, FR-043).
 #[tauri::command]
@@ -304,49 +240,5 @@ pub async fn relatorio_estoque(
     Ok(relatorios::estoque(&repo).await?)
 }
 
-/// Migra/sincroniza o legado Access (idempotente, FR-065..069). `caminho_mdb`
-/// default: `../Livraria/livraria.mdb` (irmão de Livraria2).
-#[tauri::command]
-pub async fn migrar_legado(
-    state: tauri::State<'_, AppState>,
-    caminho: Option<String>,
-) -> Result<RelatorioMigracao, ErroDto> {
-    let caminho = caminho.unwrap_or_else(|| "../Livraria/livraria.mdb".to_string());
-    let importador = MdbImportador::new(caminho);
-    let livros = SeaLivroRepo::new(state.db.clone());
-    let pedidos = SeaPedidoRepo::new(state.db.clone());
-    let formas = SeaFormaPagamentoRepo::new(state.db.clone());
-    Ok(migracao::migrar(&importador, &livros, &pedidos, &formas).await?)
-}
 
-/// Últimos livros cadastrados/alterados (US2, FR-005).
-#[tauri::command]
-pub async fn livros_recentes(
-    state: tauri::State<'_, AppState>,
-    limite: Option<i64>,
-) -> Result<Vec<LivroDto>, ErroDto> {
-    let livros = SeaLivroRepo::new(state.db.clone());
-    let ls = cadastro::recentes(limite.unwrap_or(4), &livros).await?;
-    Ok(ls.into_iter().map(LivroDto::from).collect())
-}
 
-/// Lista paginada de livros no banco (busca opcional) — Cadastro (feature 003).
-#[tauri::command]
-pub async fn livros_pagina(
-    state: tauri::State<'_, AppState>,
-    termo: Option<String>,
-    pagina: Option<i64>,
-    por_pagina: Option<i64>,
-) -> Result<PaginaLivros, ErroDto> {
-    let livros = SeaLivroRepo::new(state.db.clone());
-    let pp = por_pagina.unwrap_or(12).max(1) as u64;
-    let p = pagina.unwrap_or(1).max(1) as u64;
-    let (ls, total) = livros
-        .listar_pagina(termo.as_deref().unwrap_or(""), p, pp)
-        .await
-        .map_err(ErroApp::from)?;
-    Ok(PaginaLivros {
-        itens: ls.into_iter().map(LivroDto::from).collect(),
-        total,
-    })
-}
