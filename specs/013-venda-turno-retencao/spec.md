@@ -26,6 +26,7 @@
 - Q: Quem pode fechar um turno pela nuvem? → A: **Qualquer usuário do escritório**. (FR-019)
 - Q: Como tratar o "turno esquecido" aberto? → A: **Avisa, mas não fecha** — passando da virada do dia, o PDV alerta o operador a fechar/conferir, mas nunca auto-fecha. (FR-023)
 - Q: Se a nuvem fecha o turno e o PDV ainda tem vendas não sincronizadas dele? → A: O PDV **cria um novo turno** e move as vendas pendentes para ele; o turno fechado permanece fechado; nenhuma venda é perdida. (FR-024)
+- Decisão: Sem turno aberto, a **janela de venda bloqueia de forma incisiva** (não exibe a UI de venda; não é um aviso dispensável) e a **lista de vendas mostra só o turno aberto**. (FR-002/FR-022)
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -41,6 +42,7 @@ O operador só consegue registrar uma venda (e um cancelamento) quando há um tu
 
 1. **Given** nenhum turno aberto, **When** o operador tenta registrar uma venda, **Then** o registro é bloqueado e o PDV pede para abrir um turno.
 2. **Given** um turno aberto, **When** o operador registra uma venda, **Then** a venda é gravada vinculada àquele turno e entra no total do turno.
+2a. **Given** nenhum turno aberto, **When** o operador abre a janela de venda, **Then** a interface de venda **não aparece** — surge um bloqueio incisivo chamando para abrir um turno (não um aviso discreto).
 3. **Given** um turno aberto, **When** o operador cancela uma venda **daquele mesmo turno**, **Then** o cancelamento é registrado no turno aberto.
 4. **Given** uma venda de um turno **já fechado**, **When** o operador tenta cancelá-la no PDV, **Then** o cancelamento é bloqueado (correção fica para o escritório).
 5. **Given** nenhum turno aberto, **When** o operador tenta cancelar uma venda, **Then** o cancelamento é bloqueado até abrir um turno.
@@ -150,7 +152,7 @@ No escritório/nuvem, o gestor consegue ver **a qualquer momento** todos os turn
 ### Functional Requirements
 
 - **FR-001**: Toda venda registrada no PDV MUST estar vinculada a exatamente um turno.
-- **FR-002**: O PDV MUST impedir o registro de venda quando não houver turno aberto, orientando o operador a abrir um turno.
+- **FR-002**: O PDV MUST impedir o registro de venda quando não houver turno aberto. Sem turno aberto, a **janela de venda MUST NÃO exibir a interface de venda** — no lugar, um **bloqueio incisivo** (chamada clara e destacada para abrir um turno), **não** um aviso dispensável/discreto. Vender só fica disponível com um turno aberto.
 - **FR-003**: O cancelamento de venda no PDV MUST ser permitido **apenas para vendas do turno aberto**. Venda de um turno já fechado MUST NOT ser cancelável no PDV (a correção é feita no escritório/nuvem). Isso supera a janela de 5 dias no nível do PDV.
 - **FR-004**: A sincronização de **vendas e cancelamentos** MUST ser **unidirecional para cima** (push): o PDV envia os fatos que produziu e **MUST NOT** baixar registros de venda da nuvem (nem próprios nem de outros PDVs). (Isso se aplica às vendas; o **estado do turno** pode descer — ver FR-019.)
 - **FR-005**: O PDV MUST continuar recebendo da nuvem o **saldo publicado** do livro (base do saldo operacional) sem baixar os registros de venda.
@@ -171,7 +173,7 @@ No escritório/nuvem, o gestor consegue ver **a qualquer momento** todos os turn
 - **FR-019**: **Qualquer usuário do escritório** MUST poder **fechar um turno** pela nuvem; esse fechamento MUST **propagar para o PDV** (o turno aberto no PDV passa a fechado, liberando a abertura de um novo). Ou seja: as **vendas** são só-sobe (FR-004), mas o **estado do turno** (fechamento) pode **descer** da nuvem para o PDV.
 - **FR-020**: Após um fechamento (local ou vindo da nuvem) e a confirmação de sync, o turno encerrado torna-se elegível à poda local pela regra de 45 dias (FR-007/FR-008).
 - **FR-021**: O PDV MUST exibir **sempre**, no cabeçalho, o **nome da máquina (PC)** e o **operador do turno aberto**. Sem turno aberto, o cabeçalho MUST indicar claramente que não há turno aberto. (O cabeçalho do escritório exibe "escritório" como identidade.)
-- **FR-022**: A **tela inicial** do PDV MUST mostrar as vendas do **turno aberto** no **mesmo formato da lista de vendas do relatório**, permitindo acompanhar o turno corrente em tempo real (a lista atualiza conforme novas vendas/cancelamentos ocorrem no turno).
+- **FR-022**: A **tela inicial** do PDV MUST mostrar **apenas** as vendas do **turno aberto** (nenhuma venda de outros turnos), no **mesmo formato da lista de vendas do relatório**, atualizando em tempo real conforme novas vendas/cancelamentos ocorrem no turno. Sem turno aberto, a lista fica vazia e orienta a abrir um turno.
 - **FR-023**: O PDV MUST **alertar** o operador para fechar/conferir um turno que continua aberto **após a virada do dia**, mas MUST NOT fechá-lo automaticamente (o fechamento exige conferência de caixa e é sempre manual ou pela nuvem).
 - **FR-024**: Se um turno for fechado (ex.: pela nuvem) enquanto o PDV ainda tem **vendas não sincronizadas** vinculadas a ele, o PDV MUST **criar um novo turno** e mover essas vendas pendentes para ele. O turno fechado MUST permanecer fechado; **nenhuma venda pode ser perdida** por causa do fechamento.
 

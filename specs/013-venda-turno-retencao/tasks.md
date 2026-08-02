@@ -23,7 +23,7 @@ Base já existente (feature 009): `pedido.turno_uid` e `pedido.numero_no_turno` 
 
 **Purpose**: base compartilhada (ADR, migração de colunas, porta da máquina)
 
-- [ ] T001 Registrar **ADR-0025** em `docs/adr/0025-turno-como-unidade-venda-push-only.md` (venda push-only; identidade do turno por máquina; `numero_no_turno` como Pedido Nº exibido — número contínuo preservado; poda local de 45 dias; reconciliação de fechamento nuvem→PDV)
+- [x] T001 **ADR-0025** criado em `docs/adr/0025-turno-como-unidade-venda-push-only.md` (venda push-only; identidade do turno por máquina; `numero_no_turno` como Pedido Nº exibido — número contínuo preservado; poda local 45d FK-safe; reconciliação de fechamento; nota de terminologia Fechar↔encerrado). Também criado o débito **ADR-0024** (PDV consumidor, feature 012) que a constituição referenciava.
 - [ ] T002 Migração idempotente **m014** em `src-tauri/src/migration/m014.rs` (ADD COLUMN ignorando "duplicate column": `turno_operacao.maquina TEXT`; `pedido.ja_sincronizado INTEGER NOT NULL DEFAULT 0`) e registrar no boot em `src-tauri/src/adapters/persistencia/mod.rs` (após m013)
 - [ ] T003 [P] Porta `Maquina` (nome do PC) em `src-tauri/src/application/ports.rs` + adapter `src-tauri/src/adapters/persistencia/maquina.rs` (hostname do sistema)
 
@@ -51,7 +51,7 @@ Base já existente (feature 009): `pedido.turno_uid` e `pedido.numero_no_turno` 
 - [ ] T008 [US1] `src-tauri/src/adapters/persistencia/pedido_repo.rs`: `registrar` grava `turno_uid` do turno aberto e `numero_no_turno` (via `proximo_numero` pela contagem de pedidos do turno)
 - [ ] T009 [US1] `src-tauri/src/application/cancelamento.rs`: permitir cancelar só se a venda pertence ao turno aberto (`pode_cancelar`); venda de turno fechado → erro "corrija no escritório"
 - [ ] T010 [US1] `src-tauri/src/commands_turno.rs` + `commands.rs`: expor `abrir_ou_continuar`/`encerrar`/estado do turno; `registrar_venda`/`excluir_pedido` retornam o erro de "sem turno" para o front
-- [ ] T011 [US1] Front `src/`: bloquear venda/cancelamento sem turno e orientar a abrir turno (toast/modal); fluxo de abrir/continuar turno
+- [ ] T011 [US1] Front `src/`: **bloqueio incisivo** — sem turno aberto, a janela de venda **não renderiza a UI de venda**; mostra uma chamada destacada para abrir turno (não um toast/aviso dispensável). Fluxo de abrir/continuar turno (FR-002)
 - [ ] T012 [US1] Front `src/`: aviso de **turno aberto após a virada do dia** (FR-023) — alerta para fechar/conferir, sem auto-fechar
 - [ ] T013 [P] [US1] Testes de integração em `src-tauri/tests/turno_venda.rs`: venda sem turno bloqueada; com turno vincula (`turno_uid` + `numero_no_turno`); cancelamento só do turno aberto; recusa de 2º turno aberto
 
@@ -110,7 +110,7 @@ Base já existente (feature 009): `pedido.turno_uid` e `pedido.numero_no_turno` 
 
 **Independent Test**: tela inicial mostra as vendas do turno no formato do relatório; relatórios/busca não retornam >45 dias.
 
-- [ ] T026 [US4] Front `src/routes/Inicio.tsx`: lista de vendas do **turno aberto** reusando o **componente da lista do relatório** (FR-022), atualizando ao vender/cancelar
+- [ ] T026 [US4] Front `src/routes/Inicio.tsx`: lista **apenas** das vendas do **turno aberto** reusando o **componente da lista do relatório** (FR-022), atualizando ao vender/cancelar; sem turno, lista vazia + chamada para abrir
 - [ ] T027 [US4] Front `src/` (relatórios/busca): limitar à janela de ≤45 dias e indicar "histórico completo no escritório" para consultas anteriores (FR-012)
 
 **Checkpoint**: US4 entregue — PDV focado no turno corrente.
