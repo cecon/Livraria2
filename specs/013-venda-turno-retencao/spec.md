@@ -8,6 +8,22 @@
 
 **Input**: User description: "Toda venda no PDV deve ser obrigatoriamente vinculada a um turno. Remover o histórico de vendas de longo prazo do PDV: não manter mais de 45 dias de vendas — o PDV foca nos turnos dele. Não descer mais vendas para o PDV: o ideal é apenas as vendas subirem (push-only). Não descer vendas sem um turno aberto. O histórico completo vive na nuvem/escritório (a nuvem manda, feature 012)."
 
+## Clarifications
+
+### Session 2026-08-01
+
+- Q: Ao cancelar uma venda de um turno já fechado/conferido, qual turno registra o estorno? → A: **Não pode** — venda de turno fechado NÃO pode ser cancelada no PDV. O cancelamento vale somente para vendas do **turno aberto**; correção de venda de turno anterior é feita no escritório/nuvem. (Supera a janela de 5 dias no nível do PDV.)
+- Q: A poda de 45 dias remove em qual granularidade? → A: **Por turno inteiro** (turno fechado + sincronizado + com data > 45 dias, levando junto todas as suas vendas).
+- Q: O turno padrão do backfill de vendas históricas sem turno é único ou por PDV/loja? → A: **Um único turno padrão global** na nuvem.
+- Decisão: A **numeração de vendas reinicia em 1 a cada turno** (Pedido Nº sequencial dentro do turno; identidade da venda = turno + número). (FR-016)
+- Decisão: A **identidade do turno inclui o nome da máquina** (PDV) + o usuário que abriu; mesmo usuário em outra máquina/nuvem = outro turno (sem colisão no sync). (FR-015)
+- Decisão: O PDV tem **um único turno aberto por vez**; quem logar continua no turno aberto, e só abre um novo após fechar o atual. (FR-017)
+- Decisão: A poda de 45 dias é **só no PDV**; a **nuvem retém tudo** permanentemente. (FR-011a)
+- Decisão: O **escritório/nuvem** deve poder ver todos os turnos (abertos/fechados) a qualquer momento; a abertura de turno sobe para a nuvem. (FR-018)
+- Decisão: O PDV só poda turnos/vendas **já encerrados**; turno aberto (e suas vendas) fica até ser fechado, não importa a idade. (FR-008)
+- Decisão: Um turno pode ser **fechado pela nuvem**; o fechamento **desce** e encerra o turno no PDV. Vendas são só-sobe, mas o estado do turno pode descer. (FR-019)
+- Decisão: O **cabeçalho do PDV** mostra sempre o **PC + operador do turno aberto**; o cabeçalho do escritório mostra "escritório". (FR-021)
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Venda exige turno aberto (Priority: P1)
@@ -22,8 +38,9 @@ O operador só consegue registrar uma venda (e um cancelamento) quando há um tu
 
 1. **Given** nenhum turno aberto, **When** o operador tenta registrar uma venda, **Then** o registro é bloqueado e o PDV pede para abrir um turno.
 2. **Given** um turno aberto, **When** o operador registra uma venda, **Then** a venda é gravada vinculada àquele turno e entra no total do turno.
-3. **Given** um turno aberto, **When** o operador cancela uma venda dentro da janela de 5 dias, **Then** o cancelamento é registrado como fato operacional do turno corrente.
-4. **Given** nenhum turno aberto, **When** o operador tenta cancelar uma venda, **Then** o cancelamento é bloqueado até abrir um turno.
+3. **Given** um turno aberto, **When** o operador cancela uma venda **daquele mesmo turno**, **Then** o cancelamento é registrado no turno aberto.
+4. **Given** uma venda de um turno **já fechado**, **When** o operador tenta cancelá-la no PDV, **Then** o cancelamento é bloqueado (correção fica para o escritório).
+5. **Given** nenhum turno aberto, **When** o operador tenta cancelar uma venda, **Then** o cancelamento é bloqueado até abrir um turno.
 
 ---
 
@@ -71,18 +88,57 @@ As telas do PDV (início/turno corrente, lista de turnos, relatórios e busca de
 
 1. **Given** vendas de mais de 45 dias existiam, **When** o operador abre relatórios/busca no PDV, **Then** só aparecem resultados dentro da janela de 45 dias.
 2. **Given** o operador procura uma venda antiga, **When** ela está fora da janela, **Then** o PDV indica que o histórico completo está no escritório.
+3. **Given** um turno aberto com vendas, **When** o operador abre a tela inicial, **Then** vê as vendas do turno no mesmo formato da lista do relatório, atualizando conforme novas vendas/cancelamentos.
+
+---
+
+### User Story 5 - Turno único por máquina e numeração de venda por turno (Priority: P2)
+
+Cada turno pertence a uma **máquina (PDV) específica**: sua identidade inclui o **nome da máquina** onde foi aberto, além do **usuário que o abriu**. O mesmo usuário abrindo turno em outro PDV (ou na nuvem) gera um turno **distinto** — nunca colidem, inclusive ao sincronizar. O PDV mantém **um único turno aberto por vez**: quem logar continua no turno já aberto; para abrir um novo, fecha o atual primeiro. Dentro de cada turno, a **numeração de vendas reinicia em 1** (Pedido Nº 1, 2, 3…).
+
+**Why this priority**: garante a unicidade do PDV no modelo só-sobe (dois PDVs nunca produzem o mesmo identificador de turno, evitando colisão no push) e dá ao operador a numeração limpa por turno que ele espera no balcão.
+
+**Independent Test**: abrir turnos do mesmo usuário em duas máquinas diferentes gera dois turnos distintos na nuvem; as vendas de um turno saem numeradas 1, 2, 3…; ao abrir um novo turno, a numeração volta a 1.
+
+**Acceptance Scenarios**:
+
+1. **Given** o usuário X na máquina A, **When** abre um turno, **Then** a identidade do turno inclui o nome da máquina A (além do usuário X).
+2. **Given** o mesmo usuário X abre um turno na máquina B (ou na nuvem), **When** ambos sincronizam, **Then** são dois turnos distintos na nuvem (não colidem).
+3. **Given** um turno aberto e vazio, **When** a 1ª venda é registrada, **Then** ela recebe o Nº 1; a próxima, Nº 2; e assim por diante.
+4. **Given** um novo turno é aberto, **When** a 1ª venda daquele turno é registrada, **Then** a numeração reinicia em 1 (independe dos turnos anteriores).
+5. **Given** um turno aberto por X, **When** o usuário Y loga no mesmo PDV, **Then** Y opera no MESMO turno aberto (não abre outro); para abrir um turno em seu nome, Y precisa fechar o atual antes.
+
+---
+
+### User Story 6 - Escritório enxerga os turnos na nuvem (Priority: P3)
+
+No escritório/nuvem, o gestor consegue ver **a qualquer momento** todos os turnos — **abertos e fechados** — de todos os PDVs, com máquina, usuário que abriu, status, período e totais. Assim dá para acompanhar a operação em tempo (quase) real e auditar o histórico.
+
+**Why this priority**: dá visibilidade e controle central sem depender de olhar cada PDV; complementa o modelo "a nuvem manda". É valor de retaguarda, por isso P3 (não bloqueia a operação do balcão).
+
+**Independent Test**: com turnos abertos em um ou mais PDVs, o escritório lista todos com o status correto (aberto/fechado) e seus dados; ao fechar um turno no PDV, o escritório reflete o fechamento após o sync.
+
+**Acceptance Scenarios**:
+
+1. **Given** um turno aberto num PDV, **When** o gestor abre a visão de turnos no escritório, **Then** o turno aparece como **aberto**, com máquina, usuário e totais.
+2. **Given** um turno foi fechado no PDV e sincronizado, **When** o gestor consulta o escritório, **Then** o turno aparece como **fechado**, com o resultado do fechamento.
+3. **Given** vários PDVs operando, **When** o gestor abre a visão de turnos, **Then** vê os turnos de todos os PDVs distinguíveis por máquina/usuário.
+4. **Given** um turno aberto num PDV, **When** o gestor o fecha pela nuvem, **Then** após o sync o PDV reflete o fechamento (o turno deixa de estar aberto e o operador precisa abrir um novo para vender).
 
 ---
 
 ### Edge Cases
 
 - **Turno esquecido aberto por mais de 45 dias**: um turno ainda aberto (não fechado/não sincronizado) NUNCA é podado, mesmo com data > 45 dias; a poda só alcança turnos fechados e sincronizados.
-- **Janela de cancelamento (5 dias) vs retenção (45 dias)**: como 45 > 5, toda venda cancelável (≤5 dias) está sempre presente localmente; a retenção nunca remove uma venda ainda dentro da janela de cancelamento.
-- **Cancelar venda de turno já fechado, mas dentro dos 45/5 dias**: permitido enquanto a venda estiver retida e dentro da janela de 5 dias; o cancelamento é fato do turno corrente (aberto).
+- **Cancelamento restrito ao turno aberto**: só se cancela venda do turno atualmente aberto; venda de turno fechado não é cancelável no PDV (correção no escritório). Como turnos abertos nunca são podados, nunca se perde uma venda cancelável.
+- **Poda é só local**: a remoção de 45 dias acontece apenas no banco do PDV; a nuvem mantém tudo. Sincronizar depois da poda NÃO reimporta as vendas removidas (venda é push-only, não desce).
 - **Relógio do dispositivo incorreto**: se a data local estiver adiantada, a poda pode ficar mais agressiva; deve haver salvaguarda para não remover nada não-sincronizado (a confirmação de sync é o gate real, não só a data).
 - **Vendas legadas sem turno** (anteriores a esta feature): um **backfill único na nuvem** cria um **turno padrão já fechado e conferido** e vincula todas as vendas órfãs a ele; assim TODA venda — inclusive histórica — passa a respeitar FR-001, sem exceção. O PDV não executa esse backfill (não guarda histórico antigo; ele só sobe suas vendas e a nuvem atribui o turno padrão quando faltar).
 - **Cancelamento de venda já sincronizada, sem baixar a venda**: o PDV precisa saber, **localmente**, que aquela venda já subiu (para compensar o saldo operacional ao cancelá-la), já que não baixa mais o registro/estado da venda da nuvem.
 - **Poda no meio de um push pendente**: a poda e o envio não podem competir de forma a remover algo antes de confirmado; o gate de "já sincronizado" resolve isso.
+- **Número de venda não é único global**: como reinicia por turno (FR-016), buscas/relatórios que hoje assumem número único MUST passar a usar (turno + número) ou o identificador de sincronização.
+- **Máquina sem nome estável / renomeada**: se o identificador da máquina mudar, novos turnos passam a usar o novo nome; turnos antigos mantêm o nome de origem (sem reescrever histórico).
+- **Turno aberto ainda não sincronizado**: no escritório o turno só aparece após a abertura subir; antes disso, é invisível na nuvem (aceitável — visibilidade é quase-tempo-real, não instantânea offline).
 
 ## Requirements *(mandatory)*
 
@@ -90,26 +146,35 @@ As telas do PDV (início/turno corrente, lista de turnos, relatórios e busca de
 
 - **FR-001**: Toda venda registrada no PDV MUST estar vinculada a exatamente um turno.
 - **FR-002**: O PDV MUST impedir o registro de venda quando não houver turno aberto, orientando o operador a abrir um turno.
-- **FR-003**: O cancelamento de venda MUST exigir um turno aberto e ser registrado como fato operacional do turno corrente.
-- **FR-004**: A sincronização de vendas e cancelamentos MUST ser **unidirecional para cima** (push): o PDV envia os fatos que produziu e **MUST NOT** baixar registros de venda da nuvem (nem próprios nem de outros PDVs).
+- **FR-003**: O cancelamento de venda no PDV MUST ser permitido **apenas para vendas do turno aberto**. Venda de um turno já fechado MUST NOT ser cancelável no PDV (a correção é feita no escritório/nuvem). Isso supera a janela de 5 dias no nível do PDV.
+- **FR-004**: A sincronização de **vendas e cancelamentos** MUST ser **unidirecional para cima** (push): o PDV envia os fatos que produziu e **MUST NOT** baixar registros de venda da nuvem (nem próprios nem de outros PDVs). (Isso se aplica às vendas; o **estado do turno** pode descer — ver FR-019.)
 - **FR-005**: O PDV MUST continuar recebendo da nuvem o **saldo publicado** do livro (base do saldo operacional) sem baixar os registros de venda.
 - **FR-006**: O saldo operacional MUST permanecer correto sem depender de baixar vendas da nuvem, inclusive no cancelamento de uma venda **já sincronizada** — o PDV MUST determinar localmente se uma venda já subiu (fato produzido pelo próprio aparelho), sem puxar o estado da venda de volta.
-- **FR-007**: O PDV MUST reter localmente apenas vendas e turnos dos últimos 45 dias.
-- **FR-008**: A poda MUST remover **somente** dados já confirmados na nuvem (sincronizados); qualquer venda/turno pendente de envio MUST ser preservado até a confirmação.
+- **FR-007**: O PDV MUST reter localmente apenas vendas e turnos **encerrados** dos últimos 45 dias (o turno aberto e suas vendas ficam sempre, ver FR-008).
+- **FR-008**: A poda MUST remover **somente** dados já confirmados na nuvem (sincronizados) **e já ENCERRADOS**. Turnos **abertos** (e suas vendas) MUST permanecer no PDV até serem fechados, **independentemente da idade** (nunca são podados enquanto abertos). Qualquer venda/turno pendente de envio MUST ser preservado até a confirmação.
 - **FR-009**: A poda MUST ser automática e idempotente (sem ação do operador) e MUST remover o agregado completo do que sai da janela (a venda com seus itens, pagamentos e alocações; o turno quando totalmente fora da janela e sincronizado).
-- **FR-010**: A retenção MUST ser sempre maior que a janela de cancelamento (nunca remover uma venda ainda cancelável).
+- **FR-010**: A poda MUST NUNCA remover uma venda ainda cancelável. Como só é cancelável a venda do turno aberto (FR-003) e turnos abertos nunca são podados, essa garantia é inerente.
 - **FR-011**: A poda MUST NOT alterar o catálogo de livros, os saldos publicados nem qualquer dado que não seja histórico de venda/turno.
+- **FR-011a**: A poda de 45 dias é **exclusivamente local (no PDV)**. A nuvem/escritório MUST reter **todas** as vendas e turnos permanentemente — nada é removido da nuvem por esta feature. A remoção local nunca dispara remoção na nuvem.
 - **FR-012**: As telas do PDV (turno corrente, turnos, relatórios, busca de vendas) MUST operar sobre a janela de até 45 dias e MUST indicar que o histórico completo vive no escritório para consultas anteriores.
 - **FR-013**: O sistema MUST garantir que nenhuma venda produzida no PDV se perca por causa da poda ou do modelo só-sobe (toda venda tem que ter subido antes de ser removível).
-- **FR-014**: Toda venda histórica **sem turno** MUST ser vinculada a um **turno padrão criado na nuvem, já fechado e conferido**, de modo que nenhuma venda fique órfã de turno. O backfill MUST ser **único e idempotente** e executado no lado da nuvem (não no PDV). Uma venda que chegue da nuvem/PDV sem turno MUST cair nesse turno padrão.
+- **FR-014**: Toda venda histórica **sem turno** MUST ser vinculada a **um único turno padrão global**, criado na nuvem, já **fechado e conferido**, de modo que nenhuma venda fique órfã de turno. O backfill MUST ser **único e idempotente** e executado no lado da nuvem (não no PDV). Uma venda que chegue da nuvem/PDV sem turno MUST cair nesse turno padrão global.
+- **FR-015**: A identidade de um turno MUST incluir o **nome da máquina (unidade PDV)** onde foi aberto, além do usuário e do momento de abertura. Turnos abertos em máquinas diferentes (ou na nuvem) pelo mesmo usuário MUST ser sempre distintos e MUST NOT colidir na sincronização.
+- **FR-016**: A numeração de vendas (Pedido Nº) MUST **reiniciar em 1 a cada turno** e ser sequencial **dentro** do turno. A identidade global de uma venda passa a ser **(turno + número)**; o número isolado MUST NOT ser tratado como único entre turnos.
+- **FR-017**: O PDV MUST permitir **no máximo um turno aberto por vez** (por máquina). Ao entrar/logar com um turno já aberto, qualquer operador MUST **continuar no mesmo turno aberto** — não abre um turno paralelo. Para abrir um novo turno (em seu nome), o operador MUST primeiro **fechar** o turno atual. O turno registra o operador que o **abriu**; cada venda registra o operador que a fez.
+- **FR-018**: A nuvem/escritório MUST permitir visualizar, **a qualquer momento**, todos os turnos (**abertos e fechados**) de todos os PDVs, com máquina, usuário que abriu, status, período e totais. A abertura de turno MUST subir para a nuvem para que o turno apareça como aberto (não só no fechamento).
+- **FR-019**: A nuvem/escritório MUST poder **fechar um turno**; esse fechamento MUST **propagar para o PDV** (o turno aberto no PDV passa a fechado, liberando a abertura de um novo). Ou seja: as **vendas** são só-sobe (FR-004), mas o **estado do turno** (fechamento) pode **descer** da nuvem para o PDV.
+- **FR-020**: Após um fechamento (local ou vindo da nuvem) e a confirmação de sync, o turno encerrado torna-se elegível à poda local pela regra de 45 dias (FR-007/FR-008).
+- **FR-021**: O PDV MUST exibir **sempre**, no cabeçalho, o **nome da máquina (PC)** e o **operador do turno aberto**. Sem turno aberto, o cabeçalho MUST indicar claramente que não há turno aberto. (O cabeçalho do escritório exibe "escritório" como identidade.)
+- **FR-022**: A **tela inicial** do PDV MUST mostrar as vendas do **turno aberto** no **mesmo formato da lista de vendas do relatório**, permitindo acompanhar o turno corrente em tempo real (a lista atualiza conforme novas vendas/cancelamentos ocorrem no turno).
 
 ### Key Entities *(include if feature involves data)*
 
-- **Turno de operação**: unidade de trabalho do PDV (abertura/fechamento, data, operador). Toda venda pertence a um turno. É a âncora da retenção e da obrigatoriedade.
-- **Venda (pedido)**: fato operacional produzido no PDV, vinculado a um turno, com estado de envio (produzida localmente → enviada à nuvem → confirmada). Só sobe; nunca é baixada.
-- **Cancelamento**: fato operacional que estorna uma venda dentro da janela de 5 dias; pertence ao turno aberto no momento do cancelamento.
-- **Turno padrão (histórico)**: turno criado uma única vez na nuvem, já **fechado e conferido**, que recebe todas as vendas históricas sem turno (âncora do backfill — FR-014).
-- **Janela de retenção (45 dias)**: limite de idade das vendas/turnos mantidos localmente.
+- **Turno de operação**: unidade de trabalho do PDV. Identificado por **máquina (PDV) + usuário + abertura** (por isso é único entre PDVs/nuvem — FR-015). Tem estado aberto/fechado e data. Toda venda pertence a um turno; é a âncora da obrigatoriedade e da retenção.
+- **Venda (pedido)**: fato operacional produzido no PDV, vinculado a um turno, com **número sequencial dentro do turno** (reinicia em 1 — FR-016) e estado de envio (produzida → enviada → confirmada). Só sobe; nunca é baixada.
+- **Cancelamento**: fato operacional que estorna uma venda **do turno aberto**; venda de turno fechado não é cancelável no PDV.
+- **Turno padrão global (histórico)**: único turno na nuvem, já **fechado e conferido**, que ancora todas as vendas históricas sem turno (âncora do backfill — FR-014).
+- **Janela de retenção (45 dias)**: limite de idade das vendas/turnos mantidos **localmente** (a nuvem retém tudo).
 - **Saldo publicado do livro**: estoque oficial calculado pela nuvem e recebido pelo PDV; base do saldo operacional (o único dado de estoque que continua descendo).
 
 ## Success Criteria *(mandatory)*
@@ -122,18 +187,27 @@ As telas do PDV (início/turno corrente, lista de turnos, relatórios e busca de
 - **SC-004**: Após a poda, o banco local do PDV não contém nenhuma venda/turno sincronizado com mais de 45 dias.
 - **SC-005**: A poda nunca remove dado não sincronizado (0 perdas de venda por poda ou por só-sobe).
 - **SC-006**: O tamanho do banco local do PDV estabiliza ao longo do tempo (proporcional a ~45 dias de operação), em vez de crescer indefinidamente.
-- **SC-007**: O cancelamento dentro de 5 dias continua funcionando 100%, inclusive para venda já sincronizada, com o saldo operacional voltando ao valor correto.
+- **SC-007**: O cancelamento de uma venda **do turno aberto** funciona 100%, inclusive quando a venda já foi sincronizada, com o saldo operacional voltando ao valor correto.
 - **SC-008**: O saldo operacional exibido bate com o esperado em todos os fluxos (venda offline, venda sincronizada, cancelamento antes/depois do sync) sem baixar vendas.
 - **SC-009**: Após o backfill, **zero vendas na nuvem ficam sem turno** — 100% das vendas históricas passam a apontar para o turno padrão (fechado e conferido).
+- **SC-010**: As vendas de um turno são numeradas 1..N; ao abrir um novo turno, a 1ª venda volta a ser Nº 1 (0 casos de numeração contínua entre turnos).
+- **SC-011**: Turnos de máquinas/PDVs diferentes (mesmo usuário) nunca colidem na nuvem (0 colisões de identidade de turno após o sync).
+- **SC-012**: O escritório consegue listar 100% dos turnos (abertos e fechados) de todos os PDVs, com o status correto, a qualquer momento após o sync da abertura/fechamento.
+- **SC-013**: Em cada PDV existe **no máximo um turno aberto** em qualquer instante (0 casos de dois turnos abertos simultâneos).
+- **SC-014**: O cabeçalho do PDV mostra sempre o PC e o operador do turno aberto (ou avisa que não há turno) — verificável em 100% das telas operacionais.
+- **SC-015**: Um turno fechado pela nuvem aparece como fechado no PDV após o sync (propagação de fechamento em 100% dos casos).
 
 ## Assumptions
 
-- **Granularidade da poda = turno**: a unidade de remoção é o turno fechado e totalmente sincronizado com data > 45 dias, levando junto todas as suas vendas/itens/pagamentos/alocações. (Refinável em `/speckit-clarify`.)
+- **Granularidade da poda = turno** (decidido): a unidade de remoção é o turno fechado e totalmente sincronizado com data > 45 dias, levando junto todas as suas vendas/itens/pagamentos/alocações.
+- **Um único turno aberto por PDV**, compartilhado por qualquer operador que logar até ser fechado (FR-017).
+- **Nome da máquina = identificador estável do dispositivo** (ex.: hostname do PDV), assumido único por unidade; compõe a identidade do turno (FR-015).
+- **Numeração por turno**: o Pedido Nº reinicia em 1 a cada turno; a identidade global da venda é (turno + número) (FR-016). O domínio já tem a primitiva de "próximo número do turno".
 - **"Sincronizado" = confirmado na nuvem** (marcador de envio preenchido no pedido e em suas filhas). O gate real da poda é a confirmação de sync, não apenas a data.
 - **Idade medida pela data da venda/turno** (data local ISO). Uma salvaguarda evita poda agressiva por relógio adiantado (nunca remove não-sincronizado).
 - **Catálogo e ledger não são histórico de venda**: livros, movimentos de estoque e saldo publicado NÃO são podados; a retenção é só do histórico de vendas/turnos.
 - **45 dias é fixo** nesta versão (não configurável).
-- **Cancelamento é fato do turno corrente** e pode alvejar vendas retidas dentro da janela de 5 dias.
+- **Cancelamento restrito ao turno aberto**: só se cancela venda do turno atualmente aberto (isso supera a janela de 5 dias no nível do PDV); a correção de venda de turno já fechado é feita no escritório/nuvem.
 - **Sinal local de "já subiu"**: como a venda não desce mais, o PDV usa seu próprio estado de envio (fato produzido localmente) para saber se uma venda já foi incorporada na nuvem — necessário para o saldo operacional no cancelamento (reconciliar com o fix atual, que hoje depende do `estoque_status` voltar no pull; ver Dependências).
 - **Vendas legadas sem turno** são vinculadas a um **turno padrão na nuvem** (já fechado e conferido) por um backfill único do lado da nuvem — assim TODA venda, inclusive histórica, tem turno (FR-014). O PDV não faz esse backfill (só sobe suas vendas; a nuvem atribui o turno padrão quando faltar).
 - A **nuvem/escritório** mantém o histórico completo e é a fonte de verdade (features 007/008/011/012).

@@ -36,8 +36,11 @@
   com o sistema atual (em especial a reconciliação com o fix de saldo operacional v26.8.3). As histórias,
   FRs e SCs permanecem agnósticas de implementação. Aceito como exceção deliberada porque a conexão com o
   código já em produção é informação essencial para o `/speckit-plan`.
-- **Ponto de atenção para o plano**: FR-006 + a dependência do fix de saldo operacional são o principal
-  risco técnico — o sinal "venda já incorporada" precisa passar de *puxado da nuvem* para *local*. Vale
-  um `/speckit-clarify` se houver dúvida sobre granularidade da poda (turno × pedido) ou sobre a qual
-  turno pertence o cancelamento de uma venda de turno anterior.
+- **Clarify (sessão 2026-08-01) — forks resolvidos**: cancelamento só do turno aberto (venda de turno
+  fechado não é cancelável no PDV); poda por turno inteiro; turno padrão global; + decisões do usuário:
+  numeração reinicia por turno, identidade do turno inclui a máquina, um único turno aberto por PDV,
+  poda só local (nuvem retém tudo), escritório enxerga todos os turnos. Ver seção `## Clarifications`.
+- **Ponto de atenção para o plano**: FR-006 + a dependência do fix de saldo operacional seguem como o
+  principal risco técnico — o sinal "venda já incorporada" precisa passar de *puxado da nuvem* para
+  *local* (push-only). Também: número de venda deixa de ser único global (usar turno + número).
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
