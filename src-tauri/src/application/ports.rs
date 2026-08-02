@@ -124,3 +124,9 @@ pub trait Relogio: Send + Sync {
     /// Data de hoje em ISO yyyy-mm-dd.
     fn hoje_iso(&self) -> String;
 }
+
+/// Identidade da máquina/PDV (porta) — o **nome do PC** compõe a identidade do
+/// turno (feature 013, FR-015) e aparece no header. Adapter na borda (hostname).
+pub trait Maquina: Send + Sync {
+    fn nome(&self) -> String;
+}

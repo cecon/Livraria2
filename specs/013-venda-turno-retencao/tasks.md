@@ -24,8 +24,8 @@ Base já existente (feature 009): `pedido.turno_uid` e `pedido.numero_no_turno` 
 **Purpose**: base compartilhada (ADR, migração de colunas, porta da máquina)
 
 - [x] T001 **ADR-0025** criado em `docs/adr/0025-turno-como-unidade-venda-push-only.md` (venda push-only; identidade do turno por máquina; `numero_no_turno` como Pedido Nº exibido — número contínuo preservado; poda local 45d FK-safe; reconciliação de fechamento; nota de terminologia Fechar↔encerrado). Também criado o débito **ADR-0024** (PDV consumidor, feature 012) que a constituição referenciava.
-- [ ] T002 Migração idempotente **m014** em `src-tauri/src/migration/m014.rs` (ADD COLUMN ignorando "duplicate column": `turno_operacao.maquina TEXT`; `pedido.ja_sincronizado INTEGER NOT NULL DEFAULT 0`) e registrar no boot em `src-tauri/src/adapters/persistencia/mod.rs` (após m013)
-- [ ] T003 [P] Porta `Maquina` (nome do PC) em `src-tauri/src/application/ports.rs` + adapter `src-tauri/src/adapters/persistencia/maquina.rs` (hostname do sistema)
+- [x] T002 Migração idempotente **m014** em `src-tauri/src/migration/m014.rs` (ADD COLUMN ignorando "duplicate column": `turno_operacao.maquina TEXT`; `pedido.ja_sincronizado INTEGER NOT NULL DEFAULT 0`) e registrar no boot em `src-tauri/src/adapters/persistencia/mod.rs` (após m013)
+- [x] T003 [P] Porta `Maquina` (nome do PC) em `src-tauri/src/application/ports.rs` + adapter `src-tauri/src/adapters/persistencia/maquina.rs` (hostname do sistema)
 
 ---
 
@@ -33,7 +33,7 @@ Base já existente (feature 009): `pedido.turno_uid` e `pedido.numero_no_turno` 
 
 **Purpose**: regras puras de turno que bloqueiam US1/US3/US5. **MUST completar antes das histórias.**
 
-- [ ] T004 Domínio em `crates/livraria-domain/src/turno_operacao.rs`: adicionar guardas puras + testes — `pode_abrir(ha_turno_aberto) -> bool` (só abre se não há aberto), `pode_cancelar(venda_turno_uid, turno_aberto_uid) -> bool` (só cancela venda do turno aberto), `turno_podavel(status, data_iso, hoje_iso, dias=45) -> bool` (encerrado + > 45 dias)
+- [x] T004 Domínio em `crates/livraria-domain/src/turno_operacao.rs`: adicionar guardas puras + testes — `pode_abrir(ha_turno_aberto) -> bool` (só abre se não há aberto), `pode_cancelar(venda_turno_uid, turno_aberto_uid) -> bool` (só cancela venda do turno aberto), `turno_podavel(status, data_iso, hoje_iso, dias=45) -> bool` (encerrado + > 45 dias)
 
 **Checkpoint**: domínio de turno pronto e testado sem UI/banco.
 

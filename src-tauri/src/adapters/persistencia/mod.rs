@@ -65,5 +65,7 @@ pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     // m012/m013 (feature 012): drop das tabelas de lancamento/inventario (saem do PDV).
     crate::migration::m012::aplicar(db).await?;
     crate::migration::m013::aplicar(db).await?;
+    // m014 (feature 013): turno_operacao.maquina + pedido.ja_sincronizado.
+    crate::migration::m014::aplicar(db).await?;
     Ok(())
 }

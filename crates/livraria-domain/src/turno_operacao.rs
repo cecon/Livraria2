@@ -92,6 +92,33 @@ pub fn proximo_numero(qtd_no_turno: i64) -> i64 {
     qtd_no_turno + 1
 }
 
+/// Retenção local do PDV: turnos com mais de 45 dias são podados (feature 013).
+pub const RETENCAO_DIAS: i64 = 45;
+
+/// Pode abrir um novo turno? Só se NÃO há turno aberto no PDV — **um único turno
+/// aberto por vez** (FR-017). Havendo um aberto, o operador continua nele.
+pub fn pode_abrir(ha_turno_aberto: bool) -> bool {
+    !ha_turno_aberto
+}
+
+/// Cancelamento só é permitido para venda **do turno aberto** (FR-003). `None` em
+/// qualquer lado (venda sem turno, ou nenhum turno aberto) ⇒ não permite.
+pub fn pode_cancelar(venda_turno_uid: Option<&str>, turno_aberto_uid: Option<&str>) -> bool {
+    matches!((venda_turno_uid, turno_aberto_uid), (Some(v), Some(a)) if v == a)
+}
+
+/// Turno é podável localmente (retenção — FR-007/008): **encerrado** e aberto há
+/// mais de `dias` dias corridos. A checagem de "já sincronizado" é do adapter.
+pub fn turno_podavel(status: StatusTurno, abertura_iso: &str, hoje_iso: &str, dias: i64) -> bool {
+    if status != StatusTurno::Encerrado {
+        return false;
+    }
+    match (crate::pedido::dias_civis(abertura_iso), crate::pedido::dias_civis(hoje_iso)) {
+        (Some(a), Some(h)) => (h - a) > dias,
+        _ => false,
+    }
+}
+
 /// Resume o fechamento a partir de todos os recebimentos do turno. O **esperado
 /// conferível** é só o dinheiro: `caixa_inicial + Σ recebido na forma Dinheiro`.
 /// As demais formas voltam em `por_forma` como informativos (clarify Q1).
@@ -151,6 +178,32 @@ mod tests {
         // Sem caixa inicial → zero.
         let t0 = TurnoOperacao::abrir("op-1", None, "2026-07-22T08:00");
         assert_eq!(t0.caixa_inicial, Dinheiro::ZERO);
+    }
+
+    #[test]
+    fn um_unico_turno_aberto_por_pdv() {
+        assert!(pode_abrir(false)); // não há aberto → pode
+        assert!(!pode_abrir(true)); // já há aberto → continua no existente
+    }
+
+    #[test]
+    fn cancela_somente_do_turno_aberto() {
+        assert!(pode_cancelar(Some("t1"), Some("t1")));
+        assert!(!pode_cancelar(Some("t1"), Some("t2"))); // outra turno
+        assert!(!pode_cancelar(None, Some("t1"))); // venda sem turno (legado)
+        assert!(!pode_cancelar(Some("t1"), None)); // nenhum turno aberto
+    }
+
+    #[test]
+    fn poda_so_turno_encerrado_e_antigo() {
+        // encerrado e 46 dias atrás → podável (> 45)
+        assert!(turno_podavel(StatusTurno::Encerrado, "2026-06-01", "2026-07-17", 45));
+        // encerrado e exatamente 45 dias → NÃO (precisa > 45)
+        assert!(!turno_podavel(StatusTurno::Encerrado, "2026-06-01", "2026-07-16", 45));
+        // aberto, mesmo antigo → nunca podável
+        assert!(!turno_podavel(StatusTurno::Aberto, "2026-06-01", "2026-07-17", 45));
+        // data (com hora) também parseia
+        assert!(turno_podavel(StatusTurno::Encerrado, "2026-06-01T09:30:00", "2026-08-01", 45));
     }
 
     #[test]
