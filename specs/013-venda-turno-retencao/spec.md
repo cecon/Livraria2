@@ -23,6 +23,9 @@
 - Decisão: O PDV só poda turnos/vendas **já encerrados**; turno aberto (e suas vendas) fica até ser fechado, não importa a idade. (FR-008)
 - Decisão: Um turno pode ser **fechado pela nuvem**; o fechamento **desce** e encerra o turno no PDV. Vendas são só-sobe, mas o estado do turno pode descer. (FR-019)
 - Decisão: O **cabeçalho do PDV** mostra sempre o **PC + operador do turno aberto**; o cabeçalho do escritório mostra "escritório". (FR-021)
+- Q: Quem pode fechar um turno pela nuvem? → A: **Qualquer usuário do escritório**. (FR-019)
+- Q: Como tratar o "turno esquecido" aberto? → A: **Avisa, mas não fecha** — passando da virada do dia, o PDV alerta o operador a fechar/conferir, mas nunca auto-fecha. (FR-023)
+- Q: Se a nuvem fecha o turno e o PDV ainda tem vendas não sincronizadas dele? → A: O PDV **cria um novo turno** e move as vendas pendentes para ele; o turno fechado permanece fechado; nenhuma venda é perdida. (FR-024)
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -124,12 +127,14 @@ No escritório/nuvem, o gestor consegue ver **a qualquer momento** todos os turn
 2. **Given** um turno foi fechado no PDV e sincronizado, **When** o gestor consulta o escritório, **Then** o turno aparece como **fechado**, com o resultado do fechamento.
 3. **Given** vários PDVs operando, **When** o gestor abre a visão de turnos, **Then** vê os turnos de todos os PDVs distinguíveis por máquina/usuário.
 4. **Given** um turno aberto num PDV, **When** o gestor o fecha pela nuvem, **Then** após o sync o PDV reflete o fechamento (o turno deixa de estar aberto e o operador precisa abrir um novo para vender).
+5. **Given** o gestor fecha um turno pela nuvem e o PDV ainda tinha vendas não sincronizadas dele, **When** o fechamento chega ao PDV, **Then** o PDV cria um novo turno com essas vendas pendentes (o turno fechado não muda; nenhuma venda se perde).
 
 ---
 
 ### Edge Cases
 
-- **Turno esquecido aberto por mais de 45 dias**: um turno ainda aberto (não fechado/não sincronizado) NUNCA é podado, mesmo com data > 45 dias; a poda só alcança turnos fechados e sincronizados.
+- **Turno esquecido aberto**: passando da virada do dia, o PDV **avisa** para fechar/conferir (FR-023), mas nunca auto-fecha. Enquanto aberto, o turno (e suas vendas) NUNCA é podado, mesmo com data > 45 dias; a poda só alcança turnos fechados e sincronizados.
+- **Fechamento (nuvem) com vendas pendentes no PDV**: o turno fechado permanece fechado; o PDV cria um **novo turno** e move para ele as vendas ainda não sincronizadas (FR-024) — nenhuma venda se perde.
 - **Cancelamento restrito ao turno aberto**: só se cancela venda do turno atualmente aberto; venda de turno fechado não é cancelável no PDV (correção no escritório). Como turnos abertos nunca são podados, nunca se perde uma venda cancelável.
 - **Poda é só local**: a remoção de 45 dias acontece apenas no banco do PDV; a nuvem mantém tudo. Sincronizar depois da poda NÃO reimporta as vendas removidas (venda é push-only, não desce).
 - **Relógio do dispositivo incorreto**: se a data local estiver adiantada, a poda pode ficar mais agressiva; deve haver salvaguarda para não remover nada não-sincronizado (a confirmação de sync é o gate real, não só a data).
@@ -163,10 +168,12 @@ No escritório/nuvem, o gestor consegue ver **a qualquer momento** todos os turn
 - **FR-016**: A numeração de vendas (Pedido Nº) MUST **reiniciar em 1 a cada turno** e ser sequencial **dentro** do turno. A identidade global de uma venda passa a ser **(turno + número)**; o número isolado MUST NOT ser tratado como único entre turnos.
 - **FR-017**: O PDV MUST permitir **no máximo um turno aberto por vez** (por máquina). Ao entrar/logar com um turno já aberto, qualquer operador MUST **continuar no mesmo turno aberto** — não abre um turno paralelo. Para abrir um novo turno (em seu nome), o operador MUST primeiro **fechar** o turno atual. O turno registra o operador que o **abriu**; cada venda registra o operador que a fez.
 - **FR-018**: A nuvem/escritório MUST permitir visualizar, **a qualquer momento**, todos os turnos (**abertos e fechados**) de todos os PDVs, com máquina, usuário que abriu, status, período e totais. A abertura de turno MUST subir para a nuvem para que o turno apareça como aberto (não só no fechamento).
-- **FR-019**: A nuvem/escritório MUST poder **fechar um turno**; esse fechamento MUST **propagar para o PDV** (o turno aberto no PDV passa a fechado, liberando a abertura de um novo). Ou seja: as **vendas** são só-sobe (FR-004), mas o **estado do turno** (fechamento) pode **descer** da nuvem para o PDV.
+- **FR-019**: **Qualquer usuário do escritório** MUST poder **fechar um turno** pela nuvem; esse fechamento MUST **propagar para o PDV** (o turno aberto no PDV passa a fechado, liberando a abertura de um novo). Ou seja: as **vendas** são só-sobe (FR-004), mas o **estado do turno** (fechamento) pode **descer** da nuvem para o PDV.
 - **FR-020**: Após um fechamento (local ou vindo da nuvem) e a confirmação de sync, o turno encerrado torna-se elegível à poda local pela regra de 45 dias (FR-007/FR-008).
 - **FR-021**: O PDV MUST exibir **sempre**, no cabeçalho, o **nome da máquina (PC)** e o **operador do turno aberto**. Sem turno aberto, o cabeçalho MUST indicar claramente que não há turno aberto. (O cabeçalho do escritório exibe "escritório" como identidade.)
 - **FR-022**: A **tela inicial** do PDV MUST mostrar as vendas do **turno aberto** no **mesmo formato da lista de vendas do relatório**, permitindo acompanhar o turno corrente em tempo real (a lista atualiza conforme novas vendas/cancelamentos ocorrem no turno).
+- **FR-023**: O PDV MUST **alertar** o operador para fechar/conferir um turno que continua aberto **após a virada do dia**, mas MUST NOT fechá-lo automaticamente (o fechamento exige conferência de caixa e é sempre manual ou pela nuvem).
+- **FR-024**: Se um turno for fechado (ex.: pela nuvem) enquanto o PDV ainda tem **vendas não sincronizadas** vinculadas a ele, o PDV MUST **criar um novo turno** e mover essas vendas pendentes para ele. O turno fechado MUST permanecer fechado; **nenhuma venda pode ser perdida** por causa do fechamento.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -196,6 +203,8 @@ No escritório/nuvem, o gestor consegue ver **a qualquer momento** todos os turn
 - **SC-013**: Em cada PDV existe **no máximo um turno aberto** em qualquer instante (0 casos de dois turnos abertos simultâneos).
 - **SC-014**: O cabeçalho do PDV mostra sempre o PC e o operador do turno aberto (ou avisa que não há turno) — verificável em 100% das telas operacionais.
 - **SC-015**: Um turno fechado pela nuvem aparece como fechado no PDV após o sync (propagação de fechamento em 100% dos casos).
+- **SC-016**: Fechamento de turno com vendas pendentes no PDV resulta em 0 vendas perdidas (as pendentes migram para um novo turno).
+- **SC-017**: Turno aberto após a virada do dia gera alerta ao operador em 100% dos casos, sem auto-fechamento.
 
 ## Assumptions
 
