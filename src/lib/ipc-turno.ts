@@ -5,6 +5,8 @@ import { invoke } from "@tauri-apps/api/core";
 
 export type VendaTurno = {
   numero: number;
+  /** Pedido Nº do turno — o número exibido (feature 013, FR-016). */
+  numeroNoTurno?: number | null;
   data: string;
   totalCentavos: number;
   cancelada: boolean;

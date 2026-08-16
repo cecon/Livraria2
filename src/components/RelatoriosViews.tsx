@@ -4,6 +4,7 @@ import { brl } from "@/lib/format";
 import type { RelatorioDestinacoes } from "@/lib/types";
 import { CATEGORIAS } from "@/lib/types";
 import type { RelatorioEstoque, RelatorioVendas } from "@/lib/ipc";
+import { pedidoNo } from "@/lib/pedido-numero";
 
 const PERIODO_ROTULO: Record<string, string> = {
   dia: "Dia Inteiro",
@@ -39,7 +40,7 @@ export function VendasView({ rel }: VendasProps) {
           >
             <div className="flex items-center justify-between font-medium">
               <span>
-                Pedido Nº {p.numero} · {p.cliente}
+                Pedido Nº {pedidoNo(p)} · {p.cliente}
               </span>
               {divergente && (
                 <span className="text-[11px] font-normal text-rose-600">

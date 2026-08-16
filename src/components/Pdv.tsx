@@ -191,7 +191,8 @@ export function Pdv() {
       });
       // Confirmação animada com total/troco; PDV volta ao caixa livre (FR-015).
       setConcluida({
-        numero: r.numero,
+        // Pedido Nº do turno — o número que o cliente vê (FR-016).
+        numero: r.numeroNoTurno,
         totalCentavos: r.totalCentavos,
         trocoCentavos: r.trocoCentavos,
       });

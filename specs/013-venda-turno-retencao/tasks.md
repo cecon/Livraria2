@@ -81,10 +81,10 @@ Base já existente (feature 009): `pedido.turno_uid` e `pedido.numero_no_turno` 
 
 **Independent Test**: numeração reinicia em 1 por turno; turnos de máquinas diferentes têm `maquina` distinta; header sempre mostra PC + operador.
 
-- [ ] T019 [US5] `src-tauri/src/adapters/persistencia/replica_mapa.rs`: incluir a coluna `maquina` no recurso `turno_operacao` (sobe para a nuvem)
-- [ ] T020 [US5] Front `src/`: exibir `numero_no_turno` como **"Pedido Nº"** na lista/recibo/relatório (deixar de exibir o `numero` global)
-- [ ] T021 [US5] Front `src/components/` (header): mostrar sempre **PC (maquina) + operador** do turno aberto; sem turno, indicar claramente (FR-021)
-- [ ] T022 [P] [US5] Teste em `src-tauri/tests/turno_venda.rs`: `numero_no_turno` reinicia 1..N por turno; `maquina` preenchida e distinta por PDV
+- [x] T019 [US5] `src-tauri/src/adapters/persistencia/replica_mapa.rs`: incluir a coluna `maquina` no recurso `turno_operacao` (sobe para a nuvem) + migração de nuvem `apps/nuvem/migrations/0014_turno_maquina.sql` (aplicar ANTES de publicar o app)
+- [x] T020 [US5] Front `src/`: exibir `numero_no_turno` como **"Pedido Nº"** na lista/recibo/relatório (deixar de exibir o `numero` global)
+- [x] T021 [US5] Front `src/components/` (header): mostrar sempre **PC (maquina) + operador** do turno aberto; sem turno, indicar claramente (FR-021)
+- [x] T022 [P] [US5] Teste em `src-tauri/tests/turno_venda.rs`: `numero_no_turno` reinicia 1..N por turno; `maquina` preenchida e distinta por PDV
 
 **Checkpoint**: US5 entregue — turno "pertence" à máquina, numeração limpa por turno, header informativo.
 
@@ -123,7 +123,7 @@ Base já existente (feature 009): `pedido.turno_uid` e `pedido.numero_no_turno` 
 
 **Independent Test**: escritório lista turnos abertos/fechados; fechar pela nuvem encerra no PDV; fechar com pendências cria novo turno; backfill zera vendas sem turno.
 
-- [ ] T028 [US6] `apps/nuvem/migrations/0014_turno_padrao_backfill.sql`: criar **um turno padrão global** (fechado/conferido, idempotente `if not exists`) + `UPDATE pedido SET turno_uid = <padrão> WHERE turno_uid IS NULL` (FR-014)
+- [ ] T028 [US6] `apps/nuvem/migrations/0015_turno_padrao_backfill.sql`: criar **um turno padrão global** (fechado/conferido, idempotente `if not exists`) + `UPDATE pedido SET turno_uid = <padrão> WHERE turno_uid IS NULL` (FR-014)
 - [ ] T029 [P] [US6] Homologação SQL em `apps/nuvem/tests/`: backfill idempotente; **zero** pedidos sem turno após rodar (SC-009)
 - [ ] T030 [US6] `apps/escritorio/`: página de **visão de turnos** (abertos/fechados) por máquina, usuário, status, período e totais (FR-018)
 - [ ] T031 [US6] `apps/escritorio/`: ação **"fechar turno"** disponível a **qualquer usuário do escritório** (FR-019) — grava `status='encerrado'` + `atualizado_em` (LWW) na nuvem

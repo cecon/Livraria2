@@ -162,6 +162,7 @@ mod tests {
             Ok(vec![
                 PedidoRelatorio {
                     numero: 1,
+                    numero_no_turno: Some(1),
                     cliente: "A".into(),
                     itens: vec![ItemRelatorio {
                         alocacoes: vec![],
@@ -179,6 +180,7 @@ mod tests {
                 },
                 PedidoRelatorio {
                     numero: 2,
+                    numero_no_turno: Some(2),
                     cliente: "B".into(),
                     itens: vec![],
                     recebimentos: vec![

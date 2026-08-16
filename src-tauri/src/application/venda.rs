@@ -41,6 +41,13 @@ pub async fn proximo_numero_pedido(pedidos: &dyn PedidoRepo) -> Result<i64, Erro
     Ok(pedidos.proximo_numero().await?)
 }
 
+/// Venda registrada: o pedido + o Pedido Nº que ela recebeu dentro do turno
+/// (FR-016) — é esse o número exibido no recibo, não o `pedido.numero`.
+pub struct VendaRegistrada {
+    pub pedido: Pedido,
+    pub numero_no_turno: i64,
+}
+
 /// Registra a venda: **exige um turno aberto nesta máquina** (feature 013, FR-002 —
 /// sem turno o registro nem começa), busca cada livro (snapshot de título/preço),
 /// valida cada forma de pagamento (existe e está ativa — FR-012), monta o pedido,
@@ -54,7 +61,7 @@ pub async fn registrar_venda(
     relogio: &dyn Relogio,
     turnos: &dyn TurnoRepo,
     maquina: &dyn Maquina,
-) -> Result<Pedido, ErroApp> {
+) -> Result<VendaRegistrada, ErroApp> {
     // Antes de qualquer efeito: sem turno aberto, a venda não existe (FR-002).
     let contexto = turno::contexto_venda(turnos, maquina).await?;
     let numero = pedidos.proximo_numero().await?;
@@ -121,7 +128,7 @@ pub async fn registrar_venda(
 
     pedido.validar_conclusao(dinheiro.id)?;
     pedidos.registrar(&pedido, Some(&contexto)).await?;
-    Ok(pedido)
+    Ok(VendaRegistrada { pedido, numero_no_turno: contexto.numero_no_turno })
 }
 
 #[cfg(test)]
@@ -180,7 +187,8 @@ mod tests {
             &MaquinaFixa,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .pedido;
         assert_eq!(pedido.numero, 5997);
         assert_eq!(pedido.cliente, "CLIENTE");
         assert_eq!(pedido.turno, Turno::Manha);
@@ -202,7 +210,8 @@ mod tests {
             &MaquinaFixa,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .pedido;
         assert_eq!(pedido.pagamentos.len(), 2);
         assert_eq!(pedido.troco().centavos(), 0);
     }

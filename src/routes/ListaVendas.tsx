@@ -17,6 +17,7 @@ import {
   type ErroIpc,
   type RelatorioVendas,
 } from "@/lib/ipc";
+import { pedidoNo } from "@/lib/pedido-numero";
 
 const MOTIVO_FORA_DO_TURNO =
   "Esta venda é de um turno já fechado — a correção é feita no escritório.";
@@ -50,7 +51,7 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
   async function reabrir(p: RelatorioVendas["pedidos"][number]) {
     if (
       !window.confirm(
-        `Reabrir a venda Nº ${p.numero}? Ela será cancelada (estoque devolvido) e reaberta no PDV para edição.`,
+        `Reabrir a venda Nº ${pedidoNo(p)}? Ela será cancelada (estoque devolvido) e reaberta no PDV para edição.`,
       )
     ) {
       return;
@@ -68,18 +69,18 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
         pag: PAG_VAZIO,
       };
       localStorage.setItem(RASCUNHO_KEY, JSON.stringify(rascunho));
-      toast.success(`Venda Nº ${p.numero} cancelada e reaberta para edição`);
+      toast.success(`Venda Nº ${pedidoNo(p)} cancelada e reaberta para edição`);
       onClonar?.();
     } catch (e) {
       toast.error((e as ErroIpc).mensagem ?? "Erro ao reabrir a venda");
     }
   }
 
-  async function delPedido(numero: number) {
-    if (!window.confirm(`Cancelar a venda Nº ${numero} inteira?`)) return;
+  async function delPedido(p: RelatorioVendas["pedidos"][number]) {
+    if (!window.confirm(`Cancelar a venda Nº ${pedidoNo(p)} inteira?`)) return;
     try {
-      await excluirPedido(numero);
-      toast.success(`Venda Nº ${numero} cancelada`);
+      await excluirPedido(p.numero);
+      toast.success(`Venda Nº ${pedidoNo(p)} cancelada`);
       carregar();
     } catch (e) {
       toast.error((e as ErroIpc).mensagem ?? "Erro ao cancelar a venda");
@@ -132,7 +133,7 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
               >
                 <div className="flex items-center gap-2">
                   <span className="font-medium">
-                    Pedido Nº {p.numero} · {p.cliente}
+                    Pedido Nº {pedidoNo(p)} · {p.cliente}
                   </span>
                   {p.cancelado && (
                     <span className="text-muted-foreground bg-muted rounded px-1.5 py-0.5 text-[10px] uppercase">
@@ -183,7 +184,7 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
                         className="h-7 w-7 text-rose-500 hover:text-rose-600"
                         disabled={!p.cancelavel}
                         title={p.cancelavel ? "Cancelar venda inteira" : MOTIVO_FORA_DO_TURNO}
-                        onClick={() => delPedido(p.numero)}
+                        onClick={() => delPedido(p)}
                       >
                         <Trash2 size={15} />
                       </Button>

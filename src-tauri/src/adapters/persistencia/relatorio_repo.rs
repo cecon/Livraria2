@@ -83,6 +83,7 @@ impl RelatorioRepo for SeaRelatorioRepo {
                 .map_err(erro)?;
             saida.push(PedidoRelatorio {
                 numero: p.numero,
+                numero_no_turno: p.numero_no_turno,
                 cliente: p.cliente,
                 itens,
                 recebimentos,

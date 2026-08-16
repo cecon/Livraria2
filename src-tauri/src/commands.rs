@@ -87,17 +87,24 @@ pub struct PaginaLivros {
 #[serde(rename_all = "camelCase")]
 pub struct PedidoDto {
     pub numero: i64,
+    /// Pedido Nº do turno — o número exibido no recibo/confirmação (FR-016).
+    pub numero_no_turno: i64,
     pub total_centavos: i64,
     pub troco_centavos: i64,
     pub total_itens: i64,
 }
 
 
-/// Próximo número de pedido (FR-017).
+/// Pedido Nº que a PRÓXIMA venda terá **dentro do turno** (1..n — FR-016). O
+/// `pedido.numero` global segue contínuo como chave, mas não é o número exibido.
+/// Sem turno aberto devolve 1 (a tela de venda nem é montada nesse caso).
 #[tauri::command]
 pub async fn proximo_numero_pedido(state: tauri::State<'_, AppState>) -> Result<i64, ErroDto> {
-    let pedidos = SeaPedidoRepo::new(state.db.clone());
-    Ok(venda::proximo_numero_pedido(&pedidos).await?)
+    let turnos = SeaTurnoRepo::new(state.db.clone());
+    match crate::application::turno::aberto(&turnos, &MaquinaSistema).await? {
+        Some(t) => Ok(crate::application::turno::proximo_numero_no_turno(&turnos, &t.sync_uid).await?),
+        None => Ok(1),
+    }
 }
 
 /// Registra uma venda (US1, FR-015). Pagamentos por lista `{formaId, valorCentavos}`.
@@ -112,7 +119,7 @@ pub async fn registrar_venda(
     let pedidos = SeaPedidoRepo::new(state.db.clone());
     let formas = SeaFormaPagamentoRepo::new(state.db.clone());
     let turnos = SeaTurnoRepo::new(state.db.clone());
-    let pedido = venda::registrar_venda(
+    let venda = venda::registrar_venda(
         input,
         &livros,
         &pedidos,
@@ -124,10 +131,11 @@ pub async fn registrar_venda(
     .await?;
 
     Ok(PedidoDto {
-        numero: pedido.numero,
-        total_centavos: pedido.total().centavos(),
-        troco_centavos: pedido.troco().centavos(),
-        total_itens: pedido.total_itens(),
+        numero: venda.pedido.numero,
+        numero_no_turno: venda.numero_no_turno,
+        total_centavos: venda.pedido.total().centavos(),
+        troco_centavos: venda.pedido.troco().centavos(),
+        total_itens: venda.pedido.total_itens(),
     })
 }
 

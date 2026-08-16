@@ -9,6 +9,7 @@ import { brl } from "@/lib/format";
 import { operadorAtual } from "@/lib/operador";
 import { turnoAberto, type TurnoAberto } from "@/lib/ipc";
 import { vendasDoTurno, type VendaTurno } from "@/lib/ipc-turno";
+import { pedidoNo } from "@/lib/pedido-numero";
 
 const ACOES = [
   { to: "/venda", rotulo: "Nova Venda", Icon: ShoppingCart, destaque: true },
@@ -108,7 +109,7 @@ export default function Inicio() {
               {vendas.map((v) => (
                 <div key={v.numero} className="flex items-center justify-between py-2">
                   <div className="min-w-0">
-                    <span className="font-mono text-sm">Pedido {v.numero}</span>
+                    <span className="font-mono text-sm">Pedido {pedidoNo(v)}</span>
                     <span className="text-muted-foreground ml-2 text-xs">{v.data}</span>
                   </div>
                   <div className="flex items-center gap-3">

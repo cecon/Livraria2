@@ -159,6 +159,8 @@ pub async fn turno_listar(state: tauri::State<'_, AppState>, operador: String) -
 #[serde(rename_all = "camelCase")]
 pub struct VendaTurnoDto {
     pub numero: i64,
+    /// Pedido Nº do turno (1..n) — o número exibido (FR-016).
+    pub numero_no_turno: Option<i64>,
     pub data: String,
     pub total_centavos: i64,
     pub cancelada: bool,
@@ -176,7 +178,7 @@ pub async fn vendas_do_turno(
         .db
         .query_all(Statement::from_sql_and_values(
             backend,
-            "SELECT numero, data, total_centavos, cancelado FROM pedido \
+            "SELECT numero, numero_no_turno, data, total_centavos, cancelado FROM pedido \
              WHERE turno_uid = ? ORDER BY numero DESC",
             [turno_uid.into()],
         ))
@@ -186,6 +188,7 @@ pub async fn vendas_do_turno(
         .into_iter()
         .map(|r| VendaTurnoDto {
             numero: r.try_get("", "numero").unwrap_or(0),
+            numero_no_turno: r.try_get("", "numero_no_turno").ok(),
             data: r.try_get("", "data").unwrap_or_default(),
             total_centavos: r.try_get("", "total_centavos").unwrap_or(0),
             cancelada: r.try_get::<i64>("", "cancelado").unwrap_or(0) != 0,

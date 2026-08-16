@@ -111,6 +111,9 @@ pub struct RecebimentoRelatorio {
 #[serde(rename_all = "camelCase")]
 pub struct PedidoRelatorio {
     pub numero: i64,
+    /// Pedido Nº dentro do turno — é o número EXIBIDO (FR-016). Nulo em venda
+    /// legada; a tela cai no `numero` contínuo nesse caso.
+    pub numero_no_turno: Option<i64>,
     pub cliente: String,
     pub itens: Vec<ItemRelatorio>,
     pub recebimentos: Vec<RecebimentoRelatorio>,

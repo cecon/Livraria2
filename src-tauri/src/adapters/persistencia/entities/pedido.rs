@@ -17,6 +17,9 @@ pub struct Model {
     pub operador: Option<String>,
     /// Turno a que a venda pertence (feature 009/013). Nulo em venda legada.
     pub turno_uid: Option<String>,
+    /// Pedido Nº DENTRO do turno (1..n) — o número exibido (FR-016). O `numero`
+    /// segue contínuo como chave; nulo em venda legada.
+    pub numero_no_turno: Option<i64>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

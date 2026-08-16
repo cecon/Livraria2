@@ -41,6 +41,8 @@ export async function listarOperadores(): Promise<OperadorDto[]> {
 
 export interface PedidoResultado {
   numero: number;
+  /** Pedido Nº dentro do turno — é o número exibido (feature 013, FR-016). */
+  numeroNoTurno: number;
   totalCentavos: number;
   trocoCentavos: number;
   totalItens: number;
@@ -132,6 +134,8 @@ export interface ItemRelatorio {
 }
 export interface PedidoRelatorio {
   numero: number;
+  /** Pedido Nº do turno — o número exibido (FR-016). Nulo em venda legada. */
+  numeroNoTurno?: number | null;
   cliente: string;
   itens: ItemRelatorio[];
   /** Recebido por forma do cadastro, na ordem (FR-019). */

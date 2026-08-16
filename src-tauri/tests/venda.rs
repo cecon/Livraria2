@@ -82,7 +82,7 @@ async fn venda_persiste_e_baixa_estoque() {
     // Feature 013 (FR-002): sem turno aberto nesta máquina a venda não passa.
     let turnos = SeaTurnoRepo::new(db.clone());
     common::abrir_turno(&db, "op-1").await;
-    let pedido = registrar_venda(
+    let venda = registrar_venda(
         input,
         &livros,
         &pedidos,
@@ -93,6 +93,8 @@ async fn venda_persiste_e_baixa_estoque() {
     )
     .await
     .expect("registrar venda");
+    assert_eq!(venda.numero_no_turno, 1, "1ª venda do turno é o Pedido Nº 1 (FR-016)");
+    let pedido = venda.pedido;
 
     assert_eq!(pedido.numero, 1, "primeiro pedido começa em 1");
     assert_eq!(pedido.turno, Turno::Tarde, "15h -> tarde");

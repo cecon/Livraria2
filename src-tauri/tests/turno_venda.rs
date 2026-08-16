@@ -81,8 +81,8 @@ async fn vender(db: &DatabaseConnection, qtd: i64) -> Result<i64, String> {
         &common::MaquinaTeste,
     )
     .await
-    .map(|p| p.numero)
-    .map_err(|e| e.codigo())
+    .map(|v| v.pedido.numero)
+    .map_err(|e: livraria_2_lib::application::erros::ErroApp| e.codigo())
 }
 
 /// `(turno_uid, numero_no_turno)` gravados no pedido.
@@ -136,6 +136,35 @@ async fn venda_com_turno_vincula_e_numera_por_turno() {
     assert_eq!(vinculo(&db, p2).await, (Some(uid), Some(2)), "Pedido Nº é sequencial no turno");
     // O número global segue contínuo (não reinicia) — só o Pedido Nº do turno é 1..n.
     assert_eq!(p2, p1 + 1);
+
+    let _ = std::fs::remove_file(&path);
+}
+
+/// US5 (T022) — FR-015/FR-016: o Pedido Nº reinicia em 1 a cada turno (o `numero`
+/// global segue contínuo) e cada PDV carimba a sua própria máquina no turno.
+#[tokio::test]
+async fn numero_reinicia_por_turno_e_maquina_identifica_o_pdv() {
+    let (db, path) = setup("numeracao").await;
+    let turnos = SeaTurnoRepo::new(db.clone());
+
+    let t1 = turno::abrir_ou_continuar(&turnos, &common::MaquinaTeste, "op-1", 0).await.unwrap();
+    let a1 = vender(&db, 1).await.unwrap();
+    let a2 = vender(&db, 1).await.unwrap();
+    turnos.encerrar(&t1.sync_uid, 0, 0, 0).await.unwrap();
+
+    let t2 = turno::abrir_ou_continuar(&turnos, &common::MaquinaTeste, "op-2", 0).await.unwrap();
+    let b1 = vender(&db, 1).await.unwrap();
+
+    assert_eq!(vinculo(&db, a1).await.1, Some(1));
+    assert_eq!(vinculo(&db, a2).await.1, Some(2));
+    assert_eq!(vinculo(&db, b1).await.1, Some(1), "novo turno reinicia em 1");
+    // …enquanto o número global nunca reinicia (chave contínua).
+    assert_eq!((a2, b1), (a1 + 1, a1 + 2));
+
+    // Máquina distinta por PDV: o turno do outro balcão traz o nome dele.
+    let outro = turnos.abrir("op-9", 0, "PDV-DA-OUTRA-LOJA").await.unwrap();
+    assert_eq!(t2.maquina.as_deref(), Some("PDV-TESTE"));
+    assert_eq!(outro.maquina.as_deref(), Some("PDV-DA-OUTRA-LOJA"));
 
     let _ = std::fs::remove_file(&path);
 }

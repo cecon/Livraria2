@@ -127,6 +127,10 @@ pub(crate) const SPECS: &[Spec] = &[
             Col { nome: "esperado_centavos", tipo: Inteiro },
             Col { nome: "conferido_centavos", tipo: Inteiro },
             Col { nome: "diferenca_centavos", tipo: Inteiro },
+            // Feature 013 (FR-015): a máquina identifica o turno também na nuvem.
+            // Exige a migração 0014_turno_maquina.sql APLICADA — sem a coluna lá,
+            // o upsert de turno_operacao falha e o sync do turno para.
+            Col { nome: "maquina", tipo: Texto },
         ],
         refs: &[Ref { uid_key: "operador_uid", col_local: "operador", pai: "usuario", chave_local_pai: "usuario" }],
     },
