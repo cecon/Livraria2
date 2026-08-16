@@ -33,6 +33,12 @@ pub struct TurnoPodavel {
     pub abertura: String,
 }
 
+/// Turno que a nuvem fechou mas ainda tem venda não sincronizada aqui (FR-024).
+pub struct TurnoComPendencia {
+    pub sync_uid: String,
+    pub operador: String,
+}
+
 /// Linha do histórico de turnos encerrados.
 pub struct TurnoHistorico {
     pub abertura: String,
@@ -74,6 +80,13 @@ pub trait TurnoRepo: Send + Sync {
     /// candidatos à poda. Nada pendente de sync entra aqui: a nuvem retém tudo,
     /// mas só se já recebeu.
     async fn turnos_podaveis(&self) -> Result<Vec<TurnoPodavel>, RepoErro>;
+    /// Turnos **encerrados** desta máquina que ainda têm venda não sincronizada.
+    /// É o conflito da FR-024: a nuvem fechou, o PDV ainda tinha o que subir.
+    async fn turnos_encerrados_com_pendencias(&self, maquina: &str) -> Result<Vec<TurnoComPendencia>, RepoErro>;
+    /// Números dos pedidos ainda não sincronizados de um turno, em ordem.
+    async fn pedidos_pendentes_do_turno(&self, turno_uid: &str) -> Result<Vec<i64>, RepoErro>;
+    /// Move um pedido para outro turno, renumerando-o lá dentro (FR-016).
+    async fn mover_pedido(&self, numero: i64, destino_uid: &str, numero_no_turno: i64) -> Result<(), RepoErro>;
     /// Apaga o turno e todo o cluster de vendas dele, filha→pai, numa transação.
     /// Devolve quantas linhas saíram. NÃO toca em `livro`, `saldo_publicado` nem
     /// no razão de movimentos — poda é retenção, não é estorno.

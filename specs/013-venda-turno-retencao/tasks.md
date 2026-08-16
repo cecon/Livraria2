@@ -123,12 +123,12 @@ Base já existente (feature 009): `pedido.turno_uid` e `pedido.numero_no_turno` 
 
 **Independent Test**: escritório lista turnos abertos/fechados; fechar pela nuvem encerra no PDV; fechar com pendências cria novo turno; backfill zera vendas sem turno.
 
-- [ ] T028 [US6] `apps/nuvem/migrations/0015_turno_padrao_backfill.sql`: criar **um turno padrão global** (fechado/conferido, idempotente `if not exists`) + `UPDATE pedido SET turno_uid = <padrão> WHERE turno_uid IS NULL` (FR-014)
-- [ ] T029 [P] [US6] Homologação SQL em `apps/nuvem/tests/`: backfill idempotente; **zero** pedidos sem turno após rodar (SC-009)
-- [ ] T030 [US6] `apps/escritorio/`: página de **visão de turnos** (abertos/fechados) por máquina, usuário, status, período e totais (FR-018)
-- [ ] T031 [US6] `apps/escritorio/`: ação **"fechar turno"** disponível a **qualquer usuário do escritório** (FR-019) — grava `status='encerrado'` + `atualizado_em` (LWW) na nuvem
-- [ ] T032 [US6] `src-tauri/src/adapters/persistencia/replica_sync.rs`: ao puxar `turno_operacao` com `status='encerrado'`, aplicar o fechamento local; se houver **vendas não sincronizadas** do turno, **criar um novo turno** e migrar as pendentes para ele (FR-024) — o turno fechado permanece fechado
-- [ ] T033 [P] [US6] Testes em `src-tauri/tests/turno_fechamento_nuvem.rs`: fechamento da nuvem desce e encerra no PDV; fechamento com pendências cria novo turno sem perder venda
+- [x] T028 [US6] `apps/nuvem/migrations/0015_turno_padrao_backfill.sql`: criar **um turno padrão global** (fechado/conferido, idempotente `if not exists`) + `UPDATE pedido SET turno_uid = <padrão> WHERE turno_uid IS NULL` (FR-014)
+- [x] T029 [P] [US6] Homologação SQL em `apps/nuvem/tests/`: backfill idempotente; **zero** pedidos sem turno após rodar (SC-009)
+- [x] T030 [US6] `apps/escritorio/`: página de **visão de turnos** (abertos/fechados) por máquina, usuário, status, período e totais (FR-018)
+- [x] T031 [US6] `apps/escritorio/`: ação **"fechar turno"** disponível a **qualquer usuário do escritório** (FR-019) — grava `status='encerrado'` + `atualizado_em` (LWW) na nuvem
+- [x] T032 [US6] `src-tauri/src/adapters/persistencia/replica_sync.rs`: ao puxar `turno_operacao` com `status='encerrado'`, aplicar o fechamento local; se houver **vendas não sincronizadas** do turno, **criar um novo turno** e migrar as pendentes para ele (FR-024) — o turno fechado permanece fechado
+- [x] T033 [P] [US6] Testes em `src-tauri/tests/turno_fechamento_nuvem.rs`: fechamento da nuvem desce e encerra no PDV; fechamento com pendências cria novo turno sem perder venda
 
 **Checkpoint**: US6 entregue — visibilidade/controle central e conflitos resolvidos sem perda.
 

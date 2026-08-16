@@ -41,6 +41,38 @@ pub async fn abrir_ou_continuar(
     Ok(repo.abrir(operador, caixa_inicial_centavos, &nome).await?)
 }
 
+/// Conflito de fechamento (FR-024): a nuvem encerrou um turno que ainda tinha
+/// venda **não sincronizada** aqui. O turno fechado permanece fechado (a nuvem
+/// manda) e as pendentes migram para o turno aberto desta máquina — abrindo um
+/// se não houver. Nenhuma venda se perde e nenhuma volta a um turno fechado.
+///
+/// Renumera as migradas no destino (FR-016): sem isso, dois pedidos dividiriam
+/// o mesmo Pedido Nº no turno que as recebeu.
+pub async fn reconciliar_fechamento(
+    repo: &dyn TurnoRepo,
+    maquina: &dyn Maquina,
+) -> Result<usize, ErroApp> {
+    let nome = maquina.nome();
+    let mut migradas = 0usize;
+    for fechado in repo.turnos_encerrados_com_pendencias(&nome).await? {
+        let pendentes = repo.pedidos_pendentes_do_turno(&fechado.sync_uid).await?;
+        if pendentes.is_empty() {
+            continue;
+        }
+        let destino = match repo.turno_aberto_na_maquina(&nome).await? {
+            Some(t) => t,
+            None => repo.abrir(&fechado.operador, 0, &nome).await?,
+        };
+        let mut proximo = proximo_numero_no_turno(repo, &destino.sync_uid).await?;
+        for numero in pendentes {
+            repo.mover_pedido(numero, &destino.sync_uid, proximo).await?;
+            proximo += 1;
+            migradas += 1;
+        }
+    }
+    Ok(migradas)
+}
+
 /// Turno da venda: exige um turno aberto nesta máquina (FR-002) e resolve o
 /// Pedido Nº dentro dele (FR-016). Sem turno aberto → `VendaSemTurno`.
 pub async fn contexto_venda(repo: &dyn TurnoRepo, maquina: &dyn Maquina) -> Result<VendaTurno, ErroApp> {

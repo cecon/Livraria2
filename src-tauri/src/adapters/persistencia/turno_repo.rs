@@ -3,7 +3,7 @@
 
 use crate::application::ports::RepoErro;
 use crate::application::ports_turno::{
-    DadosFechamento, TurnoAbertoInfo, TurnoHistorico, TurnoPodavel, TurnoRepo,
+    DadosFechamento, TurnoAbertoInfo, TurnoComPendencia, TurnoHistorico, TurnoPodavel, TurnoRepo,
 };
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::pedido::Recebimento;
@@ -224,6 +224,62 @@ impl TurnoRepo for SeaTurnoRepo {
                 })
             })
             .collect())
+    }
+
+    async fn turnos_encerrados_com_pendencias(&self, maquina: &str) -> Result<Vec<TurnoComPendencia>, RepoErro> {
+        let backend = self.db.get_database_backend();
+        let rows = self
+            .db
+            .query_all(Statement::from_sql_and_values(
+                backend,
+                "SELECT t.sync_uid AS sync_uid, t.operador AS operador FROM turno_operacao t \
+                 WHERE t.maquina = ? AND t.status = 'encerrado' AND t.excluido_em IS NULL \
+                   AND EXISTS (SELECT 1 FROM pedido p \
+                                WHERE p.turno_uid = t.sync_uid AND p.sincronizado_em IS NULL) \
+                 ORDER BY t.abertura",
+                [maquina.into()],
+            ))
+            .await
+            .map_err(erro)?;
+        Ok(rows
+            .into_iter()
+            .filter_map(|r| {
+                Some(TurnoComPendencia {
+                    sync_uid: r.try_get("", "sync_uid").ok()?,
+                    operador: r.try_get("", "operador").unwrap_or_default(),
+                })
+            })
+            .collect())
+    }
+
+    async fn pedidos_pendentes_do_turno(&self, turno_uid: &str) -> Result<Vec<i64>, RepoErro> {
+        let backend = self.db.get_database_backend();
+        let rows = self
+            .db
+            .query_all(Statement::from_sql_and_values(
+                backend,
+                "SELECT numero FROM pedido WHERE turno_uid = ? AND sincronizado_em IS NULL \
+                 ORDER BY numero",
+                [turno_uid.into()],
+            ))
+            .await
+            .map_err(erro)?;
+        Ok(rows.into_iter().filter_map(|r| r.try_get::<i64>("", "numero").ok()).collect())
+    }
+
+    async fn mover_pedido(&self, numero: i64, destino_uid: &str, numero_no_turno: i64) -> Result<(), RepoErro> {
+        let backend = self.db.get_database_backend();
+        // `atualizado_em` bumpado: a mudança de turno precisa subir (LWW).
+        self.db
+            .execute(Statement::from_sql_and_values(
+                backend,
+                "UPDATE pedido SET turno_uid = ?, numero_no_turno = ?, atualizado_em = ? \
+                 WHERE numero = ?",
+                [destino_uid.into(), numero_no_turno.into(), agora().into(), numero.into()],
+            ))
+            .await
+            .map_err(erro)?;
+        Ok(())
     }
 
     async fn podar_turno(&self, sync_uid: &str) -> Result<u64, RepoErro> {

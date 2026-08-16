@@ -159,8 +159,20 @@ async fn sincronizacao_periodica(db: DatabaseConnection, config_path: Option<std
             match application::sincronizacao::sincronizar(&nuvem, &local).await {
                 Ok(r) if r.enviados + r.recebidos > 0 => {
                     eprintln!("sync: enviados={} recebidos={} orfas={}", r.enviados, r.recebidos, r.orfas);
-                    // Pós-sync (US3): o que acabou de subir pode ter virado podável.
-                    podar_retencao(&adapters::persistencia::turno_repo::SeaTurnoRepo::new(db.clone())).await;
+                    // Pós-sync: o fechamento pode ter descido da nuvem (US6/FR-024)
+                    // e o que acabou de subir pode ter virado podável (US3).
+                    let turnos = adapters::persistencia::turno_repo::SeaTurnoRepo::new(db.clone());
+                    match application::turno::reconciliar_fechamento(
+                        &turnos,
+                        &adapters::maquina::MaquinaSistema,
+                    )
+                    .await
+                    {
+                        Ok(n) if n > 0 => eprintln!("sync: {n} venda(s) migradas de turno fechado pela nuvem"),
+                        Ok(_) => {}
+                        Err(e) => eprintln!("reconciliação de fechamento falhou: {e}"),
+                    }
+                    podar_retencao(&turnos).await;
                 }
                 Ok(_) => {}
                 Err(e) => eprintln!("sync falhou (segue offline): {e}"),
