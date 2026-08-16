@@ -1,22 +1,28 @@
 "use client";
 
-// Recebimento por forma de pagamento (feature 009, US2) — um campo por forma ativa.
-// O total/restante/troco é mostrado ao vivo; a validação final (troco só do
-// dinheiro) é do domínio via WASM no momento de concluir.
+// Recebimento por forma de pagamento — **paridade com o PDV** (`PaymentRow`):
+// input estilo **maquininha** (só dígitos; as 2 casas entram da direita p/ a
+// esquerda) e um **botão que recebe o restante** na forma clicada. Total/Falta/
+// Troco ao vivo; a validação final (troco só do dinheiro) é do domínio via WASM.
 import { Input } from "@livraria/ui/ui/input";
+import { Button } from "@livraria/ui/ui/button";
 import { reais } from "@/utils/texto";
+import { brl, digitosParaCentavos, valorPos } from "@/lib/brl";
 import type { Forma } from "@/lib/nuvem/forma";
 
 export function FormasPagamento({
   formas,
   valores,
   onValor,
+  onReceberRestante,
   totalCentavos,
   pagoCentavos,
 }: {
   formas: Forma[];
-  valores: Map<string, string>;
-  onValor: (formaUid: string, valor: string) => void;
+  /** formaUid → centavos (inteiro), como no PDV. */
+  valores: Map<string, number>;
+  onValor: (formaUid: string, centavos: number) => void;
+  onReceberRestante: (formaUid: string) => void;
   totalCentavos: number;
   pagoCentavos: number;
 }) {
@@ -25,18 +31,34 @@ export function FormasPagamento({
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        {formas.map((f) => (
-          <div key={f.sync_uid} className="flex items-center gap-2">
-            <span className="w-32 text-sm">{f.rotulo}</span>
-            <Input
-              value={valores.get(f.sync_uid) ?? ""}
-              onChange={(e) => onValor(f.sync_uid, e.currentTarget.value)}
-              placeholder="R$ 0,00"
-              inputMode="decimal"
-              className="h-9 flex-1"
-            />
-          </div>
-        ))}
+        {formas.map((f) => {
+          const v = valores.get(f.sync_uid) ?? 0;
+          return (
+            <div key={f.sync_uid} className="flex items-center gap-2">
+              <span className="text-muted-foreground w-28 truncate text-[13px]" title={f.rotulo}>
+                {f.rotulo}
+              </span>
+              <Input
+                inputMode="numeric"
+                placeholder="0,00"
+                value={v > 0 ? valorPos(v) : ""}
+                onChange={(e) => onValor(f.sync_uid, digitosParaCentavos(e.currentTarget.value))}
+                className="h-9 flex-1 text-right font-mono"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={restante <= 0}
+                onClick={() => onReceberRestante(f.sync_uid)}
+                className="h-9 shrink-0 font-mono text-[12px]"
+                title={`Receber ${brl(restante)} nesta forma`}
+              >
+                {brl(restante)}
+              </Button>
+            </div>
+          );
+        })}
       </div>
       <div className="space-y-1 border-t pt-2 text-sm">
         <Linha rotulo="Total" valor={reais(totalCentavos)} destaque />
