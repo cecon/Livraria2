@@ -18,6 +18,7 @@ import {
   type RelatorioVendas,
 } from "@/lib/ipc";
 import { pedidoNo } from "@/lib/pedido-numero";
+import { AVISO_RETENCAO, dataMinimaRetencao } from "@/lib/retencao";
 
 const MOTIVO_FORA_DO_TURNO =
   "Esta venda é de um turno já fechado — a correção é feita no escritório.";
@@ -92,6 +93,7 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Vendas do dia</h1>
+          <p className="text-muted-foreground text-[11px]">{AVISO_RETENCAO}</p>
           {rel && (
             <p className="text-muted-foreground text-sm">
               {rel.pedidos.filter((p) => !p.cancelado).length} vendas · Total{" "}
@@ -106,6 +108,8 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
           <Input
             id="data"
             type="date"
+            min={dataMinimaRetencao()}
+            title={AVISO_RETENCAO}
             value={data}
             onChange={(e) => setData(e.currentTarget.value)}
             className="mt-1 h-9"

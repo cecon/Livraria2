@@ -195,6 +195,9 @@ mod tests {
                 },
             ])
         }
+        async fn vendas_do_turno(&self, _uid: &str) -> Result<Vec<PedidoRelatorio>, RepoErro> {
+            Ok(vec![])
+        }
         async fn estoque_completo(&self) -> Result<Vec<Livro>, RepoErro> {
             Ok(vec![])
         }

@@ -9,7 +9,7 @@ import { brl } from "@/lib/format";
 import { operadorAtual } from "@/lib/operador";
 import { turnoAberto, type TurnoAberto } from "@/lib/ipc";
 import { vendasDoTurno, type VendaTurno } from "@/lib/ipc-turno";
-import { pedidoNo } from "@/lib/pedido-numero";
+import { CartaoVenda } from "@/components/CartaoVenda";
 
 const ACOES = [
   { to: "/venda", rotulo: "Nova Venda", Icon: ShoppingCart, destaque: true },
@@ -53,7 +53,7 @@ export default function Inicio() {
     day: "numeric",
     month: "long",
   });
-  const ativas = vendas.filter((v) => !v.cancelada);
+  const ativas = vendas.filter((v) => !v.cancelado);
   const totalTurno = ativas.reduce((s, v) => s + v.totalCentavos, 0);
 
   return (
@@ -105,28 +105,9 @@ export default function Inicio() {
           ) : vendas.length === 0 ? (
             <p className="text-muted-foreground text-sm">Nenhuma venda neste turno ainda.</p>
           ) : (
-            <div className="divide-y">
+            <div className="space-y-2">
               {vendas.map((v) => (
-                <div key={v.numero} className="flex items-center justify-between py-2">
-                  <div className="min-w-0">
-                    <span className="font-mono text-sm">Pedido {pedidoNo(v)}</span>
-                    <span className="text-muted-foreground ml-2 text-xs">{v.data}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {v.cancelada && (
-                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                        cancelada
-                      </span>
-                    )}
-                    <span
-                      className={`font-mono text-sm ${
-                        v.cancelada ? "text-muted-foreground line-through" : ""
-                      }`}
-                    >
-                      {brl(v.totalCentavos)}
-                    </span>
-                  </div>
-                </div>
+                <CartaoVenda key={v.numero} p={v} />
               ))}
             </div>
           )}

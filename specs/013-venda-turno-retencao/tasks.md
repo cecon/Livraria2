@@ -110,8 +110,8 @@ Base já existente (feature 009): `pedido.turno_uid` e `pedido.numero_no_turno` 
 
 **Independent Test**: tela inicial mostra as vendas do turno no formato do relatório; relatórios/busca não retornam >45 dias.
 
-- [ ] T026 [US4] Front `src/routes/Inicio.tsx`: lista **apenas** das vendas do **turno aberto** reusando o **componente da lista do relatório** (FR-022), atualizando ao vender/cancelar; sem turno, lista vazia + chamada para abrir
-- [ ] T027 [US4] Front `src/` (relatórios/busca): limitar à janela de ≤45 dias e indicar "histórico completo no escritório" para consultas anteriores (FR-012)
+- [x] T026 [US4] Front `src/routes/Inicio.tsx`: lista **apenas** das vendas do **turno aberto** reusando o **componente da lista do relatório** (FR-022), atualizando ao vender/cancelar; sem turno, lista vazia + chamada para abrir
+- [x] T027 [US4] Front `src/` (relatórios/busca): limitar à janela de ≤45 dias e indicar "histórico completo no escritório" para consultas anteriores (FR-012)
 
 **Checkpoint**: US4 entregue — PDV focado no turno corrente.
 

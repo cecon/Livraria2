@@ -133,6 +133,8 @@ pub struct PedidoRelatorio {
 pub trait RelatorioRepo: Send + Sync {
     /// Pedidos do período: `periodo` = "dia" | "manha" | "tarde".
     async fn vendas(&self, data: &str, periodo: &str) -> Result<Vec<PedidoRelatorio>, RepoErro>;
+    /// Pedidos de um turno (feature 013, FR-022 — tela inicial do PDV).
+    async fn vendas_do_turno(&self, turno_uid: &str) -> Result<Vec<PedidoRelatorio>, RepoErro>;
     /// Todos os livros ativos, ordenados por estoque crescente (FR-043).
     async fn estoque_completo(&self) -> Result<Vec<Livro>, RepoErro>;
 }

@@ -38,6 +38,37 @@ impl RelatorioRepo for SeaRelatorioRepo {
             .all(&self.db)
             .await
             .map_err(erro)?;
+        self.montar(pedidos).await
+    }
+
+    /// Mesmas vendas, mesma forma — recortadas pelo TURNO em vez da data
+    /// (feature 013, FR-022): a tela inicial do PDV mostra só o turno aberto,
+    /// reusando o cartão de venda do relatório.
+    async fn vendas_do_turno(&self, turno_uid: &str) -> Result<Vec<PedidoRelatorio>, RepoErro> {
+        let pedidos = PedidoEntity::find()
+            .filter(pedido::Column::TurnoUid.eq(turno_uid))
+            .order_by_asc(pedido::Column::Numero)
+            .all(&self.db)
+            .await
+            .map_err(erro)?;
+        self.montar(pedidos).await
+    }
+
+    async fn estoque_completo(&self) -> Result<Vec<Livro>, RepoErro> {
+        let ms = LivroEntity::find()
+            .filter(livro::Column::Ativo.eq(true))
+            .order_by_asc(livro::Column::Estoque)
+            .all(&self.db)
+            .await
+            .map_err(erro)?;
+        Ok(ms.into_iter().map(para_dominio).collect())
+    }
+}
+
+impl SeaRelatorioRepo {
+    /// Monta os `PedidoRelatorio` (itens + alocações + recebimentos) a partir dos
+    /// pedidos já filtrados — o recorte (data/período ou turno) fica no chamador.
+    async fn montar(&self, pedidos: Vec<pedido::Model>) -> Result<Vec<PedidoRelatorio>, RepoErro> {
 
         // Loja (de_sistema) para consolidar carimbo Loja + livre no detalhe (FR-013).
         let loja = self
@@ -94,16 +125,6 @@ impl RelatorioRepo for SeaRelatorioRepo {
             });
         }
         Ok(saida)
-    }
-
-    async fn estoque_completo(&self) -> Result<Vec<Livro>, RepoErro> {
-        let ms = LivroEntity::find()
-            .filter(livro::Column::Ativo.eq(true))
-            .order_by_asc(livro::Column::Estoque)
-            .all(&self.db)
-            .await
-            .map_err(erro)?;
-        Ok(ms.into_iter().map(para_dominio).collect())
     }
 }
 

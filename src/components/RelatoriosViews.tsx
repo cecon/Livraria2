@@ -4,7 +4,7 @@ import { brl } from "@/lib/format";
 import type { RelatorioDestinacoes } from "@/lib/types";
 import { CATEGORIAS } from "@/lib/types";
 import type { RelatorioEstoque, RelatorioVendas } from "@/lib/ipc";
-import { pedidoNo } from "@/lib/pedido-numero";
+import { CartaoVenda } from "@/components/CartaoVenda";
 
 const PERIODO_ROTULO: Record<string, string> = {
   dia: "Dia Inteiro",
@@ -28,47 +28,7 @@ export function VendasView({ rel }: VendasProps) {
       {ativos.length === 0 ? (
         <p className="text-muted-foreground text-sm">Nenhuma venda no período.</p>
       ) : (
-        ativos.map((p) => {
-          const pago = p.recebimentos.reduce((s, r) => s + r.valorCentavos, 0);
-          const divergente = pago !== p.totalCentavos;
-          return (
-          <div
-            key={p.numero}
-            className={`rounded-lg border p-3 text-sm ${
-              divergente ? "border-rose-500 ring-1 ring-rose-500" : ""
-            }`}
-          >
-            <div className="flex items-center justify-between font-medium">
-              <span>
-                Pedido Nº {pedidoNo(p)} · {p.cliente}
-              </span>
-              {divergente && (
-                <span className="text-[11px] font-normal text-rose-600">
-                  ⚠ Pago {brl(pago)} ≠ Total {brl(p.totalCentavos)}
-                </span>
-              )}
-            </div>
-            <ul className="text-muted-foreground mt-1">
-              {p.itens.map((i) => (
-                <li key={i.id} className="flex items-center gap-2 font-mono text-[12px]">
-                  <span className="flex-1">
-                    {i.qtd}× {i.titulo}
-                  </span>
-                  <span>{brl(i.valorCentavos)}</span>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 border-t pt-2 font-mono text-[12px] text-[#1f7a4d]">
-              {p.recebimentos.map((r) => (
-                <span key={r.formaId}>
-                  {r.rotulo} {brl(r.valorCentavos)}
-                </span>
-              ))}
-              <span className="ml-auto font-semibold">Total {brl(p.totalCentavos)}</span>
-            </div>
-          </div>
-          );
-        })
+        ativos.map((p) => <CartaoVenda key={p.numero} p={p} />)
       )}
 
       {rel.repasses.length > 0 && (
