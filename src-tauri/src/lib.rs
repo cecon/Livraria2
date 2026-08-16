@@ -58,16 +58,19 @@ pub fn run() {
                         .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
                     // Feature 013: o turno que já estava aberto na atualização passa a
                     // ser deste PC — o operador continua nele, sem partir o caixa do dia.
+                    // NÃO é fatal: falhar aqui só faz o operador abrir um turno novo,
+                    // e isso não pode custar a abertura do PDV (a loja fica sem vender).
                     let turno_repo =
                         adapters::persistencia::turno_repo::SeaTurnoRepo::new(db.clone());
-                    let adotados = application::turno::adotar_turnos_legados(
+                    match application::turno::adotar_turnos_legados(
                         &turno_repo,
                         &adapters::maquina::MaquinaSistema,
                     )
                     .await
-                    .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
-                    if adotados > 0 {
-                        eprintln!("boot: {adotados} turno(s) aberto(s) adotado(s) por esta máquina");
+                    {
+                        Ok(n) if n > 0 => eprintln!("boot: {n} turno(s) aberto(s) adotado(s) por esta máquina"),
+                        Ok(_) => {}
+                        Err(e) => eprintln!("boot: adoção de turno legado falhou (segue sem adotar): {e}"),
                     }
                     Ok(db)
                 });
