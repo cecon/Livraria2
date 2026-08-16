@@ -61,6 +61,16 @@ Base já existente (feature 009): `pedido.turno_uid` e `pedido.numero_no_turno` 
 
 ## Phase 4: User Story 2 — Vendas só sobem (Priority: P1)
 
+> ⏸️ **ADIADA por decisão do dono do produto (2026-08-16).** O T017 (trocar
+> `estoque_status='incorporada'` por `ja_sincronizado=1` no `saldo_operacional`)
+> **não é equivalente** e reintroduziria sobrevenda: a nuvem só debita o
+> `saldo_publicado` quando os itens chegam e resolvem produto
+> (`incorporar_pedido`, migração 0013). "Já subiu" ≠ "a nuvem já debitou" nos
+> casos de push parcial e de venda `divergente`. Como o cálculo atual funciona,
+> ele **fica como está**; a US2 só entra quando a nuvem devolver um **ack de
+> incorporação** (o mesmo `estoque_status`, buscado de forma enxuta) — aí a
+> fórmula não muda. A coluna `ja_sincronizado` (m014) segue inerte até lá.
+
 **Goal**: `pedido` e filhas viram push-only; saldo operacional passa a usar marcador local.
 
 **Independent Test**: dois PDVs não baixam vendas um do outro; saldo operacional correto em venda→sync→cancelar sem baixar vendas.
@@ -136,10 +146,10 @@ Base já existente (feature 009): `pedido.turno_uid` e `pedido.numero_no_turno` 
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T034 [P] Atualizar `CLAUDE.md` (marcador SPECKIT / plano corrente) para apontar `specs/013-venda-turno-retencao/plan.md`
-- [ ] T035 [P] `specs/013-venda-turno-retencao/quickstart.md`: roteiro de validação ponta-a-ponta (abrir turno → vender → sync → cancelar → fechar pela nuvem → poda)
-- [ ] T036 [P] Verificar guardrail **≤300 linhas** nos arquivos novos/alterados (`turno.rs`, `poda.rs`, `replica_sync.rs`, `estoque_repo.rs`, `maquina.rs`); refatorar se necessário
-- [ ] T037 Rodar a suíte completa: `cargo test -- --test-threads=1` + domínio + `npm test`/`npm run build` (PDV) + `npm run build -w apps/escritorio` + build do wasm; clippy sem `dead_code`
+- [x] T034 [P] Atualizar `CLAUDE.md` (marcador SPECKIT / plano corrente) para apontar `specs/013-venda-turno-retencao/plan.md`
+- [x] T035 [P] `specs/013-venda-turno-retencao/quickstart.md`: roteiro de validação ponta-a-ponta (abrir turno → vender → sync → cancelar → fechar pela nuvem → poda)
+- [x] T036 [P] Verificar guardrail **≤300 linhas** nos arquivos novos/alterados (`turno.rs`, `poda.rs`, `replica_sync.rs`, `estoque_repo.rs`, `maquina.rs`); refatorar se necessário
+- [x] T037 Rodar a suíte completa: `cargo test -- --test-threads=1` + domínio + `npm test`/`npm run build` (PDV) + `npm run build -w apps/escritorio` + build do wasm; clippy sem `dead_code`
 
 ---
 
