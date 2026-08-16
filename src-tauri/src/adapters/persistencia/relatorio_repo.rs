@@ -88,6 +88,8 @@ impl RelatorioRepo for SeaRelatorioRepo {
                 recebimentos,
                 total_centavos: p.total_centavos,
                 cancelado: p.cancelado,
+                turno_uid: p.turno_uid,
+                cancelavel: false, // o caso de uso decide (precisa do turno aberto)
             });
         }
         Ok(saida)

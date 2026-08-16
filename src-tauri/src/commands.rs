@@ -199,7 +199,18 @@ pub async fn relatorio_vendas(
     let formas = SeaFormaPagamentoRepo::new(state.db.clone());
     let destinacoes =
         crate::adapters::persistencia::destinacao_repo::SeaDestinacaoRepo::new(state.db.clone());
-    Ok(relatorios::vendas(&data, &periodo, &repo, &formas, &destinacoes).await?)
+    // Turno aberto deste PDV: marca o que ainda dá para cancelar/reabrir aqui (FR-003).
+    let turnos = SeaTurnoRepo::new(state.db.clone());
+    let aberto = crate::application::turno::aberto(&turnos, &MaquinaSistema).await?;
+    Ok(relatorios::vendas(
+        &data,
+        &periodo,
+        &repo,
+        &formas,
+        &destinacoes,
+        aberto.as_ref().map(|t| t.sync_uid.as_str()),
+    )
+    .await?)
 }
 
 /// Cancela uma venda inteira (pedido + itens). Só vale para venda do turno aberto

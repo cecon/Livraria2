@@ -138,6 +138,11 @@ export interface PedidoRelatorio {
   recebimentos: Recebimento[];
   totalCentavos: number;
   cancelado: boolean;
+  /**
+   * Feature 013 (FR-003): a venda é do turno aberto deste PDV? Só ela pode ser
+   * cancelada/reaberta aqui — o resto se corrige no escritório.
+   */
+  cancelavel: boolean;
 }
 /** Total por forma do cadastro (inclui zeros, na ordem). */
 export interface TotalForma {

@@ -116,6 +116,13 @@ pub struct PedidoRelatorio {
     pub recebimentos: Vec<RecebimentoRelatorio>,
     pub total_centavos: i64,
     pub cancelado: bool,
+    /// Turno da venda — decide `cancelavel`; não cruza a fronteira Tauri.
+    #[serde(skip)]
+    pub turno_uid: Option<String>,
+    /// Feature 013 (FR-003): a venda é do turno aberto deste PDV? Só ela pode ser
+    /// cancelada/reaberta aqui — o resto se corrige no escritório. O caso de uso
+    /// preenche (o repositório devolve `false`).
+    pub cancelavel: bool,
 }
 
 /// Porta de leitura para relatórios (US5).

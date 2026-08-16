@@ -1,4 +1,7 @@
 // Lista de Vendas do dia — permite editar (excluir item) e cancelar a venda.
+// Feature 013 (FR-003): cancelar/reabrir vale só para vendas do turno ABERTO
+// deste PDV; as demais aparecem na lista, mas com as ações desligadas e o motivo
+// à vista — melhor do que deixar o operador descobrir pelo erro.
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -14,6 +17,9 @@ import {
   type ErroIpc,
   type RelatorioVendas,
 } from "@/lib/ipc";
+
+const MOTIVO_FORA_DO_TURNO =
+  "Esta venda é de um turno já fechado — a correção é feita no escritório.";
 
 function hojeIso(): string {
   const d = new Date();
@@ -147,11 +153,26 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
                   </span>
                   {!p.cancelado && (
                     <>
+                      {/* Feature 013 (FR-003): fora do turno aberto, a tela não
+                          oferece o que o domínio vai recusar — diz o porquê. */}
+                      {!p.cancelavel && (
+                        <span
+                          className="text-muted-foreground text-[11px]"
+                          title={MOTIVO_FORA_DO_TURNO}
+                        >
+                          de outro turno
+                        </span>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        title="Reabrir venda (cancela e reabre no PDV para editar)"
+                        disabled={!p.cancelavel}
+                        title={
+                          p.cancelavel
+                            ? "Reabrir venda (cancela e reabre no PDV para editar)"
+                            : MOTIVO_FORA_DO_TURNO
+                        }
                         onClick={() => reabrir(p)}
                       >
                         <RotateCcw size={15} />
@@ -160,7 +181,8 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-rose-500 hover:text-rose-600"
-                        title="Cancelar venda inteira"
+                        disabled={!p.cancelavel}
+                        title={p.cancelavel ? "Cancelar venda inteira" : MOTIVO_FORA_DO_TURNO}
                         onClick={() => delPedido(p.numero)}
                       >
                         <Trash2 size={15} />

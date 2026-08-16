@@ -85,6 +85,9 @@ pub(crate) async fn inserir_cabecalho_e_itens(
         cancelado: Set(false),
         cancelado_em: Set(None),
         operador: Set(pedido.operador.clone()),
+        // Vínculo obrigatório com o turno (feature 013, FR-003): nasce com a venda,
+        // no mesmo INSERT — não existe instante em que a venda fique órfã.
+        turno_uid: Set(turno.map(|t| t.uid.clone())),
     };
     pedido::Entity::insert(pm).exec(txn).await?;
     let pronto_em = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
@@ -94,13 +97,12 @@ pub(crate) async fn inserir_cabecalho_e_itens(
         [pronto_em.into(), pedido.numero.into()],
     ))
     .await?;
-    // Vínculo obrigatório com o turno + Pedido Nº do turno (feature 013, FR-003/FR-016),
-    // na MESMA transação da venda: não existe janela em que a venda fique órfã.
+    // Pedido Nº do turno (FR-016) — coluna fora da entidade, na mesma transação.
     if let Some(t) = turno {
         txn.execute(Statement::from_sql_and_values(
             txn.get_database_backend(),
-            "UPDATE pedido SET turno_uid = ?, numero_no_turno = ? WHERE numero = ?",
-            [t.uid.clone().into(), t.numero_no_turno.into(), pedido.numero.into()],
+            "UPDATE pedido SET numero_no_turno = ? WHERE numero = ?",
+            [t.numero_no_turno.into(), pedido.numero.into()],
         ))
         .await?;
     }

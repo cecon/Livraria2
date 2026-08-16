@@ -3,6 +3,7 @@
 use crate::application::erros::ErroApp;
 use crate::application::ports::{FormaPagamentoRepo, PedidoRelatorio, RelatorioRepo, UsuarioRepo};
 use crate::application::ports_destinacao::{DestinacaoRepo, RepasseDestinacao};
+use crate::domain::turno_operacao::pode_cancelar;
 use serde::Serialize;
 
 /// Total recebido numa forma do cadastro (relatórios dinâmicos — FR-019).
@@ -61,14 +62,21 @@ pub async fn autenticar(
     Ok(repo.autenticar(usuario, senha).await?)
 }
 
+/// `turno_aberto_uid` é o turno aberto deste PDV (feature 013): marca quais vendas
+/// ainda podem ser canceladas/reabertas aqui, para a tela não oferecer o que o
+/// domínio vai recusar (FR-003). `None` = sem turno aberto ⇒ nada é cancelável.
 pub async fn vendas(
     data: &str,
     periodo: &str,
     repo: &dyn RelatorioRepo,
     formas: &dyn FormaPagamentoRepo,
     destinacoes: &dyn DestinacaoRepo,
+    turno_aberto_uid: Option<&str>,
 ) -> Result<RelatorioVendas, ErroApp> {
-    let pedidos = repo.vendas(data, periodo).await?;
+    let mut pedidos = repo.vendas(data, periodo).await?;
+    for p in &mut pedidos {
+        p.cancelavel = pode_cancelar(p.turno_uid.as_deref(), turno_aberto_uid);
+    }
     // Uma entrada por forma do cadastro (na ordem), somando os recebimentos dos
     // pedidos não cancelados. Formas históricas desativadas continuam somando
     // porque também estão no cadastro (só somem das opções do PDV).
@@ -166,6 +174,8 @@ mod tests {
                     recebimentos: vec![receb(1, "credito", 3000)],
                     total_centavos: 3000,
                     cancelado: false,
+                    turno_uid: Some("t-aberto".into()),
+                    cancelavel: false,
                 },
                 PedidoRelatorio {
                     numero: 2,
@@ -178,6 +188,8 @@ mod tests {
                     ],
                     total_centavos: 3500,
                     cancelado: false,
+                    turno_uid: Some("t-fechado".into()),
+                    cancelavel: false,
                 },
             ])
         }
@@ -214,6 +226,36 @@ mod tests {
         }
     }
 
+    /// Feature 013 (FR-003): a tela só oferece cancelar/reabrir o que o domínio
+    /// aceita — a venda do turno aberto. Sem turno aberto, nada é cancelável.
+    #[tokio::test]
+    async fn marca_cancelavel_so_na_venda_do_turno_aberto() {
+        let com = vendas(
+            "2026-06-14",
+            "dia",
+            &FakeRel,
+            &FakeFormas,
+            &crate::application::fakes::FakeDestinacoes,
+            Some("t-aberto"),
+        )
+        .await
+        .unwrap();
+        assert!(com.pedidos[0].cancelavel, "venda do turno aberto");
+        assert!(!com.pedidos[1].cancelavel, "venda de turno fechado");
+
+        let sem = vendas(
+            "2026-06-14",
+            "dia",
+            &FakeRel,
+            &FakeFormas,
+            &crate::application::fakes::FakeDestinacoes,
+            None,
+        )
+        .await
+        .unwrap();
+        assert!(sem.pedidos.iter().all(|p| !p.cancelavel));
+    }
+
     #[tokio::test]
     async fn resumo_dinamico_reconcilia_com_os_pedidos() {
         let rel = vendas(
@@ -222,6 +264,7 @@ mod tests {
             &FakeRel,
             &FakeFormas,
             &crate::application::fakes::FakeDestinacoes,
+            Some("t-aberto"),
         )
         .await
         .unwrap();
