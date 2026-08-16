@@ -5,7 +5,9 @@ use crate::application::ports::{
     DadosCancelamento, FormaPagamentoRepo, LivroRepo, Maquina, PedidoRepo, Relogio, RepoErro,
     VendaTurno,
 };
-use crate::application::ports_turno::{DadosFechamento, TurnoAbertoInfo, TurnoHistorico, TurnoRepo};
+use crate::application::ports_turno::{
+    DadosFechamento, TurnoAbertoInfo, TurnoHistorico, TurnoPodavel, TurnoRepo,
+};
 use crate::domain::livro::Livro;
 use crate::domain::pagamento::FormaPagamento;
 use crate::domain::pedido::Pedido;
@@ -116,6 +118,12 @@ impl TurnoRepo for FakeTurnos {
     }
     async fn listar(&self, _operador: &str) -> Result<Vec<TurnoHistorico>, RepoErro> {
         Ok(vec![])
+    }
+    async fn turnos_podaveis(&self) -> Result<Vec<TurnoPodavel>, RepoErro> {
+        Ok(vec![])
+    }
+    async fn podar_turno(&self, _sync_uid: &str) -> Result<u64, RepoErro> {
+        Ok(0)
     }
 }
 

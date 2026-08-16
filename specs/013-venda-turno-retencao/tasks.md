@@ -96,9 +96,9 @@ Base já existente (feature 009): `pedido.turno_uid` e `pedido.numero_no_turno` 
 
 **Independent Test**: poda remove antigo encerrado+sincronizado; preserva aberto/não-sinc/≤45d; não toca livro/saldo; idempotente.
 
-- [ ] T023 [US3] `src-tauri/src/application/poda.rs` (NOVO): podar turnos com `status='encerrado'` + sincronizados + `data < hoje-45`, removendo em **cascata filha→pai** (`alocacao_venda` → `pagamento_pedido` → `item_pedido` → `pedido` → `turno_operacao`) — **FK-safe** (lição do incidente m013/787)
-- [ ] T024 [US3] `src-tauri/src/lib.rs`: rodar a poda no **boot** e **após sync** bem-sucedido (idempotente, não bloqueia a UI)
-- [ ] T025 [P] [US3] Testes em `src-tauri/tests/poda.rs`: remove encerrado+sinc+>45d; **preserva** turno aberto, não-sincronizado e ≤45d; **não** altera `livro`/`saldo_publicado`; idempotente; reproduz cluster com FKs para provar FK-safe
+- [x] T023 [US3] `src-tauri/src/application/poda.rs` (NOVO): podar turnos com `status='encerrado'` + sincronizados + `data < hoje-45`, removendo em **cascata filha→pai** (`alocacao_venda` → `pagamento_pedido` → `item_pedido` → `pedido` → `turno_operacao`) — **FK-safe** (lição do incidente m013/787)
+- [x] T024 [US3] `src-tauri/src/lib.rs`: rodar a poda no **boot** e **após sync** bem-sucedido (idempotente, não bloqueia a UI)
+- [x] T025 [P] [US3] Testes em `src-tauri/tests/poda.rs`: remove encerrado+sinc+>45d; **preserva** turno aberto, não-sincronizado e ≤45d; **não** altera `livro`/`saldo_publicado`; idempotente; reproduz cluster com FKs para provar FK-safe
 
 **Checkpoint**: US3 entregue — banco local limitado a ~45 dias, sem perder nada.
 

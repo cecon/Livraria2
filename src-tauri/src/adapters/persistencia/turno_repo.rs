@@ -2,7 +2,9 @@
 //! `turno_operacao` (m009), que sincroniza com a nuvem por `sync_uid`.
 
 use crate::application::ports::RepoErro;
-use crate::application::ports_turno::{DadosFechamento, TurnoAbertoInfo, TurnoHistorico, TurnoRepo};
+use crate::application::ports_turno::{
+    DadosFechamento, TurnoAbertoInfo, TurnoHistorico, TurnoPodavel, TurnoRepo,
+};
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::pedido::Recebimento;
 use async_trait::async_trait;
@@ -203,6 +205,33 @@ impl TurnoRepo for SeaTurnoRepo {
             .await
             .map_err(erro)?;
         Ok(())
+    }
+
+    async fn turnos_podaveis(&self) -> Result<Vec<TurnoPodavel>, RepoErro> {
+        let backend = self.db.get_database_backend();
+        let rows = self
+            .db
+            .query_all(Statement::from_string(backend, super::poda_sql::CANDIDATOS.to_string()))
+            .await
+            .map_err(erro)?;
+        Ok(rows
+            .into_iter()
+            .filter_map(|r| {
+                Some(TurnoPodavel {
+                    sync_uid: r.try_get("", "sync_uid").ok()?,
+                    status: r.try_get("", "status").ok()?,
+                    abertura: r.try_get("", "abertura").ok()?,
+                })
+            })
+            .collect())
+    }
+
+    async fn podar_turno(&self, sync_uid: &str) -> Result<u64, RepoErro> {
+        use sea_orm::TransactionTrait;
+        let txn = self.db.begin().await.map_err(erro)?;
+        let removidas = super::poda_sql::apagar_cluster(&txn, sync_uid).await.map_err(erro)?;
+        txn.commit().await.map_err(erro)?;
+        Ok(removidas)
     }
 
     async fn listar(&self, operador: &str) -> Result<Vec<TurnoHistorico>, RepoErro> {

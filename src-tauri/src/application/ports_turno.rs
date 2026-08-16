@@ -24,6 +24,15 @@ pub struct DadosFechamento {
     pub qtd_vendas: i64,
 }
 
+/// Turno candidato à poda local (retenção — FR-007/008). O repositório devolve
+/// só os já encerrados **e sem nenhuma pendência de sync**; quem decide pela
+/// idade é o domínio (`turno_podavel`), no caso de uso.
+pub struct TurnoPodavel {
+    pub sync_uid: String,
+    pub status: String,
+    pub abertura: String,
+}
+
 /// Linha do histórico de turnos encerrados.
 pub struct TurnoHistorico {
     pub abertura: String,
@@ -61,4 +70,12 @@ pub trait TurnoRepo: Send + Sync {
     async fn encerrar(&self, turno_uid: &str, esperado: i64, conferido: i64, diferenca: i64) -> Result<(), RepoErro>;
     /// Histórico de turnos do operador (recentes primeiro).
     async fn listar(&self, operador: &str) -> Result<Vec<TurnoHistorico>, RepoErro>;
+    /// Turnos encerrados cujo cluster (turno + vendas + filhas) já subiu inteiro —
+    /// candidatos à poda. Nada pendente de sync entra aqui: a nuvem retém tudo,
+    /// mas só se já recebeu.
+    async fn turnos_podaveis(&self) -> Result<Vec<TurnoPodavel>, RepoErro>;
+    /// Apaga o turno e todo o cluster de vendas dele, filha→pai, numa transação.
+    /// Devolve quantas linhas saíram. NÃO toca em `livro`, `saldo_publicado` nem
+    /// no razão de movimentos — poda é retenção, não é estorno.
+    async fn podar_turno(&self, sync_uid: &str) -> Result<u64, RepoErro>;
 }

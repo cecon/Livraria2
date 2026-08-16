@@ -12,6 +12,7 @@ pub mod livro_repo;
 pub mod pagamento_pedido_sql;
 pub mod pedido_repo;
 pub mod pedido_sql;
+pub mod poda_sql;
 pub mod relatorio_repo;
 pub mod turno_repo;
 pub mod usuario_repo;
