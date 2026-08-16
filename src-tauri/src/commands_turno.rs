@@ -1,6 +1,8 @@
 //! Comandos Tauri do turno de operacao.
 
+use crate::adapters::maquina::MaquinaSistema;
 use crate::adapters::persistencia::turno_repo::SeaTurnoRepo;
+use crate::application::ports::Maquina;
 use crate::application::turno;
 use crate::commands::{AppState, ErroDto};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, Statement};
@@ -12,6 +14,21 @@ pub struct TurnoAbertoDto {
     pub sync_uid: String,
     pub caixa_inicial_centavos: i64,
     pub abertura: String,
+    /// Operador que abriu e PC do turno (feature 013, FR-015/FR-021).
+    pub operador: String,
+    pub maquina: String,
+}
+
+impl From<crate::application::ports_turno::TurnoAbertoInfo> for TurnoAbertoDto {
+    fn from(t: crate::application::ports_turno::TurnoAbertoInfo) -> Self {
+        TurnoAbertoDto {
+            sync_uid: t.sync_uid,
+            caixa_inicial_centavos: t.caixa_inicial_centavos,
+            abertura: t.abertura,
+            operador: t.operador,
+            maquina: t.maquina.unwrap_or_default(),
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -61,16 +78,21 @@ pub async fn pendencias_sync_turno(db: &DatabaseConnection, turno_uid: &str) -> 
     Ok(row.and_then(|r| r.try_get::<i64>("", "n").ok()).unwrap_or(0))
 }
 
+/// Estado do turno desta máquina (FR-017): um único aberto por PDV, seja qual
+/// for o operador logado. Sem argumentos — a identidade é o PC, não o usuário.
 #[tauri::command]
-pub async fn turno_aberto(state: tauri::State<'_, AppState>, operador: String) -> Result<Option<TurnoAbertoDto>, ErroDto> {
+pub async fn turno_aberto(state: tauri::State<'_, AppState>) -> Result<Option<TurnoAbertoDto>, ErroDto> {
     let repo = SeaTurnoRepo::new(state.db.clone());
-    Ok(turno::turno_aberto(&repo, &operador).await?.map(|t| TurnoAbertoDto {
-        sync_uid: t.sync_uid,
-        caixa_inicial_centavos: t.caixa_inicial_centavos,
-        abertura: t.abertura,
-    }))
+    Ok(turno::aberto(&repo, &MaquinaSistema).await?.map(TurnoAbertoDto::from))
 }
 
+/// Nome do PC (FR-021) — o header mostra mesmo sem turno aberto.
+#[tauri::command]
+pub fn maquina_nome() -> String {
+    MaquinaSistema.nome()
+}
+
+/// Abre um turno **ou continua** no que já está aberto nesta máquina (FR-002/FR-017).
 #[tauri::command]
 pub async fn turno_abrir(
     state: tauri::State<'_, AppState>,
@@ -78,12 +100,8 @@ pub async fn turno_abrir(
     caixa_inicial_centavos: i64,
 ) -> Result<TurnoAbertoDto, ErroDto> {
     let repo = SeaTurnoRepo::new(state.db.clone());
-    let t = turno::abrir(&repo, &operador, caixa_inicial_centavos).await?;
-    Ok(TurnoAbertoDto {
-        sync_uid: t.sync_uid,
-        caixa_inicial_centavos: t.caixa_inicial_centavos,
-        abertura: t.abertura,
-    })
+    let t = turno::abrir_ou_continuar(&repo, &MaquinaSistema, &operador, caixa_inicial_centavos).await?;
+    Ok(TurnoAbertoDto::from(t))
 }
 
 #[tauri::command]

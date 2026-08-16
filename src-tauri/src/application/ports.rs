@@ -23,13 +23,30 @@ pub trait LivroRepo: Send + Sync {
     async fn buscar_texto(&self, termo_norm: &str, limite: i64) -> Result<Vec<Livro>, RepoErro>;
 }
 
+/// Turno a que a venda pertence (feature 013, FR-003/FR-016): o `uid` é o
+/// `sync_uid` do turno aberto e `numero_no_turno` é o Pedido Nº dentro dele.
+pub struct VendaTurno {
+    pub uid: String,
+    pub numero_no_turno: i64,
+}
+
+/// Dados do pedido usados pelo guarda de cancelamento (feature 013, FR-003).
+pub struct DadosCancelamento {
+    pub data: String,
+    pub ja_cancelado: bool,
+    /// `None` em venda legada (anterior ao turno obrigatório) — não cancelável no PDV.
+    pub turno_uid: Option<String>,
+}
+
 /// Repositório de pedidos (vendas).
 #[async_trait]
 pub trait PedidoRepo: Send + Sync {
     /// Próximo número sequencial (MAX(numero)+1), contínuo entre execuções (FR-017).
     async fn proximo_numero(&self) -> Result<i64, RepoErro>;
-    /// Grava pedido + itens e baixa o estoque, atomicamente (FR-015).
-    async fn registrar(&self, pedido: &Pedido) -> Result<(), RepoErro>;
+    /// Grava pedido + itens e baixa o estoque, atomicamente (FR-015). `turno` carimba
+    /// o vínculo obrigatório da venda (FR-003); `None` só em fixture/legado — o caso
+    /// de uso `venda::registrar_venda` sempre resolve um turno aberto.
+    async fn registrar(&self, pedido: &Pedido, turno: Option<&VendaTurno>) -> Result<(), RepoErro>;
     /// Importa um pedido histórico de forma idempotente, SEM baixar estoque.
     /// Retorna `true` se inseriu, `false` se o número já existia (FR-069).
     async fn importar(&self, pedido: &Pedido) -> Result<bool, RepoErro>;
@@ -37,8 +54,8 @@ pub trait PedidoRepo: Send + Sync {
     async fn excluir_item(&self, item_id: i64) -> Result<(), RepoErro>;
     /// Remove um pedido inteiro e seus itens (cancelar venda do dia).
     async fn excluir_pedido(&self, numero: i64) -> Result<(), RepoErro>;
-    /// Data (ISO) e flag de cancelado do pedido — guard dos 5 dias (FR-011 da 006).
-    async fn dados_cancelamento(&self, numero: i64) -> Result<Option<(String, bool)>, RepoErro>;
+    /// Data, flag de cancelado e turno do pedido — guarda do cancelamento (FR-003).
+    async fn dados_cancelamento(&self, numero: i64) -> Result<Option<DadosCancelamento>, RepoErro>;
 }
 
 /// Repositório do cadastro de formas de pagamento (ADR-0013).

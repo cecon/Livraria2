@@ -5,6 +5,7 @@ mod common;
 use livraria_2_lib::adapters::persistencia::forma_pagamento_repo::SeaFormaPagamentoRepo;
 use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
 use livraria_2_lib::adapters::persistencia::pedido_repo::SeaPedidoRepo;
+use livraria_2_lib::adapters::persistencia::turno_repo::SeaTurnoRepo;
 use livraria_2_lib::adapters::persistencia::{conectar, inicializar_schema};
 use livraria_2_lib::application::ports::{FormaPagamentoRepo, LivroRepo};
 use livraria_2_lib::application::venda::{registrar_venda, ItemInput, RecebimentoInput, VendaInput};
@@ -78,9 +79,20 @@ async fn venda_persiste_e_baixa_estoque() {
         }],
     };
 
-    let pedido = registrar_venda(input, &livros, &pedidos, &formas, &RelogioFixo)
-        .await
-        .expect("registrar venda");
+    // Feature 013 (FR-002): sem turno aberto nesta máquina a venda não passa.
+    let turnos = SeaTurnoRepo::new(db.clone());
+    common::abrir_turno(&db, "op-1").await;
+    let pedido = registrar_venda(
+        input,
+        &livros,
+        &pedidos,
+        &formas,
+        &RelogioFixo,
+        &turnos,
+        &common::MaquinaTeste,
+    )
+    .await
+    .expect("registrar venda");
 
     assert_eq!(pedido.numero, 1, "primeiro pedido começa em 1");
     assert_eq!(pedido.turno, Turno::Tarde, "15h -> tarde");

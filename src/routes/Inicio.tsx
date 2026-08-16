@@ -26,16 +26,9 @@ export default function Inicio() {
     let vivo = true;
     async function carregar() {
       setCarregando(true);
-      if (!operador) {
-        if (vivo) {
-          setTurno(null);
-          setVendas([]);
-          setCarregando(false);
-        }
-        return;
-      }
       try {
-        const t = await turnoAberto(operador);
+        // Feature 013: o turno é da MÁQUINA — a lista não depende de quem logou.
+        const t = await turnoAberto();
         if (!vivo) return;
         setTurno(t);
         setVendas(t ? await vendasDoTurno(t.syncUid) : []);
@@ -98,11 +91,7 @@ export default function Inicio() {
         </div>
 
         <div className="mt-3">
-          {!operador ? (
-            <p className="text-muted-foreground text-sm">
-              Selecione o operador do caixa (barra lateral) para ver o turno.
-            </p>
-          ) : carregando ? (
+          {carregando ? (
             <p className="text-muted-foreground text-sm">Carregando…</p>
           ) : !turno ? (
             <p className="text-muted-foreground text-sm">

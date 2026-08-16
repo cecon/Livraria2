@@ -2,22 +2,59 @@
 //! `TurnoRepo` + o domínio puro `turno_operacao` (mesma regra do Escritório/WASM).
 
 use crate::application::erros::ErroApp;
+use crate::application::ports::{Maquina, VendaTurno};
 use crate::application::ports_turno::{TurnoAbertoInfo, TurnoHistorico, TurnoRepo};
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::erros::ErroDominio;
 use crate::domain::turno_operacao;
 
-/// Turno aberto do operador (ou `None`).
-pub async fn turno_aberto(repo: &dyn TurnoRepo, operador: &str) -> Result<Option<TurnoAbertoInfo>, ErroApp> {
-    Ok(repo.turno_aberto(operador).await?)
+/// Adota, no boot, o turno que já estava aberto quando a máquina passou a fazer
+/// parte da identidade (m014) — o operador continua nele em vez de ter o caixa do
+/// dia partido em dois. Turnos do Escritório ficam de fora (o adapter filtra por
+/// `origem = 'pdv'`). **Premissa operacional: um PDV por loja** — com dois PDVs, o
+/// turno aberto do outro também desce pela réplica sem `maquina` e seria carimbado
+/// aqui. Antes de instalar um 2º PDV, troque isto por adoção confirmada pelo
+/// operador. Idempotente: só age em turno aberto sem máquina.
+pub async fn adotar_turnos_legados(repo: &dyn TurnoRepo, maquina: &dyn Maquina) -> Result<u64, ErroApp> {
+    Ok(repo.adotar_turnos_sem_maquina(&maquina.nome()).await?)
 }
 
-/// Abre um turno. Bloqueia se já houver um aberto do operador nesta origem (D7).
-pub async fn abrir(repo: &dyn TurnoRepo, operador: &str, caixa_inicial_centavos: i64) -> Result<TurnoAbertoInfo, ErroApp> {
-    if repo.turno_aberto(operador).await?.is_some() {
-        return Err(ErroApp::Dominio(ErroDominio::TurnoJaAberto));
+/// Turno aberto **desta máquina** (ou `None`) — FR-017.
+pub async fn aberto(repo: &dyn TurnoRepo, maquina: &dyn Maquina) -> Result<Option<TurnoAbertoInfo>, ErroApp> {
+    Ok(repo.turno_aberto_na_maquina(&maquina.nome()).await?)
+}
+
+/// Abre um turno **ou continua no que já está aberto** nesta máquina (FR-002/FR-017):
+/// havendo um aberto, quem loga entra nele; só se não houver é que um novo nasce.
+pub async fn abrir_ou_continuar(
+    repo: &dyn TurnoRepo,
+    maquina: &dyn Maquina,
+    operador: &str,
+    caixa_inicial_centavos: i64,
+) -> Result<TurnoAbertoInfo, ErroApp> {
+    let nome = maquina.nome();
+    let existente = repo.turno_aberto_na_maquina(&nome).await?;
+    if !turno_operacao::pode_abrir(existente.is_some()) {
+        // Domínio recusou o 2º turno: o operador continua no que está aberto.
+        return existente.ok_or(ErroApp::Dominio(ErroDominio::TurnoJaAberto));
     }
-    Ok(repo.abrir(operador, caixa_inicial_centavos).await?)
+    Ok(repo.abrir(operador, caixa_inicial_centavos, &nome).await?)
+}
+
+/// Turno da venda: exige um turno aberto nesta máquina (FR-002) e resolve o
+/// Pedido Nº dentro dele (FR-016). Sem turno aberto → `VendaSemTurno`.
+pub async fn contexto_venda(repo: &dyn TurnoRepo, maquina: &dyn Maquina) -> Result<VendaTurno, ErroApp> {
+    let turno = aberto(repo, maquina)
+        .await?
+        .ok_or(ErroApp::Dominio(ErroDominio::VendaSemTurno))?;
+    // O repo só devolve turno `aberto`; a guarda pura mantém a regra explícita.
+    if !turno_operacao::pode_registrar_venda(turno_operacao::StatusTurno::Aberto) {
+        return Err(ErroApp::Dominio(ErroDominio::VendaSemTurno));
+    }
+    Ok(VendaTurno {
+        numero_no_turno: proximo_numero_no_turno(repo, &turno.sync_uid).await?,
+        uid: turno.sync_uid,
+    })
 }
 
 /// Próximo Pedido Nº do turno (1..n) — regra pura do domínio.

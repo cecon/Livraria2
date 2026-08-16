@@ -2,6 +2,7 @@
 //! `pedido_repo` para manter cada arquivo sob 300 linhas (Princípio III).
 
 use super::entities::{item_pedido, pedido};
+use crate::application::ports::VendaTurno;
 use crate::domain::estoque::TipoMovimento;
 use crate::domain::pedido::Pedido;
 use chrono::Local;
@@ -73,6 +74,7 @@ pub(crate) async fn estornar_saidas(
 pub(crate) async fn inserir_cabecalho_e_itens(
     txn: &DatabaseTransaction,
     pedido: &Pedido,
+    turno: Option<&VendaTurno>,
 ) -> Result<(), DbErr> {
     let pm = pedido::ActiveModel {
         numero: Set(pedido.numero),
@@ -92,6 +94,16 @@ pub(crate) async fn inserir_cabecalho_e_itens(
         [pronto_em.into(), pedido.numero.into()],
     ))
     .await?;
+    // Vínculo obrigatório com o turno + Pedido Nº do turno (feature 013, FR-003/FR-016),
+    // na MESMA transação da venda: não existe janela em que a venda fique órfã.
+    if let Some(t) = turno {
+        txn.execute(Statement::from_sql_and_values(
+            txn.get_database_backend(),
+            "UPDATE pedido SET turno_uid = ?, numero_no_turno = ? WHERE numero = ?",
+            [t.uid.clone().into(), t.numero_no_turno.into(), pedido.numero.into()],
+        ))
+        .await?;
+    }
     super::pagamento_pedido_sql::inserir(txn, pedido.numero, &pedido.pagamentos).await?;
 
     for it in &pedido.itens {

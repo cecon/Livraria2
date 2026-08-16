@@ -89,6 +89,9 @@ pub enum ErroDominio {
 
     #[error("é preciso abrir um turno antes de registrar vendas")]
     VendaSemTurno,
+
+    #[error("esta venda é de um turno já fechado — a correção é feita no escritório")]
+    VendaDeTurnoFechado,
 }
 
 impl ErroDominio {
@@ -124,6 +127,7 @@ impl ErroDominio {
             ErroDominio::VendaAntiga { .. } => "VENDA_ANTIGA",
             ErroDominio::TurnoJaAberto => "TURNO_JA_ABERTO",
             ErroDominio::VendaSemTurno => "VENDA_SEM_TURNO",
+            ErroDominio::VendaDeTurnoFechado => "VENDA_DE_TURNO_FECHADO",
         }
     }
 }

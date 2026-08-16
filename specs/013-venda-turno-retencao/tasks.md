@@ -45,15 +45,15 @@ Base já existente (feature 009): `pedido.turno_uid` e `pedido.numero_no_turno` 
 
 **Independent Test**: com turno fechado, vender/cancelar é bloqueado; ao abrir, vincula; segundo turno é recusado enquanto há um aberto.
 
-- [ ] T005 [US1] `src-tauri/src/application/turno.rs`: `abrir_ou_continuar(operador)` — se há turno aberto, retorna-o; senão abre novo (grava `abertura`, `operador`, `maquina` via porta `Maquina`); recusa 2º turno usando domínio `pode_abrir`
-- [ ] T006 [US1] `src-tauri/src/application/turno.rs`: `encerrar(fechamento)` reusando `marcar_encerrado`/`encerrar` do domínio
-- [ ] T007 [US1] `src-tauri/src/application/venda.rs`: exigir turno aberto ao registrar (usa `pode_registrar_venda`); erro de aplicação claro "abra um turno" quando não há
-- [ ] T008 [US1] `src-tauri/src/adapters/persistencia/pedido_repo.rs`: `registrar` grava `turno_uid` do turno aberto e `numero_no_turno` (via `proximo_numero` pela contagem de pedidos do turno)
-- [ ] T009 [US1] `src-tauri/src/application/cancelamento.rs`: permitir cancelar só se a venda pertence ao turno aberto (`pode_cancelar`); venda de turno fechado → erro "corrija no escritório"
-- [ ] T010 [US1] `src-tauri/src/commands_turno.rs` + `commands.rs`: expor `abrir_ou_continuar`/`encerrar`/estado do turno; `registrar_venda`/`excluir_pedido` retornam o erro de "sem turno" para o front
-- [ ] T011 [US1] Front `src/`: **bloqueio incisivo** — sem turno aberto, a janela de venda **não renderiza a UI de venda**; mostra uma chamada destacada para abrir turno (não um toast/aviso dispensável). Fluxo de abrir/continuar turno (FR-002)
-- [ ] T012 [US1] Front `src/`: aviso de **turno aberto após a virada do dia** (FR-023) — alerta para fechar/conferir, sem auto-fechar
-- [ ] T013 [P] [US1] Testes de integração em `src-tauri/tests/turno_venda.rs`: venda sem turno bloqueada; com turno vincula (`turno_uid` + `numero_no_turno`); cancelamento só do turno aberto; recusa de 2º turno aberto
+- [x] T005 [US1] `src-tauri/src/application/turno.rs`: `abrir_ou_continuar(operador)` — se há turno aberto, retorna-o; senão abre novo (grava `abertura`, `operador`, `maquina` via porta `Maquina`); recusa 2º turno usando domínio `pode_abrir`
+- [x] T006 [US1] `src-tauri/src/application/turno.rs`: `encerrar(fechamento)` reusando `marcar_encerrado`/`encerrar` do domínio
+- [x] T007 [US1] `src-tauri/src/application/venda.rs`: exigir turno aberto ao registrar (usa `pode_registrar_venda`); erro de aplicação claro "abra um turno" quando não há
+- [x] T008 [US1] `src-tauri/src/adapters/persistencia/pedido_repo.rs`: `registrar` grava `turno_uid` do turno aberto e `numero_no_turno` (via `proximo_numero` pela contagem de pedidos do turno)
+- [x] T009 [US1] `src-tauri/src/application/cancelamento.rs`: permitir cancelar só se a venda pertence ao turno aberto (`pode_cancelar`); venda de turno fechado → erro "corrija no escritório"
+- [x] T010 [US1] `src-tauri/src/commands_turno.rs` + `commands.rs`: expor `abrir_ou_continuar`/`encerrar`/estado do turno; `registrar_venda`/`excluir_pedido` retornam o erro de "sem turno" para o front
+- [x] T011 [US1] Front `src/`: **bloqueio incisivo** — sem turno aberto, a janela de venda **não renderiza a UI de venda**; mostra uma chamada destacada para abrir turno (não um toast/aviso dispensável). Fluxo de abrir/continuar turno (FR-002)
+- [x] T012 [US1] Front `src/`: aviso de **turno aberto após a virada do dia** (FR-023) — alerta para fechar/conferir, sem auto-fechar
+- [x] T013 [P] [US1] Testes de integração em `src-tauri/tests/turno_venda.rs`: venda sem turno bloqueada; com turno vincula (`turno_uid` + `numero_no_turno`); cancelamento só do turno aberto; recusa de 2º turno aberto
 
 **Checkpoint**: US1 entregue — disciplina de turno funcionando (MVP).
 

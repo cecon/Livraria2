@@ -29,16 +29,21 @@ fn agora() -> String {
 
 #[async_trait]
 impl TurnoRepo for SeaTurnoRepo {
-    async fn turno_aberto(&self, operador: &str) -> Result<Option<TurnoAbertoInfo>, RepoErro> {
+    /// Filtra por `maquina` (não por operador): turnos de OUTROS PDVs descem pela
+    /// réplica e não podem ser confundidos com o desta máquina (FR-015/FR-017).
+    /// Turno legado (`maquina IS NULL`, aberto antes da m014) não é adotado — fica
+    /// para o escritório fechar (US6); aqui um turno novo nasce já identificado.
+    async fn turno_aberto_na_maquina(&self, maquina: &str) -> Result<Option<TurnoAbertoInfo>, RepoErro> {
         let backend = self.db.get_database_backend();
         let row = self
             .db
             .query_one(Statement::from_sql_and_values(
                 backend,
-                "SELECT sync_uid, caixa_inicial_centavos, abertura FROM turno_operacao \
-                 WHERE operador = ? AND status = 'aberto' AND excluido_em IS NULL \
+                "SELECT sync_uid, caixa_inicial_centavos, abertura, operador, maquina \
+                 FROM turno_operacao \
+                 WHERE maquina = ? AND status = 'aberto' AND excluido_em IS NULL \
                  ORDER BY abertura DESC LIMIT 1",
-                [operador.into()],
+                [maquina.into()],
             ))
             .await
             .map_err(erro)?;
@@ -47,11 +52,40 @@ impl TurnoRepo for SeaTurnoRepo {
                 sync_uid: r.try_get("", "sync_uid").ok()?,
                 caixa_inicial_centavos: r.try_get("", "caixa_inicial_centavos").ok()?,
                 abertura: r.try_get("", "abertura").ok()?,
+                operador: r.try_get("", "operador").unwrap_or_default(),
+                maquina: r.try_get("", "maquina").ok(),
             })
         }))
     }
 
-    async fn abrir(&self, operador: &str, caixa_inicial_centavos: i64) -> Result<TurnoAbertoInfo, RepoErro> {
+    /// Só turno **aberto** (um encerrado não volta a ser "o turno deste PDV") e só
+    /// `origem = 'pdv'`: o Escritório abre turnos próprios (`origem = 'escritorio'`,
+    /// sempre sem `maquina`) que descem pela réplica — adotá-los sequestraria o
+    /// caixa do escritório a cada boot. Não mexe em `atualizado_em`: é identidade
+    /// local; a coluna `maquina` ainda não está no mapa de réplica (T019), e o
+    /// encerramento a levará para a nuvem.
+    async fn adotar_turnos_sem_maquina(&self, maquina: &str) -> Result<u64, RepoErro> {
+        let backend = self.db.get_database_backend();
+        let r = self
+            .db
+            .execute(Statement::from_sql_and_values(
+                backend,
+                "UPDATE turno_operacao SET maquina = ? \
+                 WHERE maquina IS NULL AND status = 'aberto' AND origem = 'pdv' \
+                   AND excluido_em IS NULL",
+                [maquina.into()],
+            ))
+            .await
+            .map_err(erro)?;
+        Ok(r.rows_affected())
+    }
+
+    async fn abrir(
+        &self,
+        operador: &str,
+        caixa_inicial_centavos: i64,
+        maquina: &str,
+    ) -> Result<TurnoAbertoInfo, RepoErro> {
         let backend = self.db.get_database_backend();
         // UUID v4 gerado em SQL (mesmo gerador da réplica — m008), lido de volta.
         let uid: String = self
@@ -69,13 +103,26 @@ impl TurnoRepo for SeaTurnoRepo {
             .execute(Statement::from_sql_and_values(
                 backend,
                 "INSERT INTO turno_operacao \
-                 (sync_uid, operador, caixa_inicial_centavos, status, abertura, origem, atualizado_em) \
-                 VALUES (?, ?, ?, 'aberto', ?, 'pdv', ?)",
-                [uid.clone().into(), operador.into(), caixa_inicial_centavos.into(), ts.clone().into(), ts.clone().into()],
+                 (sync_uid, operador, caixa_inicial_centavos, status, abertura, maquina, origem, atualizado_em) \
+                 VALUES (?, ?, ?, 'aberto', ?, ?, 'pdv', ?)",
+                [
+                    uid.clone().into(),
+                    operador.into(),
+                    caixa_inicial_centavos.into(),
+                    ts.clone().into(),
+                    maquina.into(),
+                    ts.clone().into(),
+                ],
             ))
             .await
             .map_err(erro)?;
-        Ok(TurnoAbertoInfo { sync_uid: uid, caixa_inicial_centavos, abertura: ts })
+        Ok(TurnoAbertoInfo {
+            sync_uid: uid,
+            caixa_inicial_centavos,
+            abertura: ts,
+            operador: operador.to_string(),
+            maquina: Some(maquina.to_string()),
+        })
     }
 
     async fn contar_pedidos(&self, turno_uid: &str) -> Result<i64, RepoErro> {

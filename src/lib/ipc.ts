@@ -66,7 +66,15 @@ export async function registrarVenda(
 
 // --- Turno de operação (feature 009, ADR-0021) ---
 
-export type TurnoAberto = { syncUid: string; caixaInicialCentavos: number; abertura: string };
+// Feature 013: o turno pertence à MÁQUINA (um aberto por PDV) — quem loga
+// continua no turno aberto; `operador`/`maquina` identificam-no na tela.
+export type TurnoAberto = {
+  syncUid: string;
+  caixaInicialCentavos: number;
+  abertura: string;
+  operador: string;
+  maquina: string;
+};
 export type ResumoTurno = { qtdVendas: number; porForma: [number, number][]; esperadoDinheiroCentavos: number };
 export type TurnoFechamento = { esperadoCentavos: number; conferidoCentavos: number; diferencaCentavos: number };
 export type TurnoHistorico = {
@@ -78,11 +86,17 @@ export type TurnoHistorico = {
   diferencaCentavos: number | null;
 };
 
-export async function turnoAberto(operador: string): Promise<TurnoAberto | null> {
-  return await invoke("turno_aberto", { operador });
+/** Turno aberto DESTA máquina (sem argumento: a identidade é o PC, não o usuário). */
+export async function turnoAberto(): Promise<TurnoAberto | null> {
+  return await invoke("turno_aberto");
 }
+/** Abre um turno ou continua no que já está aberto nesta máquina (FR-002/FR-017). */
 export async function turnoAbrir(operador: string, caixaInicialCentavos: number): Promise<TurnoAberto> {
   return await invoke("turno_abrir", { operador, caixaInicialCentavos });
+}
+/** Nome do PC — exibido mesmo sem turno aberto (FR-021). */
+export async function maquinaNome(): Promise<string> {
+  return await invoke("maquina_nome");
 }
 export async function turnoResumo(turnoUid: string): Promise<ResumoTurno> {
   return await invoke("turno_resumo", { turnoUid });

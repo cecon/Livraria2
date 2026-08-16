@@ -56,6 +56,19 @@ pub fn run() {
                     application::fornecedores::adotar(&forn_repo)
                         .await
                         .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
+                    // Feature 013: o turno que já estava aberto na atualização passa a
+                    // ser deste PC — o operador continua nele, sem partir o caixa do dia.
+                    let turno_repo =
+                        adapters::persistencia::turno_repo::SeaTurnoRepo::new(db.clone());
+                    let adotados = application::turno::adotar_turnos_legados(
+                        &turno_repo,
+                        &adapters::maquina::MaquinaSistema,
+                    )
+                    .await
+                    .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
+                    if adotados > 0 {
+                        eprintln!("boot: {adotados} turno(s) aberto(s) adotado(s) por esta máquina");
+                    }
                     Ok(db)
                 });
             // FR-016a: falha de migração NÃO derruba o app — ele abre apenas para
@@ -92,6 +105,7 @@ pub fn run() {
             commands::registrar_venda,
             commands_turno::turno_aberto,
             commands_turno::turno_abrir,
+            commands_turno::maquina_nome,
             commands_turno::turno_resumo,
             commands_turno::turno_encerrar,
             commands_turno::turno_listar,

@@ -8,8 +8,9 @@ use livraria_2_lib::adapters::persistencia::estoque_repo::SeaEstoqueRepo;
 use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
 use livraria_2_lib::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use livraria_2_lib::adapters::persistencia::{conectar, inicializar_schema};
+use livraria_2_lib::adapters::persistencia::turno_repo::SeaTurnoRepo;
 use livraria_2_lib::application::cancelamento;
-use livraria_2_lib::application::ports::{LivroRepo, PedidoRepo, Relogio};
+use livraria_2_lib::application::ports::{LivroRepo, PedidoRepo, VendaTurno};
 use livraria_2_lib::application::ports_estoque::EstoqueRepo;
 use livraria_2_lib::domain::categoria::Categoria;
 use livraria_2_lib::domain::dinheiro::Dinheiro;
@@ -110,16 +111,6 @@ fn venda_de(codigo: &str, qtd: i64) -> Pedido {
     }
 }
 
-struct RelogioFixo;
-impl Relogio for RelogioFixo {
-    fn hora_atual(&self) -> u32 {
-        10
-    }
-    fn hoje_iso(&self) -> String {
-        "2026-06-24".to_string() // dentro da janela de 5 dias da venda (2026-06-23)
-    }
-}
-
 /// Incidente A PONTE: livro em 121 (da nuvem), vende 1 → 120, cancela offline →
 /// deve VOLTAR a 121, não 122. Fluxo real (registrar 'pronta' + cancelar_venda),
 /// sem sincronizar — o cancelamento de venda 'pronta' não pode somar de volta.
@@ -138,11 +129,15 @@ async fn venda_e_cancelamento_offline_devolvem_o_saldo_operacional() {
     assert_eq!(estoque.saldo_operacional("APONTE").await.unwrap(), 121);
 
     // Vende 1 (fica 'pronta', ainda não baixou o saldo_publicado): 121 → 120.
-    pedidos.registrar(&venda_de("APONTE", 1)).await.unwrap();
+    // Feature 013: a venda nasce vinculada ao turno aberto desta máquina.
+    let turno_uid = common::abrir_turno(&db, "op-1").await;
+    let turno = VendaTurno { uid: turno_uid, numero_no_turno: 1 };
+    pedidos.registrar(&venda_de("APONTE", 1), Some(&turno)).await.unwrap();
     assert_eq!(estoque.saldo_operacional("APONTE").await.unwrap(), 120);
 
     // Cancela offline (nunca sincronizou) → 121, NÃO 122.
-    cancelamento::cancelar_venda(1, &pedidos, &RelogioFixo).await.unwrap();
+    let turnos = SeaTurnoRepo::new(db.clone());
+    cancelamento::cancelar_venda(1, &pedidos, &turnos, &common::MaquinaTeste).await.unwrap();
     assert_eq!(estoque.saldo_operacional("APONTE").await.unwrap(), 121);
 
     let _ = std::fs::remove_file(&path);
@@ -169,7 +164,7 @@ async fn adotar_repara_livro_com_movimento_sem_saldo_inicial() {
     // Estoque 128 e uma venda de 2 ANTES da adoção → há `saida_venda` mas nenhum
     // `saldo_inicial`. Σ = -2, estoque = 126: ledger incompleto (Σ ≠ estoque).
     livros.salvar(&livro("222", 128)).await.unwrap();
-    pedidos.registrar(&venda_de("222", 2)).await.unwrap();
+    pedidos.registrar(&venda_de("222", 2), None).await.unwrap();
     assert_eq!(livros.por_codigo("222").await.unwrap().unwrap().estoque, 126);
     assert_eq!(soma_movimentos(&estoque, "222").await, -2);
 

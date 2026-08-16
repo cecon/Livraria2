@@ -2,8 +2,10 @@
 //! Extraídos de `venda.rs` para manter os arquivos sob 300 linhas (Princípio III).
 
 use crate::application::ports::{
-    FormaPagamentoRepo, LivroRepo, PedidoRepo, Relogio, RepoErro,
+    DadosCancelamento, FormaPagamentoRepo, LivroRepo, Maquina, PedidoRepo, Relogio, RepoErro,
+    VendaTurno,
 };
+use crate::application::ports_turno::{DadosFechamento, TurnoAbertoInfo, TurnoHistorico, TurnoRepo};
 use crate::domain::livro::Livro;
 use crate::domain::pagamento::FormaPagamento;
 use crate::domain::pedido::Pedido;
@@ -27,6 +29,10 @@ impl LivroRepo for FakeLivros {
 #[derive(Default)]
 pub struct FakePedidos {
     pub registrado: Mutex<Option<Pedido>>,
+    /// Turno carimbado na venda (feature 013) — `(uid, numero_no_turno)`.
+    pub turno_registrado: Mutex<Option<(String, i64)>>,
+    /// Turno da venda devolvido por `dados_cancelamento` (default: o turno aberto).
+    pub turno_da_venda: Option<String>,
 }
 
 #[async_trait]
@@ -34,8 +40,9 @@ impl PedidoRepo for FakePedidos {
     async fn proximo_numero(&self) -> Result<i64, RepoErro> {
         Ok(5997)
     }
-    async fn registrar(&self, pedido: &Pedido) -> Result<(), RepoErro> {
+    async fn registrar(&self, pedido: &Pedido, turno: Option<&VendaTurno>) -> Result<(), RepoErro> {
         *self.registrado.lock().unwrap() = Some(pedido.clone());
+        *self.turno_registrado.lock().unwrap() = turno.map(|t| (t.uid.clone(), t.numero_no_turno));
         Ok(())
     }
     async fn importar(&self, _pedido: &Pedido) -> Result<bool, RepoErro> {
@@ -47,11 +54,76 @@ impl PedidoRepo for FakePedidos {
     async fn excluir_pedido(&self, _numero: i64) -> Result<(), RepoErro> {
         Ok(())
     }
-    async fn dados_cancelamento(
-        &self,
-        _numero: i64,
-    ) -> Result<Option<(String, bool)>, RepoErro> {
-        Ok(Some(("2026-06-14".to_string(), false)))
+    async fn dados_cancelamento(&self, _numero: i64) -> Result<Option<DadosCancelamento>, RepoErro> {
+        Ok(Some(DadosCancelamento {
+            data: "2026-06-14".to_string(),
+            ja_cancelado: false,
+            turno_uid: Some(self.turno_da_venda.clone().unwrap_or_else(|| TURNO_ABERTO_UID.into())),
+        }))
+    }
+}
+
+/// `sync_uid` do turno aberto do `FakeTurnos`.
+pub const TURNO_ABERTO_UID: &str = "turno-aberto-1";
+
+/// Fake do turno: `aberto = false` simula PDV sem turno (venda bloqueada — FR-002).
+pub struct FakeTurnos {
+    pub aberto: bool,
+    /// Vendas já registradas no turno (base do Pedido Nº — FR-016).
+    pub qtd_pedidos: i64,
+}
+
+impl Default for FakeTurnos {
+    fn default() -> Self {
+        Self { aberto: true, qtd_pedidos: 0 }
+    }
+}
+
+#[async_trait]
+impl TurnoRepo for FakeTurnos {
+    async fn turno_aberto_na_maquina(&self, maquina: &str) -> Result<Option<TurnoAbertoInfo>, RepoErro> {
+        Ok(self.aberto.then(|| TurnoAbertoInfo {
+            sync_uid: TURNO_ABERTO_UID.into(),
+            caixa_inicial_centavos: 0,
+            abertura: "2026-06-14T08:00:00".into(),
+            operador: "op-1".into(),
+            maquina: Some(maquina.to_string()),
+        }))
+    }
+    async fn adotar_turnos_sem_maquina(&self, _maquina: &str) -> Result<u64, RepoErro> {
+        Ok(0)
+    }
+    async fn abrir(&self, operador: &str, caixa: i64, maquina: &str) -> Result<TurnoAbertoInfo, RepoErro> {
+        Ok(TurnoAbertoInfo {
+            sync_uid: TURNO_ABERTO_UID.into(),
+            caixa_inicial_centavos: caixa,
+            abertura: "2026-06-14T08:00:00".into(),
+            operador: operador.into(),
+            maquina: Some(maquina.to_string()),
+        })
+    }
+    async fn contar_pedidos(&self, _turno_uid: &str) -> Result<i64, RepoErro> {
+        Ok(self.qtd_pedidos)
+    }
+    async fn dados_fechamento(&self, _turno_uid: &str) -> Result<DadosFechamento, RepoErro> {
+        Ok(DadosFechamento { caixa_inicial_centavos: 0, pagamentos: vec![], qtd_vendas: 0 })
+    }
+    async fn dinheiro_forma_id(&self) -> Result<i64, RepoErro> {
+        Ok(3)
+    }
+    async fn encerrar(&self, _uid: &str, _e: i64, _c: i64, _d: i64) -> Result<(), RepoErro> {
+        Ok(())
+    }
+    async fn listar(&self, _operador: &str) -> Result<Vec<TurnoHistorico>, RepoErro> {
+        Ok(vec![])
+    }
+}
+
+/// Fake da identidade da máquina (nome do PC fixo).
+pub struct MaquinaFixa;
+impl Maquina for MaquinaFixa {
+    fn nome(&self) -> String {
+        "PDV-TESTE".to_string()
     }
 }
 
