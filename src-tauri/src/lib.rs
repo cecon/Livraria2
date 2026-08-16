@@ -56,22 +56,8 @@ pub fn run() {
                     application::fornecedores::adotar(&forn_repo)
                         .await
                         .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
-                    // Feature 013: o turno que já estava aberto na atualização passa a
-                    // ser deste PC — o operador continua nele, sem partir o caixa do dia.
-                    // NÃO é fatal: falhar aqui só faz o operador abrir um turno novo,
-                    // e isso não pode custar a abertura do PDV (a loja fica sem vender).
                     let turno_repo =
                         adapters::persistencia::turno_repo::SeaTurnoRepo::new(db.clone());
-                    match application::turno::adotar_turnos_legados(
-                        &turno_repo,
-                        &adapters::maquina::MaquinaSistema,
-                    )
-                    .await
-                    {
-                        Ok(n) if n > 0 => eprintln!("boot: {n} turno(s) aberto(s) adotado(s) por esta máquina"),
-                        Ok(_) => {}
-                        Err(e) => eprintln!("boot: adoção de turno legado falhou (segue sem adotar): {e}"),
-                    }
                     // Retenção de 45 dias (US3): idempotente e não fatal — se falhar,
                     // o pior caso é o banco local seguir maior até o próximo boot.
                     podar_retencao(&turno_repo).await;

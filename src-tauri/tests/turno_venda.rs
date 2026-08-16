@@ -205,59 +205,48 @@ async fn turno_de_outra_maquina_nao_libera_a_venda() {
     let _ = std::fs::remove_file(&path);
 }
 
-/// Atualização com turno aberto: o turno que já existia (sem `maquina`, aberto
-/// antes da m014) é adotado no boot — o operador **continua nele**, sem partir o
-/// caixa do dia nem reiniciar o Pedido Nº. Turno encerrado não é adotado.
+/// **Nenhuma máquina se apossa do turno de outra.** Turno aberto sem `maquina`
+/// (aberto antes da m014, ou de um PDV que ainda não atualizou) NÃO é adotado
+/// por quem sobe o app — nem no boot, nem depois.
+///
+/// A adoção automática existiu por um tempo, apoiada na premissa "um PDV por
+/// loja". A premissa é falsa na prática: qualquer cliente que sincronize com a
+/// mesma nuvem (inclusive uma máquina de desenvolvimento) recebe os turnos
+/// abertos da loja pela réplica e se apossaria deles — foi observado com o turno
+/// ATIVO de uma operadora. O turno legado fica para o escritório fechar (US6) e
+/// o operador abre um turno novo: caixa partido em dois é chato, turno sequestrado
+/// é perda de controle.
 #[tokio::test]
-async fn turno_aberto_na_atualizacao_e_adotado_por_esta_maquina() {
-    let (db, path) = setup("adota").await;
+async fn turno_sem_maquina_nunca_e_adotado_por_este_pdv() {
+    let (db, path) = setup("nao_adota").await;
     let turnos = SeaTurnoRepo::new(db.clone());
 
-    // Estado pré-013: um turno aberto e um encerrado, ambos sem máquina.
-    let legado = turnos.abrir("op-1", 5000, "").await.unwrap().sync_uid;
-    let encerrado = turnos.abrir("op-1", 0, "").await.unwrap().sync_uid;
-    turnos.encerrar(&encerrado, 0, 0, 0).await.unwrap();
+    // Turno aberto de outra máquina que desceu pela réplica ainda sem `maquina`.
+    let alheio = turnos.abrir("operadora-da-loja", 5000, "").await.unwrap().sync_uid;
     db.execute(Statement::from_string(
         db.get_database_backend(),
         "UPDATE turno_operacao SET maquina = NULL".to_string(),
     ))
     .await
     .unwrap();
-    // …e um turno ABERTO do Escritório, que desceu pela réplica (nunca é deste PC).
-    let do_escritorio = turnos.abrir("op-esc", 0, "").await.unwrap().sync_uid;
-    db.execute(Statement::from_sql_and_values(
-        db.get_database_backend(),
-        "UPDATE turno_operacao SET maquina = NULL, origem = 'escritorio' WHERE sync_uid = ?",
-        [do_escritorio.clone().into()],
-    ))
-    .await
-    .unwrap();
-    assert!(turnos.turno_aberto_na_maquina("PDV-TESTE").await.unwrap().is_none());
 
-    // Boot: adota só o aberto do PDV — nem o encerrado, nem o do escritório.
-    let n = turno::adotar_turnos_legados(&turnos, &common::MaquinaTeste).await.unwrap();
-    assert_eq!(n, 1, "só o turno aberto desta origem é adotado");
-    let esc_maquina: Option<String> = db
+    // Este PDV não o enxerga como seu — em nenhum momento.
+    assert!(turnos.turno_aberto_na_maquina("PDV-TESTE").await.unwrap().is_none());
+    assert_eq!(vender(&db, 1).await, Err("VENDA_SEM_TURNO".into()));
+
+    // E abrir um turno aqui cria um NOVO, sem tocar no alheio.
+    let meu = turno::abrir_ou_continuar(&turnos, &common::MaquinaTeste, "op-1", 0).await.unwrap();
+    assert_ne!(meu.sync_uid, alheio);
+    let intacto: Option<String> = db
         .query_one(Statement::from_sql_and_values(
             db.get_database_backend(),
             "SELECT maquina FROM turno_operacao WHERE sync_uid = ?",
-            [do_escritorio.into()],
+            [alheio.into()],
         ))
         .await
         .unwrap()
         .and_then(|r| r.try_get("", "maquina").ok());
-    assert_eq!(esc_maquina, None, "o turno do escritório não é sequestrado pelo PDV");
-
-    let atual = turnos.turno_aberto_na_maquina("PDV-TESTE").await.unwrap().unwrap();
-    assert_eq!(atual.sync_uid, legado, "é o MESMO turno, não um novo");
-    assert_eq!(atual.caixa_inicial_centavos, 5000, "o caixa do turno é preservado");
-
-    // A venda seguinte entra no turno de sempre.
-    let p = vender(&db, 1).await.unwrap();
-    assert_eq!(vinculo(&db, p).await, (Some(legado), Some(1)));
-
-    // Idempotente: rodar de novo não adota mais nada.
-    assert_eq!(turno::adotar_turnos_legados(&turnos, &common::MaquinaTeste).await.unwrap(), 0);
+    assert_eq!(intacto, None, "o turno da outra máquina segue sem dono aqui");
 
     let _ = std::fs::remove_file(&path);
 }

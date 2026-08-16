@@ -60,28 +60,6 @@ impl TurnoRepo for SeaTurnoRepo {
         }))
     }
 
-    /// Só turno **aberto** (um encerrado não volta a ser "o turno deste PDV") e só
-    /// `origem = 'pdv'`: o Escritório abre turnos próprios (`origem = 'escritorio'`,
-    /// sempre sem `maquina`) que descem pela réplica — adotá-los sequestraria o
-    /// caixa do escritório a cada boot. Não mexe em `atualizado_em`: é identidade
-    /// local; a coluna `maquina` ainda não está no mapa de réplica (T019), e o
-    /// encerramento a levará para a nuvem.
-    async fn adotar_turnos_sem_maquina(&self, maquina: &str) -> Result<u64, RepoErro> {
-        let backend = self.db.get_database_backend();
-        let r = self
-            .db
-            .execute(Statement::from_sql_and_values(
-                backend,
-                "UPDATE turno_operacao SET maquina = ? \
-                 WHERE maquina IS NULL AND status = 'aberto' AND origem = 'pdv' \
-                   AND excluido_em IS NULL",
-                [maquina.into()],
-            ))
-            .await
-            .map_err(erro)?;
-        Ok(r.rows_affected())
-    }
-
     async fn abrir(
         &self,
         operador: &str,

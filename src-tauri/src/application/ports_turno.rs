@@ -55,10 +55,6 @@ pub trait TurnoRepo: Send + Sync {
     /// FR-017: um único turno aberto por PDV; quem loga continua no que está aberto).
     /// Turnos de outros PDVs descem pela réplica — daí o filtro por `maquina`.
     async fn turno_aberto_na_maquina(&self, maquina: &str) -> Result<Option<TurnoAbertoInfo>, RepoErro>;
-    /// Carimba `maquina` nos turnos **abertos** que não têm máquina (abertos antes
-    /// da m014). Devolve quantos adotou. Idempotente: roda no boot, e depois do
-    /// primeiro carimbo não há mais o que adotar.
-    async fn adotar_turnos_sem_maquina(&self, maquina: &str) -> Result<u64, RepoErro>;
     /// Abre um turno (gera `sync_uid`). Idempotência é do chamador (checa antes).
     async fn abrir(
         &self,

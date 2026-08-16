@@ -8,17 +8,6 @@ use crate::domain::dinheiro::Dinheiro;
 use crate::domain::erros::ErroDominio;
 use crate::domain::turno_operacao;
 
-/// Adota, no boot, o turno que já estava aberto quando a máquina passou a fazer
-/// parte da identidade (m014) — o operador continua nele em vez de ter o caixa do
-/// dia partido em dois. Turnos do Escritório ficam de fora (o adapter filtra por
-/// `origem = 'pdv'`). **Premissa operacional: um PDV por loja** — com dois PDVs, o
-/// turno aberto do outro também desce pela réplica sem `maquina` e seria carimbado
-/// aqui. Antes de instalar um 2º PDV, troque isto por adoção confirmada pelo
-/// operador. Idempotente: só age em turno aberto sem máquina.
-pub async fn adotar_turnos_legados(repo: &dyn TurnoRepo, maquina: &dyn Maquina) -> Result<u64, ErroApp> {
-    Ok(repo.adotar_turnos_sem_maquina(&maquina.nome()).await?)
-}
-
 /// Turno aberto **desta máquina** (ou `None`) — FR-017.
 pub async fn aberto(repo: &dyn TurnoRepo, maquina: &dyn Maquina) -> Result<Option<TurnoAbertoInfo>, ErroApp> {
     Ok(repo.turno_aberto_na_maquina(&maquina.nome()).await?)

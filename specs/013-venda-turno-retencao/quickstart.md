@@ -18,13 +18,18 @@ aplicar cedo é seguro nos dois sentidos.
 Conferência esperada da 0015: `OK 0015: backfill idempotente, zero pedidos sem
 turno, venda com turno preservada.`
 
-## 1. Atualizar com turno aberto (adoção)
+## 1. Atualizar com turno aberto
 
 1. Com a versão anterior, abra um turno e registre 1 venda.
 2. Atualize o app.
-3. **Esperado**: o mesmo turno continua aberto (mesmo caixa inicial), o Pedido Nº
-   segue de onde parou e o cabeçalho da barra lateral mostra `PC · operador`.
-   No log: `boot: 1 turno(s) aberto(s) adotado(s) por esta máquina`.
+3. **Esperado**: o turno anterior (sem `maquina`) **não** é assumido por este PC —
+   o operador abre um turno novo, e o antigo fica para o escritório fechar (US6).
+   O cabeçalho da barra lateral mostra `PC · operador` do turno novo.
+
+   ⚠️ Houve uma versão com adoção automática; foi removida. Qualquer cliente que
+   sincronize com a mesma nuvem (inclusive uma máquina de desenvolvimento) recebe
+   os turnos abertos da loja pela réplica e se apossaria deles — observado com o
+   turno ATIVO de uma operadora. Nenhuma máquina assume turno que não abriu.
 
 ## 2. Venda exige turno (FR-002)
 

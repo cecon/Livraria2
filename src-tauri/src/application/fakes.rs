@@ -92,9 +92,6 @@ impl TurnoRepo for FakeTurnos {
             maquina: Some(maquina.to_string()),
         }))
     }
-    async fn adotar_turnos_sem_maquina(&self, _maquina: &str) -> Result<u64, RepoErro> {
-        Ok(0)
-    }
     async fn abrir(&self, operador: &str, caixa: i64, maquina: &str) -> Result<TurnoAbertoInfo, RepoErro> {
         Ok(TurnoAbertoInfo {
             sync_uid: TURNO_ABERTO_UID.into(),
