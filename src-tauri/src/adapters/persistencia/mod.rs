@@ -18,7 +18,9 @@ pub mod turno_repo;
 pub mod usuario_repo;
 
 pub mod recompute;
+pub mod replica_ack;
 pub mod replica_mapa;
+pub mod replica_push;
 pub mod replica_sync;
 
 use crate::migration::Migrator;

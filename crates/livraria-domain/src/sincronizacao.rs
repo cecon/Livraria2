@@ -26,6 +26,35 @@ pub const ORDEM_DEPENDENCIA: &[&str] = &[
     "alocacao_venda",   // -> pedido, item_pedido, destinacao
 ];
 
+/// Recursos **push-only** (feature 013, US2 — FR-006/ADR-0025): a venda SOBE,
+/// mas não desce. Um PDV não baixa a venda do outro e o banco local não cresce
+/// com histórico alheio — a nuvem retém tudo (FR-011a).
+pub fn push_only(recurso: &str) -> bool {
+    matches!(recurso, "pedido" | "item_pedido" | "pagamento_pedido" | "alocacao_venda")
+}
+
+/// Exceção cirúrgica ao push-only: o `pedido` ainda desce como **ack de
+/// incorporação**. Não é conteúdo da venda — é a nuvem respondendo "já debitei o
+/// saldo_publicado desta venda", e é esse carimbo que o saldo operacional usa
+/// para compensar cancelamento sem contar duas vezes (incidente v26.8.3).
+pub fn desce_so_ack(recurso: &str) -> bool {
+    recurso == "pedido"
+}
+
+/// Colunas do ack — as ÚNICAS que descem de uma venda.
+pub const ACK_INCORPORACAO: &[&str] = &[
+    "estoque_status",
+    "estoque_pronta_em",
+    "estoque_incorporada_em",
+    "estoque_estornada_em",
+];
+
+/// O pull precisa buscar este recurso na nuvem? Push-only sem ack não precisa —
+/// economiza o lote inteiro de itens/pagamentos/alocações a cada ciclo.
+pub fn pull_necessario(recurso: &str) -> bool {
+    !push_only(recurso) || desce_so_ack(recurso)
+}
+
 /// Chave natural de deduplicação por recurso (além do `sync_uid`). `None` = a
 /// identidade é só o `sync_uid` (eventos e itens não deduplicam por conteúdo).
 pub fn chave_natural(recurso: &str) -> Option<&'static str> {

@@ -61,25 +61,26 @@ Base já existente (feature 009): `pedido.turno_uid` e `pedido.numero_no_turno` 
 
 ## Phase 4: User Story 2 — Vendas só sobem (Priority: P1)
 
-> ⏸️ **ADIADA por decisão do dono do produto (2026-08-16).** O T017 (trocar
-> `estoque_status='incorporada'` por `ja_sincronizado=1` no `saldo_operacional`)
-> **não é equivalente** e reintroduziria sobrevenda: a nuvem só debita o
-> `saldo_publicado` quando os itens chegam e resolvem produto
-> (`incorporar_pedido`, migração 0013). "Já subiu" ≠ "a nuvem já debitou" nos
-> casos de push parcial e de venda `divergente`. Como o cálculo atual funciona,
-> ele **fica como está**; a US2 só entra quando a nuvem devolver um **ack de
-> incorporação** (o mesmo `estoque_status`, buscado de forma enxuta) — aí a
-> fórmula não muda. A coluna `ja_sincronizado` (m014) segue inerte até lá.
+> ✅ **Entregue com ack de incorporação (2026-08-16).** O T017 original (trocar
+> `estoque_status='incorporada'` por `ja_sincronizado=1`) **não é equivalente** e
+> reintroduziria sobrevenda: a nuvem só debita o `saldo_publicado` quando os
+> itens chegam e resolvem produto (`incorporar_pedido`, migração 0013). "Já
+> subiu" ≠ "a nuvem já debitou" nos casos de push parcial e de venda
+> `divergente`. Decisão: **o cálculo do saldo não muda**. Em vez do marcador
+> local, o `pedido` continua descendo — mas SÓ as colunas `estoque_*` (ack), e
+> só para venda que já existe aqui. Itens/pagamentos/alocações não são nem
+> buscados. T016/T017 ficam **sem efeito**; a coluna `ja_sincronizado` (m014)
+> segue inerte (removê-la seria mais arriscado que deixá-la).
 
 **Goal**: `pedido` e filhas viram push-only; saldo operacional passa a usar marcador local.
 
 **Independent Test**: dois PDVs não baixam vendas um do outro; saldo operacional correto em venda→sync→cancelar sem baixar vendas.
 
-- [ ] T014 [US2] `src-tauri/src/adapters/persistencia/replica_mapa.rs`: introduzir `push_only(recurso)` e marcar `pedido`, `item_pedido`, `pagamento_pedido`, `alocacao_venda` como push-only
-- [ ] T015 [US2] `src-tauri/src/adapters/persistencia/replica_sync.rs`: **pull ignora** recursos push-only (não baixa vendas); push continua enviando na `ORDEM_DEPENDENCIA`
-- [ ] T016 [US2] `src-tauri/src/adapters/persistencia/pedido_repo.rs` (ou caminho de push): ao confirmar o envio (`sincronizado_em` setado), marcar `pedido.ja_sincronizado = 1` — persistente, **nunca** limpo pelo cancelamento
-- [ ] T017 [US2] `src-tauri/src/adapters/persistencia/estoque_repo.rs`: em `saldo_operacional`, trocar o filtro do termo `+cancelamento` de `estoque_status='incorporada'` para **`ja_sincronizado = 1`** (marcador local em vez do estado puxado)
-- [ ] T018 [P] [US2] Testes em `src-tauri/tests/estoque_repo.rs` (adaptar os do fix v26.8.3): saldo correto em venda 'pronta' offline→cancela (net zero) e venda sincronizada→cancela (+restaura) usando `ja_sincronizado`; teste de que o pull não traz vendas (push-only)
+- [x] T014 [US2] `src-tauri/src/adapters/persistencia/replica_mapa.rs`: introduzir `push_only(recurso)` e marcar `pedido`, `item_pedido`, `pagamento_pedido`, `alocacao_venda` como push-only
+- [x] T015 [US2] `src-tauri/src/adapters/persistencia/replica_sync.rs`: **pull ignora** recursos push-only (não baixa vendas); push continua enviando na `ORDEM_DEPENDENCIA`
+- [~] T016 [US2] (sem efeito — ver nota da US2) `src-tauri/src/adapters/persistencia/pedido_repo.rs` (ou caminho de push): ao confirmar o envio (`sincronizado_em` setado), marcar `pedido.ja_sincronizado = 1` — persistente, **nunca** limpo pelo cancelamento
+- [~] T017 [US2] (NÃO aplicado — ver nota da US2) `src-tauri/src/adapters/persistencia/estoque_repo.rs`: em `saldo_operacional`, trocar o filtro do termo `+cancelamento` de `estoque_status='incorporada'` para **`ja_sincronizado = 1`** (marcador local em vez do estado puxado)
+- [x] T018 [P] [US2] Testes em `src-tauri/tests/estoque_repo.rs` (adaptar os do fix v26.8.3): saldo correto em venda 'pronta' offline→cancela (net zero) e venda sincronizada→cancela (+restaura) usando `ja_sincronizado`; teste de que o pull não traz vendas (push-only)
 
 **Checkpoint**: US2 entregue — vendas só sobem, saldo operacional íntegro sem baixar vendas.
 
