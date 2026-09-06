@@ -56,6 +56,7 @@ export async function salvarLivro(e: EntradaLivro): Promise<{ error?: string }> 
     ativo: true,
     origem: "escritorio",
     atualizado_em: agora,
+    sincronizado_em: agora,
     criado_por: criadoPor,
   };
   const { error } = await sb.from("livro").upsert(linha, { onConflict: "sync_uid" });
@@ -81,7 +82,10 @@ export async function salvarLivro(e: EntradaLivro): Promise<{ error?: string }> 
 export async function excluirLivro(sync_uid: string): Promise<{ error?: string }> {
   const sb = createClient();
   const agora = new Date().toISOString();
-  const { error } = await sb.from("livro").update({ excluido_em: agora, atualizado_em: agora }).eq("sync_uid", sync_uid);
+  const { error } = await sb
+    .from("livro")
+    .update({ excluido_em: agora, atualizado_em: agora, sincronizado_em: agora })
+    .eq("sync_uid", sync_uid);
   if (error) return { error: error.message };
   return {};
 }
