@@ -8,12 +8,13 @@ use crate::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use crate::adapters::persistencia::relatorio_repo::SeaRelatorioRepo;
 use crate::adapters::persistencia::turno_repo::SeaTurnoRepo;
 use crate::adapters::persistencia::usuario_repo::SeaUsuarioRepo;
+use crate::adapters::maquina::MaquinaSistema;
 use crate::adapters::relogio::RelogioSistema;
 use crate::application::relatorios::{self, RelatorioEstoque, RelatorioVendas};
 use crate::application::erros::ErroApp;
 use crate::application::ports::LivroRepo;
 use crate::application::venda::VendaInput;
-use crate::application::{pesquisa, turno, venda};
+use crate::application::{pesquisa, venda};
 use crate::domain::livro::Livro;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -86,58 +87,55 @@ pub struct PaginaLivros {
 #[serde(rename_all = "camelCase")]
 pub struct PedidoDto {
     pub numero: i64,
+    /// Pedido Nº do turno — o número exibido no recibo/confirmação (FR-016).
+    pub numero_no_turno: i64,
     pub total_centavos: i64,
     pub troco_centavos: i64,
     pub total_itens: i64,
 }
 
 
-/// Próximo número de pedido (FR-017).
+/// Pedido Nº que a PRÓXIMA venda terá **dentro do turno** (1..n — FR-016). O
+/// `pedido.numero` global segue contínuo como chave, mas não é o número exibido.
+/// Sem turno aberto devolve 1 (a tela de venda nem é montada nesse caso).
 #[tauri::command]
 pub async fn proximo_numero_pedido(state: tauri::State<'_, AppState>) -> Result<i64, ErroDto> {
-    let pedidos = SeaPedidoRepo::new(state.db.clone());
-    Ok(venda::proximo_numero_pedido(&pedidos).await?)
+    let turnos = SeaTurnoRepo::new(state.db.clone());
+    match crate::application::turno::aberto(&turnos, &MaquinaSistema).await? {
+        Some(t) => Ok(crate::application::turno::proximo_numero_no_turno(&turnos, &t.sync_uid).await?),
+        None => Ok(1),
+    }
 }
 
 /// Registra uma venda (US1, FR-015). Pagamentos por lista `{formaId, valorCentavos}`.
-/// Feature 009 (FR-002/FR-003): exige um turno aberto do operador e carimba
-/// `turno_uid`/`numero_no_turno` no pedido (numeração por turno, offline-safe).
+/// Feature 013 (FR-002/FR-003): o caso de uso exige o turno aberto **desta máquina**
+/// e grava `turno_uid`/`numero_no_turno` na mesma transação da venda.
 #[tauri::command]
 pub async fn registrar_venda(
     state: tauri::State<'_, AppState>,
     input: VendaInput,
 ) -> Result<PedidoDto, ErroDto> {
-    let operador = input.operador.clone().unwrap_or_default();
-    let turnos = SeaTurnoRepo::new(state.db.clone());
-    let turno = turno::turno_aberto(&turnos, &operador)
-        .await?
-        .ok_or(ErroApp::Dominio(crate::domain::erros::ErroDominio::VendaSemTurno))?;
-    let numero_no_turno = turno::proximo_numero_no_turno(&turnos, &turno.sync_uid).await?;
-
     let livros = SeaLivroRepo::new(state.db.clone());
     let pedidos = SeaPedidoRepo::new(state.db.clone());
     let formas = SeaFormaPagamentoRepo::new(state.db.clone());
-    let pedido =
-        venda::registrar_venda(input, &livros, &pedidos, &formas, &RelogioSistema).await?;
-
-    // Carimba o turno + Pedido Nº do turno no pedido recém-gravado (FR-003).
-    use sea_orm::{ConnectionTrait, Statement};
-    let backend = state.db.get_database_backend();
-    state
-        .db
-        .execute(Statement::from_sql_and_values(
-            backend,
-            "UPDATE pedido SET turno_uid = ?, numero_no_turno = ? WHERE numero = ?",
-            [turno.sync_uid.clone().into(), numero_no_turno.into(), pedido.numero.into()],
-        ))
-        .await
-        .map_err(|e| ErroDto { codigo: "PERSISTENCIA".into(), mensagem: e.to_string() })?;
+    let turnos = SeaTurnoRepo::new(state.db.clone());
+    let venda = venda::registrar_venda(
+        input,
+        &livros,
+        &pedidos,
+        &formas,
+        &RelogioSistema,
+        &turnos,
+        &MaquinaSistema,
+    )
+    .await?;
 
     Ok(PedidoDto {
-        numero: pedido.numero,
-        total_centavos: pedido.total().centavos(),
-        troco_centavos: pedido.troco().centavos(),
-        total_itens: pedido.total_itens(),
+        numero: venda.pedido.numero,
+        numero_no_turno: venda.numero_no_turno,
+        total_centavos: venda.pedido.total().centavos(),
+        troco_centavos: venda.pedido.troco().centavos(),
+        total_itens: venda.pedido.total_itens(),
     })
 }
 
@@ -209,18 +207,30 @@ pub async fn relatorio_vendas(
     let formas = SeaFormaPagamentoRepo::new(state.db.clone());
     let destinacoes =
         crate::adapters::persistencia::destinacao_repo::SeaDestinacaoRepo::new(state.db.clone());
-    Ok(relatorios::vendas(&data, &periodo, &repo, &formas, &destinacoes).await?)
+    // Turno aberto deste PDV: marca o que ainda dá para cancelar/reabrir aqui (FR-003).
+    let turnos = SeaTurnoRepo::new(state.db.clone());
+    let aberto = crate::application::turno::aberto(&turnos, &MaquinaSistema).await?;
+    Ok(relatorios::vendas(
+        &data,
+        &periodo,
+        &repo,
+        &formas,
+        &destinacoes,
+        aberto.as_ref().map(|t| t.sync_uid.as_str()),
+    )
+    .await?)
 }
 
-/// Cancela uma venda inteira (pedido + itens). Bloqueado após 5 dias corridos
-/// (erro VENDA_ANTIGA — FR-011 da 006); devolve estoque e carimbos.
+/// Cancela uma venda inteira (pedido + itens). Só vale para venda do turno aberto
+/// (erro VENDA_DE_TURNO_FECHADO — feature 013, FR-003); devolve estoque e carimbos.
 #[tauri::command]
 pub async fn excluir_pedido(
     state: tauri::State<'_, AppState>,
     numero: i64,
 ) -> Result<(), ErroDto> {
     let pedidos = SeaPedidoRepo::new(state.db.clone());
-    crate::application::cancelamento::cancelar_venda(numero, &pedidos, &RelogioSistema).await?;
+    let turnos = SeaTurnoRepo::new(state.db.clone());
+    crate::application::cancelamento::cancelar_venda(numero, &pedidos, &turnos, &MaquinaSistema).await?;
     Ok(())
 }
 

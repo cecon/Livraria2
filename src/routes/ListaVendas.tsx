@@ -1,4 +1,7 @@
 // Lista de Vendas do dia — permite editar (excluir item) e cancelar a venda.
+// Feature 013 (FR-003): cancelar/reabrir vale só para vendas do turno ABERTO
+// deste PDV; as demais aparecem na lista, mas com as ações desligadas e o motivo
+// à vista — melhor do que deixar o operador descobrir pelo erro.
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -14,6 +17,11 @@ import {
   type ErroIpc,
   type RelatorioVendas,
 } from "@/lib/ipc";
+import { pedidoNo } from "@/lib/pedido-numero";
+import { AVISO_RETENCAO, dataMinimaRetencao } from "@/lib/retencao";
+
+const MOTIVO_FORA_DO_TURNO =
+  "Esta venda é de um turno já fechado — a correção é feita no escritório.";
 
 function hojeIso(): string {
   const d = new Date();
@@ -44,7 +52,7 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
   async function reabrir(p: RelatorioVendas["pedidos"][number]) {
     if (
       !window.confirm(
-        `Reabrir a venda Nº ${p.numero}? Ela será cancelada (estoque devolvido) e reaberta no PDV para edição.`,
+        `Reabrir a venda Nº ${pedidoNo(p)}? Ela será cancelada (estoque devolvido) e reaberta no PDV para edição.`,
       )
     ) {
       return;
@@ -62,18 +70,18 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
         pag: PAG_VAZIO,
       };
       localStorage.setItem(RASCUNHO_KEY, JSON.stringify(rascunho));
-      toast.success(`Venda Nº ${p.numero} cancelada e reaberta para edição`);
+      toast.success(`Venda Nº ${pedidoNo(p)} cancelada e reaberta para edição`);
       onClonar?.();
     } catch (e) {
       toast.error((e as ErroIpc).mensagem ?? "Erro ao reabrir a venda");
     }
   }
 
-  async function delPedido(numero: number) {
-    if (!window.confirm(`Cancelar a venda Nº ${numero} inteira?`)) return;
+  async function delPedido(p: RelatorioVendas["pedidos"][number]) {
+    if (!window.confirm(`Cancelar a venda Nº ${pedidoNo(p)} inteira?`)) return;
     try {
-      await excluirPedido(numero);
-      toast.success(`Venda Nº ${numero} cancelada`);
+      await excluirPedido(p.numero);
+      toast.success(`Venda Nº ${pedidoNo(p)} cancelada`);
       carregar();
     } catch (e) {
       toast.error((e as ErroIpc).mensagem ?? "Erro ao cancelar a venda");
@@ -85,6 +93,7 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Vendas do dia</h1>
+          <p className="text-muted-foreground text-[11px]">{AVISO_RETENCAO}</p>
           {rel && (
             <p className="text-muted-foreground text-sm">
               {rel.pedidos.filter((p) => !p.cancelado).length} vendas · Total{" "}
@@ -99,6 +108,8 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
           <Input
             id="data"
             type="date"
+            min={dataMinimaRetencao()}
+            title={AVISO_RETENCAO}
             value={data}
             onChange={(e) => setData(e.currentTarget.value)}
             className="mt-1 h-9"
@@ -126,7 +137,7 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
               >
                 <div className="flex items-center gap-2">
                   <span className="font-medium">
-                    Pedido Nº {p.numero} · {p.cliente}
+                    Pedido Nº {pedidoNo(p)} · {p.cliente}
                   </span>
                   {p.cancelado && (
                     <span className="text-muted-foreground bg-muted rounded px-1.5 py-0.5 text-[10px] uppercase">
@@ -147,11 +158,26 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
                   </span>
                   {!p.cancelado && (
                     <>
+                      {/* Feature 013 (FR-003): fora do turno aberto, a tela não
+                          oferece o que o domínio vai recusar — diz o porquê. */}
+                      {!p.cancelavel && (
+                        <span
+                          className="text-muted-foreground text-[11px]"
+                          title={MOTIVO_FORA_DO_TURNO}
+                        >
+                          de outro turno
+                        </span>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        title="Reabrir venda (cancela e reabre no PDV para editar)"
+                        disabled={!p.cancelavel}
+                        title={
+                          p.cancelavel
+                            ? "Reabrir venda (cancela e reabre no PDV para editar)"
+                            : MOTIVO_FORA_DO_TURNO
+                        }
                         onClick={() => reabrir(p)}
                       >
                         <RotateCcw size={15} />
@@ -160,8 +186,9 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-rose-500 hover:text-rose-600"
-                        title="Cancelar venda inteira"
-                        onClick={() => delPedido(p.numero)}
+                        disabled={!p.cancelavel}
+                        title={p.cancelavel ? "Cancelar venda inteira" : MOTIVO_FORA_DO_TURNO}
+                        onClick={() => delPedido(p)}
                       >
                         <Trash2 size={15} />
                       </Button>

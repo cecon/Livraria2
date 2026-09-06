@@ -8,6 +8,7 @@ import {
   FileBarChart,
   HeartHandshake,
   Home,
+  MonitorDot,
   PackagePlus,
   Search,
   ShoppingCart,
@@ -26,7 +27,9 @@ export interface ItemNav {
 export const NAV_ITENS: ItemNav[] = [
   { to: "/", rotulo: "Início", Icon: Home, end: true },
   { to: "/venda", rotulo: "Venda", Icon: ShoppingCart, end: false },
-  { to: "/turnos", rotulo: "Turno", Icon: Clock, end: false },
+  { to: "/turnos", rotulo: "Turno", Icon: Clock, end: true },
+  // Visão central dos turnos dos PDVs (feature 013, US6) — só no Escritório.
+  { to: "/turnos/visao", rotulo: "Turnos dos PDVs", Icon: MonitorDot, end: false },
   { to: "/cadastro", rotulo: "Cadastro", Icon: BookPlus, end: false },
   { to: "/pesquisa", rotulo: "Pesquisa", Icon: Search, end: false },
   { to: "/lancamentos", rotulo: "Lançamentos", Icon: PackagePlus, end: false },
@@ -51,5 +54,6 @@ export const NAV_ITENS_PDV: ItemNav[] = NAV_ITENS.filter(
       "/fornecedores",
       "/formas-pagamento",
       "/destinacoes",
+      "/turnos/visao",
     ].includes(item.to),
 );

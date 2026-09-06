@@ -35,6 +35,15 @@ pub(crate) struct Spec {
 
 use Tipo::{Bool, Inteiro, Texto};
 
+// Política de push-only e ack: regra compartilhada, definida no domínio
+// (`livraria_domain::sincronizacao`) para o caso de uso e o adapter não
+// divergirem. Aqui só os atalhos usados pelo `replica_sync`.
+pub(crate) use livraria_domain::sincronizacao::{push_only, ACK_INCORPORACAO};
+
+pub(crate) fn so_ack(recurso: &str) -> bool {
+    livraria_domain::sincronizacao::desce_so_ack(recurso)
+}
+
 const fn rid(uid: &'static str, local: &'static str, pai: &'static str) -> Ref {
     Ref { uid_key: uid, col_local: local, pai, chave_local_pai: "id" }
 }
@@ -127,6 +136,10 @@ pub(crate) const SPECS: &[Spec] = &[
             Col { nome: "esperado_centavos", tipo: Inteiro },
             Col { nome: "conferido_centavos", tipo: Inteiro },
             Col { nome: "diferenca_centavos", tipo: Inteiro },
+            // Feature 013 (FR-015): a máquina identifica o turno também na nuvem.
+            // Exige a migração 0014_turno_maquina.sql APLICADA — sem a coluna lá,
+            // o upsert de turno_operacao falha e o sync do turno para.
+            Col { nome: "maquina", tipo: Texto },
         ],
         refs: &[Ref { uid_key: "operador_uid", col_local: "operador", pai: "usuario", chave_local_pai: "usuario" }],
     },

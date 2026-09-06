@@ -24,6 +24,7 @@ import {
   type RelatorioVendas as RVendas,
 } from "@/lib/ipc";
 import type { RelatorioDestinacoes as RDest } from "@/lib/types";
+import { AVISO_RETENCAO, dataMinimaRetencao } from "@/lib/retencao";
 
 const TIPOS = [
   { id: "dia", rotulo: "Relatório dia Inteiro", grupo: "Vendas" },
@@ -182,12 +183,16 @@ export default function Relatorios() {
         ))}
 
         {tipo !== "estoque" && (
+          <>
+          <p className="text-muted-foreground mb-2 text-[11px]">{AVISO_RETENCAO}</p>
           <div className={tipo === "destinacoes" ? "grid grid-cols-2 gap-3" : ""}>
             <div>
               <Label htmlFor="data">{tipo === "destinacoes" ? "De" : "Data"}</Label>
               <Input
                 id="data"
                 type="date"
+                min={dataMinimaRetencao()}
+                title={AVISO_RETENCAO}
                 value={data}
                 onChange={(e) => setData(e.currentTarget.value)}
                 className="mt-1 h-9"
@@ -199,6 +204,8 @@ export default function Relatorios() {
                 <Input
                   id="dataFim"
                   type="date"
+                  min={dataMinimaRetencao()}
+                  title={AVISO_RETENCAO}
                   value={dataFim}
                   onChange={(e) => setDataFim(e.currentTarget.value)}
                   className="mt-1 h-9"
@@ -206,6 +213,7 @@ export default function Relatorios() {
               </div>
             )}
           </div>
+          </>
         )}
         <div className="grid grid-cols-2 gap-3">
           <div>

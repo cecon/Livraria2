@@ -10,6 +10,7 @@ pub mod extrato;
 pub mod formas_pagamento;
 pub mod fornecedores;
 pub mod pesquisa;
+pub mod poda;
 pub mod destinacoes;
 pub mod ports;
 pub mod ports_compras;

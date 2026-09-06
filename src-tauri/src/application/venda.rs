@@ -2,7 +2,9 @@
 //! Pagamentos chegam como lista `{forma_id, valor}` (cadastro de formas — ADR-0013).
 
 use crate::application::erros::ErroApp;
-use crate::application::ports::{FormaPagamentoRepo, LivroRepo, PedidoRepo, Relogio};
+use crate::application::ports::{FormaPagamentoRepo, LivroRepo, Maquina, PedidoRepo, Relogio};
+use crate::application::ports_turno::TurnoRepo;
+use crate::application::turno;
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::erros::ErroDominio;
 use crate::domain::pagamento::{ChaveSistema, Turno};
@@ -39,16 +41,29 @@ pub async fn proximo_numero_pedido(pedidos: &dyn PedidoRepo) -> Result<i64, Erro
     Ok(pedidos.proximo_numero().await?)
 }
 
-/// Registra a venda: busca cada livro (snapshot de título/preço), valida cada forma
-/// de pagamento (existe e está ativa — FR-012), monta o pedido, valida a conclusão
-/// (pago ≥ total; troco só do Dinheiro, resolvido por chave — FR-013) e persiste.
+/// Venda registrada: o pedido + o Pedido Nº que ela recebeu dentro do turno
+/// (FR-016) — é esse o número exibido no recibo, não o `pedido.numero`.
+pub struct VendaRegistrada {
+    pub pedido: Pedido,
+    pub numero_no_turno: i64,
+}
+
+/// Registra a venda: **exige um turno aberto nesta máquina** (feature 013, FR-002 —
+/// sem turno o registro nem começa), busca cada livro (snapshot de título/preço),
+/// valida cada forma de pagamento (existe e está ativa — FR-012), monta o pedido,
+/// valida a conclusão (pago ≥ total; troco só do Dinheiro — FR-013) e persiste
+/// já vinculada ao turno, com o Pedido Nº do turno (FR-003/FR-016).
 pub async fn registrar_venda(
     input: VendaInput,
     livros: &dyn LivroRepo,
     pedidos: &dyn PedidoRepo,
     formas: &dyn FormaPagamentoRepo,
     relogio: &dyn Relogio,
-) -> Result<Pedido, ErroApp> {
+    turnos: &dyn TurnoRepo,
+    maquina: &dyn Maquina,
+) -> Result<VendaRegistrada, ErroApp> {
+    // Antes de qualquer efeito: sem turno aberto, a venda não existe (FR-002).
+    let contexto = turno::contexto_venda(turnos, maquina).await?;
     let numero = pedidos.proximo_numero().await?;
 
     let mut itens: Vec<ItemPedido> = Vec::new();
@@ -112,14 +127,16 @@ pub async fn registrar_venda(
     };
 
     pedido.validar_conclusao(dinheiro.id)?;
-    pedidos.registrar(&pedido).await?;
-    Ok(pedido)
+    pedidos.registrar(&pedido, Some(&contexto)).await?;
+    Ok(VendaRegistrada { pedido, numero_no_turno: contexto.numero_no_turno })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::application::fakes::{FakeFormas, FakeLivros, FakePedidos, RelogioFixo};
+    use crate::application::fakes::{
+        FakeFormas, FakeLivros, FakePedidos, FakeTurnos, MaquinaFixa, RelogioFixo, TURNO_ABERTO_UID,
+    };
     use crate::domain::categoria::Categoria;
     use crate::domain::livro::Livro;
 
@@ -166,9 +183,12 @@ mod tests {
             &pedidos,
             &FakeFormas,
             &RelogioFixo,
+            &FakeTurnos::default(),
+            &MaquinaFixa,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .pedido;
         assert_eq!(pedido.numero, 5997);
         assert_eq!(pedido.cliente, "CLIENTE");
         assert_eq!(pedido.turno, Turno::Manha);
@@ -186,9 +206,12 @@ mod tests {
             &pedidos,
             &FakeFormas,
             &RelogioFixo,
+            &FakeTurnos::default(),
+            &MaquinaFixa,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .pedido;
         assert_eq!(pedido.pagamentos.len(), 2);
         assert_eq!(pedido.troco().centavos(), 0);
     }
@@ -202,6 +225,8 @@ mod tests {
             &pedidos,
             &FakeFormas,
             &RelogioFixo,
+            &FakeTurnos::default(),
+            &MaquinaFixa,
         )
         .await;
         assert!(matches!(
@@ -220,6 +245,8 @@ mod tests {
             &pedidos,
             &FakeFormas,
             &RelogioFixo,
+            &FakeTurnos::default(),
+            &MaquinaFixa,
         )
         .await;
         assert!(matches!(r, Err(ErroApp::Dominio(ErroDominio::FormaInativa))));
@@ -230,6 +257,8 @@ mod tests {
             &pedidos,
             &FakeFormas,
             &RelogioFixo,
+            &FakeTurnos::default(),
+            &MaquinaFixa,
         )
         .await;
         assert!(matches!(
@@ -243,10 +272,58 @@ mod tests {
         let pedidos = FakePedidos::default();
         let mut inp = input(1, vec![pag(3, 3000)]);
         inp.itens[0].codigo = "0000".into();
-        let r = registrar_venda(inp, &acervo(), &pedidos, &FakeFormas, &RelogioFixo).await;
+        let r = registrar_venda(
+            inp,
+            &acervo(),
+            &pedidos,
+            &FakeFormas,
+            &RelogioFixo,
+            &FakeTurnos::default(),
+            &MaquinaFixa,
+        )
+        .await;
         assert!(matches!(
             r,
             Err(ErroApp::Dominio(ErroDominio::LivroNaoEncontrado))
         ));
+    }
+
+    /// Feature 013 (FR-002): sem turno aberto a venda nem começa — nada é gravado.
+    #[tokio::test]
+    async fn venda_sem_turno_aberto_e_bloqueada() {
+        let pedidos = FakePedidos::default();
+        let sem_turno = FakeTurnos { aberto: false, qtd_pedidos: 0 };
+        let r = registrar_venda(
+            input(1, vec![pag(3, 3000)]),
+            &acervo(),
+            &pedidos,
+            &FakeFormas,
+            &RelogioFixo,
+            &sem_turno,
+            &MaquinaFixa,
+        )
+        .await;
+        assert!(matches!(r, Err(ErroApp::Dominio(ErroDominio::VendaSemTurno))));
+        assert!(pedidos.registrado.lock().unwrap().is_none());
+    }
+
+    /// A venda nasce vinculada ao turno aberto, com o Pedido Nº do turno (FR-003/FR-016).
+    #[tokio::test]
+    async fn venda_carimba_turno_e_numero_no_turno() {
+        let pedidos = FakePedidos::default();
+        let turnos = FakeTurnos { aberto: true, qtd_pedidos: 41 };
+        registrar_venda(
+            input(1, vec![pag(3, 3000)]),
+            &acervo(),
+            &pedidos,
+            &FakeFormas,
+            &RelogioFixo,
+            &turnos,
+            &MaquinaFixa,
+        )
+        .await
+        .unwrap();
+        let carimbo = pedidos.turno_registrado.lock().unwrap().clone();
+        assert_eq!(carimbo, Some((TURNO_ABERTO_UID.to_string(), 42)));
     }
 }

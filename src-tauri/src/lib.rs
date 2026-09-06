@@ -56,6 +56,11 @@ pub fn run() {
                     application::fornecedores::adotar(&forn_repo)
                         .await
                         .map_err(|e| sea_orm::DbErr::Custom(format!("{e}")))?;
+                    let turno_repo =
+                        adapters::persistencia::turno_repo::SeaTurnoRepo::new(db.clone());
+                    // Retenção de 45 dias (US3): idempotente e não fatal — se falhar,
+                    // o pior caso é o banco local seguir maior até o próximo boot.
+                    podar_retencao(&turno_repo).await;
                     Ok(db)
                 });
             // FR-016a: falha de migração NÃO derruba o app — ele abre apenas para
@@ -92,6 +97,7 @@ pub fn run() {
             commands::registrar_venda,
             commands_turno::turno_aberto,
             commands_turno::turno_abrir,
+            commands_turno::maquina_nome,
             commands_turno::turno_resumo,
             commands_turno::turno_encerrar,
             commands_turno::turno_listar,
@@ -114,6 +120,18 @@ pub fn run() {
         .expect("error while running tauri application");
 }
 
+/// Retenção local de 45 dias (feature 013, US3). Roda no boot e após cada sync
+/// com novidade. Nunca é fatal: falhar aqui só adia a limpeza do banco local.
+async fn podar_retencao(repo: &adapters::persistencia::turno_repo::SeaTurnoRepo) {
+    match application::poda::podar(repo, &adapters::relogio::RelogioSistema).await {
+        Ok(r) if r.turnos > 0 => {
+            eprintln!("poda: {} turno(s) antigos removidos ({} linhas)", r.turnos, r.linhas)
+        }
+        Ok(_) => {}
+        Err(e) => eprintln!("poda falhou (segue com o banco maior): {e}"),
+    }
+}
+
 /// Feature 007: loop de sincronização em background. Oportunista — se não houver
 /// config/rede, apenas dorme e tenta de novo; nunca bloqueia a operação do PDV.
 async fn sincronizacao_periodica(db: DatabaseConnection, config_path: Option<std::path::PathBuf>) {
@@ -127,6 +145,20 @@ async fn sincronizacao_periodica(db: DatabaseConnection, config_path: Option<std
             match application::sincronizacao::sincronizar(&nuvem, &local).await {
                 Ok(r) if r.enviados + r.recebidos > 0 => {
                     eprintln!("sync: enviados={} recebidos={} orfas={}", r.enviados, r.recebidos, r.orfas);
+                    // Pós-sync: o fechamento pode ter descido da nuvem (US6/FR-024)
+                    // e o que acabou de subir pode ter virado podável (US3).
+                    let turnos = adapters::persistencia::turno_repo::SeaTurnoRepo::new(db.clone());
+                    match application::turno::reconciliar_fechamento(
+                        &turnos,
+                        &adapters::maquina::MaquinaSistema,
+                    )
+                    .await
+                    {
+                        Ok(n) if n > 0 => eprintln!("sync: {n} venda(s) migradas de turno fechado pela nuvem"),
+                        Ok(_) => {}
+                        Err(e) => eprintln!("reconciliação de fechamento falhou: {e}"),
+                    }
+                    podar_retencao(&turnos).await;
                 }
                 Ok(_) => {}
                 Err(e) => eprintln!("sync falhou (segue offline): {e}"),

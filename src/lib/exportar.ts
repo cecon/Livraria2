@@ -9,6 +9,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { brl } from "./format";
 import { CATEGORIAS, type RelatorioSessao } from "./types";
 import type { RelatorioEstoque, RelatorioVendas } from "./ipc";
+import { pedidoNo } from "@/lib/pedido-numero";
 
 async function salvarBytes(
   nome: string,
@@ -51,7 +52,7 @@ export async function exportarVendasPdf(rel: RelatorioVendas): Promise<boolean> 
     }
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
-    doc.text(`Pedido Nº ${p.numero} · ${p.cliente}`, 14, y);
+    doc.text(`Pedido Nº ${pedidoNo(p)} · ${p.cliente}`, 14, y);
     doc.setFont("helvetica", "normal");
     autoTable(doc, {
       startY: y + 2,
@@ -100,7 +101,7 @@ export async function exportarVendasPdf(rel: RelatorioVendas): Promise<boolean> 
       styles: { fontSize: 9 },
       headStyles: { fillColor: [120, 120, 120] },
       head: [["Canceladas (não somadas)", "Cliente", "Total"]],
-      body: canceladas.map((p) => [`Nº ${p.numero}`, p.cliente, brl(p.totalCentavos)]),
+      body: canceladas.map((p) => [`Nº ${pedidoNo(p)}`, p.cliente, brl(p.totalCentavos)]),
       columnStyles: { 2: { halign: "right" } },
     });
   }
@@ -184,7 +185,7 @@ export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean
   // Uma coluna por forma do cadastro (na ordem do resumo), zeros incluídos.
   const pagamentos = ativos.map((p) => {
     const linha: Record<string, number | string> = {
-      Pedido: p.numero,
+      Pedido: pedidoNo(p),
       Cliente: p.cliente,
     };
     for (const f of rel.resumo.formas) {
@@ -196,7 +197,7 @@ export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean
   });
   const itens = ativos.flatMap((p) =>
     p.itens.map((i) => ({
-      Pedido: p.numero,
+      Pedido: pedidoNo(p),
       Item: i.titulo,
       Qtd: i.qtd,
       Valor: i.valorCentavos / 100,
@@ -209,7 +210,7 @@ export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean
   // Aba "Detalhado": cada pedido com seus livros + formas + total (igual à tela).
   const det: (string | number)[][] = [];
   for (const p of ativos) {
-    det.push([`Pedido Nº ${p.numero} · ${p.cliente}`]);
+    det.push([`Pedido Nº ${pedidoNo(p)} · ${p.cliente}`]);
     det.push(["Qtd", "Título", "Valor"]);
     for (const i of p.itens) det.push([i.qtd, i.titulo, i.valorCentavos / 100]);
     det.push(["", "Formas", formasDoPedido(p) || "—"]);
@@ -224,7 +225,7 @@ export async function exportarVendasExcel(rel: RelatorioVendas): Promise<boolean
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumo), "Resumo");
   if (canceladas.length > 0) {
     const canc = canceladas.map((p) => ({
-      Pedido: p.numero,
+      Pedido: pedidoNo(p),
       Cliente: p.cliente,
       Total: p.totalCentavos / 100,
     }));

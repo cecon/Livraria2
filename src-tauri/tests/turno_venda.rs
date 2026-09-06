@@ -1,0 +1,288 @@
+//! Testes de integração do turno como unidade da venda (feature 013, US1 — T013):
+//! venda sem turno bloqueada; com turno vincula (`turno_uid` + `numero_no_turno`);
+//! cancelamento só do turno aberto; um único turno aberto por máquina (FR-017).
+
+mod common;
+
+use livraria_2_lib::adapters::persistencia::forma_pagamento_repo::SeaFormaPagamentoRepo;
+use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
+use livraria_2_lib::adapters::persistencia::pedido_repo::SeaPedidoRepo;
+use livraria_2_lib::adapters::persistencia::turno_repo::SeaTurnoRepo;
+use livraria_2_lib::adapters::persistencia::{conectar, inicializar_schema};
+use livraria_2_lib::application::ports::{LivroRepo, Relogio};
+use livraria_2_lib::application::ports_turno::TurnoRepo;
+use livraria_2_lib::application::venda::{registrar_venda, ItemInput, RecebimentoInput, VendaInput};
+use livraria_2_lib::application::{cancelamento, turno};
+use livraria_2_lib::domain::categoria::Categoria;
+use livraria_2_lib::domain::dinheiro::Dinheiro;
+use livraria_2_lib::domain::livro::Livro;
+use sea_orm::{ConnectionTrait, DatabaseConnection, Statement};
+
+const CODIGO: &str = "9788573671469";
+
+struct RelogioFixo;
+impl Relogio for RelogioFixo {
+    fn hora_atual(&self) -> u32 {
+        15
+    }
+    fn hoje_iso(&self) -> String {
+        "2026-07-05".to_string()
+    }
+}
+
+async fn setup(tag: &str) -> (DatabaseConnection, std::path::PathBuf) {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let path = std::env::temp_dir()
+        .join(format!("livraria_turnovenda_{}_{tag}_{nanos}.db", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+    let db = conectar(&format!("sqlite://{}?mode=rwc", path.display())).await.unwrap();
+    inicializar_schema(&db).await.unwrap();
+    common::semear_formas(&db).await; // feature 012: formas descem da nuvem
+    SeaLivroRepo::new(db.clone())
+        .salvar(&Livro {
+            codigo: CODIGO.into(),
+            titulo: "A Cruz de Cristo".into(),
+            autor: None,
+            preco: Dinheiro::de_centavos(3000),
+            categoria: Categoria::EstudoTeologia,
+            estoque: 50,
+            descricao: None,
+            custo_medio: Dinheiro::ZERO,
+        })
+        .await
+        .unwrap();
+    (db, path)
+}
+
+fn input(qtd: i64) -> VendaInput {
+    VendaInput {
+        cliente: "".into(),
+        operador: Some("op-1".into()),
+        itens: vec![ItemInput { codigo: CODIGO.into(), qtd }],
+        pagamentos: vec![RecebimentoInput { forma_id: 3, valor_centavos: qtd * 3000 }],
+    }
+}
+
+async fn vender(db: &DatabaseConnection, qtd: i64) -> Result<i64, String> {
+    let livros = SeaLivroRepo::new(db.clone());
+    let pedidos = SeaPedidoRepo::new(db.clone());
+    let formas = SeaFormaPagamentoRepo::new(db.clone());
+    let turnos = SeaTurnoRepo::new(db.clone());
+    registrar_venda(
+        input(qtd),
+        &livros,
+        &pedidos,
+        &formas,
+        &RelogioFixo,
+        &turnos,
+        &common::MaquinaTeste,
+    )
+    .await
+    .map(|v| v.pedido.numero)
+    .map_err(|e: livraria_2_lib::application::erros::ErroApp| e.codigo())
+}
+
+/// `(turno_uid, numero_no_turno)` gravados no pedido.
+async fn vinculo(db: &DatabaseConnection, numero: i64) -> (Option<String>, Option<i64>) {
+    let row = db
+        .query_one(Statement::from_sql_and_values(
+            db.get_database_backend(),
+            "SELECT turno_uid, numero_no_turno FROM pedido WHERE numero = ?",
+            [numero.into()],
+        ))
+        .await
+        .unwrap()
+        .expect("pedido gravado");
+    (row.try_get("", "turno_uid").ok(), row.try_get("", "numero_no_turno").ok())
+}
+
+/// FR-002: sem turno aberto o PDV não registra venda — e nada é gravado.
+#[tokio::test]
+async fn venda_sem_turno_e_bloqueada_e_nao_grava_nada() {
+    let (db, path) = setup("sem_turno").await;
+
+    assert_eq!(vender(&db, 1).await, Err("VENDA_SEM_TURNO".into()));
+
+    let n: i64 = db
+        .query_one(Statement::from_string(
+            db.get_database_backend(),
+            "SELECT COUNT(*) AS n FROM pedido".to_string(),
+        ))
+        .await
+        .unwrap()
+        .and_then(|r| r.try_get("", "n").ok())
+        .unwrap();
+    assert_eq!(n, 0, "venda recusada não pode deixar rastro");
+    // Estoque intacto.
+    let livro = SeaLivroRepo::new(db.clone()).por_codigo(CODIGO).await.unwrap().unwrap();
+    assert_eq!(livro.estoque, 50);
+
+    let _ = std::fs::remove_file(&path);
+}
+
+/// FR-003/FR-016: com turno aberto, cada venda nasce vinculada e numerada 1..n.
+#[tokio::test]
+async fn venda_com_turno_vincula_e_numera_por_turno() {
+    let (db, path) = setup("vincula").await;
+    let uid = common::abrir_turno(&db, "op-1").await;
+
+    let p1 = vender(&db, 1).await.unwrap();
+    let p2 = vender(&db, 2).await.unwrap();
+
+    assert_eq!(vinculo(&db, p1).await, (Some(uid.clone()), Some(1)));
+    assert_eq!(vinculo(&db, p2).await, (Some(uid), Some(2)), "Pedido Nº é sequencial no turno");
+    // O número global segue contínuo (não reinicia) — só o Pedido Nº do turno é 1..n.
+    assert_eq!(p2, p1 + 1);
+
+    let _ = std::fs::remove_file(&path);
+}
+
+/// US5 (T022) — FR-015/FR-016: o Pedido Nº reinicia em 1 a cada turno (o `numero`
+/// global segue contínuo) e cada PDV carimba a sua própria máquina no turno.
+#[tokio::test]
+async fn numero_reinicia_por_turno_e_maquina_identifica_o_pdv() {
+    let (db, path) = setup("numeracao").await;
+    let turnos = SeaTurnoRepo::new(db.clone());
+
+    let t1 = turno::abrir_ou_continuar(&turnos, &common::MaquinaTeste, "op-1", 0).await.unwrap();
+    let a1 = vender(&db, 1).await.unwrap();
+    let a2 = vender(&db, 1).await.unwrap();
+    turnos.encerrar(&t1.sync_uid, 0, 0, 0).await.unwrap();
+
+    let t2 = turno::abrir_ou_continuar(&turnos, &common::MaquinaTeste, "op-2", 0).await.unwrap();
+    let b1 = vender(&db, 1).await.unwrap();
+
+    assert_eq!(vinculo(&db, a1).await.1, Some(1));
+    assert_eq!(vinculo(&db, a2).await.1, Some(2));
+    assert_eq!(vinculo(&db, b1).await.1, Some(1), "novo turno reinicia em 1");
+    // …enquanto o número global nunca reinicia (chave contínua).
+    assert_eq!((a2, b1), (a1 + 1, a1 + 2));
+
+    // Máquina distinta por PDV: o turno do outro balcão traz o nome dele.
+    let outro = turnos.abrir("op-9", 0, "PDV-DA-OUTRA-LOJA").await.unwrap();
+    assert_eq!(t2.maquina.as_deref(), Some("PDV-TESTE"));
+    assert_eq!(outro.maquina.as_deref(), Some("PDV-DA-OUTRA-LOJA"));
+
+    let _ = std::fs::remove_file(&path);
+}
+
+/// FR-017: um único turno aberto por máquina — quem abre de novo continua no mesmo.
+#[tokio::test]
+async fn segundo_turno_na_mesma_maquina_continua_no_aberto() {
+    let (db, path) = setup("unico").await;
+    let turnos = SeaTurnoRepo::new(db.clone());
+
+    let t1 = turno::abrir_ou_continuar(&turnos, &common::MaquinaTeste, "op-1", 10000).await.unwrap();
+    // Outro operador na mesma máquina entra no turno que já está aberto.
+    let t2 = turno::abrir_ou_continuar(&turnos, &common::MaquinaTeste, "op-2", 0).await.unwrap();
+    assert_eq!(t1.sync_uid, t2.sync_uid, "não nasce um 2º turno");
+    assert_eq!(t2.caixa_inicial_centavos, 10000, "o caixa segue o do turno aberto");
+    assert_eq!(t2.operador, "op-1", "o turno mantém quem o abriu");
+    assert_eq!(t2.maquina.as_deref(), Some("PDV-TESTE"));
+
+    // Após encerrar, um novo turno pode nascer.
+    turnos.encerrar(&t1.sync_uid, 0, 0, 0).await.unwrap();
+    let t3 = turno::abrir_ou_continuar(&turnos, &common::MaquinaTeste, "op-2", 0).await.unwrap();
+    assert_ne!(t3.sync_uid, t1.sync_uid);
+    assert_eq!(t3.operador, "op-2");
+
+    let _ = std::fs::remove_file(&path);
+}
+
+/// Turno aberto em OUTRA máquina (desceu pela réplica) não vale como turno deste PDV.
+#[tokio::test]
+async fn turno_de_outra_maquina_nao_libera_a_venda() {
+    let (db, path) = setup("outra_maquina").await;
+    let turnos = SeaTurnoRepo::new(db.clone());
+    turnos.abrir("op-9", 0, "PDV-DA-OUTRA-LOJA").await.unwrap();
+
+    assert!(turnos.turno_aberto_na_maquina("PDV-TESTE").await.unwrap().is_none());
+    assert_eq!(vender(&db, 1).await, Err("VENDA_SEM_TURNO".into()));
+
+    let _ = std::fs::remove_file(&path);
+}
+
+/// **Nenhuma máquina se apossa do turno de outra.** Turno aberto sem `maquina`
+/// (aberto antes da m014, ou de um PDV que ainda não atualizou) NÃO é adotado
+/// por quem sobe o app — nem no boot, nem depois.
+///
+/// A adoção automática existiu por um tempo, apoiada na premissa "um PDV por
+/// loja". A premissa é falsa na prática: qualquer cliente que sincronize com a
+/// mesma nuvem (inclusive uma máquina de desenvolvimento) recebe os turnos
+/// abertos da loja pela réplica e se apossaria deles — foi observado com o turno
+/// ATIVO de uma operadora. O turno legado fica para o escritório fechar (US6) e
+/// o operador abre um turno novo: caixa partido em dois é chato, turno sequestrado
+/// é perda de controle.
+#[tokio::test]
+async fn turno_sem_maquina_nunca_e_adotado_por_este_pdv() {
+    let (db, path) = setup("nao_adota").await;
+    let turnos = SeaTurnoRepo::new(db.clone());
+
+    // Turno aberto de outra máquina que desceu pela réplica ainda sem `maquina`.
+    let alheio = turnos.abrir("operadora-da-loja", 5000, "").await.unwrap().sync_uid;
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        "UPDATE turno_operacao SET maquina = NULL".to_string(),
+    ))
+    .await
+    .unwrap();
+
+    // Este PDV não o enxerga como seu — em nenhum momento.
+    assert!(turnos.turno_aberto_na_maquina("PDV-TESTE").await.unwrap().is_none());
+    assert_eq!(vender(&db, 1).await, Err("VENDA_SEM_TURNO".into()));
+
+    // E abrir um turno aqui cria um NOVO, sem tocar no alheio.
+    let meu = turno::abrir_ou_continuar(&turnos, &common::MaquinaTeste, "op-1", 0).await.unwrap();
+    assert_ne!(meu.sync_uid, alheio);
+    let intacto: Option<String> = db
+        .query_one(Statement::from_sql_and_values(
+            db.get_database_backend(),
+            "SELECT maquina FROM turno_operacao WHERE sync_uid = ?",
+            [alheio.into()],
+        ))
+        .await
+        .unwrap()
+        .and_then(|r| r.try_get("", "maquina").ok());
+    assert_eq!(intacto, None, "o turno da outra máquina segue sem dono aqui");
+
+    let _ = std::fs::remove_file(&path);
+}
+
+/// FR-003: cancelamento só da venda do turno aberto; a do turno encerrado é
+/// recusada com orientação de corrigir no escritório.
+#[tokio::test]
+async fn cancelamento_so_do_turno_aberto() {
+    let (db, path) = setup("cancela").await;
+    let pedidos = SeaPedidoRepo::new(db.clone());
+    let turnos = SeaTurnoRepo::new(db.clone());
+
+    let t1 = turno::abrir_ou_continuar(&turnos, &common::MaquinaTeste, "op-1", 0).await.unwrap();
+    let antiga = vender(&db, 1).await.unwrap();
+    turnos.encerrar(&t1.sync_uid, 0, 0, 0).await.unwrap();
+
+    turno::abrir_ou_continuar(&turnos, &common::MaquinaTeste, "op-1", 0).await.unwrap();
+    let atual = vender(&db, 1).await.unwrap();
+
+    let e = cancelamento::cancelar_venda(antiga, &pedidos, &turnos, &common::MaquinaTeste).await;
+    assert_eq!(e.unwrap_err().codigo(), "VENDA_DE_TURNO_FECHADO");
+    cancelamento::cancelar_venda(atual, &pedidos, &turnos, &common::MaquinaTeste).await.unwrap();
+
+    // A venda do turno fechado continua íntegra; só a do turno aberto foi cancelada.
+    let cancelados = db
+        .query_all(Statement::from_string(
+            db.get_database_backend(),
+            "SELECT numero, cancelado FROM pedido ORDER BY numero".to_string(),
+        ))
+        .await
+        .unwrap();
+    let flags: Vec<(i64, i64)> = cancelados
+        .iter()
+        .map(|r| (r.try_get("", "numero").unwrap(), r.try_get("", "cancelado").unwrap()))
+        .collect();
+    assert_eq!(flags, vec![(antiga, 0), (atual, 1)]);
+
+    let _ = std::fs::remove_file(&path);
+}

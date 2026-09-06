@@ -66,7 +66,7 @@ pub fn por_forma_id(pagamentos: &Pagamentos, forma_id: i64) -> Dinheiro {
 pub const JANELA_CANCELAMENTO_DIAS: i64 = 5;
 
 /// Dias corridos desde a época civil (algoritmo days-from-civil, sem dependência).
-fn dias_civis(data_iso: &str) -> Option<i64> {
+pub(crate) fn dias_civis(data_iso: &str) -> Option<i64> {
     let mut partes = data_iso.splitn(3, '-');
     let ano: i64 = partes.next()?.parse().ok()?;
     let mes: i64 = partes.next()?.parse().ok()?;

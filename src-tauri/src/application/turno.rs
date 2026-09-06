@@ -2,22 +2,80 @@
 //! `TurnoRepo` + o domínio puro `turno_operacao` (mesma regra do Escritório/WASM).
 
 use crate::application::erros::ErroApp;
+use crate::application::ports::{Maquina, VendaTurno};
 use crate::application::ports_turno::{TurnoAbertoInfo, TurnoHistorico, TurnoRepo};
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::erros::ErroDominio;
 use crate::domain::turno_operacao;
 
-/// Turno aberto do operador (ou `None`).
-pub async fn turno_aberto(repo: &dyn TurnoRepo, operador: &str) -> Result<Option<TurnoAbertoInfo>, ErroApp> {
-    Ok(repo.turno_aberto(operador).await?)
+/// Turno aberto **desta máquina** (ou `None`) — FR-017.
+pub async fn aberto(repo: &dyn TurnoRepo, maquina: &dyn Maquina) -> Result<Option<TurnoAbertoInfo>, ErroApp> {
+    Ok(repo.turno_aberto_na_maquina(&maquina.nome()).await?)
 }
 
-/// Abre um turno. Bloqueia se já houver um aberto do operador nesta origem (D7).
-pub async fn abrir(repo: &dyn TurnoRepo, operador: &str, caixa_inicial_centavos: i64) -> Result<TurnoAbertoInfo, ErroApp> {
-    if repo.turno_aberto(operador).await?.is_some() {
-        return Err(ErroApp::Dominio(ErroDominio::TurnoJaAberto));
+/// Abre um turno **ou continua no que já está aberto** nesta máquina (FR-002/FR-017):
+/// havendo um aberto, quem loga entra nele; só se não houver é que um novo nasce.
+pub async fn abrir_ou_continuar(
+    repo: &dyn TurnoRepo,
+    maquina: &dyn Maquina,
+    operador: &str,
+    caixa_inicial_centavos: i64,
+) -> Result<TurnoAbertoInfo, ErroApp> {
+    let nome = maquina.nome();
+    let existente = repo.turno_aberto_na_maquina(&nome).await?;
+    if !turno_operacao::pode_abrir(existente.is_some()) {
+        // Domínio recusou o 2º turno: o operador continua no que está aberto.
+        return existente.ok_or(ErroApp::Dominio(ErroDominio::TurnoJaAberto));
     }
-    Ok(repo.abrir(operador, caixa_inicial_centavos).await?)
+    Ok(repo.abrir(operador, caixa_inicial_centavos, &nome).await?)
+}
+
+/// Conflito de fechamento (FR-024): a nuvem encerrou um turno que ainda tinha
+/// venda **não sincronizada** aqui. O turno fechado permanece fechado (a nuvem
+/// manda) e as pendentes migram para o turno aberto desta máquina — abrindo um
+/// se não houver. Nenhuma venda se perde e nenhuma volta a um turno fechado.
+///
+/// Renumera as migradas no destino (FR-016): sem isso, dois pedidos dividiriam
+/// o mesmo Pedido Nº no turno que as recebeu.
+pub async fn reconciliar_fechamento(
+    repo: &dyn TurnoRepo,
+    maquina: &dyn Maquina,
+) -> Result<usize, ErroApp> {
+    let nome = maquina.nome();
+    let mut migradas = 0usize;
+    for fechado in repo.turnos_encerrados_com_pendencias(&nome).await? {
+        let pendentes = repo.pedidos_pendentes_do_turno(&fechado.sync_uid).await?;
+        if pendentes.is_empty() {
+            continue;
+        }
+        let destino = match repo.turno_aberto_na_maquina(&nome).await? {
+            Some(t) => t,
+            None => repo.abrir(&fechado.operador, 0, &nome).await?,
+        };
+        let mut proximo = proximo_numero_no_turno(repo, &destino.sync_uid).await?;
+        for numero in pendentes {
+            repo.mover_pedido(numero, &destino.sync_uid, proximo).await?;
+            proximo += 1;
+            migradas += 1;
+        }
+    }
+    Ok(migradas)
+}
+
+/// Turno da venda: exige um turno aberto nesta máquina (FR-002) e resolve o
+/// Pedido Nº dentro dele (FR-016). Sem turno aberto → `VendaSemTurno`.
+pub async fn contexto_venda(repo: &dyn TurnoRepo, maquina: &dyn Maquina) -> Result<VendaTurno, ErroApp> {
+    let turno = aberto(repo, maquina)
+        .await?
+        .ok_or(ErroApp::Dominio(ErroDominio::VendaSemTurno))?;
+    // O repo só devolve turno `aberto`; a guarda pura mantém a regra explícita.
+    if !turno_operacao::pode_registrar_venda(turno_operacao::StatusTurno::Aberto) {
+        return Err(ErroApp::Dominio(ErroDominio::VendaSemTurno));
+    }
+    Ok(VendaTurno {
+        numero_no_turno: proximo_numero_no_turno(repo, &turno.sync_uid).await?,
+        uid: turno.sync_uid,
+    })
 }
 
 /// Próximo Pedido Nº do turno (1..n) — regra pura do domínio.

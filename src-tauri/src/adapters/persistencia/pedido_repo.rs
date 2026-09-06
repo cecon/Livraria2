@@ -2,7 +2,7 @@
 //! `registrar` grava pedido + itens e baixa o estoque atomicamente (FR-015).
 
 use super::entities::{item_pedido, pedido};
-use crate::application::ports::{PedidoRepo, RepoErro};
+use crate::application::ports::{DadosCancelamento, PedidoRepo, RepoErro, VendaTurno};
 use crate::domain::estoque::{clamp_baixa_venda, TipoMovimento};
 use crate::domain::pedido::Pedido;
 use async_trait::async_trait;
@@ -46,11 +46,11 @@ impl PedidoRepo for SeaPedidoRepo {
         }
     }
 
-    async fn registrar(&self, pedido: &Pedido) -> Result<(), RepoErro> {
+    async fn registrar(&self, pedido: &Pedido, turno: Option<&VendaTurno>) -> Result<(), RepoErro> {
         let txn = self.db.begin().await.map_err(erro)?;
         let backend = txn.get_database_backend();
 
-        super::pedido_sql::inserir_cabecalho_e_itens(&txn, pedido).await.map_err(erro)?;
+        super::pedido_sql::inserir_cabecalho_e_itens(&txn, pedido, turno).await.map_err(erro)?;
 
         let criado_em = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
         for it in &pedido.itens {
@@ -124,20 +124,23 @@ impl PedidoRepo for SeaPedidoRepo {
         Ok(())
     }
 
-    async fn dados_cancelamento(&self, numero: i64) -> Result<Option<(String, bool)>, RepoErro> {
+    async fn dados_cancelamento(&self, numero: i64) -> Result<Option<DadosCancelamento>, RepoErro> {
         let row = self
             .db
             .query_one(Statement::from_sql_and_values(
                 self.db.get_database_backend(),
-                "SELECT data, cancelado FROM pedido WHERE numero = ?",
+                "SELECT data, cancelado, turno_uid FROM pedido WHERE numero = ?",
                 [numero.into()],
             ))
             .await
             .map_err(erro)?;
         Ok(row.and_then(|r| {
-            let data: String = r.try_get("", "data").ok()?;
             let cancelado: i64 = r.try_get("", "cancelado").ok()?;
-            Some((data, cancelado != 0))
+            Some(DadosCancelamento {
+                data: r.try_get("", "data").ok()?,
+                ja_cancelado: cancelado != 0,
+                turno_uid: r.try_get("", "turno_uid").ok(),
+            })
         }))
     }
 
@@ -151,7 +154,8 @@ impl PedidoRepo for SeaPedidoRepo {
             return Ok(false);
         }
         let txn = self.db.begin().await.map_err(erro)?;
-        super::pedido_sql::inserir_cabecalho_e_itens(&txn, pedido).await.map_err(erro)?;
+        // Importação de histórico: venda antiga não pertence a turno deste PDV.
+        super::pedido_sql::inserir_cabecalho_e_itens(&txn, pedido, None).await.map_err(erro)?;
         txn.commit().await.map_err(erro)?;
         Ok(true)
     }

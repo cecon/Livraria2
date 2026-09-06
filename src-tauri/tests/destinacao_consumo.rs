@@ -14,11 +14,13 @@ use livraria_2_lib::adapters::persistencia::destinacao_repo::SeaDestinacaoRepo;
 use livraria_2_lib::adapters::persistencia::livro_repo::SeaLivroRepo;
 use livraria_2_lib::adapters::persistencia::pedido_repo::SeaPedidoRepo;
 use livraria_2_lib::adapters::persistencia::relatorio_repo::SeaRelatorioRepo;
+use livraria_2_lib::adapters::persistencia::turno_repo::SeaTurnoRepo;
 use livraria_2_lib::adapters::persistencia::{conectar, inicializar_schema};
 use livraria_2_lib::application::cancelamento;
 use livraria_2_lib::application::destinacoes as dest;
 use livraria_2_lib::application::erros::ErroApp;
-use livraria_2_lib::application::ports::{PedidoRepo, RelatorioRepo, Relogio};
+use livraria_2_lib::application::ports::{PedidoRepo, RelatorioRepo, VendaTurno};
+use livraria_2_lib::application::ports_turno::TurnoRepo;
 use livraria_2_lib::application::ports_destinacao::DestinacaoRepo;
 use livraria_2_lib::domain::categoria::Categoria;
 use livraria_2_lib::domain::dinheiro::Dinheiro;
@@ -32,16 +34,6 @@ fn url_temp(tag: &str) -> (String, std::path::PathBuf) {
         std::env::temp_dir().join(format!("livraria_consumo_{}_{tag}.db", std::process::id()));
     let _ = std::fs::remove_file(&path);
     (format!("sqlite://{}?mode=rwc", path.display()), path)
-}
-
-struct RelogioFixo;
-impl Relogio for RelogioFixo {
-    fn hora_atual(&self) -> u32 {
-        10
-    }
-    fn hoje_iso(&self) -> String {
-        "2026-07-05".to_string()
-    }
 }
 
 async fn setup(tag: &str) -> (DatabaseConnection, std::path::PathBuf) {
@@ -170,7 +162,9 @@ async fn venda_na_fronteira_estorno_e_relatorio() {
     carimbo(&db, "111", missoes, 70).await;
 
     // Vende 2: 1 do carimbo Loja + 1 de Missões (fronteira — US2 cenário 2/3).
-    pedidos.registrar(&pedido(1, "2026-07-05", "111", 2, 5000)).await.unwrap();
+    // Feature 013: a venda pertence ao turno aberto (só ele pode cancelá-la).
+    let turno = VendaTurno { uid: common::abrir_turno(&db, "op-1").await, numero_no_turno: 1 };
+    pedidos.registrar(&pedido(1, "2026-07-05", "111", 2, 5000), Some(&turno)).await.unwrap();
     assert_eq!(estoque_de(&db, "111").await, 78);
     assert_eq!(carimbo_qtd(&db, "111", loja).await, 0);
     assert_eq!(carimbo_qtd(&db, "111", missoes).await, 69);
@@ -196,13 +190,14 @@ async fn venda_na_fronteira_estorno_e_relatorio() {
     assert_eq!((rep[0].nome.as_str(), rep[0].qtd, rep[0].valor_centavos), ("Missões", 1, 5000));
     assert_eq!(rep[0].livros[0].titulo, "A Cruz de Cristo");
 
-    // Estorno (mesmo dia): devolve ao carimbo certo, inclusive Loja (FR-010/SC-004).
-    cancelamento::cancelar_venda(1, &pedidos, &RelogioFixo).await.unwrap();
+    // Estorno (mesmo turno): devolve ao carimbo certo, inclusive Loja (FR-010/SC-004).
+    let turnos = SeaTurnoRepo::new(db.clone());
+    cancelamento::cancelar_venda(1, &pedidos, &turnos, &common::MaquinaTeste).await.unwrap();
     assert_eq!(estoque_de(&db, "111").await, 80);
     assert_eq!(carimbo_qtd(&db, "111", loja).await, 1);
     assert_eq!(carimbo_qtd(&db, "111", missoes).await, 70);
     // Retroativo no relatório + idempotente (2º cancelamento não duplica).
-    cancelamento::cancelar_venda(1, &pedidos, &RelogioFixo).await.unwrap();
+    cancelamento::cancelar_venda(1, &pedidos, &turnos, &common::MaquinaTeste).await.unwrap();
     let r = dest::relatorio("2026-07-05", "2026-07-05", &repo).await.unwrap();
     assert_eq!(r.total_centavos, 0);
     assert_eq!(carimbo_qtd(&db, "111", loja).await, 1);
@@ -217,7 +212,7 @@ async fn venda_sem_carimbo_nao_gera_linhas() {
     let pedidos = SeaPedidoRepo::new(db.clone());
     semear_livro(&db, "222", 50, 3000).await;
 
-    pedidos.registrar(&pedido(1, "2026-07-05", "222", 3, 3000)).await.unwrap();
+    pedidos.registrar(&pedido(1, "2026-07-05", "222", 3, 3000), None).await.unwrap();
     let vendas = SeaRelatorioRepo::new(db.clone()).vendas("2026-07-05", "dia").await.unwrap();
     assert!(vendas[0].itens[0].alocacoes.is_empty(), "livre não gera alocação (D3)");
     let r = dest::relatorio("2026-07-05", "2026-07-05", &repo).await.unwrap();
@@ -227,20 +222,32 @@ async fn venda_sem_carimbo_nao_gera_linhas() {
     let _ = std::fs::remove_file(&path);
 }
 
+/// Feature 013 (FR-003, ADR-0025): o vínculo com o turno substitui a janela de 5
+/// dias no PDV — venda de turno já encerrado só se corrige no escritório, mesmo
+/// que seja de hoje; venda do turno aberto cancela normalmente.
 #[tokio::test]
-async fn venda_antiga_bloqueada_apos_5_dias() {
-    let (db, path) = setup("antiga").await;
+async fn venda_de_turno_encerrado_nao_cancela_no_pdv() {
+    let (db, path) = setup("turno_fechado").await;
     let pedidos = SeaPedidoRepo::new(db.clone());
+    let turnos = SeaTurnoRepo::new(db.clone());
     semear_livro(&db, "333", 10, 2000).await;
-    pedidos.registrar(&pedido(1, "2026-06-20", "333", 1, 2000)).await.unwrap(); // 15 dias atrás
-    pedidos.registrar(&pedido(2, "2026-07-01", "333", 1, 2000)).await.unwrap(); // 4 dias atrás
 
-    let e = cancelamento::cancelar_venda(1, &pedidos, &RelogioFixo).await;
+    // Turno 1: uma venda; depois encerra o turno.
+    let t1 = VendaTurno { uid: common::abrir_turno(&db, "op-1").await, numero_no_turno: 1 };
+    pedidos.registrar(&pedido(1, "2026-07-05", "333", 1, 2000), Some(&t1)).await.unwrap();
+    turnos.encerrar(&t1.uid, 0, 0, 0).await.unwrap();
+
+    // Turno 2 (aberto agora): outra venda.
+    let t2 = VendaTurno { uid: common::abrir_turno(&db, "op-1").await, numero_no_turno: 1 };
+    pedidos.registrar(&pedido(2, "2026-07-05", "333", 1, 2000), Some(&t2)).await.unwrap();
+
+    let e = cancelamento::cancelar_venda(1, &pedidos, &turnos, &common::MaquinaTeste).await;
     match e {
-        Err(ErroApp::Dominio(d)) => assert_eq!(d.codigo(), "VENDA_ANTIGA"),
-        outro => panic!("esperava VENDA_ANTIGA, veio {outro:?}"),
+        Err(ErroApp::Dominio(d)) => assert_eq!(d.codigo(), "VENDA_DE_TURNO_FECHADO"),
+        outro => panic!("esperava VENDA_DE_TURNO_FECHADO, veio {outro:?}"),
     }
-    cancelamento::cancelar_venda(2, &pedidos, &RelogioFixo).await.unwrap(); // dentro da janela
+    // A do turno aberto cancela (FR-003).
+    cancelamento::cancelar_venda(2, &pedidos, &turnos, &common::MaquinaTeste).await.unwrap();
 
     let _ = std::fs::remove_file(&path);
 }
