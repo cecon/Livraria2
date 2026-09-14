@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "agentmemory": {
+      "type": "local",
+      "command": ["node", "--env-file-if-exists=.env", "tools/agent-memory/mcp.mjs"],
+      "enabled": true
+    }
+  }
+}

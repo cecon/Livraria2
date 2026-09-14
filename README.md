@@ -4,6 +4,11 @@ Sistema desktop de **estoque & vendas** da livraria da igreja. Aplicativo gerenc
 **offline**, orientado a leitor de código de barras. Sem TEF nem nota fiscal — as formas de pagamento
 apenas registram como a venda foi recebida.
 
+## Agent Memory
+
+Agentes de desenvolvimento podem usar um AgentMemory externo e opcional.
+Configuracao, MCP e limites: [docs/agent-memory.md](docs/agent-memory.md).
+
 ## Stack
 
 Marco da reorganizacao: `marco-pre-separacao-2026-09-14`.

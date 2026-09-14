@@ -1,0 +1,30 @@
+# Optional EXTERNAL infrastructure. No application depends on this service.
+# Supply an image built outside this repository from the documented upstream template.
+services:
+  agentmemory:
+    image: ${AGENTMEMORY_IMAGE:?Set the externally built AgentMemory image}
+    restart: unless-stopped
+    environment:
+      AGENTMEMORY_DATA_DIR: /data
+      AGENTMEMORY_SECRET: ${AGENTMEMORY_SECRET:?Set a memory-only secret}
+      TEAM_ID: ${AGENTMEMORY_TEAM_ID:?Set the server team identity}
+      USER_ID: ${AGENTMEMORY_USER_ID:?Set the server user identity}
+      TEAM_MODE: private
+      AGENT_ID: ${AGENTMEMORY_AGENT_ID:?Set the default server agent identity}
+    ports:
+      - '127.0.0.1:${AGENTMEMORY_PORT:-3131}:3111'
+    volumes:
+      - agentmemory_data:/data
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3111/agentmemory/livez']
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+volumes:
+  agentmemory_data:

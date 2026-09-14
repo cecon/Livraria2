@@ -10,6 +10,15 @@
     "apps/nuvem/api"
   ],
   "scripts": {
+    "memory:health": "node --env-file-if-exists=.env tools/agent-memory/cli.mjs health",
+    "memory:recall": "node --env-file-if-exists=.env tools/agent-memory/cli.mjs recall",
+    "memory:remember": "node --env-file-if-exists=.env tools/agent-memory/cli.mjs remember",
+    "memory:share": "node --env-file-if-exists=.env tools/agent-memory/cli.mjs share",
+    "memory:forget": "node --env-file-if-exists=.env tools/agent-memory/cli.mjs forget",
+    "memory:test": "node --test tools/agent-memory/*.test.mjs",
+    "memory:start": "docker compose -p livraria-memory -f docker-compose.agentmemory.yml up -d",
+    "memory:stop": "docker compose -p livraria-memory -f docker-compose.agentmemory.yml stop",
+    "memory:logs": "docker compose -p livraria-memory -f docker-compose.agentmemory.yml logs --tail 50",
     "dev": "npm run dev -w @livraria/pdv",
     "build": "npm run build -w @livraria/pdv",
     "preview": "npm run preview -w @livraria/pdv",
@@ -19,5 +28,8 @@
     "dev:api": "npm run dev -w @livraria/nuvem-api",
     "build:api": "npm run build -w @livraria/nuvem-api",
     "build:web": "npm run build -w livraria-escritorio"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0"
   }
 }
