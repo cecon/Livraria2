@@ -12,6 +12,9 @@ import { SalesController } from "./sales/sales.controller";
 import { SalesService } from "./sales/sales.service";
 import { BooksController } from "./admin/books.controller";
 import { BooksService } from "./admin/books.service";
+import { FormsService } from "./admin/forms.service";
+import { SuppliersService } from "./admin/suppliers.service";
+import { FormsController, SuppliersController } from "./admin/references.controller";
 
 @Module({
   imports: [
@@ -31,7 +34,7 @@ import { BooksService } from "./admin/books.service";
       },
     }),
   ],
-  controllers: [AuthController, DevicesController, CatalogController, SalesController, BooksController],
-  providers: [AuthService, AuthGuard, SalesService, BooksService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+  controllers: [AuthController, DevicesController, CatalogController, SalesController, BooksController, FormsController, SuppliersController],
+  providers: [AuthService, AuthGuard, SalesService, BooksService, FormsService, SuppliersService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class OperationsModule {}
