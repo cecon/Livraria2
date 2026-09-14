@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "apps/escritorio/**"
+      - "apps/nuvem/web/**"
       - "apps/nuvem/migrations/**"
       - "apps/nuvem/migrator/**"
       - "packages/**"
@@ -45,7 +45,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: apps/escritorio/Dockerfile
+          file: apps/nuvem/web/Dockerfile
           push: true
           build-args: |
             NEXT_PUBLIC_SUPABASE_URL=${{ env.NEXT_PUBLIC_SUPABASE_URL }}

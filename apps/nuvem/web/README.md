@@ -6,7 +6,7 @@ Supabase Auth e fala com a nuvem `fiqzcnnibwzthhjatxvq` sob RLS.
 ## Rodar local
 
 ```bash
-cd apps/escritorio
+cd apps/nuvem/web
 cp .env.example .env.local
 npm install
 npm run dev
@@ -15,7 +15,7 @@ npm run dev
 ## Build manual da imagem
 
 ```bash
-docker build -f apps/escritorio/Dockerfile \
+docker build -f apps/nuvem/web/Dockerfile \
   --build-arg NEXT_PUBLIC_SUPABASE_URL=https://fiqzcnnibwzthhjatxvq.supabase.co \
   --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable> \
   -t livraria-escritorio:latest .
@@ -29,7 +29,7 @@ duas imagens no GHCR:
 - `ghcr.io/cecon/livraria2-escritorio:latest`
 - `ghcr.io/cecon/livraria2-migrator:latest`
 
-O arquivo `apps/escritorio/stack.yml` e um Docker Compose para Docker Desktop e
+O arquivo `apps/nuvem/web/stack.yml` e um Docker Compose para Docker Desktop e
 sobe tres containers:
 
 - `migrator`: aplica migrations do Supabase e registra hash em
@@ -55,8 +55,8 @@ mantida; novas migrations `0012_*`, `0013_*` etc. serao aplicadas normalmente.
 Subir/atualizar no Docker Desktop:
 
 ```bash
-docker compose -f apps/escritorio/stack.yml pull
-docker compose -f apps/escritorio/stack.yml up -d
+docker compose -f apps/nuvem/web/stack.yml pull
+docker compose -f apps/nuvem/web/stack.yml up -d
 ```
 
 ## Telas

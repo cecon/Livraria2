@@ -5,6 +5,14 @@ name: release
 on:
   push:
     branches: [main]
+    paths:
+      - "apps/pdv/**"
+      - "crates/livraria-domain/**"
+      - "packages/ui/**"
+      - "packages/contratos/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/release.yml"
   workflow_dispatch:
 
 # Um release por vez — evita dois builds calcularem a mesma versão (colisão de tag).
@@ -32,7 +40,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
+          workspaces: apps/pdv/src-tauri
 
       - name: Definir versão AA.M.N (N reinicia por mês — horário de Brasília)
         shell: bash
@@ -46,8 +54,8 @@ jobs:
           COUNT=$(git tag -l "${PREFIX}*" | wc -l | tr -d ' ')
           SEQ=$((COUNT + 1))
           VERSION="${YEAR}.${MONTH}.${SEQ}"
-          node -e "const f='src-tauri/tauri.conf.json';const j=require('./'+f);j.version='$VERSION';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n');"
-          node -e "const f='package.json';const j=require('./'+f);j.version='$VERSION';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n');"
+          node -e "const f='apps/pdv/src-tauri/tauri.conf.json';const j=require('./'+f);j.version='$VERSION';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n');"
+          node -e "const f='apps/pdv/package.json';const j=require('./'+f);j.version='$VERSION';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n');"
           echo "Publicando versão $VERSION"
 
       - name: Instalar dependências do front
@@ -60,6 +68,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          projectPath: apps/pdv
           tagName: app-v__VERSION__
           releaseName: "Livraria 2 v__VERSION__"
           releaseBody: "Atualização automática (Windows). Os clientes instalados se atualizam sozinhos."

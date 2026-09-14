@@ -1,0 +1,33 @@
+# Tarefas
+
+## Marco e estrutura
+
+- [x] T001 Criar tag da base e worktree isolado.
+- [x] T002 Mover PDV e layout para apps/pdv.
+- [x] T003 Mover escritorio para apps/nuvem/web.
+- [x] T004 Ajustar manifests, caminhos Rust, Docker e workflows.
+- [x] T005 Introduzir API NestJS, ORM inicial e contratos v1.
+- [x] T006 Validar builds, testes existentes e endpoint health.
+
+## Banco e autenticacao
+
+- [ ] T007 Introspectar e conferir schema real sem modificar dados.
+- [ ] T008 Estabelecer baseline que preserve triggers, constraints, views e RLS.
+- [ ] T009 Validar JWT/perfis e identidade por dispositivo na API.
+
+## Sincronizacao
+
+- [ ] T010 Implementar diario transacional com publicacao em ordem de commit.
+- [ ] T011 Implementar pagina por cursor e confirmacao persistida por PDV.
+- [ ] T012 Implementar envio idempotente de vendas e pagamentos.
+- [ ] T013 Testar renomeacao/duplicacao de codigo, exclusao e concorrencia.
+- [ ] T014 Migrar adapter PDV, aplicar paginas atomicamente e confirmar depois.
+- [ ] T015 Testar offline, falha parcial e reenvio.
+
+## Administrativo e entrega
+
+- [ ] T016 Migrar catalogo web para API.
+- [ ] T017 Migrar demais fluxos administrativos.
+- [ ] T018 Exibir confirmacao de alteracoes por caixa.
+- [ ] T019 Integrar alteracoes mobile preservadas no worktree original.
+- [ ] T020 Ativar gradualmente com rollback e remover acesso direto legado.

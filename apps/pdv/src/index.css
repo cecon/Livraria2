@@ -4,7 +4,7 @@
 @import "@fontsource-variable/geist";
 
 /* Tokens do design system (ADR-0020) — fonte única em @livraria/ui. */
-@import "../packages/ui/theme.css";
+@import "../../../packages/ui/theme.css";
 
 /* Impressão de relatórios (FR-045): esconde a navegação, só o conteúdo. */
 @media print {

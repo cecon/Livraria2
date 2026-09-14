@@ -1,0 +1,26 @@
+name: nuvem-api
+on:
+  pull_request:
+    paths: ["apps/nuvem/api/**", "packages/contratos/**", "package*.json", ".github/workflows/nuvem-api.yml"]
+  push:
+    branches: [main]
+    paths: ["apps/nuvem/api/**", "packages/contratos/**", "package*.json", ".github/workflows/nuvem-api.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run db:validate -w @livraria/nuvem-api
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder
+      - run: npm run db:generate -w @livraria/nuvem-api
+      - run: npm run build:api
+      - run: docker build -f apps/nuvem/api/Dockerfile -t livraria-nuvem-api:ci .

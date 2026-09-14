@@ -1,0 +1,27 @@
+{
+  "name": "@livraria/nuvem-api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "db:validate": "prisma validate",
+    "db:generate": "prisma generate",
+    "db:introspect": "prisma db pull"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@prisma/client": "^6.19.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "prisma": "^6.19.0",
+    "tsx": "^4.20.0",
+    "typescript": "~5.8.3"
+  }
+}

@@ -1,0 +1,12 @@
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/nuvem/api/Dockerfile
+    image: livraria-nuvem-api:separacao
+    ports:
+      - "127.0.0.1:${NUVEM_API_PORT:-3002}:3001"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3001
+    restart: unless-stopped

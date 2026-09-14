@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Initial mapping from SQL 0001. Introspect and baseline before schema writes.
+model Livro {
+  syncUid         String    @id @map("sync_uid") @db.Uuid
+  codigo          String    @unique
+  titulo          String
+  autor           String?
+  precoCentavos   BigInt    @default(0) @map("preco_centavos")
+  categoria       Int       @default(0)
+  descricao       String?
+  buscaNorm       String    @default("") @map("busca_norm")
+  ativo           Boolean   @default(true)
+  origem          String    @default("pdv")
+  atualizadoEm    DateTime? @map("atualizado_em") @db.Timestamptz
+  excluidoEm      DateTime? @map("excluido_em") @db.Timestamptz
+  criadoPor       String?   @map("criado_por") @db.Uuid
+  sincronizadoEm  DateTime  @default(now()) @map("sincronizado_em") @db.Timestamptz
+
+  @@map("livro")
+}
