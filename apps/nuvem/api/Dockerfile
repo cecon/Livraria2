@@ -7,9 +7,10 @@ COPY packages/contratos/package.json packages/contratos/package.json
 COPY apps/pdv/package.json apps/pdv/package.json
 COPY apps/nuvem/web/package.json apps/nuvem/web/package.json
 COPY apps/nuvem/api/package.json apps/nuvem/api/package.json
-RUN npm ci --ignore-scripts
+RUN npm ci --ignore-scripts --workspace=@livraria/nuvem-api --include-workspace-root=false
 COPY apps/nuvem/api apps/nuvem/api
 RUN npm run db:generate -w @livraria/nuvem-api && npm run build:api
+RUN npm prune --omit=dev --ignore-scripts --workspace=@livraria/nuvem-api --include-workspace-root=false
 
 FROM node:22-alpine AS runner
 WORKDIR /repo

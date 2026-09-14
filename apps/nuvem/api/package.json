@@ -8,12 +8,16 @@
     "start": "node dist/main.js",
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",
-    "db:introspect": "prisma db pull"
+    "db:introspect": "prisma db pull",
+    "db:baseline:check": "node scripts/check-baseline.cjs",
+    "test:integration": "node --test tests/protocol.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
+    "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/throttler": "^6.5.0",
     "@prisma/client": "^6.19.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"

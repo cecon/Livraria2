@@ -11,16 +11,16 @@
 
 ## Banco e autenticacao
 
-- [ ] T007 Introspectar e conferir schema real sem modificar dados.
-- [ ] T008 Estabelecer baseline que preserve triggers, constraints, views e RLS.
-- [ ] T009 Validar JWT/perfis e identidade por dispositivo na API.
+- [x] T007 Introspectar e conferir schema real sem modificar dados.
+- [x] T008 Estabelecer baseline que preserve triggers, constraints, views e RLS.
+- [x] T009 Validar JWT/perfis e identidade por dispositivo na API.
 
 ## Sincronizacao
 
-- [ ] T010 Implementar diario transacional com publicacao em ordem de commit.
-- [ ] T011 Implementar pagina por cursor e confirmacao persistida por PDV.
+- [x] T010 Implementar diario transacional com publicacao em ordem de commit.
+- [x] T011 Implementar pagina por cursor e confirmacao persistida por PDV.
 - [ ] T012 Implementar envio idempotente de vendas e pagamentos.
-- [ ] T013 Testar renomeacao/duplicacao de codigo, exclusao e concorrencia.
+- [x] T013 Testar renomeacao/duplicacao de codigo, exclusao e concorrencia.
 - [ ] T014 Migrar adapter PDV, aplicar paginas atomicamente e confirmar depois.
 - [ ] T015 Testar offline, falha parcial e reenvio.
 

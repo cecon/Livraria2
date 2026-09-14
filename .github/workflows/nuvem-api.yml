@@ -23,4 +23,15 @@ jobs:
           DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder
       - run: npm run db:generate -w @livraria/nuvem-api
       - run: npm run build:api
+      - name: PostgreSQL isolado para protocolo
+        run: |
+          docker run -d --name livraria-separacao-db -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=livraria_test -p 127.0.0.1:55439:5432 postgres:16-alpine
+          for attempt in $(seq 1 30); do
+            docker exec livraria-separacao-db pg_isready -U postgres && break
+            sleep 1
+          done
+      - run: npm run test:integration -w @livraria/nuvem-api
+        env:
+          API_TEST_DATABASE: isolated-local
+          DATABASE_URL: postgresql://postgres@127.0.0.1:55439/livraria_test
       - run: docker build -f apps/nuvem/api/Dockerfile -t livraria-nuvem-api:ci .

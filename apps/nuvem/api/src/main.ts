@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { Controller, Get, Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import { OperationsModule } from "./operations.module";
 
 @Controller("health")
 class HealthController {
@@ -10,7 +11,10 @@ class HealthController {
   }
 }
 
-@Module({ controllers: [HealthController] })
+@Module({
+  controllers: [HealthController],
+  imports: process.env.API_OPERATIONS_ENABLED === "true" ? [OperationsModule] : [],
+})
 class AppModule {}
 
 async function bootstrap() {
