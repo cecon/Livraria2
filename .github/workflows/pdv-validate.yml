@@ -1,0 +1,24 @@
+name: pdv-validate
+on:
+  pull_request:
+    paths: ["apps/pdv/**", "crates/livraria-domain/**", "packages/**", "package*.json", ".github/workflows/pdv-validate.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/pdv/src-tauri
+      - run: npm ci --workspace=@livraria/pdv --include-workspace-root=false
+      - run: npm run build
+      - run: npm test
+      - run: cargo test --manifest-path apps/pdv/src-tauri/Cargo.toml --lib --test api_sync_v1 --test api_outbox_v1 --test pedido_repo --test venda --test migration --test replica_venda

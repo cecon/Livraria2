@@ -2,6 +2,7 @@
 //! Orquestra o domínio e fala com o mundo externo apenas por meio das portas.
 
 pub mod cancelamento;
+pub mod api_sync;
 pub mod erros;
 #[cfg(test)]
 pub mod fakes;

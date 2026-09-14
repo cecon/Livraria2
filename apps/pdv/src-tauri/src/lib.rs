@@ -8,6 +8,7 @@ pub mod commands_estoque;
 pub mod commands_formas;
 pub mod commands_sync;
 pub mod commands_turno;
+pub mod sync_dispatch;
 // Domínio extraído para o crate `livraria-domain` (ADR-0022). Re-exporta como
 // `crate::domain` para manter todas as referências existentes (`crate::domain::…`).
 pub use livraria_domain as domain;
@@ -117,14 +118,11 @@ pub fn run() {
 /// Feature 007: loop de sincronização em background. Oportunista — se não houver
 /// config/rede, apenas dorme e tenta de novo; nunca bloqueia a operação do PDV.
 async fn sincronizacao_periodica(db: DatabaseConnection, config_path: Option<std::path::PathBuf>) {
-    use adapters::nuvem::supabase_sync::SupabaseSync;
-    use adapters::persistencia::replica_sync::SeaReplicaSync;
     // Espera o app assentar antes da 1ª tentativa.
     tokio::time::sleep(std::time::Duration::from_secs(15)).await;
     loop {
-        if let Ok(nuvem) = SupabaseSync::conectar(config_path.as_deref()).await {
-            let local = SeaReplicaSync::new(db.clone());
-            match application::sincronizacao::sincronizar(&nuvem, &local).await {
+        {
+            match sync_dispatch::executar(&db, config_path.as_deref()).await {
                 Ok(r) if r.enviados + r.recebidos > 0 => {
                     eprintln!("sync: enviados={} recebidos={} orfas={}", r.enviados, r.recebidos, r.orfas);
                 }

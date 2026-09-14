@@ -23,15 +23,23 @@ pub async fn sincronizar(
     nuvem: &dyn NuvemRepo,
     local: &dyn ReplicaLocalRepo,
 ) -> Result<ResumoSync, RepoErro> {
+    sincronizar_recursos(nuvem, local, ORDEM_DEPENDENCIA).await
+}
+
+pub async fn sincronizar_recursos(
+    nuvem: &dyn NuvemRepo,
+    local: &dyn ReplicaLocalRepo,
+    recursos: &[&str],
+) -> Result<ResumoSync, RepoErro> {
     let agora = nuvem.agora_servidor().await?;
     let mut resumo = ResumoSync::default();
 
     // 1) PUSH dos pendentes, pais→filhas (respeita FKs na nuvem).
-    resumo.enviados = enviar_pendentes(nuvem, local, &agora).await?;
+    resumo.enviados = enviar_pendentes(nuvem, local, &agora, recursos).await?;
 
     // 2) PULL desde o cursor, pais→filhas (respeita FKs locais).
     let mut livros_afetados: HashSet<String> = HashSet::new();
-    for recurso in ORDEM_DEPENDENCIA {
+    for recurso in recursos {
         let cursor = local.cursor(recurso).await?;
         let lote = nuvem.buscar_desde(recurso, &cursor).await?;
         if lote.registros.is_empty() {
@@ -70,9 +78,10 @@ async fn enviar_pendentes(
     nuvem: &dyn NuvemRepo,
     local: &dyn ReplicaLocalRepo,
     agora: &str,
+    recursos: &[&str],
 ) -> Result<usize, RepoErro> {
     let mut enviados = 0;
-    for recurso in ORDEM_DEPENDENCIA {
+    for recurso in recursos {
         let pendentes = local.pendentes(recurso).await?;
         for lote in pendentes.chunks(LOTE_PUSH) {
             nuvem.upsert(recurso, lote).await?;
@@ -88,7 +97,7 @@ async fn enviar_pendentes(
 /// forma idempotente (upsert por `sync_uid`). É só o push — o pull vem no sync normal.
 pub async fn semear(nuvem: &dyn NuvemRepo, local: &dyn ReplicaLocalRepo) -> Result<usize, RepoErro> {
     let agora = nuvem.agora_servidor().await?;
-    enviar_pendentes(nuvem, local, &agora).await
+    enviar_pendentes(nuvem, local, &agora, ORDEM_DEPENDENCIA).await
 }
 
 #[cfg(test)]

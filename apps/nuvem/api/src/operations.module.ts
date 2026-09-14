@@ -8,6 +8,8 @@ import { DevicesController } from "./sync/devices.controller";
 import { CatalogController } from "./sync/catalog.controller";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { APP_GUARD } from "@nestjs/core";
+import { SalesController } from "./sales/sales.controller";
+import { SalesService } from "./sales/sales.service";
 
 @Module({
   imports: [
@@ -27,7 +29,7 @@ import { APP_GUARD } from "@nestjs/core";
       },
     }),
   ],
-  controllers: [AuthController, DevicesController, CatalogController],
-  providers: [AuthService, AuthGuard, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+  controllers: [AuthController, DevicesController, CatalogController, SalesController],
+  providers: [AuthService, AuthGuard, SalesService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class OperationsModule {}

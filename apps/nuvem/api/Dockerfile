@@ -9,6 +9,7 @@ COPY apps/nuvem/web/package.json apps/nuvem/web/package.json
 COPY apps/nuvem/api/package.json apps/nuvem/api/package.json
 RUN npm ci --ignore-scripts --workspace=@livraria/nuvem-api --include-workspace-root=false
 COPY apps/nuvem/api apps/nuvem/api
+COPY packages/contratos packages/contratos
 RUN npm run db:generate -w @livraria/nuvem-api && npm run build:api
 RUN npm prune --omit=dev --ignore-scripts --workspace=@livraria/nuvem-api --include-workspace-root=false
 

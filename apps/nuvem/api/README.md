@@ -27,6 +27,8 @@ Nao e distribuido pelo migrator legado e ainda nao foi aplicado em producao.
 - GET /api/v1/pdvs: admin consulta cursores entregue, aplicado e disponivel.
 - GET /api/v1/sync/catalogo: dispositivo recebe pagina a partir de cursor confirmado.
 - POST /api/v1/sync/catalogo/confirmacao: confirma cursorAplicado apos commit local.
+- POST /api/v1/sync/vendas: pedido/itens/pagamentos completos, conforme contrato SaleV1.
+- POST /api/v1/sync/vendas/:uid/cancelamento: cancelamento idempotente do mesmo PDV.
 
 RefreshToken expira em 90 dias; somente seu SHA-256 fica no banco. A renovacao
 preserva a credencial para permitir repeticao apos perda de resposta. Rotacao ou
@@ -41,3 +43,6 @@ Nao remover eventos sem definir retencao e ressnapshot por dispositivo.
 test:integration exige API_TEST_DATABASE=isolated-local e PostgreSQL descartavel
 em 127.0.0.1:55439/livraria_test, container livraria-separacao-db.
 Esse teste apaga apenas o schema do banco isolado e rejeita URLs diferentes.
+Tambem aplica todas as migrations historicas para validar os gatilhos reais.
+API_NATIVE_E2E=true inclui o adapter Rust HTTP, com Cargo instalado e target pronto.
+Ensaio/provisionamento: specs/013-separacao-pdv-nuvem/pdv-rollout.md.

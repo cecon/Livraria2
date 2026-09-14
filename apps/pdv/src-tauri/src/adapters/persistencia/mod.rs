@@ -19,6 +19,9 @@ pub mod usuario_repo;
 pub mod recompute;
 pub mod replica_mapa;
 pub mod replica_sync;
+pub mod api_replica;
+pub(crate) mod api_outbox;
+pub(crate) mod api_catalogo;
 
 use crate::migration::Migrator;
 use sea_orm::{Database, DatabaseConnection, DbErr};
@@ -65,5 +68,6 @@ pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     // m012/m013 (feature 012): drop das tabelas de lancamento/inventario (saem do PDV).
     crate::migration::m012::aplicar(db).await?;
     crate::migration::m013::aplicar(db).await?;
+    crate::migration::m_api_v1::aplicar(db).await?;
     Ok(())
 }

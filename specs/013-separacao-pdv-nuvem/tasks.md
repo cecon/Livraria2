@@ -19,10 +19,10 @@
 
 - [x] T010 Implementar diario transacional com publicacao em ordem de commit.
 - [x] T011 Implementar pagina por cursor e confirmacao persistida por PDV.
-- [ ] T012 Implementar envio idempotente de vendas e pagamentos.
+- [x] T012 Implementar envio idempotente de vendas e pagamentos.
 - [x] T013 Testar renomeacao/duplicacao de codigo, exclusao e concorrencia.
-- [ ] T014 Migrar adapter PDV, aplicar paginas atomicamente e confirmar depois.
-- [ ] T015 Testar offline, falha parcial e reenvio.
+- [x] T014 Migrar adapter PDV, aplicar paginas atomicamente e confirmar depois.
+- [x] T015 Testar offline, falha parcial e reenvio.
 
 ## Administrativo e entrega
 

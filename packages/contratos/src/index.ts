@@ -8,6 +8,11 @@ export interface AlteracaoCatalogoV1 {
     titulo: string;
     precoCentavos: number;
     ativo: boolean;
+    autor?: string | null;
+    categoria?: number;
+    descricao?: string | null;
+    buscaNorm?: string;
+    saldoPublicado?: number;
   };
 }
 

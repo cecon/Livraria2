@@ -51,6 +51,9 @@ impl PedidoRepo for SeaPedidoRepo {
         let backend = txn.get_database_backend();
 
         super::pedido_sql::inserir_cabecalho_e_itens(&txn, pedido).await.map_err(erro)?;
+        txn.execute(Statement::from_sql_and_values(backend,
+            "UPDATE item_pedido SET livro_uid=(SELECT sync_uid FROM livro WHERE codigo=item_pedido.codigo)
+             WHERE pedido_numero=? AND livro_uid IS NULL", [pedido.numero.into()])).await.map_err(erro)?;
 
         let criado_em = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
         for it in &pedido.itens {

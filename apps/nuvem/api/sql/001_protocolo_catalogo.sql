@@ -32,6 +32,16 @@ create table if not exists public.nuvem_catalogo_evento (
 );
 
 -- Serialize before acquiring product row locks. Counter increments roll back with
+create or replace function public.nuvem_saldo_produto(u uuid)
+returns bigint language plpgsql security definer set search_path = pg_catalog as $$
+declare s bigint;
+begin
+  if to_regclass('public.vw_saldo_livro') is null then return 0; end if;
+  execute 'select saldo from public.vw_saldo_livro where livro_uid=$1' into s using u;
+  return coalesce(s,0);
+end $$;
+
+-- Serialize before acquiring product row locks. Counter increments roll back with
 -- the write; committed sequence order cannot overtake an uncommitted publisher.
 create or replace function public.nuvem_catalogo_lock()
 returns trigger language plpgsql security definer set search_path = pg_catalog as $$
@@ -57,7 +67,7 @@ begin
         'codigo', NEW.codigo, 'titulo', NEW.titulo, 'autor', NEW.autor,
         'precoCentavos', NEW.preco_centavos, 'ativo', NEW.ativo,
         'categoria', NEW.categoria, 'descricao', NEW.descricao,
-        'buscaNorm', NEW.busca_norm);
+        'buscaNorm', NEW.busca_norm, 'saldoPublicado', public.nuvem_saldo_produto(u));
     end if;
   end if;
   update public.nuvem_sync_contador set sequencia = sequencia + 1
@@ -105,7 +115,8 @@ begin
         case when l.ativo and l.excluido_em is null then jsonb_build_object(
           'codigo', l.codigo, 'titulo', l.titulo, 'autor', l.autor,
           'precoCentavos', l.preco_centavos, 'ativo', l.ativo,
-          'categoria', l.categoria, 'descricao', l.descricao, 'buscaNorm', l.busca_norm)
+          'categoria', l.categoria, 'descricao', l.descricao, 'buscaNorm', l.busca_norm,
+          'saldoPublicado', public.nuvem_saldo_produto(l.sync_uid))
         else null end);
     end loop;
   end if;
@@ -116,4 +127,7 @@ alter table public.nuvem_pdv enable row level security;
 alter table public.nuvem_catalogo_evento enable row level security;
 revoke all on public.nuvem_sync_contador, public.nuvem_pdv,
   public.nuvem_catalogo_evento from public;
+revoke execute on function public.nuvem_saldo_produto(uuid),
+  public.nuvem_catalogo_lock(), public.nuvem_catalogo_publicar(),
+  public.nuvem_catalogo_identidade() from public;
 commit;

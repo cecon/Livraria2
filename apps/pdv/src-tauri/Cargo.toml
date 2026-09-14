@@ -42,5 +42,5 @@ bcrypt = "0.15"
 # Feature 007: sincronização com a nuvem (adapter Supabase/PostgREST) — ADR-0015
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 uuid = { version = "1", features = ["v4"] }
-tokio = { version = "1", features = ["time"] }
+tokio = { version = "1", features = ["time", "sync"] }
 

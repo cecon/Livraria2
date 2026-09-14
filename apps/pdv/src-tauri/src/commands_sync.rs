@@ -4,7 +4,7 @@
 
 use crate::adapters::nuvem::supabase_sync::SupabaseSync;
 use crate::adapters::persistencia::replica_sync::SeaReplicaSync;
-use crate::application::sincronizacao::{semear, sincronizar};
+use crate::application::sincronizacao::semear;
 use crate::commands::AppState;
 use crate::domain::sincronizacao::ORDEM_DEPENDENCIA;
 use sea_orm::{ConnectionTrait, Statement};
@@ -22,9 +22,8 @@ pub struct ResumoSyncDto {
 /// pelo agendador em background (T041). A venda nunca bloqueia por isto.
 #[tauri::command]
 pub async fn sincronizar_agora(state: tauri::State<'_, AppState>) -> Result<ResumoSyncDto, String> {
-    let nuvem = SupabaseSync::conectar(state.config_sync_path.as_deref()).await.map_err(|e| e.to_string())?;
-    let local = SeaReplicaSync::new(state.db.clone());
-    let r = sincronizar(&nuvem, &local).await.map_err(|e| e.to_string())?;
+    let r = crate::sync_dispatch::executar(&state.db, state.config_sync_path.as_deref())
+        .await.map_err(|e| e.to_string())?;
     Ok(ResumoSyncDto { enviados: r.enviados, recebidos: r.recebidos, orfas: r.orfas })
 }
 
@@ -61,6 +60,9 @@ pub async fn listar_operadores(state: tauri::State<'_, AppState>) -> Result<Vec<
 /// quantos registros foram enviados.
 #[tauri::command]
 pub async fn seed_inicial(state: tauri::State<'_, AppState>) -> Result<usize, String> {
+    if std::env::var("NUVEM_API_ENABLED").as_deref() == Ok("true") {
+        return Err("Seed legado bloqueado no modo API".into());
+    }
     let nuvem = SupabaseSync::conectar(state.config_sync_path.as_deref()).await.map_err(|e| e.to_string())?;
     let local = SeaReplicaSync::new(state.db.clone());
     semear(&nuvem, &local).await.map_err(|e| e.to_string())

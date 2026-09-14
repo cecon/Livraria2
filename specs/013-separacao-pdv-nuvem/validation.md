@@ -29,3 +29,18 @@ Segunda entrega:
 
 SQL novo nao foi aplicado em producao. Adapter PDV, ingestao idempotente de vendas,
 administrativo e ativacao gradual permanecem pendentes.
+
+Terceira entrega:
+
+- API de vendas/pagamentos completos em transacao, recibo/hash por UUID e PDV.
+- Cancelamento separado e idempotente com estorno pelos gatilhos reais.
+- 14 testes de integracao passaram, incluindo execucao Rust contra NestJS/PostgreSQL.
+- 7 novos testes Rust locais e 30 testes existentes de regressao passaram.
+- Teste HTTP Rust executado explicitamente no banco isolado: passou.
+- Cargo check --tests e build API passaram.
+- Outbox preserva snapshots e UUIDs apos perda de resposta.
+- Pagina/cursor atomicos e confirmacao apos commit validados com rollback e ack perdido.
+
+T012/T014/T015 concluidas como integracao experimental. Modo hibrido permanece
+opt-in; migracao administrativa, cofre de credenciais do dispositivo, instalador
+e ativacao gradual ainda pendentes. Nenhum SQL/config de producao alterado.
