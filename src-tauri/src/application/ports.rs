@@ -23,13 +23,30 @@ pub trait LivroRepo: Send + Sync {
     async fn buscar_texto(&self, termo_norm: &str, limite: i64) -> Result<Vec<Livro>, RepoErro>;
 }
 
+/// Turno a que a venda pertence (feature 013, FR-003/FR-016): o `uid` é o
+/// `sync_uid` do turno aberto e `numero_no_turno` é o Pedido Nº dentro dele.
+pub struct VendaTurno {
+    pub uid: String,
+    pub numero_no_turno: i64,
+}
+
+/// Dados do pedido usados pelo guarda de cancelamento (feature 013, FR-003).
+pub struct DadosCancelamento {
+    pub data: String,
+    pub ja_cancelado: bool,
+    /// `None` em venda legada (anterior ao turno obrigatório) — não cancelável no PDV.
+    pub turno_uid: Option<String>,
+}
+
 /// Repositório de pedidos (vendas).
 #[async_trait]
 pub trait PedidoRepo: Send + Sync {
     /// Próximo número sequencial (MAX(numero)+1), contínuo entre execuções (FR-017).
     async fn proximo_numero(&self) -> Result<i64, RepoErro>;
-    /// Grava pedido + itens e baixa o estoque, atomicamente (FR-015).
-    async fn registrar(&self, pedido: &Pedido) -> Result<(), RepoErro>;
+    /// Grava pedido + itens e baixa o estoque, atomicamente (FR-015). `turno` carimba
+    /// o vínculo obrigatório da venda (FR-003); `None` só em fixture/legado — o caso
+    /// de uso `venda::registrar_venda` sempre resolve um turno aberto.
+    async fn registrar(&self, pedido: &Pedido, turno: Option<&VendaTurno>) -> Result<(), RepoErro>;
     /// Importa um pedido histórico de forma idempotente, SEM baixar estoque.
     /// Retorna `true` se inseriu, `false` se o número já existia (FR-069).
     async fn importar(&self, pedido: &Pedido) -> Result<bool, RepoErro>;
@@ -37,8 +54,8 @@ pub trait PedidoRepo: Send + Sync {
     async fn excluir_item(&self, item_id: i64) -> Result<(), RepoErro>;
     /// Remove um pedido inteiro e seus itens (cancelar venda do dia).
     async fn excluir_pedido(&self, numero: i64) -> Result<(), RepoErro>;
-    /// Data (ISO) e flag de cancelado do pedido — guard dos 5 dias (FR-011 da 006).
-    async fn dados_cancelamento(&self, numero: i64) -> Result<Option<(String, bool)>, RepoErro>;
+    /// Data, flag de cancelado e turno do pedido — guarda do cancelamento (FR-003).
+    async fn dados_cancelamento(&self, numero: i64) -> Result<Option<DadosCancelamento>, RepoErro>;
 }
 
 /// Repositório do cadastro de formas de pagamento (ADR-0013).
@@ -94,11 +111,21 @@ pub struct RecebimentoRelatorio {
 #[serde(rename_all = "camelCase")]
 pub struct PedidoRelatorio {
     pub numero: i64,
+    /// Pedido Nº dentro do turno — é o número EXIBIDO (FR-016). Nulo em venda
+    /// legada; a tela cai no `numero` contínuo nesse caso.
+    pub numero_no_turno: Option<i64>,
     pub cliente: String,
     pub itens: Vec<ItemRelatorio>,
     pub recebimentos: Vec<RecebimentoRelatorio>,
     pub total_centavos: i64,
     pub cancelado: bool,
+    /// Turno da venda — decide `cancelavel`; não cruza a fronteira Tauri.
+    #[serde(skip)]
+    pub turno_uid: Option<String>,
+    /// Feature 013 (FR-003): a venda é do turno aberto deste PDV? Só ela pode ser
+    /// cancelada/reaberta aqui — o resto se corrige no escritório. O caso de uso
+    /// preenche (o repositório devolve `false`).
+    pub cancelavel: bool,
 }
 
 /// Porta de leitura para relatórios (US5).
@@ -106,6 +133,8 @@ pub struct PedidoRelatorio {
 pub trait RelatorioRepo: Send + Sync {
     /// Pedidos do período: `periodo` = "dia" | "manha" | "tarde".
     async fn vendas(&self, data: &str, periodo: &str) -> Result<Vec<PedidoRelatorio>, RepoErro>;
+    /// Pedidos de um turno (feature 013, FR-022 — tela inicial do PDV).
+    async fn vendas_do_turno(&self, turno_uid: &str) -> Result<Vec<PedidoRelatorio>, RepoErro>;
     /// Todos os livros ativos, ordenados por estoque crescente (FR-043).
     async fn estoque_completo(&self) -> Result<Vec<Livro>, RepoErro>;
 }
@@ -123,4 +152,10 @@ pub trait Relogio: Send + Sync {
     fn hora_atual(&self) -> u32;
     /// Data de hoje em ISO yyyy-mm-dd.
     fn hoje_iso(&self) -> String;
+}
+
+/// Identidade da máquina/PDV (porta) — o **nome do PC** compõe a identidade do
+/// turno (feature 013, FR-015) e aparece no header. Adapter na borda (hostname).
+pub trait Maquina: Send + Sync {
+    fn nome(&self) -> String;
 }

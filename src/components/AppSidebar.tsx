@@ -5,6 +5,7 @@ import { NavLink } from "react-router-dom";
 import { getVersion } from "@tauri-apps/api/app";
 import { SyncStatus } from "./SyncStatus";
 import { OperadorAtual } from "./OperadorAtual";
+import { IdentidadeTurno } from "./IdentidadeTurno";
 import { Moon, Sun } from "lucide-react";
 import { NAV_ITENS_PDV as ITENS } from "@livraria/ui/nav";
 import type { Tema } from "@/lib/theme";
@@ -58,6 +59,9 @@ export function AppSidebar({ tema, onToggleTema }: Props) {
       </nav>
 
       <OperadorAtual />
+
+      {/* PC + operador do turno aberto (feature 013, FR-021). */}
+      <IdentidadeTurno />
 
       <div className="mx-3 mb-1">
         <SyncStatus />

@@ -32,6 +32,11 @@ pub async fn sincronizar(
     // 2) PULL desde o cursor, pais→filhas (respeita FKs locais).
     let mut livros_afetados: HashSet<String> = HashSet::new();
     for recurso in ORDEM_DEPENDENCIA {
+        // Feature 013 (US2): venda não desce. Itens/pagamentos/alocações nem são
+        // buscados; do `pedido` vem só o ack de incorporação (aplicado no adapter).
+        if !crate::domain::sincronizacao::pull_necessario(recurso) {
+            continue;
+        }
         let cursor = local.cursor(recurso).await?;
         let lote = nuvem.buscar_desde(recurso, &cursor).await?;
         if lote.registros.is_empty() {

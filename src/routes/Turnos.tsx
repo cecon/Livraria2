@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Clock, Play } from "lucide-react";
+import { AvisoTurnoVirado } from "@/components/SemTurno";
 import { operadorAtual } from "@/lib/operador";
 import { brl, parseBrlParaCentavos } from "@/lib/format";
 import { listarFormasAtivas } from "@/lib/ipc_formas";
@@ -38,7 +39,7 @@ export default function Turnos() {
     }
     setCarregando(true);
     try {
-      const [aberto, formas] = await Promise.all([turnoAberto(operador), listarFormasAtivas()]);
+      const [aberto, formas] = await Promise.all([turnoAberto(), listarFormasAtivas()]);
       setRotulos(new Map(formas.map((f) => [f.id, f.rotulo])));
       setTurno(aberto);
       setResumo(aberto ? await turnoResumo(aberto.syncUid) : null);
@@ -167,9 +168,16 @@ export default function Turnos() {
       ) : (
         <div className="space-y-3 rounded-lg border bg-card p-4">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium">Turno aberto</div>
+            <div className="text-sm font-medium">
+              Turno aberto
+              {/* Identidade do turno: PC + quem abriu (feature 013, FR-015/FR-021). */}
+              <span className="ml-2 font-normal text-muted-foreground">
+                {turno.maquina || "este PDV"} · {turno.operador || "—"}
+              </span>
+            </div>
             <span className="text-xs text-muted-foreground">desde {new Date(turno.abertura).toLocaleString("pt-BR")}</span>
           </div>
+          <AvisoTurnoVirado abertura={turno.abertura} />
           <div className="grid grid-cols-3 gap-2 text-sm">
             <Stat rotulo="Caixa inicial" valor={brl(turno.caixaInicialCentavos)} />
             <Stat rotulo="Vendas" valor={String(resumo?.qtdVendas ?? 0)} />

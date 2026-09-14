@@ -40,3 +40,24 @@ pub async fn semear_loja(db: &DatabaseConnection) {
     )
     .await;
 }
+
+/// Identidade fixa da máquina nos testes (feature 013 — o PDV é o PC).
+#[allow(dead_code)]
+pub struct MaquinaTeste;
+
+impl livraria_2_lib::application::ports::Maquina for MaquinaTeste {
+    fn nome(&self) -> String {
+        "PDV-TESTE".to_string()
+    }
+}
+
+/// Abre um turno nesta "máquina" e devolve o `sync_uid` (fixture do turno obrigatório).
+#[allow(dead_code)]
+pub async fn abrir_turno(db: &DatabaseConnection, operador: &str) -> String {
+    use livraria_2_lib::application::ports_turno::TurnoRepo;
+    livraria_2_lib::adapters::persistencia::turno_repo::SeaTurnoRepo::new(db.clone())
+        .abrir(operador, 0, "PDV-TESTE")
+        .await
+        .expect("fixture: abrir turno")
+        .sync_uid
+}

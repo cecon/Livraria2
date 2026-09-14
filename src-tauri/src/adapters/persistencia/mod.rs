@@ -12,12 +12,15 @@ pub mod livro_repo;
 pub mod pagamento_pedido_sql;
 pub mod pedido_repo;
 pub mod pedido_sql;
+pub mod poda_sql;
 pub mod relatorio_repo;
 pub mod turno_repo;
 pub mod usuario_repo;
 
 pub mod recompute;
+pub mod replica_ack;
 pub mod replica_mapa;
+pub mod replica_push;
 pub mod replica_sync;
 
 use crate::migration::Migrator;
@@ -65,5 +68,7 @@ pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     // m012/m013 (feature 012): drop das tabelas de lancamento/inventario (saem do PDV).
     crate::migration::m012::aplicar(db).await?;
     crate::migration::m013::aplicar(db).await?;
+    // m014 (feature 013): turno_operacao.maquina + pedido.ja_sincronizado.
+    crate::migration::m014::aplicar(db).await?;
     Ok(())
 }

@@ -5,7 +5,7 @@
 //! **FK-remap** (`*_uid` → id local via subquery). Recursos ainda não mapeados
 //! são no-op seguro. `recomputar_derivados` refaz o estoque pelo ledger (ADR-0008).
 
-use super::replica_mapa::{expr_json, spec, valor, Tipo};
+use super::replica_mapa::{spec, valor, Tipo};
 use crate::application::ports::RepoErro;
 use crate::application::ports_sync::{RegistroSync, ReplicaLocalRepo};
 use async_trait::async_trait;
@@ -34,67 +34,31 @@ impl SeaReplicaSync {
             .map(|_| ())
             .map_err(erro)
     }
+
 }
 
 #[async_trait]
 impl ReplicaLocalRepo for SeaReplicaSync {
     async fn pendentes(&self, recurso: &str) -> Result<Vec<RegistroSync>, RepoErro> {
-        let Some(s) = spec(recurso) else { return Ok(vec![]) };
-        // Cadastros de autoridade da nuvem (feature 012, US2): pull-only — o PDV nunca
-        // empurra fornecedor/forma_pagamento/destinacao (a edição vive no escritório).
-        if super::replica_mapa::pull_only(recurso) {
-            return Ok(vec![]);
-        }
-        // Atribui sync_uid (lazy) às linhas novas — inserts do app não o preenchem.
-        self.exec(
-            format!(
-                "UPDATE {recurso} SET sync_uid=({}) WHERE sync_uid IS NULL OR sync_uid=''",
-                crate::migration::m008::UUID_V4
-            ),
-            vec![],
-        )
-        .await?;
-        let filtro = if recurso == "movimento_estoque" {
-            "sincronizado_em IS NULL AND tipo NOT IN ('saida_venda','estorno')"
-        } else {
-            "sincronizado_em IS NULL"
-        };
-        let sql = format!("SELECT {} AS j, sync_uid AS u FROM {} t WHERE {filtro}", expr_json(s), recurso);
-        let rows = self
-            .db
-            .query_all(Statement::from_string(self.backend(), sql))
-            .await
-            .map_err(erro)?;
-        let mut out = Vec::with_capacity(rows.len());
-        for r in rows {
-            let j: String = r.try_get("", "j").map_err(erro)?;
-            let dados: serde_json::Value = serde_json::from_str(&j).map_err(erro)?;
-            out.push(RegistroSync {
-                recurso: recurso.to_string(),
-                sync_uid: r.try_get("", "u").map_err(erro)?,
-                atualizado_em: dados.get("atualizado_em").and_then(|v| v.as_str()).map(str::to_string),
-                excluido_em: dados.get("excluido_em").and_then(|v| v.as_str()).map(str::to_string),
-                dados,
-            });
-        }
-        Ok(out)
+        super::replica_push::pendentes(&self.db, recurso).await
     }
 
     async fn marcar_sincronizado(&self, recurso: &str, uids: &[String], quando: &str) -> Result<(), RepoErro> {
-        if uids.is_empty() {
-            return Ok(());
-        }
-        let marca = format!("'{}'", quando.replace('\'', "''"));
-        let lista = uids.iter().map(|u| format!("'{}'", u.replace('\'', "''"))).collect::<Vec<_>>().join(",");
-        self.exec(
-            format!("UPDATE {recurso} SET sincronizado_em={marca} WHERE sync_uid IN ({lista})"),
-            vec![],
-        )
-        .await
+        super::replica_push::marcar_sincronizado(&self.db, recurso, uids, quando).await
     }
 
     async fn aplicar(&self, recurso: &str, registros: &[RegistroSync]) -> Result<(), RepoErro> {
         let Some(s) = spec(recurso) else { return Ok(()) };
+        // Feature 013 (US2): venda é push-only. Nada de venda desce como conteúdo —
+        // do `pedido` aplica-se só o ack de incorporação, e apenas em linha que já
+        // existe aqui (a venda de outro PDV nunca é inserida). As filhas nem isso.
+        if super::replica_mapa::push_only(recurso) {
+            return if super::replica_mapa::so_ack(recurso) {
+                super::replica_ack::aplicar(&self.db, registros).await
+            } else {
+                Ok(())
+            };
+        }
         // Feature 012: o dado que VEM da nuvem nasce sincronizado — o pull marca
         // `sincronizado_em` na mesma sentença (no INSERT e no DO UPDATE do LWW).
         // Assim ele não é re-enviado no próximo ciclo; se a linha local for mais
