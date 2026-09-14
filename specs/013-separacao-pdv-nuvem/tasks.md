@@ -26,7 +26,7 @@
 
 ## Administrativo e entrega
 
-- [ ] T016 Migrar catalogo web para API.
+- [x] T016 Migrar catalogo web para API (experimental; homologacao e ativacao em T020).
 - [ ] T017 Migrar demais fluxos administrativos.
 - [ ] T018 Exibir confirmacao de alteracoes por caixa.
 - [ ] T019 Integrar alteracoes mobile preservadas no worktree original.

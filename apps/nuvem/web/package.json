@@ -4,6 +4,7 @@
   "private": true,
   "description": "App web do escritório (retaguarda) — Next.js + Supabase. Consome @livraria/ui e @livraria/domain (workspace).",
   "scripts": {
+    "test:api": "vitest run",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -27,6 +28,7 @@
     "@fontsource-variable/geist": "^5.2.9"
   },
   "devDependencies": {
+    "vitest": "^4.1.9",
     "typescript": "^5.7.0",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",

@@ -46,3 +46,11 @@ Esse teste apaga apenas o schema do banco isolado e rejeita URLs diferentes.
 Tambem aplica todas as migrations historicas para validar os gatilhos reais.
 API_NATIVE_E2E=true inclui o adapter Rust HTTP, com Cargo instalado e target pronto.
 Ensaio/provisionamento: specs/013-separacao-pdv-nuvem/pdv-rollout.md.
+
+## Catalogo Administrativo Experimental
+
+GET/POST `admin/livros`, PUT/DELETE `admin/livros/:uid`: admin individual apenas.
+Criacao e saldo inicial atomicos; atualizacao preserva UUID; exclusao publica tombstone.
+Precos em centavos inteiros, conflito de codigo retorna 409, listagem paginada por UUID.
+Web opt-in com `API_CATALOGO_ENABLED=true` e `NUVEM_API_URL` apenas no servidor.
+Detalhes: `specs/013-separacao-pdv-nuvem/catalogo-web-rollout.md` na raiz.

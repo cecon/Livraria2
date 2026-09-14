@@ -10,6 +10,8 @@ import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { APP_GUARD } from "@nestjs/core";
 import { SalesController } from "./sales/sales.controller";
 import { SalesService } from "./sales/sales.service";
+import { BooksController } from "./admin/books.controller";
+import { BooksService } from "./admin/books.service";
 
 @Module({
   imports: [
@@ -29,7 +31,7 @@ import { SalesService } from "./sales/sales.service";
       },
     }),
   ],
-  controllers: [AuthController, DevicesController, CatalogController, SalesController],
-  providers: [AuthService, AuthGuard, SalesService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+  controllers: [AuthController, DevicesController, CatalogController, SalesController, BooksController],
+  providers: [AuthService, AuthGuard, SalesService, BooksService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class OperationsModule {}

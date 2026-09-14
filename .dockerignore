@@ -10,6 +10,6 @@ src-tauri/target
 crates/*/target
 dist
 **/.next
-apps/escritorio/.next
+apps/nuvem/web/.next
 **/*.log
 .DS_Store

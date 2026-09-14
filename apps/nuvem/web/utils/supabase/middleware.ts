@@ -38,7 +38,8 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/api") ||
     path.startsWith("/_next") ||
     path === "/favicon.ico";
-  if (!user && !publica) {
+  const apiSessionMissing = process.env.API_CATALOGO_ENABLED === "true" && !request.cookies.get("nuvem_usuario")?.value;
+  if ((!user || apiSessionMissing) && !publica) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

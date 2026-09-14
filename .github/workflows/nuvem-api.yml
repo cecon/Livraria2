@@ -1,7 +1,7 @@
 name: nuvem-api
 on:
   pull_request:
-    paths: ["apps/nuvem/api/**", "packages/contratos/**", "package*.json", ".github/workflows/nuvem-api.yml"]
+    paths: ["apps/nuvem/api/**", "apps/nuvem/web/lib/api/**", "apps/nuvem/web/app/api/catalogo/**", "packages/contratos/**", "package*.json", ".github/workflows/nuvem-api.yml"]
   push:
     branches: [main]
     paths: ["apps/nuvem/api/**", "packages/contratos/**", "package*.json", ".github/workflows/nuvem-api.yml"]
@@ -23,6 +23,7 @@ jobs:
           DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder
       - run: npm run db:generate -w @livraria/nuvem-api
       - run: npm run build:api
+      - run: npm run test:api -w livraria-escritorio
       - name: PostgreSQL isolado para protocolo
         run: |
           docker run -d --name livraria-separacao-db -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=livraria_test -p 127.0.0.1:55439:5432 postgres:16-alpine

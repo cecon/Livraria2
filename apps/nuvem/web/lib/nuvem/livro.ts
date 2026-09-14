@@ -2,6 +2,7 @@
 // dedup por `codigo`. Estoque é derivado dos movimentos (não é coluna).
 import { createClient } from "@/utils/supabase/client";
 import { normalizar } from "@/utils/texto";
+import { catalogApiEnabled, catalogRequest, listApiBooks, saveApiBook } from "@/lib/api/catalogo-client";
 
 export type Livro = {
   sync_uid: string;
@@ -15,6 +16,7 @@ export type Livro = {
 };
 
 export async function listarLivros(): Promise<Livro[]> {
+  if (await catalogApiEnabled()) return listApiBooks();
   const sb = createClient();
   const { data } = await sb
     .from("livro")
@@ -37,6 +39,8 @@ export type EntradaLivro = {
 };
 
 export async function salvarLivro(e: EntradaLivro): Promise<{ error?: string }> {
+  try { if (await catalogApiEnabled()) return saveApiBook(e); }
+  catch { return { error: "Configuracao do catalogo indisponivel" }; }
   const sb = createClient();
   const { data: sessao } = await sb.auth.getUser();
   const criadoPor = sessao.user?.id ?? null;
@@ -80,6 +84,11 @@ export async function salvarLivro(e: EntradaLivro): Promise<{ error?: string }> 
 }
 
 export async function excluirLivro(sync_uid: string): Promise<{ error?: string }> {
+  try {
+    if (await catalogApiEnabled()) { await catalogRequest(`/${sync_uid}`, "DELETE"); return {}; }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Falha ao excluir" };
+  }
   const sb = createClient();
   const agora = new Date().toISOString();
   const { error } = await sb

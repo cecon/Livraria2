@@ -44,3 +44,19 @@ Terceira entrega:
 T012/T014/T015 concluidas como integracao experimental. Modo hibrido permanece
 opt-in; migracao administrativa, cofre de credenciais do dispositivo, instalador
 e ativacao gradual ainda pendentes. Nenhum SQL/config de producao alterado.
+
+Quarta entrega (catalogo web):
+
+- Rotas admin/livros com admin individual, UUID estavel e centavos inteiros.
+- Produto e movimento de estoque inicial em transacao, com rollback do diario.
+- Proxy Next usa cookie HttpOnly, recusa CSRF e nao retorna token ao navegador.
+- Flag API_CATALOGO_ENABLED em runtime; modo legado permanece padrao.
+- 11 testes de cliente/proxy e 22 testes de integracao passaram.
+- Integracao inclui proxy Next real e adapter Rust contra NestJS/PostgreSQL isolados.
+- Builds API e web passaram; web compilada com placeholders publicos sem dados reais.
+- Caminhos remanescentes apps/escritorio corrigidos no Docker web e dockerignore.
+- Imagens Docker web e API experimentais compiladas com sucesso, sem publicar em registry.
+
+T016 concluida como entrega experimental. T017/T018/T019/T020 permanecem abertas.
+Login completo com Supabase real, navegador autenticado, proxy publico e ativacao
+duradoura ainda precisam de homologacao. Ver catalogo-web-rollout.md.

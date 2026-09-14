@@ -123,6 +123,10 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
         });
       });
     }
+    await require("./admin-catalog.cjs")(t, db, base, adminToken, firstDevice.accessToken, run);
+    if (process.env.API_WEB_E2E === "true") {
+      await require("./web-catalog.cjs")(t, db, base, adminToken, firstDevice.accessToken);
+    }
   } finally {
     if (child && child.exitCode === null && child.signalCode === null) {
       const stopped = new Promise(resolve => child.once("exit", resolve));

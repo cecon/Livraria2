@@ -7,5 +7,6 @@ export async function POST() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   (await cookies()).delete("app_user");
+  (await cookies()).delete("nuvem_usuario");
   return NextResponse.json({ ok: true });
 }

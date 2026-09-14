@@ -28,9 +28,13 @@ export default function CadastroPage() {
   const [saldos, setSaldos] = useState<Map<string, number>>(new Map());
 
   async function carregar() {
-    const [ls, ss] = await Promise.all([listarLivros(), listarSaldos()]);
-    setLivros(ls);
-    setSaldos(ss);
+    try {
+      const [ls, ss] = await Promise.all([listarLivros(), listarSaldos()]);
+      setLivros(ls);
+      setSaldos(ss);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Catalogo indisponivel");
+    }
   }
   useEffect(() => {
     carregar();
