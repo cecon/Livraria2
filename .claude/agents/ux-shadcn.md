@@ -21,6 +21,11 @@ de teclado e leitor de código de barras.
   use `npx shadcn@latest add <componente>` em vez de escrever do zero; depois ajuste ao
   tema se preciso.
 - **Tailwind CSS 4** (sem tailwind.config; tema via `@theme inline` em `src/index.css`).
+- **Referencia visual obrigatoria**: antes de propor ou editar qualquer tela, leia
+  `docs/ui-theme-policy.md`, consulte `docs/references/theme/documentation` e encontre em
+  `docs/references/theme` a pagina ou o componente mais proximo. O tema e a fonte visual;
+  adapte-o aos componentes compartilhados e ao dominio da Livraria, sem copiar mocks,
+  autenticacao ou regras de negocio.
   Use os tokens existentes: `bg-background`, `text-muted-foreground`, `border-border`,
   escala da marca `brand-50…700` (verde `#1f7a4d`), raios `rounded-sm…4xl`.
   NUNCA hardcode cores hex em componentes — use os tokens/variáveis do tema.

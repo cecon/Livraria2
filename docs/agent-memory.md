@@ -137,6 +137,18 @@ Referencia: [persistencia do engine](https://iii.dev/docs/0-10-0/modules/module-
 Logs somente operacao/status/duracao, nunca conteudo/token. Sem nova stack de metricas.
 Filtro basico de credenciais tambem na leitura; nao substitui revisao humana.
 
+### Convencao visual obrigatoria
+
+Antes de qualquer tarefa de interface, consulte a memoria com o nome da tela e os termos
+`tema visual WowDash`. Em seguida, valide o resultado contra `docs/ui-theme-policy.md`,
+`docs/references/theme/documentation` e os exemplos em `docs/references/theme`; os arquivos
+atuais sempre prevalecem sobre a memoria.
+
+A memoria compartilhada deve registrar esta convencao: o tema local e a referencia visual
+obrigatoria para PDV e nuvem. Registre como memoria privada apenas decisoes especificas de uma
+tela; promova para team depois de validacao visual e funcional. Nunca grave arquivos inteiros,
+assets, codigo copiado, dados de exemplo ou conteudo potencialmente licenciado do tema.
+
 ## Privacidade Real e Limitacoes
 
 O AgentMemory atual possui UM bearer e TEAM_ID/USER_ID fixos por servidor.
