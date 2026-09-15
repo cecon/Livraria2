@@ -6,8 +6,9 @@ export const catalogApiEnabled = () => process.env.API_CATALOGO_ENABLED === "tru
 export const referencesApiEnabled = () => process.env.API_REFERENCIAS_ENABLED === "true";
 export const usersApiEnabled = () => process.env.API_USUARIOS_ENABLED === "true";
 export const pdvStatusApiEnabled = () => process.env.API_PDV_STATUS_ENABLED === "true";
+export const stockApiEnabled = () => process.env.API_ESTOQUE_ENABLED === "true";
 export const userApiEnabled = () => catalogApiEnabled() || referencesApiEnabled() ||
-  usersApiEnabled() || pdvStatusApiEnabled();
+  usersApiEnabled() || pdvStatusApiEnabled() || stockApiEnabled();
 
 export async function apiFetch(path: string, init: RequestInit = {}, token?: string) {
   const value = process.env.NUVEM_API_URL;

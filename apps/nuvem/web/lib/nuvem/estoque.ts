@@ -1,6 +1,7 @@
 // Camada de dados de estoque (US2). Saldo pela view; movimentos crus para o
 // fold de custo médio do domínio (WASM) — mesma regra do PDV (ADR-0009/0016).
 import { createClient } from "@/utils/supabase/client";
+import { stockApiEnabled, stockRequest } from "@/lib/api/estoque-client";
 import {
   payloadStatusDivergencia,
   type StatusDivergenciaEstoque,
@@ -39,6 +40,10 @@ export type ProdutoPdvPublicado = {
 };
 
 export async function listarSaldos(): Promise<Map<string, number>> {
+  if (await stockApiEnabled()) {
+    const rows = await stockRequest("/saldos") as { livro_uid: string; saldo: number }[];
+    return new Map(rows.map(row => [row.livro_uid, row.saldo]));
+  }
   const sb = createClient();
   const { data } = await sb.from("vw_saldo_livro").select("livro_uid,saldo");
   const m = new Map<string, number>();
@@ -49,6 +54,7 @@ export async function listarSaldos(): Promise<Map<string, number>> {
 }
 
 export async function listarDivergenciasEstoque(): Promise<DivergenciaEstoque[]> {
+  if (await stockApiEnabled()) return stockRequest("/divergencias");
   const sb = createClient();
   const { data } = await sb
     .from("divergencia_estoque")
@@ -70,6 +76,14 @@ async function atualizarStatusDivergencia(
   syncUid: string,
   status: Exclude<StatusDivergenciaEstoque, "aberta">,
 ): Promise<{ error?: string }> {
+  try {
+    if (await stockApiEnabled()) {
+      await stockRequest(`/divergencias/${syncUid}`, "PUT", { status });
+      return {};
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Falha ao atualizar divergencia" };
+  }
   const sb = createClient();
   const { data: sessao } = await sb.auth.getUser();
   const atualizadoEm = new Date().toISOString();
@@ -93,6 +107,11 @@ export async function ignorarDivergenciaEstoque(syncUid: string): Promise<{ erro
 export type MovLedger = [number, number | null];
 
 export async function movimentosDoLivro(livroUid: string): Promise<MovLedger[]> {
+  if (await stockApiEnabled()) {
+    const rows = await stockRequest(`/livros/${livroUid}/movimentos`) as
+      { qtd: number; custo_unit_centavos: number | null }[];
+    return rows.map(row => [row.qtd, row.custo_unit_centavos]);
+  }
   const sb = createClient();
   const { data } = await sb
     .from("movimento_estoque")

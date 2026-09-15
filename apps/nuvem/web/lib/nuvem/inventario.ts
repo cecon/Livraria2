@@ -5,6 +5,7 @@
 
 import { createClient } from "@/utils/supabase/client";
 import { dominio } from "@/lib/dominio";
+import { stockApiEnabled, stockRequest } from "@/lib/api/estoque-client";
 import { operadorAtual } from "@/lib/nuvem/operador";
 import { listarLivros } from "@/lib/nuvem/livro";
 import { listarSaldos } from "@/lib/nuvem/estoque";
@@ -51,10 +52,20 @@ export async function reconciliar(
 
 // Aplica os ajustes: um movimento `contagem` por divergência ≠ 0 (qtd = diferença).
 export async function aplicarContagem(divergencias: Divergencia[]): Promise<{ error?: string; ajustes?: number }> {
+  const aplicar = divergencias.filter((d) => d.diferenca !== 0);
+  try {
+    if (await stockApiEnabled()) {
+      const result = await stockRequest("/contagens", "POST", { itens: aplicar.map(d => ({
+        sync_uid: crypto.randomUUID(), livro_uid: d.livroUid, qtd: d.diferenca,
+      })) }) as { ajustes: number };
+      return { ajustes: result.ajustes };
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Falha ao aplicar contagem" };
+  }
   const sb = createClient();
   const op = await operadorAtual();
   const agora = new Date().toISOString();
-  const aplicar = divergencias.filter((d) => d.diferenca !== 0);
   for (const d of aplicar) {
     const { error } = await sb.from("movimento_estoque").insert({
       sync_uid: crypto.randomUUID(),
