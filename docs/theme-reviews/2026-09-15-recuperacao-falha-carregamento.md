@@ -16,7 +16,7 @@
 
 ## Adaptacao
 
-O estado de falha da venda usa o painel administrativo, as cores semanticas e o componente de botao
+Os estados de falha de Venda, Turnos e Inventario usam o painel administrativo, as cores semanticas e o componente de botao
 compartilhado. O aviso possui `role="alert"`, texto persistente e comando explicito para repetir o
 carregamento. A composicao permanece em uma coluna e respeita a largura do smartphone.
 

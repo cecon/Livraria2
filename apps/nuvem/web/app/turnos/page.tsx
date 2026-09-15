@@ -10,6 +10,7 @@ import { Button } from "@livraria/ui/ui/button";
 import { Input } from "@livraria/ui/ui/input";
 import { Label } from "@livraria/ui/ui/label";
 import { FechamentoCaixa } from "@/components/FechamentoCaixa";
+import { LoadFailure } from "@/components/LoadFailure";
 import { brl, parseBRLInput } from "@/lib/brl";
 import {
   abrirTurno,
@@ -24,6 +25,7 @@ import {
 
 export default function TurnosPage() {
   const [carregando, setCarregando] = useState(true);
+  const [erroCarregamento, setErroCarregamento] = useState<string | null>(null);
   const [turno, setTurno] = useState<TurnoAberto | null>(null);
   const [resumo, setResumo] = useState<ResumoTurno | null>(null);
   const [historico, setHistorico] = useState<TurnoHistorico[]>([]);
@@ -33,13 +35,14 @@ export default function TurnosPage() {
 
   const carregar = useCallback(async () => {
     setCarregando(true);
+    setErroCarregamento(null);
     try {
       const aberto = await turnoAberto();
       setTurno(aberto);
       setResumo(aberto ? await resumoDoTurno(aberto.sync_uid, aberto.caixaInicialCentavos) : null);
       setHistorico(await listarTurnos());
-    } catch {
-      toast.error("Não foi possível carregar os turnos. Verifique o login.");
+    } catch (error) {
+      setErroCarregamento(error instanceof Error ? error.message : "Não foi possível carregar os turnos.");
     } finally {
       setCarregando(false);
     }
@@ -85,6 +88,8 @@ export default function TurnosPage() {
 
       {carregando ? (
         <p className="text-muted-foreground text-sm">Carregando…</p>
+      ) : erroCarregamento ? (
+        <LoadFailure title="Não foi possível carregar os turnos" message={erroCarregamento} onRetry={carregar} />
       ) : !turno ? (
         <div className="bg-card space-y-3 rounded-lg border p-4">
           <div className="text-sm font-medium">Nenhum turno aberto</div>
@@ -124,7 +129,7 @@ export default function TurnosPage() {
         </div>
       )}
 
-      {historico.filter((t) => t.status === "encerrado").length > 0 && (
+      {!erroCarregamento && historico.filter((t) => t.status === "encerrado").length > 0 && (
         <div className="space-y-1">
           <div className="text-muted-foreground text-xs uppercase">Turnos encerrados</div>
           {historico
