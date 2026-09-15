@@ -27,6 +27,8 @@ import {
   type NotaDetalhe,
 } from "@/lib/nuvem/lancamento";
 import { centavos, reais } from "@/utils/texto";
+import { PageHeader } from "@/components/PageHeader";
+import { ContentPanel } from "@/components/ContentPanel";
 
 const dataBr = (iso: string) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—");
 
@@ -50,37 +52,45 @@ export default function LancamentosPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-4 sm:p-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Lançamentos</h1>
-        <Button onClick={novo} className="h-9">
+    <div className="mx-auto max-w-5xl space-y-5 px-4 py-5 sm:p-6 lg:py-7">
+      <PageHeader
+        title="Lançamentos"
+        description="Notas de entrada por fornecedor, do rascunho à atualização do estoque."
+        crumbs={[{ label: "Catálogo" }, { label: "Lançamentos" }]}
+        action={<Button onClick={novo} className="h-10">
           <Plus size={16} className="mr-1" /> Novo lançamento
-        </Button>
-      </div>
-      <p className="text-muted-foreground mt-1 text-sm">Notas de entrada por fornecedor. Salve como rascunho e dê entrada quando concluir.</p>
+        </Button>}
+      />
 
-      <div className="bg-card mt-4 rounded-xl border">
+      <ContentPanel
+        title="Notas de entrada"
+        description={itens === null ? "Carregando lançamentos..." : `${itens.length} lançamento(s)`}
+        flush
+      >
         <Table className="table-fixed">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[40%]">Fornecedor</TableHead>
-              <TableHead className="w-[16%]">Data</TableHead>
-              <TableHead className="w-[16%]">Status</TableHead>
-              <TableHead className="w-[10%] text-right">Itens</TableHead>
-              <TableHead className="w-[18%] text-right">Total</TableHead>
+              <TableHead>Fornecedor</TableHead>
+              <TableHead className="hidden w-[16%] sm:table-cell">Data</TableHead>
+              <TableHead className="w-[84px]">Status</TableHead>
+              <TableHead className="hidden w-[10%] text-right lg:table-cell">Itens</TableHead>
+              <TableHead className="w-[88px] text-right sm:w-[18%]">Total</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {(itens ?? []).map((l) => (
               <TableRow key={l.sync_uid} className="cursor-pointer" onClick={() => setEditorUid(l.sync_uid)}>
-                <TableCell className="truncate">{l.fornecedorNome ?? "—"}</TableCell>
-                <TableCell>{dataBr(l.data)}</TableCell>
+                <TableCell>
+                  <div className="truncate">{l.fornecedorNome ?? "—"}</div>
+                  <div className="text-[11px] text-muted-foreground sm:hidden">{dataBr(l.data)} · {l.qtdItens} item(ns)</div>
+                </TableCell>
+                <TableCell className="hidden sm:table-cell">{dataBr(l.data)}</TableCell>
                 <TableCell>
                   <span className={`rounded px-2 py-0.5 text-[11px] ${l.status === "finalizada" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : l.status === "cancelada" ? "bg-muted text-muted-foreground line-through" : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"}`}>
                     {l.status === "finalizada" ? "Finalizada" : l.status === "cancelada" ? "Cancelada" : "Rascunho"}
                   </span>
                 </TableCell>
-                <TableCell className="text-right font-mono">{l.qtdItens}</TableCell>
+                <TableCell className="hidden text-right font-mono lg:table-cell">{l.qtdItens}</TableCell>
                 <TableCell className="text-right font-mono">{reais(l.totalCentavos)}</TableCell>
               </TableRow>
             ))}
@@ -91,7 +101,7 @@ export default function LancamentosPage() {
             )}
           </TableBody>
         </Table>
-      </div>
+      </ContentPanel>
     </div>
   );
 }
@@ -185,15 +195,16 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
   if (!nota) return null;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-4 sm:p-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {nota.status === "rascunho" ? "Lançamento (rascunho)" : nota.status === "cancelada" ? "Nota (cancelada)" : "Nota (finalizada)"}
-        </h1>
-        <Button variant="ghost" onClick={onFechar}>← Voltar</Button>
-      </div>
+    <div className="mx-auto max-w-4xl space-y-5 px-4 py-5 sm:p-6 lg:py-7">
+      <PageHeader
+        title={nota.status === "rascunho" ? "Lançamento em rascunho" : nota.status === "cancelada" ? "Nota cancelada" : "Nota finalizada"}
+        description="Confira fornecedor, identificação da nota e itens recebidos."
+        crumbs={[{ label: "Lançamentos", onClick: onFechar }, { label: nota.status === "rascunho" ? "Rascunho" : "Detalhes" }]}
+        back={{ label: "Voltar para lançamentos", onClick: onFechar }}
+      />
 
-      <div className="bg-card mt-4 grid grid-cols-1 gap-4 rounded-xl border p-5 sm:grid-cols-2">
+      <ContentPanel title="Dados da nota">
+        <div className="admin-form grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label>Fornecedor</Label>
           {lendo ? (
@@ -203,8 +214,9 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
           )}
         </div>
         <div>
-          <Label>Número da nota (opcional)</Label>
+          <Label htmlFor="numero-nota">Número da nota (opcional)</Label>
           <Input
+            id="numero-nota"
             value={nota.numero ?? ""}
             disabled={lendo}
             onChange={(e) => setNota({ ...nota, numero: e.currentTarget.value })}
@@ -212,11 +224,12 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
             className="mt-1 h-9"
           />
         </div>
-      </div>
+        </div>
+      </ContentPanel>
 
       {!lendo && (
-        <div className="bg-card mt-4 rounded-xl border p-5">
-          <Label>Adicionar item</Label>
+        <ContentPanel title="Adicionar item" description="Leia o código ou pesquise um livro do catálogo.">
+          <div className="admin-form">
           <div className="mt-1">
             <EntradaProduto value={busca} onChange={setBusca} inputRef={codigoRef} livros={livros} onCodigoExato={resolverCodigo} onSelecionar={escolherLivro} />
           </div>
@@ -230,7 +243,7 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
                 <span className="text-muted-foreground text-[11px]">Qtd</span>
                 <Input value={qtd} onChange={(e) => setQtd(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && custoRef.current?.focus()} inputMode="numeric" className="h-9 text-center font-mono" />
               </div>
-              <select value={modoCusto} onChange={(e) => setModoCusto(e.currentTarget.value as "unit" | "total")} className="border-input bg-background h-9 rounded-md border px-2 text-sm">
+              <select aria-label="Tipo do custo" value={modoCusto} onChange={(e) => setModoCusto(e.currentTarget.value as "unit" | "total")} className="border-input bg-background h-10 rounded-md border px-2 text-sm">
                 <option value="unit">Unit.</option>
                 <option value="total">Total</option>
               </select>
@@ -241,17 +254,18 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
               <Button onClick={adicionar} className="h-9">Adicionar</Button>
             </div>
           )}
-        </div>
+          </div>
+        </ContentPanel>
       )}
 
       <ItensNotaTabela itens={nota.itens} lendo={lendo} onRemover={remover} />
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="admin-panel flex flex-wrap items-center justify-between gap-3 border bg-card p-4">
         <span className="font-mono text-lg font-bold">Total: {reais(nota.totalCentavos)}</span>
         {nota.status === "rascunho" && (
           <div className="flex flex-wrap gap-2">
             <Button variant="ghost" onClick={excluir} className="text-rose-500 hover:text-rose-600">Excluir rascunho</Button>
-            <Button onClick={darEntrada} className="bg-[#1f7a4d] text-white hover:bg-[#1a6a43]">Dar entrada</Button>
+            <Button onClick={darEntrada}>Dar entrada</Button>
           </div>
         )}
         {nota.status === "finalizada" && (

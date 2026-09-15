@@ -20,9 +20,9 @@ export function Shell({ children, usuario }: ShellProps) {
   if (SEM_CASCA.some((p) => pathname.startsWith(p))) return <>{children}</>;
 
   return (
-    <div className="min-h-screen bg-background text-foreground md:flex md:items-stretch">
+    <div className="min-h-screen bg-background text-foreground">
       <AppSidebar open={navOpen} onClose={() => setNavOpen(false)} />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-screen min-w-0 flex-col md:ml-64">
         <Header usuario={usuario} onMenu={() => setNavOpen(true)} />
         <div className="admin-content min-w-0 flex-1">{children}</div>
       </div>

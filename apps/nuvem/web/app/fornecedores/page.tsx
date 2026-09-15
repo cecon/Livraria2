@@ -2,13 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@livraria/ui/ui/button";
 import { Input } from "@livraria/ui/ui/input";
 import { Label } from "@livraria/ui/ui/label";
 import { Textarea } from "@livraria/ui/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@livraria/ui/ui/table";
 import { listarFornecedores, salvarFornecedor, inativarFornecedor, type Fornecedor } from "@/lib/nuvem/fornecedor";
+import { PageHeader } from "@/components/PageHeader";
+import { ContentPanel } from "@/components/ContentPanel";
 
 const POR_PAGINA = 12;
 
@@ -55,32 +57,50 @@ export default function FornecedoresPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-4 sm:p-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Fornecedores</h1>
-        <Button onClick={() => setAberto("novo")} className="h-9">
+    <div className="mx-auto max-w-5xl space-y-5 px-4 py-5 sm:p-6 lg:py-7">
+      <PageHeader
+        title="Fornecedores"
+        description="Empresas e pessoas vinculadas aos lançamentos de entrada."
+        crumbs={[{ label: "Catálogo" }, { label: "Fornecedores" }]}
+        action={<Button onClick={() => setAberto("novo")} className="h-10">
           <Plus size={16} className="mr-1" /> Novo fornecedor
-        </Button>
-      </div>
-
-      <Input
-        value={termo}
-        onChange={(e) => {
-          setTermo(e.currentTarget.value);
-          setPagina(1);
-        }}
-        className="mt-4 h-9"
-        placeholder="Buscar por nome…"
-        autoFocus
+        </Button>}
       />
 
-      <div className="bg-card mt-4 rounded-xl border">
+      <ContentPanel
+        title="Fornecedores cadastrados"
+        description={lista === null ? "Carregando fornecedores..." : `${filtrados.length} fornecedor(es) encontrado(s)`}
+        toolbar={
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground" />
+            <Input
+              aria-label="Buscar fornecedores"
+              value={termo}
+              onChange={(e) => {
+                setTermo(e.currentTarget.value);
+                setPagina(1);
+              }}
+              className="h-10 w-full pl-9 sm:w-72"
+              placeholder="Nome ou documento"
+              autoFocus
+            />
+          </div>
+        }
+        flush
+        footer={filtrados.length > POR_PAGINA ? (
+          <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+            <Button aria-label="Página anterior" title="Página anterior" variant="outline" size="icon-sm" disabled={pagina <= 1} onClick={() => setPagina((p) => p - 1)}><ChevronLeft /></Button>
+            <span className="tabular-nums">{pagina} / {totalPaginas}</span>
+            <Button aria-label="Próxima página" title="Próxima página" variant="outline" size="icon-sm" disabled={pagina >= totalPaginas} onClick={() => setPagina((p) => p + 1)}><ChevronRight /></Button>
+          </div>
+        ) : undefined}
+      >
         <Table className="table-fixed">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[55%]">Fornecedor</TableHead>
-              <TableHead className="w-[28%]">Telefone</TableHead>
-              <TableHead className="w-[17%] text-right">Ações</TableHead>
+              <TableHead>Fornecedor</TableHead>
+              <TableHead className="hidden w-[28%] sm:table-cell">Telefone</TableHead>
+              <TableHead className="w-[84px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -89,14 +109,15 @@ export default function FornecedoresPage() {
                 <TableCell>
                   <div className="truncate font-medium">{f.nome}</div>
                   {f.documento && <div className="text-muted-foreground truncate text-[11px] font-mono">{f.documento}</div>}
+                  <div className="truncate text-[11px] text-muted-foreground sm:hidden">{f.telefone ?? "Sem telefone"}</div>
                 </TableCell>
-                <TableCell className="truncate">{f.telefone ?? "—"}</TableCell>
+                <TableCell className="hidden truncate sm:table-cell">{f.telefone ?? "—"}</TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => setAberto(f)} title="Editar">
+                    <Button variant="ghost" size="icon" onClick={() => setAberto(f)} title="Editar" aria-label={`Editar ${f.nome}`}>
                       <Pencil size={15} />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => remover(f)} title="Inativar" className="text-rose-500 hover:text-rose-600">
+                    <Button variant="ghost" size="icon" onClick={() => remover(f)} title="Inativar" aria-label={`Inativar ${f.nome}`} className="text-rose-500 hover:text-rose-600">
                       <Trash2 size={15} />
                     </Button>
                   </div>
@@ -112,15 +133,7 @@ export default function FornecedoresPage() {
             )}
           </TableBody>
         </Table>
-      </div>
-
-      {filtrados.length > POR_PAGINA && (
-        <div className="text-muted-foreground mt-3 flex items-center justify-end gap-2 text-sm">
-          <Button variant="outline" size="sm" disabled={pagina <= 1} onClick={() => setPagina((p) => p - 1)}>‹</Button>
-          <span className="tabular-nums">{pagina} / {totalPaginas}</span>
-          <Button variant="outline" size="sm" disabled={pagina >= totalPaginas} onClick={() => setPagina((p) => p + 1)}>›</Button>
-        </div>
-      )}
+      </ContentPanel>
     </div>
   );
 }
@@ -155,9 +168,15 @@ function FornecedorForm({ inicial, onSalvo, onCancelar }: { inicial: Fornecedor 
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-4 sm:p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{editando ? "Alterar fornecedor" : "Novo fornecedor"}</h1>
-      <div className="bg-card mt-4 space-y-4 rounded-xl border p-5">
+    <div className="mx-auto max-w-3xl space-y-5 px-4 py-5 sm:p-6 lg:py-7">
+      <PageHeader
+        title={editando ? "Alterar fornecedor" : "Novo fornecedor"}
+        description="Dados de identificação e contato usados nos lançamentos."
+        crumbs={[{ label: "Fornecedores", onClick: onCancelar }, { label: editando ? "Alterar" : "Novo" }]}
+        back={{ label: "Voltar para fornecedores", onClick: onCancelar }}
+      />
+      <ContentPanel title="Dados do fornecedor">
+        <div className="admin-form space-y-4">
         <div>
           <Label htmlFor="nome">Nome</Label>
           <Input id="nome" value={form.nome} autoFocus onChange={(e) => setForm({ ...form, nome: e.currentTarget.value })} className="mt-1 h-9" />
@@ -181,12 +200,13 @@ function FornecedorForm({ inicial, onSalvo, onCancelar }: { inicial: Fornecedor 
           <Textarea id="obs" value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.currentTarget.value })} className="mt-1" />
         </div>
         <div className="flex flex-wrap gap-2 pt-2">
-          <Button onClick={salvar} disabled={salvando} className="h-9 bg-[#1f7a4d] text-white hover:bg-[#1a6a43]">
+          <Button onClick={salvar} disabled={salvando} className="h-10">
             {editando ? "Alterar" : "Cadastrar"}
           </Button>
-          <Button variant="outline" onClick={onCancelar} className="h-9 sm:ml-auto">Cancelar</Button>
+          <Button variant="outline" onClick={onCancelar} className="h-10 sm:ml-auto">Cancelar</Button>
         </div>
-      </div>
+        </div>
+      </ContentPanel>
     </div>
   );
 }
