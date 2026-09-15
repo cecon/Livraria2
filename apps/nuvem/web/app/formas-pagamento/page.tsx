@@ -62,8 +62,8 @@ export default function FormasPagamentoPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-6">
-      <div className="flex items-end justify-between">
+    <div className="mx-auto max-w-2xl space-y-4 px-4 py-4 sm:p-6">
+      <div className="flex items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Formas de pagamento</h1>
           <p className="text-muted-foreground text-sm">
@@ -98,7 +98,7 @@ export default function FormasPagamentoPage() {
       ) : (
         <div className="space-y-1">
           {formas.map((f, i) => (
-            <div key={f.sync_uid} className={`bg-card flex items-center gap-2 rounded-lg border p-2 text-sm ${f.ativa ? "" : "opacity-60"}`}>
+            <div key={f.sync_uid} className={`bg-card flex flex-wrap items-center gap-2 rounded-lg border p-2 text-sm ${f.ativa ? "" : "opacity-60"}`}>
               <div className="flex flex-col">
                 <Button variant="ghost" size="icon" className="h-5 w-6" disabled={i === 0} title="Mover para cima" onClick={() => mover(i, -1)}>
                   <ArrowUp size={13} />
@@ -155,7 +155,7 @@ function FormaForm({ forma, proximaOrdem, onSalvo, onCancelar }: { forma: Forma 
         <Input id="rotulo-forma" value={rotulo} onChange={(e) => setRotulo(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && salvar()} placeholder="Ex.: Boleto" className="mt-1 h-9" autoFocus />
         {forma?.de_sistema && <p className="text-muted-foreground mt-1 text-[11px]">Forma de sistema: pode ser renomeada, mas não excluída nem desativada.</p>}
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button onClick={salvar} disabled={ocupado} className="h-9">{forma ? "Renomear" : "Criar"}</Button>
         <Button variant="ghost" onClick={onCancelar} className="h-9">Cancelar</Button>
       </div>

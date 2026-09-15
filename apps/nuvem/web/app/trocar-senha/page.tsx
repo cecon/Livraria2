@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@livraria/ui/ui/button";
+import { Input } from "@livraria/ui/ui/input";
+import { Label } from "@livraria/ui/ui/label";
 import { createClient } from "@/utils/supabase/client";
 
-// Troca de senha obrigatória no primeiro acesso (senha temporária). O middleware
-// força a vinda pra cá enquanto user_metadata.must_change_password for true; ao
-// gravar a nova senha limpamos a flag e liberamos o app.
 export default function TrocarSenhaPage() {
   const router = useRouter();
   const [senha, setSenha] = useState("");
@@ -22,7 +22,7 @@ export default function TrocarSenhaPage() {
       return;
     }
     if (senha !== confirma) {
-      setErro("As senhas não conferem.");
+      setErro("As senhas nao conferem.");
       return;
     }
     setCarregando(true);
@@ -33,7 +33,7 @@ export default function TrocarSenhaPage() {
     });
     setCarregando(false);
     if (error) {
-      setErro(error.message || "Não foi possível trocar a senha.");
+      setErro(error.message || "Nao foi possivel trocar a senha.");
       return;
     }
     router.replace("/");
@@ -41,32 +41,24 @@ export default function TrocarSenhaPage() {
   }
 
   return (
-    <main>
-      <h1>Definir nova senha</h1>
-      <p>Por segurança, troque a senha temporária antes de continuar.</p>
-      <form onSubmit={trocar}>
-        <label htmlFor="senha">Nova senha</label>
-        <input
-          id="senha"
-          type="password"
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          minLength={8}
-          required
-        />
-        <label htmlFor="confirma">Confirmar senha</label>
-        <input
-          id="confirma"
-          type="password"
-          value={confirma}
-          onChange={(e) => setConfirma(e.target.value)}
-          minLength={8}
-          required
-        />
-        {erro && <p className="erro">{erro}</p>}
-        <button type="submit" disabled={carregando}>
-          {carregando ? "Salvando…" : "Salvar e continuar"}
-        </button>
+    <main className="grid min-h-dvh place-items-center px-4 py-8">
+      <form onSubmit={trocar} className="w-full max-w-sm rounded-xl border bg-card p-5 shadow-sm sm:p-6">
+        <h1 className="text-xl font-semibold">Definir nova senha</h1>
+        <p className="mb-6 mt-1 text-sm text-muted-foreground">Por seguranca, troque a senha temporaria antes de continuar.</p>
+        <div className="space-y-4">
+          <div className="grid gap-1.5">
+            <Label htmlFor="senha">Nova senha</Label>
+            <Input id="senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} minLength={8} required />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="confirma">Confirmar senha</Label>
+            <Input id="confirma" type="password" value={confirma} onChange={(e) => setConfirma(e.target.value)} minLength={8} required />
+          </div>
+          {erro && <p className="text-sm text-destructive">{erro}</p>}
+          <Button type="submit" disabled={carregando} className="w-full">
+            {carregando ? "Salvando..." : "Salvar e continuar"}
+          </Button>
+        </div>
       </form>
     </main>
   );

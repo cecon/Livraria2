@@ -51,7 +51,7 @@ export function RevisaoContagem({
           </table>
         </div>
       )}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button onClick={onAplicar} disabled={ocupado || comDiferenca.length === 0} className="h-9">
           Aplicar ajustes
         </Button>

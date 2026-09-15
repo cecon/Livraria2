@@ -72,7 +72,7 @@ export default function TurnosPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-6">
+    <div className="mx-auto max-w-2xl space-y-4 px-4 py-4 sm:p-6">
       <div>
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
           <Clock size={20} /> Turno de operação
@@ -108,16 +108,16 @@ export default function TurnosPage() {
         <FechamentoCaixa resumo={resumo} ocupado={ocupado} onConfirmar={encerrar} onCancelar={() => setEncerrando(false)} />
       ) : (
         <div className="bg-card space-y-3 rounded-lg border p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div className="text-sm font-medium">Turno aberto</div>
             <span className="text-muted-foreground text-xs">desde {new Date(turno.abertura).toLocaleString("pt-BR")}</span>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
             <Resumo rotulo="Caixa inicial" valor={brl(turno.caixaInicialCentavos)} />
             <Resumo rotulo="Vendas no turno" valor={String(resumo?.qtdVendas ?? 0)} />
             <Resumo rotulo="Dinheiro esperado" valor={brl(resumo?.esperadoDinheiroCentavos ?? turno.caixaInicialCentavos)} />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button onClick={() => setEncerrando(true)} className="h-9">Encerrar turno</Button>
             <Button variant="ghost" onClick={carregar} className="h-9">Atualizar</Button>
           </div>
@@ -130,7 +130,7 @@ export default function TurnosPage() {
           {historico
             .filter((t) => t.status === "encerrado")
             .map((t) => (
-              <div key={t.sync_uid} className="bg-card flex items-center justify-between rounded-lg border p-2 text-sm">
+              <div key={t.sync_uid} className="bg-card flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2 text-sm">
                 <span className="text-muted-foreground">{new Date(t.abertura).toLocaleDateString("pt-BR")}</span>
                 <span className="tabular-nums">esperado {brl(t.esperadoCentavos ?? 0)}</span>
                 <span className={`tabular-nums ${(t.diferencaCentavos ?? 0) === 0 ? "text-emerald-600" : "text-amber-600"}`}>

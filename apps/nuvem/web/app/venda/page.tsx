@@ -102,7 +102,7 @@ export default function VendaPage() {
 
   if (!turno) {
     return (
-      <div className="mx-auto max-w-md p-6">
+      <div className="mx-auto max-w-md px-4 py-4 sm:p-6">
         <div className="bg-card space-y-3 rounded-lg border p-6 text-center">
           <Clock className="text-muted-foreground mx-auto" size={40} />
           <div className="font-medium">Nenhum turno aberto</div>
@@ -117,19 +117,19 @@ export default function VendaPage() {
 
   if (concluida) {
     return (
-      <div className="p-6">
+      <div className="px-4 py-4 sm:p-6">
         <VendaConcluida resultado={concluida} onNova={novaVenda} />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4 p-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-5xl space-y-4 px-4 py-4 sm:p-6">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
           <ShoppingCart size={20} /> Venda
         </h1>
-        <div className="flex gap-1 text-sm">
+        <div className="flex flex-wrap gap-1 text-sm">
           <Aba ativa={aba === "venda"} onClick={() => setAba("venda")}>Venda</Aba>
           <Aba ativa={aba === "lista"} onClick={() => { setAba("lista"); listarVendasDoDia().then(setVendasDia); }}>Lista de vendas</Aba>
         </div>
@@ -170,7 +170,7 @@ function ListaVendas({ vendas }: { vendas: VendaResumo[] }) {
   return (
     <div className="bg-card divide-y rounded-lg border">
       {vendas.map((v) => (
-        <div key={v.sync_uid} className={`flex items-center justify-between p-2 text-sm ${v.cancelado ? "opacity-50 line-through" : ""}`}>
+        <div key={v.sync_uid} className={`flex flex-wrap items-center justify-between gap-2 p-2 text-sm ${v.cancelado ? "opacity-50 line-through" : ""}`}>
           <span className="text-muted-foreground">Nº {v.numeroNoTurno ?? v.numero}</span>
           <span className="flex-1 px-3 truncate">{v.cliente}</span>
           <span className="tabular-nums font-medium">{reais(v.totalCentavos)}</span>

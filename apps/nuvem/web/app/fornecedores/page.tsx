@@ -55,8 +55,8 @@ export default function FornecedoresPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-3xl px-4 py-4 sm:p-6">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Fornecedores</h1>
         <Button onClick={() => setAberto("novo")} className="h-9">
           <Plus size={16} className="mr-1" /> Novo fornecedor
@@ -155,14 +155,14 @@ function FornecedorForm({ inicial, onSalvo, onCancelar }: { inicial: Fornecedor 
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="mx-auto max-w-2xl px-4 py-4 sm:p-6">
       <h1 className="text-2xl font-semibold tracking-tight">{editando ? "Alterar fornecedor" : "Novo fornecedor"}</h1>
       <div className="bg-card mt-4 space-y-4 rounded-xl border p-5">
         <div>
           <Label htmlFor="nome">Nome</Label>
           <Input id="nome" value={form.nome} autoFocus onChange={(e) => setForm({ ...form, nome: e.currentTarget.value })} className="mt-1 h-9" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="doc">Documento (CNPJ/CPF)</Label>
             <Input id="doc" value={form.documento ?? ""} onChange={(e) => setForm({ ...form, documento: e.currentTarget.value })} className="mt-1 h-9 font-mono" placeholder="opcional" />
@@ -180,11 +180,11 @@ function FornecedorForm({ inicial, onSalvo, onCancelar }: { inicial: Fornecedor 
           <Label htmlFor="obs">Observações</Label>
           <Textarea id="obs" value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.currentTarget.value })} className="mt-1" />
         </div>
-        <div className="flex gap-2 pt-2">
+        <div className="flex flex-wrap gap-2 pt-2">
           <Button onClick={salvar} disabled={salvando} className="h-9 bg-[#1f7a4d] text-white hover:bg-[#1a6a43]">
             {editando ? "Alterar" : "Cadastrar"}
           </Button>
-          <Button variant="outline" onClick={onCancelar} className="ml-auto h-9">Cancelar</Button>
+          <Button variant="outline" onClick={onCancelar} className="h-9 sm:ml-auto">Cancelar</Button>
         </div>
       </div>
     </div>

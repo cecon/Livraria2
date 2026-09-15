@@ -34,7 +34,7 @@ export default function PdvsPage() {
   }, []);
   useEffect(() => { void carregar(); }, [carregar]);
 
-  return <div className="mx-auto max-w-4xl space-y-4 p-6">
+  return <div className="mx-auto max-w-4xl space-y-4 px-4 py-4 sm:p-6">
     <div className="flex items-center justify-between gap-3">
       <div><h1 className="text-xl font-semibold">Caixas sincronizados</h1>
         <p className="text-sm text-muted-foreground">Confirmação das alterações de catálogo por PDV.</p></div>

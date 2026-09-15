@@ -111,7 +111,7 @@ export default function InventarioPage() {
   if (carregando) return <div className="p-6 text-muted-foreground text-sm">Carregando…</div>;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 p-6">
+    <div className="mx-auto max-w-3xl space-y-4 px-4 py-4 sm:p-6">
       <div>
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
           <ClipboardList size={20} /> Inventário
@@ -138,7 +138,7 @@ export default function InventarioPage() {
             onQtd={qtd}
             onRemover={remover}
           />
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Button onClick={fechar} disabled={ocupado} className="h-9">
               Fechar sessão e revisar
             </Button>

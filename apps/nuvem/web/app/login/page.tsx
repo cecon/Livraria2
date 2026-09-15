@@ -35,9 +35,11 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto max-w-sm px-4 py-16">
-      <h1 className="mb-6 text-xl font-semibold">Entrar — Escritório</h1>
-      <form onSubmit={entrar} className="flex flex-col gap-4">
+    <main className="grid min-h-dvh place-items-center px-4 py-8">
+      <form onSubmit={entrar} className="w-full max-w-sm rounded-xl border bg-card p-5 shadow-sm sm:p-6">
+        <h1 className="text-xl font-semibold">Entrar - Escritório</h1>
+        <p className="mb-6 mt-1 text-sm text-muted-foreground">Acesse a retaguarda da livraria.</p>
+        <div className="flex flex-col gap-4">
         <div className="grid gap-1.5">
           <Label htmlFor="usuario">Usuário</Label>
           <Input id="usuario" type="text" autoComplete="username" autoCapitalize="none" value={usuario}
@@ -48,9 +50,10 @@ export default function LoginPage() {
           <Input id="senha" type="password" autoComplete="current-password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
         </div>
         {erro && <p className="text-sm text-destructive">{erro}</p>}
-        <Button type="submit" disabled={carregando}>
+        <Button type="submit" disabled={carregando} className="w-full">
           {carregando ? "Entrando…" : "Entrar"}
         </Button>
+        </div>
       </form>
     </main>
   );

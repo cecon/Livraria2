@@ -34,5 +34,5 @@
 - [x] T017d Migrar gestao de usuarios e destinacoes para a API experimental.
 - [x] T017e Migrar estoque, inventario, entradas, turnos, vendas e relatorios administrativos.
 - [x] T018 Exibir confirmacao de alteracoes por caixa.
-- [ ] T019 Integrar alteracoes mobile preservadas no worktree original.
+- [x] T019 Integrar alteracoes mobile preservadas no worktree original.
 - [ ] T020 Ativar gradualmente com rollback e remover acesso direto legado.

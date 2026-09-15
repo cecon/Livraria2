@@ -51,7 +51,7 @@ export default function DivergenciasEstoquePage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4 p-6">
+    <div className="mx-auto max-w-5xl space-y-4 px-4 py-4 sm:p-6">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
@@ -67,7 +67,7 @@ export default function DivergenciasEstoquePage() {
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-lg border">
+      <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-muted-foreground">
             <tr>
@@ -90,7 +90,7 @@ export default function DivergenciasEstoquePage() {
                   {d.criado_em.slice(0, 10).split("-").reverse().join("/")}
                 </td>
                 <td className="p-2">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-wrap justify-end gap-2">
                     <Button
                       variant="outline"
                       size="sm"

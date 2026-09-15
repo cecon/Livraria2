@@ -18,7 +18,7 @@ export function ExtratoMovimentos({ livroUid, refresh }: { livroUid: string; ref
   return (
     <div className="mt-5">
       <h2 className="mb-2 text-sm font-medium">Extrato de movimentação</h2>
-      <div className="overflow-hidden rounded-lg border">
+      <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-muted-foreground">
             <tr>

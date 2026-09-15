@@ -35,7 +35,7 @@ export function FechamentoCaixa({
           <p className="text-muted-foreground text-sm">Nenhuma venda no turno.</p>
         ) : (
           resumo.porForma.map((f) => (
-            <div key={f.rotulo} className="flex justify-between text-sm">
+            <div key={f.rotulo} className="flex flex-wrap justify-between gap-2 text-sm">
               <span>{f.rotulo}</span>
               <span className="tabular-nums">{brl(f.centavos)}</span>
             </div>
@@ -48,7 +48,7 @@ export function FechamentoCaixa({
       </div>
 
       <div className="space-y-2 border-t pt-3">
-        <div className="flex justify-between text-sm">
+        <div className="flex flex-wrap justify-between gap-2 text-sm">
           <span className="text-muted-foreground">Dinheiro esperado (caixa inicial + vendas em dinheiro)</span>
           <span className="tabular-nums font-medium">{brl(resumo.esperadoDinheiroCentavos)}</span>
         </div>
@@ -72,7 +72,7 @@ export function FechamentoCaixa({
         )}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button onClick={() => onConfirmar(conferidoCentavos)} disabled={ocupado} className="h-9">
           Encerrar turno
         </Button>

@@ -35,7 +35,7 @@ export function ContagemInventario({
 }) {
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-muted-foreground">Modo:</span>
         <div className="flex gap-1">
           <ModoBtn ativo={modo === "parcial"} onClick={() => onModo("parcial")}>Parcial</ModoBtn>
@@ -54,7 +54,7 @@ export function ContagemInventario({
         ) : (
           <div className="divide-y">
             {itens.map((it) => (
-              <div key={it.livroUid} className="flex items-center gap-2 py-2">
+              <div key={it.livroUid} className="flex flex-wrap items-center gap-2 py-2">
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm">{it.titulo}</div>
                   <div className="text-muted-foreground truncate font-mono text-[11px]">{it.codigo}</div>

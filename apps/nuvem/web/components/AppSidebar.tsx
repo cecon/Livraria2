@@ -4,12 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { MonitorCheck, Moon, Sun, Users } from "lucide-react";
+import { MonitorCheck, Moon, Sun, Users, X } from "lucide-react";
 import { NAV_ITENS } from "@livraria/ui/nav";
 
 // Barra lateral do Escritório — MESMA aparência/itens do PDV (fonte única: @livraria/ui/nav),
 // com navegação do Next (next/link + usePathname) e tema via next-themes.
-export function AppSidebar() {
+export function AppSidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -17,36 +17,40 @@ export function AppSidebar() {
   const dark = mounted && resolvedTheme === "dark";
 
   return (
-    <aside className="flex min-h-screen w-64 shrink-0 flex-col self-stretch bg-zinc-900 text-zinc-100">
+    <>
+      {open && <button type="button" aria-label="Fechar menu" className="fixed inset-0 z-30 bg-black/45 md:hidden" onClick={onClose} />}
+      <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[86vw] shrink-0 flex-col bg-zinc-900 text-zinc-100 transition-transform md:sticky md:top-0 md:z-auto md:min-h-screen md:w-64 md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
       <div className="flex items-center gap-2 px-5 py-4">
         <div className="grid h-8 w-8 place-items-center rounded-md bg-[#1f7a4d] text-sm font-bold text-white">
           EL
         </div>
-        <div className="leading-tight">
-          <div className="text-sm font-semibold">Espaço do Livro</div>
-          <div className="text-[11px] text-zinc-400">Escritório</div>
+        <div className="min-w-0 flex-1 leading-tight">
+          <div className="truncate text-sm font-semibold">Espaço do Livro</div>
+          <div className="truncate text-[11px] text-zinc-400">Escritório</div>
         </div>
+        <button type="button" aria-label="Fechar menu" onClick={onClose} className="grid size-8 place-items-center rounded-md text-zinc-300 hover:bg-zinc-800 md:hidden"><X size={18} /></button>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-2">
         {NAV_ITENS.map(({ to, rotulo, Icon, end }) => {
           const active = end ? pathname === to : pathname.startsWith(to);
           return (
             <Link
               key={to}
               href={to}
+              onClick={onClose}
               className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                 active ? "bg-zinc-800 text-white" : "text-zinc-300 hover:bg-zinc-800/60"
               }`}
             >
               <Icon size={18} />
-              {rotulo}
+              <span className="truncate">{rotulo}</span>
             </Link>
           );
         })}
       </nav>
 
-      <Link href="/pdvs" className={`mx-3 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+      <Link href="/pdvs" onClick={onClose} className={`mx-3 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
         pathname.startsWith("/pdvs") ? "bg-zinc-800 text-white" : "text-zinc-300 hover:bg-zinc-800/60"
       }`}>
         <MonitorCheck size={18} /> Caixas
@@ -55,6 +59,7 @@ export function AppSidebar() {
       {/* Só do Escritório (não entra no nav compartilhado do PDV) — gestão de usuários (feature 010). */}
       <Link
         href="/usuarios"
+        onClick={onClose}
         className={`mx-3 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
           pathname.startsWith("/usuarios")
             ? "bg-zinc-800 text-white"
@@ -72,6 +77,7 @@ export function AppSidebar() {
         {dark ? <Sun size={18} /> : <Moon size={18} />}
         {dark ? "Tema claro" : "Tema escuro"}
       </button>
-    </aside>
+      </aside>
+    </>
   );
 }

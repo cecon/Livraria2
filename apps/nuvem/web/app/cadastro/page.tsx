@@ -67,8 +67,8 @@ export default function CadastroPage() {
 
   // ---- Tela de lista ----
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-4xl px-4 py-4 sm:p-6">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Cadastro</h1>
         <Button onClick={() => setAberto("novo")} className="h-9">
           <Plus size={16} className="mr-1" /> Novo livro
@@ -193,7 +193,7 @@ function LivroForm({ inicial, onSalvo, onCancelar }: { inicial: Livro | null; on
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="mx-auto max-w-2xl px-4 py-4 sm:p-6">
       <h1 className="text-2xl font-semibold tracking-tight">{editando ? "Alterar livro" : "Novo livro"}</h1>
 
       <div className="bg-card mt-4 space-y-4 rounded-xl border p-5">
@@ -209,7 +209,7 @@ function LivroForm({ inicial, onSalvo, onCancelar }: { inicial: Livro | null; on
           <Label htmlFor="aut">Autor</Label>
           <Input id="aut" value={form.autor ?? ""} onChange={(e) => setForm({ ...form, autor: e.currentTarget.value.toUpperCase() })} className="mt-1 h-9" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="val">Valor (R$)</Label>
             <Input id="val" value={form.valor} inputMode="decimal" placeholder="0,00" onChange={(e) => setForm({ ...form, valor: e.currentTarget.value })} className="mt-1 h-9 font-mono" />
@@ -239,11 +239,11 @@ function LivroForm({ inicial, onSalvo, onCancelar }: { inicial: Livro | null; on
           <Textarea id="desc" value={form.descricao ?? ""} onChange={(e) => setForm({ ...form, descricao: e.currentTarget.value })} className="mt-1" />
         </div>
 
-        <div className="flex gap-2 pt-2">
+        <div className="flex flex-wrap gap-2 pt-2">
           <Button onClick={salvar} disabled={salvando} className="h-9 bg-[#1f7a4d] text-white hover:bg-[#1a6a43]">
             {editando ? "Alterar" : "Cadastrar"}
           </Button>
-          <Button variant="outline" onClick={onCancelar} className="ml-auto h-9">
+          <Button variant="outline" onClick={onCancelar} className="h-9 sm:ml-auto">
             Cancelar
           </Button>
         </div>

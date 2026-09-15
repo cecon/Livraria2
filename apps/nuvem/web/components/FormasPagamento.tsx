@@ -26,8 +26,8 @@ export function FormasPagamento({
     <div className="space-y-3">
       <div className="space-y-2">
         {formas.map((f) => (
-          <div key={f.sync_uid} className="flex items-center gap-2">
-            <span className="w-32 text-sm">{f.rotulo}</span>
+          <div key={f.sync_uid} className="grid gap-1 sm:grid-cols-[8rem_1fr] sm:items-center sm:gap-2">
+            <span className="text-sm sm:w-32">{f.rotulo}</span>
             <Input
               value={valores.get(f.sync_uid) ?? ""}
               onChange={(e) => onValor(f.sync_uid, e.currentTarget.value)}

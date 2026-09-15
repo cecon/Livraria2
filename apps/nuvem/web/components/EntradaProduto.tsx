@@ -73,8 +73,10 @@ export function EntradaProduto({ value, onChange, onSelecionar, onCodigoExato, i
                   <span className="font-mono">{l.codigo}</span>
                 </div>
               </div>
-              <StockBadge estoque={l.estoque} />
-              <span className="font-mono text-sm">{reais(l.preco_centavos)}</span>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <StockBadge estoque={l.estoque} />
+                <span className="font-mono text-sm">{reais(l.preco_centavos)}</span>
+              </div>
             </button>
           ))}
         </div>

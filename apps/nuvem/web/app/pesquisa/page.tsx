@@ -71,13 +71,13 @@ export default function PesquisaPage() {
   if (detalhe) {
     const cat = CATEGORIAS.find((c) => c.id === detalhe.categoria);
     return (
-      <div className="mx-auto max-w-2xl p-6">
+      <div className="mx-auto max-w-2xl px-4 py-4 sm:p-6">
         {resultados && (
           <Button variant="ghost" onClick={() => setDetalhe(null)} className="mb-3">
             ← Voltar aos resultados
           </Button>
         )}
-        <div className="bg-card flex gap-5 rounded-xl border p-5">
+        <div className="bg-card flex flex-col gap-5 rounded-xl border p-5 sm:flex-row">
           <Cover titulo={detalhe.titulo} tamanho="lg" />
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-semibold tracking-tight">{detalhe.titulo}</h1>
@@ -86,7 +86,7 @@ export default function PesquisaPage() {
               <span className="font-mono text-2xl font-bold">{reais(detalhe.preco_centavos)}</span>
               <StockBadge estoque={est(detalhe)} />
             </div>
-            <dl className="mt-4 grid grid-cols-[120px_1fr] gap-y-2 text-sm">
+            <dl className="mt-4 grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
               <dt className="text-muted-foreground">Categoria</dt>
               <dd>{cat ? `${cat.id} — ${cat.nome}` : detalhe.categoria}</dd>
               <dt className="text-muted-foreground">Estoque</dt>
@@ -107,7 +107,7 @@ export default function PesquisaPage() {
             </dl>
           </div>
         </div>
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
           <AjusteEstoque livroUid={detalhe.sync_uid} onAjustado={async () => { await carregarBase(); setRefresh((n) => n + 1); }} />
         </div>
         <ExtratoMovimentos livroUid={detalhe.sync_uid} refresh={refresh} />
@@ -116,19 +116,19 @@ export default function PesquisaPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="mx-auto max-w-3xl px-4 py-4 sm:p-6">
       <h1 className="text-2xl font-semibold tracking-tight">Pesquisa</h1>
-      <div className="bg-card mt-4 grid grid-cols-2 gap-4 rounded-xl border p-5">
+      <div className="bg-card mt-4 grid grid-cols-1 gap-4 rounded-xl border p-5 sm:grid-cols-2">
         <div>
           <Label>Código de Barras</Label>
-          <div className="mt-1 flex gap-2">
+          <div className="mt-1 flex flex-col gap-2 sm:flex-row">
             <Input value={porCodigo} onChange={(e) => setPorCodigo(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && buscarCodigo()} className="h-9 font-mono" />
             <Button onClick={buscarCodigo} className="h-9">Pesquisar</Button>
           </div>
         </div>
         <div>
           <Label>Título ou Autor</Label>
-          <div className="mt-1 flex gap-2">
+          <div className="mt-1 flex flex-col gap-2 sm:flex-row">
             <Input value={porTexto} onChange={(e) => setPorTexto(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && buscarTexto()} className="h-9" />
             <Button onClick={buscarTexto} className="h-9">Pesquisar</Button>
           </div>
@@ -136,7 +136,7 @@ export default function PesquisaPage() {
       </div>
 
       {resultados && resultados.length > 0 && (
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {resultados.map((l) => (
             <button key={l.sync_uid} onClick={() => setDetalhe(l)} className="bg-card hover:bg-muted/50 flex gap-3 rounded-lg border p-3 text-left">
               <Cover titulo={l.titulo} tamanho="md" />

@@ -9,7 +9,7 @@ import type { VendaResultado } from "@/lib/nuvem/venda";
 
 export function VendaConcluida({ resultado, onNova }: { resultado: VendaResultado; onNova: () => void }) {
   return (
-    <div className="bg-card venda-concluida-card mx-auto max-w-md space-y-4 rounded-lg border p-6 text-center">
+    <div className="bg-card venda-concluida-card mx-auto w-full max-w-md space-y-4 rounded-lg border p-5 text-center sm:p-6">
       <CheckCircle2 className="text-emerald-500 mx-auto" size={48} />
       <div>
         <div className="text-lg font-semibold">Venda concluída</div>

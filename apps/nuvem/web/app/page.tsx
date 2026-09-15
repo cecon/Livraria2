@@ -36,8 +36,8 @@ export default function Inicio() {
   const hoje = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <div className="flex items-end justify-between">
+    <div className="mx-auto max-w-4xl px-4 py-4 sm:p-6">
+      <div className="flex items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Espaço do Livro</h1>
           <p className="text-muted-foreground text-sm">Bem-vindo de volta.</p>
@@ -45,7 +45,7 @@ export default function Inicio() {
         <div className="text-muted-foreground text-sm capitalize">{hoje}</div>
       </div>
 
-      <div className="mt-5 flex gap-1">
+      <div className="mt-5 flex flex-wrap gap-1">
         {PERIODOS.map((p) => (
           <button
             key={p.id}
@@ -57,19 +57,19 @@ export default function Inicio() {
         ))}
       </div>
 
-      <div className="mt-3 grid grid-cols-4 gap-3">
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat rotulo="Vendas" sub={periodoRotulo} valor={reais(dash?.vendasCentavos ?? 0)} />
         <Stat rotulo="Itens vendidos" sub={periodoRotulo} valor={String(dash?.itensVendidos ?? 0)} />
         <Stat rotulo="Ticket médio" sub={periodoRotulo} valor={reais(dash?.ticketMedioCentavos ?? 0)} />
         <Stat rotulo="Livros / estoque" sub="atual" valor={`${dash?.totalLivros ?? 0} / ${(dash?.totalEstoque ?? 0).toLocaleString("pt-BR")}`} />
       </div>
 
-      <div className="mt-3 grid grid-cols-4 gap-3">
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {ACOES.map(({ to, rotulo, Icon, destaque }) => (
           <Link
             key={to}
             href={to}
-            className={`flex items-center gap-2 rounded-xl border p-4 text-sm font-medium transition-all hover:-translate-y-0.5 hover:shadow-md ${destaque ? "bg-[#1f7a4d] text-white" : "bg-card"}`}
+            className={`flex min-h-12 items-center gap-2 rounded-xl border p-4 text-sm font-medium transition-all hover:-translate-y-0.5 hover:shadow-md ${destaque ? "bg-[#1f7a4d] text-white" : "bg-card"}`}
           >
             <Icon size={18} />
             {rotulo}
@@ -77,8 +77,8 @@ export default function Inicio() {
         ))}
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-4">
-        <div className="bg-card col-span-2 rounded-xl border p-5">
+      <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="bg-card rounded-xl border p-5 lg:col-span-2">
           <h2 className="text-sm font-semibold">Estoque baixo</h2>
           <div className="mt-3 space-y-2">
             {baixoCount === 0 ? (

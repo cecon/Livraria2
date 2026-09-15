@@ -6,7 +6,7 @@ import type { ItemNota } from "@/lib/nuvem/lancamento";
 
 export function ItensNotaTabela({ itens, lendo, onRemover }: { itens: ItemNota[]; lendo: boolean; onRemover: (itemUid: string) => void }) {
   return (
-    <div className="mt-4 overflow-hidden rounded-xl border">
+    <div className="mt-4 overflow-x-auto rounded-xl border">
       <table className="w-full text-sm">
         <thead className="bg-muted/50 text-muted-foreground">
           <tr>

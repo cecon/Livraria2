@@ -89,7 +89,7 @@ export default function RelatoriosPage() {
 
   if (vendas || estoque || dest) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
+      <div className="mx-auto max-w-3xl px-4 py-4 sm:p-6">
         <div className="mb-4 flex flex-wrap gap-2 print:hidden">
           <Button variant="outline" onClick={voltar}>← Voltar</Button>
           <Button variant="outline" className="ml-auto" onClick={exportarExcel} title="Baixar em Excel (CSV)">
@@ -112,7 +112,7 @@ export default function RelatoriosPage() {
   const grupos = [...new Set(TIPOS.map((t) => t.grupo))];
 
   return (
-    <div className="mx-auto max-w-md p-6">
+    <div className="mx-auto max-w-md px-4 py-4 sm:p-6">
       <h1 className="text-2xl font-semibold tracking-tight">Relatórios</h1>
       <div className="bg-card mt-4 space-y-4 rounded-xl border p-5">
         {grupos.map((g) => (
@@ -130,7 +130,7 @@ export default function RelatoriosPage() {
         ))}
 
         {tipo !== "estoque" && (
-          <div className={tipo === "destinacoes" ? "grid grid-cols-2 gap-3" : ""}>
+          <div className={tipo === "destinacoes" ? "grid grid-cols-1 gap-3 sm:grid-cols-2" : ""}>
             <div>
               <Label htmlFor="data">{tipo === "destinacoes" ? "De" : "Data"}</Label>
               <Input id="data" type="date" value={data} onChange={(e) => setData(e.currentTarget.value)} className="mt-1 h-9" />
@@ -170,7 +170,7 @@ function VendasView({ rel }: { rel: RelatorioVendas }) {
               </div>
               <ul className="text-muted-foreground mt-1">
                 {p.itens.map((i, k) => (
-                  <li key={k} className="flex items-center gap-2 font-mono text-[12px]">
+                <li key={k} className="flex flex-wrap items-center gap-2 font-mono text-[12px]">
                     <span className="flex-1">{i.qtd}× {i.titulo}</span>
                     <span>{reais(i.valorCentavos)}</span>
                   </li>
@@ -226,6 +226,7 @@ function EstoqueView({ rel }: { rel: RelatorioEstoque }) {
     <div>
       <h2 className="text-lg font-semibold">Relatório de Estoque</h2>
       <p className="text-muted-foreground text-sm">{rel.titulos} títulos · Valor em estoque: {reais(rel.valorTotalCentavos)}</p>
+      <div className="overflow-x-auto">
       <table className="mt-3 w-full text-sm">
         <thead className="text-muted-foreground text-[11px] uppercase">
           <tr className="border-b text-left">
@@ -250,6 +251,7 @@ function EstoqueView({ rel }: { rel: RelatorioEstoque }) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -259,6 +261,7 @@ function DestinacoesView({ rel }: { rel: RelatorioDestinacoes }) {
     <div className="bg-card rounded-xl border p-5">
       <h2 className="text-lg font-semibold">Vendas por Destinação</h2>
       <p className="text-muted-foreground text-sm">{rel.inicio === rel.fim ? rel.inicio : `${rel.inicio} a ${rel.fim}`}</p>
+      <div className="overflow-x-auto">
       <table className="mt-3 w-full text-sm">
         <thead>
           <tr className="text-muted-foreground border-b text-left text-[11px] uppercase">
@@ -287,6 +290,7 @@ function DestinacoesView({ rel }: { rel: RelatorioDestinacoes }) {
           </tr>
         </tfoot>
       </table>
+      </div>
     </div>
   );
 }

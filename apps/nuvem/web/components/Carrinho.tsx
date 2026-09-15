@@ -21,7 +21,7 @@ export function Carrinho({
   return (
     <div className="divide-y">
       {itens.map((it) => (
-        <div key={it.codigo} className="flex items-center gap-2 py-2">
+        <div key={it.codigo} className="flex flex-wrap items-center gap-2 py-2">
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm">{it.titulo}</div>
             <div className="text-muted-foreground truncate text-[11px]">
@@ -37,7 +37,7 @@ export function Carrinho({
               <Plus size={14} />
             </Button>
           </div>
-          <span className="w-20 text-right tabular-nums text-sm font-medium">{reais(it.precoCentavos * it.qtd)}</span>
+          <span className="ml-auto w-20 text-right tabular-nums text-sm font-medium">{reais(it.precoCentavos * it.qtd)}</span>
           <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-600" title="Remover" onClick={() => onRemover(it.codigo)}>
             <Trash2 size={14} />
           </Button>

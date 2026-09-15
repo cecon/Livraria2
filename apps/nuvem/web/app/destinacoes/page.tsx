@@ -64,8 +64,8 @@ export default function DestinacoesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-6">
-      <div className="flex items-end justify-between">
+    <div className="mx-auto max-w-2xl space-y-4 px-4 py-4 sm:p-6">
+      <div className="flex items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Destinações</h1>
           <p className="text-muted-foreground text-sm">
@@ -102,7 +102,7 @@ export default function DestinacoesPage() {
           {destinacoes.map((d) => {
             const iLivre = livres.findIndex((x) => x.sync_uid === d.sync_uid);
             return (
-              <div key={d.sync_uid} className={`bg-card flex items-center gap-2 rounded-lg border p-2 text-sm ${d.ativa ? "" : "opacity-60"}`}>
+              <div key={d.sync_uid} className={`bg-card flex flex-wrap items-center gap-2 rounded-lg border p-2 text-sm ${d.ativa ? "" : "opacity-60"}`}>
                 <div className="flex flex-col">
                   <Button variant="ghost" size="icon" className="h-5 w-6" disabled={d.de_sistema || iLivre === 0} title="Mover para cima" onClick={() => mover(d, -1)}>
                     <ArrowUp size={13} />
@@ -160,7 +160,7 @@ function DestinacaoForm({ destinacao, proximaOrdem, onSalvo, onCancelar }: { des
         <Input id="nome-destinacao" value={nome} onChange={(e) => setNome(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && salvar()} placeholder="Ex.: Missões" className="mt-1 h-9" autoFocus />
         {destinacao?.de_sistema && <p className="text-muted-foreground mt-1 text-[11px]">Destinação de sistema: pode ser renomeada, mas não excluída nem desativada.</p>}
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button onClick={salvar} disabled={ocupado} className="h-9">{destinacao ? "Renomear" : "Criar"}</Button>
         <Button variant="ghost" onClick={onCancelar} className="h-9">Cancelar</Button>
       </div>

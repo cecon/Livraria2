@@ -94,8 +94,8 @@ export default function Usuarios() {
   const btn = "rounded-md px-2 py-1 text-xs";
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <div className="mb-4 flex items-center justify-between">
+    <main className="mx-auto max-w-4xl px-4 py-4 sm:p-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Usuários</h1>
         <button onClick={aberto && !editando ? fechar : abrirNovo} className="rounded-lg bg-[#1f7a4d] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
           {aberto && !editando ? "Fechar" : "Novo usuário"}
@@ -105,7 +105,7 @@ export default function Usuarios() {
       {aberto && (
         <form onSubmit={salvar} className="mb-6 space-y-3 rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
           <div className="text-sm font-medium">{editando ? `Editando ${editando}` : "Novo usuário"}</div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {!editando && (
               <label className="text-sm">
                 Usuário
@@ -118,7 +118,7 @@ export default function Usuarios() {
               <input className="mt-1 w-full rounded-md border px-3 py-2" value={nome} onChange={(e) => setNome(e.target.value)} />
             </label>
           </div>
-          <div className="flex items-center gap-4 text-sm">
+          <div className="flex flex-wrap items-center gap-4 text-sm">
             <span>Perfil:</span>
             <label className="flex items-center gap-1">
               <input type="radio" checked={perfil === "operador"} onChange={() => setPerfil("operador")} /> Operador <span className="text-zinc-500">(só PDV)</span>
@@ -134,7 +134,7 @@ export default function Usuarios() {
             </label>
           )}
           {erro && <p className="text-sm text-red-600">{erro}</p>}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button type="submit" disabled={salvando} className="rounded-lg bg-[#1f7a4d] px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
               {salvando ? "Salvando…" : editando ? "Salvar" : "Cadastrar"}
             </button>
@@ -143,6 +143,7 @@ export default function Usuarios() {
         </form>
       )}
 
+      <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
         <thead className="text-left text-zinc-500">
           <tr><th className="py-2">Usuário</th><th>Nome</th><th>Perfil</th><th>Estado</th><th>Ações</th></tr>
@@ -179,6 +180,7 @@ export default function Usuarios() {
           })}
         </tbody>
       </table>
+      </div>
     </main>
   );
 }

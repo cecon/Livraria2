@@ -50,8 +50,8 @@ export default function LancamentosPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-3xl px-4 py-4 sm:p-6">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Lançamentos</h1>
         <Button onClick={novo} className="h-9">
           <Plus size={16} className="mr-1" /> Novo lançamento
@@ -185,15 +185,15 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
   if (!nota) return null;
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-3xl px-4 py-4 sm:p-6">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">
           {nota.status === "rascunho" ? "Lançamento (rascunho)" : nota.status === "cancelada" ? "Nota (cancelada)" : "Nota (finalizada)"}
         </h1>
         <Button variant="ghost" onClick={onFechar}>← Voltar</Button>
       </div>
 
-      <div className="bg-card mt-4 grid grid-cols-2 gap-4 rounded-xl border p-5">
+      <div className="bg-card mt-4 grid grid-cols-1 gap-4 rounded-xl border p-5 sm:grid-cols-2">
         <div>
           <Label>Fornecedor</Label>
           {lendo ? (
@@ -221,12 +221,12 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
             <EntradaProduto value={busca} onChange={setBusca} inputRef={codigoRef} livros={livros} onCodigoExato={resolverCodigo} onSelecionar={escolherLivro} />
           </div>
           {pendente && (
-            <div className="mt-3 flex items-end gap-2">
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
               <div className="min-w-0 flex-1">
                 <span className="text-muted-foreground text-[11px]">Livro</span>
                 <div className="truncate font-medium">{pendente.titulo}</div>
               </div>
-              <div className="w-16">
+              <div className="w-full sm:w-16">
                 <span className="text-muted-foreground text-[11px]">Qtd</span>
                 <Input value={qtd} onChange={(e) => setQtd(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && custoRef.current?.focus()} inputMode="numeric" className="h-9 text-center font-mono" />
               </div>
@@ -234,7 +234,7 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
                 <option value="unit">Unit.</option>
                 <option value="total">Total</option>
               </select>
-              <div className="w-28">
+              <div className="w-full sm:w-28">
                 <span className="text-muted-foreground text-[11px]">Custo (R$)</span>
                 <Input ref={custoRef} value={custo} onChange={(e) => setCusto(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && adicionar()} inputMode="decimal" placeholder="0,00" className="h-9 text-right font-mono" />
               </div>
@@ -246,10 +246,10 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
 
       <ItensNotaTabela itens={nota.itens} lendo={lendo} onRemover={remover} />
 
-      <div className="mt-4 flex items-center justify-between">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <span className="font-mono text-lg font-bold">Total: {reais(nota.totalCentavos)}</span>
         {nota.status === "rascunho" && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="ghost" onClick={excluir} className="text-rose-500 hover:text-rose-600">Excluir rascunho</Button>
             <Button onClick={darEntrada} className="bg-[#1f7a4d] text-white hover:bg-[#1a6a43]">Dar entrada</Button>
           </div>
