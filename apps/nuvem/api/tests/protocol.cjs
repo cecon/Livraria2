@@ -13,14 +13,15 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
   const db = new PrismaClient();
   const adminUid = randomUUID();
   const operatorUid = randomUUID();
+  const alternateOperatorUid = randomUUID();
   const legacyUid = randomUUID();
   const productUid = randomUUID();
   let child;
   const base = "http://127.0.0.1:3003/api/v1";
   const password = randomUUID();
-  async function request(route, token, body) {
+  async function request(route, token, body, method) {
     const response = await fetch(base + route, {
-      method: body === undefined ? "GET" : "POST",
+      method: method ?? (body === undefined ? "GET" : "POST"),
       headers: { "content-type": "application/json", ...(token ? { authorization: "Bearer " + token } : {}) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
@@ -44,6 +45,7 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
     await db.$executeRaw`insert into public.usuario(sync_uid,usuario,senha_hash,perfil)
       values(${adminUid}::uuid,'admin',extensions.crypt(${password},extensions.gen_salt('bf')),'admin'),
       (${operatorUid}::uuid,'operador',extensions.crypt(${password},extensions.gen_salt('bf')),'operador'),
+      (${alternateOperatorUid}::uuid,'operador.2',extensions.crypt(${password},extensions.gen_salt('bf')),'operador'),
       (${legacyUid}::uuid,'legado',encode(extensions.digest(${password},'sha256'),'hex'),'admin')`;
     const sql = fs.readFileSync(path.resolve(__dirname, "../sql/001_protocolo_catalogo.sql"), "utf8");
     // psql supports the multi-statement migration; input contains no credentials.
@@ -100,12 +102,34 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
     const enrolled = await request("/pdvs", adminToken, { nome: "caixa teste", usuarioUid: operatorUid });
     assert.equal(enrolled.status, 201);
     const deviceUid = enrolled.body.uid;
-    const refreshToken = enrolled.body.refreshToken;
+    let refreshToken = enrolled.body.refreshToken;
     let token = enrolled.body.accessToken;
     const devices = await request("/pdvs", adminToken);
     assert.equal(devices.status, 200);
     assert.equal(devices.body[0].uid, deviceUid);
     assert.equal(devices.body[0].cursorAplicado, "0");
+    assert.equal(devices.body[0].usuarioUid, operatorUid);
+    assert.equal(devices.body[0].usuario, "operador");
+    const renamed = await request("/pdvs/" + deviceUid, adminToken,
+      { nome: "maquina teste", usuarioUid: operatorUid }, "PUT");
+    assert.equal(renamed.status, 200);
+    assert.equal(renamed.body.refreshToken, undefined);
+    assert.equal((await request("/auth/me", token)).status, 200);
+    const reassigned = await request("/pdvs/" + deviceUid, adminToken,
+      { nome: "maquina teste", usuarioUid: alternateOperatorUid }, "PUT");
+    assert.equal(reassigned.status, 200);
+    assert.ok(reassigned.body.refreshToken);
+    assert.equal((await request("/auth/me", token)).status, 401);
+    assert.equal((await request("/auth/pdv/renovar", null,
+      { pdvUid: deviceUid, refreshToken })).status, 401);
+    token = reassigned.body.accessToken;
+    refreshToken = reassigned.body.refreshToken;
+    const restored = await request("/pdvs/" + deviceUid, adminToken,
+      { nome: "maquina teste", usuarioUid: operatorUid }, "PUT");
+    assert.equal(restored.status, 200);
+    assert.equal((await request("/auth/me", token)).status, 401);
+    token = restored.body.accessToken;
+    refreshToken = restored.body.refreshToken;
     await t.test("produto conserva UUID na troca 503 para ISBN", async () => {
       await db.$executeRaw`insert into public.livro(sync_uid,codigo,titulo,preco_centavos)
         values(${productUid}::uuid,'503','Livro teste',6000)`;
