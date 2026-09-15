@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, Post, Put, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Param, Post, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthRequest } from "../auth/principal";
 import { admin } from "../sync/validation";
@@ -31,17 +31,5 @@ export class StockController {
   count(@Req() request: AuthRequest, @Body() body: unknown) {
     admin(request.principal);
     return this.stock.count(body, request.principal.uid);
-  }
-
-  @Get("divergencias")
-  divergences(@Req() request: AuthRequest) {
-    admin(request.principal);
-    return this.stock.divergences();
-  }
-
-  @Put("divergencias/:uid")
-  decide(@Req() request: AuthRequest, @Param("uid") uid: string, @Body() body: unknown) {
-    admin(request.principal);
-    return this.stock.decide(uid, body, request.principal.uid);
   }
 }

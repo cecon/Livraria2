@@ -1,13 +1,13 @@
 -- Validacao manual da migracao 0011_estoque_oficial_venda.sql.
 --
 -- Execute em homologacao, nunca em producao:
---   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/nuvem/migrations/0011_estoque_oficial_venda.sql
+--   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/nuvem/migrations/0020_remover_divergencias_estoque.sql
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/nuvem/tests/0011_estoque_oficial_venda.sql
 --
--- O arquivo reaplica a migracao para provar idempotencia e faz rollback dos dados
+-- O arquivo reaplica a migracao vigente para provar idempotencia e faz rollback dos dados
 -- de teste no final.
 
-\i apps/nuvem/migrations/0011_estoque_oficial_venda.sql
+\i apps/nuvem/migrations/0020_remover_divergencias_estoque.sql
 
 begin;
 
@@ -91,7 +91,7 @@ begin
   end if;
 end $$;
 
--- Saldo insuficiente baixa integralmente e registra divergencia aberta.
+-- Saldo insuficiente baixa integralmente e permanece visivel no razao.
 insert into pedido (sync_uid, numero, cliente, turno, data, total_centavos, origem, estoque_status)
 values ('00000000-0011-2000-0000-000000000002', 11002, 'CLIENTE', 'T1', '2026-07-28', 5000, 'pdv', 'rascunho');
 
@@ -101,21 +101,17 @@ values ('00000000-0011-3000-0000-000000000002', '00000000-0011-2000-0000-0000000
 update pedido set estoque_status = 'pronta' where sync_uid = '00000000-0011-2000-0000-000000000002';
 
 do $$
-declare v_saldo bigint; divs bigint;
+declare v_saldo bigint; status text;
 begin
   select saldo into v_saldo from vw_saldo_livro where livro_uid = '00000000-0011-0000-0000-000000000002';
-  select count(*) into divs
-  from divergencia_estoque
-  where pedido_uid = '00000000-0011-2000-0000-000000000002'
-    and tipo = 'saldo_negativo'
-    and status = 'aberta';
+  select estoque_status into status from pedido where sync_uid = '00000000-0011-2000-0000-000000000002';
 
-  if v_saldo <> -4 or divs <> 1 then
-    raise exception 'saldo negativo/divergencia esperados saldo=-4 divs=1, encontrado saldo=% divs=%', v_saldo, divs;
+  if v_saldo <> -4 or status <> 'incorporada' then
+    raise exception 'saldo/status esperados -4/incorporada, encontrado %/%', v_saldo, status;
   end if;
 end $$;
 
--- Produto inativo vendido por evento offline gera divergencia, sem apagar venda.
+-- Produto inativo ja presente em evento offline preserva venda e movimento.
 insert into pedido (sync_uid, numero, cliente, turno, data, total_centavos, origem)
 values ('00000000-0011-2000-0000-000000000004', 11004, 'CLIENTE', 'T1', '2026-07-28', 1000, 'pdv');
 
@@ -125,15 +121,13 @@ values ('00000000-0011-3000-0000-000000000004', '00000000-0011-2000-0000-0000000
 update pedido set estoque_status = 'pronta' where sync_uid = '00000000-0011-2000-0000-000000000004';
 
 do $$
-declare divs bigint;
+declare movimentos bigint; status text;
 begin
-  select count(*) into divs
-  from divergencia_estoque
-  where pedido_uid = '00000000-0011-2000-0000-000000000004'
-    and tipo = 'produto_inativo'
-    and status = 'aberta';
-  if divs <> 1 then
-    raise exception 'produto inativo deveria gerar uma divergencia, encontrado %', divs;
+  select count(*) into movimentos from movimento_estoque
+   where pedido_uid = '00000000-0011-2000-0000-000000000004' and tipo = 'saida_venda';
+  select estoque_status into status from pedido where sync_uid = '00000000-0011-2000-0000-000000000004';
+  if movimentos <> 1 or status <> 'incorporada' then
+    raise exception 'movimento/status esperados 1/incorporada, encontrado %/%', movimentos, status;
   end if;
 end $$;
 

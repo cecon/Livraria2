@@ -66,11 +66,9 @@ export class AdminSalesService {
         estoque_status: "pronta", estoque_pronta_em: now } });
       const state = await tx.pedido.findUniqueOrThrow({ where: { sync_uid: sale.pedidoUid },
         select: { estoque_status: true } });
-      const divergences = await tx.divergencia_estoque.count({ where: {
-        pedido_uid: sale.pedidoUid, status: "aberta", excluido_em: null } });
       return { numeroNoTurno: integer(shiftNumber, "Numero do turno"),
         totalCentavos: integer(sale.total, "Total"), trocoCentavos: integer(change, "Troco"),
-        divergenciasEstoque: divergences, estoqueStatus: state.estoque_status };
+        estoqueStatus: state.estoque_status };
     }, { timeout: 30000 });
   }
 

@@ -10,6 +10,7 @@ Aplicadas via Management API (`POST /v1/projects/{ref}/database/query`) — toke
 | `0002_rls_e_views.sql` | RLS por usuário autenticado (13 policies `to authenticated`) + `vw_saldo_livro` (soma dos movimentos). | ✅ aplicado (T009) |
 | `0011_estoque_oficial_venda.sql` | Estoque oficial na nuvem por venda pronta: status de estoque no pedido, vinculos de item/movimento, divergencias, baseline de producao, view `vw_produto_pdv` e gatilhos idempotentes de baixa/estorno. | reservado; aplicar somente apos backup/snapshot de producao |
 | `0019_usuario_minusculo.sql` | Normaliza identificadores de usuario, autentica sem diferenciar maiusculas e impede novas gravacoes fora do padrao. Interrompe sem mesclar dados se houver colisao preexistente. | experimental; validar colisao antes do rollout |
+| `0020_remover_divergencias_estoque.sql` | Remove a fila sem acao efetiva e preserva a incorporacao idempotente das vendas no estoque oficial. | automatizada pelo migrador |
 
 As migrations aditivas da API NestJS ficam em `apps/nuvem/api/sql`. O mesmo
 migrador as registra com prefixo `api_`, mas somente quando

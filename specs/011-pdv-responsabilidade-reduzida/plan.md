@@ -1,5 +1,7 @@
 # Implementation Plan: PDV com Responsabilidade Reduzida
 
+> Atualizacao: a fila de divergencias deste plano foi substituida pela ADR-0029.
+
 **Branch**: `011-pdv-responsabilidade-reduzida` | **Date**: 2026-07-28 | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `specs/011-pdv-responsabilidade-reduzida/spec.md`

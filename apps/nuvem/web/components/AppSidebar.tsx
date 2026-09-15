@@ -31,7 +31,7 @@ const extra: NavEntry[] = [
 const GRUPOS = [
   { titulo: "Operação", rotas: ["/", "/venda", "/turnos"] },
   { titulo: "Catálogo", rotas: ["/cadastro", "/pesquisa", "/lancamentos", "/fornecedores"] },
-  { titulo: "Gestão", rotas: ["/formas-pagamento", "/destinacoes", "/inventario", "/estoque/divergencias", "/relatorios"] },
+  { titulo: "Gestão", rotas: ["/formas-pagamento", "/destinacoes", "/inventario", "/relatorios"] },
   { titulo: "Administração", rotas: ["/pdvs", "/usuarios"] },
 ];
 

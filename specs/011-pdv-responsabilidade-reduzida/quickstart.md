@@ -1,5 +1,7 @@
 # Quickstart: Validacao do Estoque Oficial
 
+> Atualizacao: cenarios da fila de divergencias foram substituidos pela ADR-0029.
+
 ## Prerequisites
 
 - Ambiente Supabase equivalente a producao com migrations ate `0010_turno.sql`.

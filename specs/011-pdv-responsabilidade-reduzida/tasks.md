@@ -4,6 +4,8 @@ description: "Task list - Feature 011: PDV com responsabilidade reduzida"
 
 # Tasks: PDV com Responsabilidade Reduzida
 
+> Registro historico: as tarefas da fila de divergencias foram revertidas pela ADR-0029.
+
 **Input**: Design documents from `/specs/011-pdv-responsabilidade-reduzida/`
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md

@@ -1,5 +1,7 @@
 # Research: PDV com Responsabilidade Reduzida
 
+> Registro historico: a decisao de criar divergencias foi substituida pela ADR-0029.
+
 ## Decision: Estoque oficial reage a venda completa/pronta
 
 **Decision**: A nuvem gera movimentos oficiais de estoque somente quando a venda estiver marcada como completa/pronta.

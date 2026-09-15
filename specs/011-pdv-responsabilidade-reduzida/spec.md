@@ -1,5 +1,8 @@
 # Feature Specification: PDV com Responsabilidade Reduzida
 
+> Atualizacao: o fluxo de divergencias foi removido pela ADR-0029. Requisitos historicos sobre a
+> fila permanecem abaixo apenas como registro da decisao original e nao representam o sistema atual.
+
 **Feature Branch**: `[011-pdv-responsabilidade-reduzida]`
 
 **Created**: 2026-07-28

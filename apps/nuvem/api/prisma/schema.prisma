@@ -22,7 +22,6 @@ model Livro {
   excluidoEm               DateTime?                  @map("excluido_em") @db.Timestamptz(6)
   criadoPor                String?                    @map("criado_por") @db.Uuid
   sincronizadoEm           DateTime                   @default(now()) @map("sincronizado_em") @db.Timestamptz(6)
-  divergencia_estoque      divergencia_estoque[]
   item_lancamento          item_lancamento[]
   item_pedido              item_pedido[]
   movimento_estoque        movimento_estoque[]
@@ -71,34 +70,6 @@ model destinacao {
   transferencia_destinacao_transferencia_destinacao_para_destinacao_uidTodestinacao transferencia_destinacao[] @relation("transferencia_destinacao_para_destinacao_uidTodestinacao")
 
   @@index([sincronizado_em], map: "idx_destinacao_sinc")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model divergencia_estoque {
-  sync_uid        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  pedido_uid      String?      @db.Uuid
-  item_pedido_uid String?      @db.Uuid
-  livro_uid       String?      @db.Uuid
-  tipo            String
-  descricao       String       @default("")
-  saldo_antes     BigInt?
-  qtd_evento      BigInt?
-  status          String       @default("aberta")
-  criado_em       DateTime     @default(now()) @db.Timestamptz(6)
-  resolvida_em    DateTime?    @db.Timestamptz(6)
-  resolvida_por   String?      @db.Uuid
-  origem          String       @default("escritorio")
-  atualizado_em   DateTime?    @db.Timestamptz(6)
-  excluido_em     DateTime?    @db.Timestamptz(6)
-  criado_por      String?      @db.Uuid
-  sincronizado_em DateTime     @default(now()) @db.Timestamptz(6)
-  item_pedido     item_pedido? @relation(fields: [item_pedido_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
-  livro           Livro?       @relation(fields: [livro_uid], references: [syncUid], onDelete: NoAction, onUpdate: NoAction)
-  pedido          pedido?      @relation(fields: [pedido_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
-  usuario         usuario?     @relation(fields: [resolvida_por], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([status, criado_em], map: "idx_divergencia_estoque_status")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -172,7 +143,6 @@ model item_pedido {
   sincronizado_em     DateTime              @default(now()) @db.Timestamptz(6)
   livro_uid           String?               @db.Uuid
   alocacao_venda      alocacao_venda[]
-  divergencia_estoque divergencia_estoque[]
   livro               Livro?                @relation(fields: [livro_uid], references: [syncUid], onDelete: NoAction, onUpdate: NoAction)
   pedido              pedido                @relation(fields: [pedido_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
   movimento_estoque   movimento_estoque[]
@@ -278,7 +248,6 @@ model pedido {
   estoque_incorporada_em DateTime?             @db.Timestamptz(6)
   estoque_estornada_em   DateTime?             @db.Timestamptz(6)
   alocacao_venda         alocacao_venda[]
-  divergencia_estoque    divergencia_estoque[]
   item_pedido            item_pedido[]
   movimento_estoque      movimento_estoque[]
   pagamento_pedido       pagamento_pedido[]
@@ -359,7 +328,6 @@ model usuario {
   sincronizado_em     DateTime              @default(now()) @db.Timestamptz(6)
   senha_hash          String                @default("") @ignore
   perfil              String                @default("operador")
-  divergencia_estoque divergencia_estoque[]
   pedido              pedido[]
   turno_operacao      turno_operacao[]
 
