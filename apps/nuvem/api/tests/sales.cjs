@@ -28,6 +28,8 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
   }
   try {
     run(`drop schema public cascade; create schema public;
+      create schema if not exists extensions;
+      create extension if not exists pgcrypto with schema extensions;
       do $$ begin
         if not exists(select 1 from pg_roles where rolname='anon') then create role anon; end if;
         if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if;
@@ -40,7 +42,7 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
       run(fs.readFileSync(path.resolve(__dirname, "../sql", file), "utf8"));
     }
     await db.$executeRaw`insert into public.usuario(sync_uid,usuario,senha_hash,perfil)
-      values(${operatorUid}::uuid,'admin',crypt(${password},gen_salt('bf')),'admin')`;
+      values(${operatorUid}::uuid,'admin',extensions.crypt(${password},extensions.gen_salt('bf')),'admin')`;
     await db.$executeRaw`insert into public.livro(sync_uid,codigo,titulo,preco_centavos)
       values(${bookUid}::uuid,'503','Livro vendido',3000)`;
     await db.$executeRaw`insert into public.movimento_estoque(sync_uid,livro_uid,tipo,qtd)
@@ -63,10 +65,10 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
     assert.equal(profile[0].perfil, "admin");
     const uppercaseUid = randomUUID();
     await db.$executeRaw`insert into public.usuario(sync_uid,usuario,senha_hash,perfil)
-      values(${uppercaseUid}::uuid,'Nova.PESSOA',crypt(${password},gen_salt('bf')),'operador')`;
+      values(${uppercaseUid}::uuid,'Nova.PESSOA',extensions.crypt(${password},extensions.gen_salt('bf')),'operador')`;
     assert.equal((await db.usuario.findUnique({ where: { sync_uid: uppercaseUid } })).usuario, "nova.pessoa");
     await assert.rejects(db.$executeRaw`insert into public.usuario(sync_uid,usuario,senha_hash,perfil)
-      values(${randomUUID()}::uuid,'NOVA.PESSOA',crypt(${password},gen_salt('bf')),'operador')`);
+      values(${randomUUID()}::uuid,'NOVA.PESSOA',extensions.crypt(${password},extensions.gen_salt('bf')),'operador')`);
     const firstDevice = (await request("/pdvs", adminToken, { nome: "caixa 1", usuarioUid: operatorUid })).body;
     const secondDevice = (await request("/pdvs", adminToken, { nome: "caixa 2", usuarioUid: operatorUid })).body;
     const sale = {

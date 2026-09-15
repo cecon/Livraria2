@@ -39,5 +39,6 @@
 - [x] T020a Publicar imagem independente da API e preparar migrations com ativacao explicita.
 - [x] T020b Implementar modo API-only para login, sessao, identidade e troca de senha.
 - [x] T020c Validar todos os modulos web em Docker contra API e PostgreSQL isolados.
-- [ ] T020d Homologar contra copia dos dados reais, ativar producao e observar sincronizacao.
-- [ ] T020e Remover fallbacks Supabase depois da janela de rollback aprovada.
+- [x] T020d Homologar contra copia dos dados reais sem modificar a origem.
+- [ ] T020e Ativar producao gradualmente e observar login, operacoes e sincronizacao.
+- [ ] T020f Remover fallbacks Supabase depois da janela de rollback aprovada.

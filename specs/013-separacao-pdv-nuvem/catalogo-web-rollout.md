@@ -41,6 +41,10 @@ O migrador inclui o schema aditivo da API, mas so o aplica com
 imagens web. A ativacao exige `NUVEM_DATABASE_URL` e `API_JWT_SECRET` no host; esses
 segredos ficam somente na Memoria do Projeto.
 
+As chamadas de senha usam `extensions.crypt`, conforme o schema real do Supabase.
+Hashes SHA-256 legados continuam autenticando e sao convertidos para bcrypt no
+primeiro login bem-sucedido pela API.
+
 Para rollback durante a homologacao, voltar `API_ONLY_MODE=false` e manter as
 variaveis Supabase. Isso troca o caminho da aplicacao sem desfazer gravacoes validas.
 Os fallbacks legados so devem ser removidos depois da janela observada em producao.
@@ -63,6 +67,11 @@ Os dois servidores efemeros sao encerrados ao terminar; nao tocam producao.
 
 O modo API-only foi validado em Docker com login normalizado, sessao, identidade,
 troca de senha e os dez grupos administrativos contra PostgreSQL isolado. Ainda falta
-homologar contra uma copia dos dados reais antes de ativar producao e concluir T020.
+ativar producao e concluir a janela de observacao antes de encerrar T020.
+
+Em 2026-09-15, uma copia local somente-leitura da origem foi restaurada em PostgreSQL
+17. A normalizacao encontrou 11 usuarios, 3 fora do padrao e nenhuma colisao. Depois
+das migrations, a API publicou 517 eventos iniciais para 517 produtos e os dez grupos
+administrativos responderam HTTP 200. A origem nao foi modificada.
 Limite desta entrega: consulta cliente ate 100 paginas (50 mil produtos), sem truncar silenciosamente.
 Em futuras edicoes, concorrencia entre admins ainda segue ultimo commit; nao ha ETag/versionamento.

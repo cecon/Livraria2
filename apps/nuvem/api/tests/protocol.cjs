@@ -13,6 +13,7 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
   const db = new PrismaClient();
   const adminUid = randomUUID();
   const operatorUid = randomUUID();
+  const legacyUid = randomUUID();
   const productUid = randomUUID();
   let child;
   const base = "http://127.0.0.1:3003/api/v1";
@@ -28,7 +29,8 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
   try {
     await db.$executeRawUnsafe("drop schema public cascade");
     await db.$executeRawUnsafe("create schema public");
-    await db.$executeRawUnsafe("create extension if not exists pgcrypto");
+    await db.$executeRawUnsafe("create schema if not exists extensions");
+    await db.$executeRawUnsafe("create extension if not exists pgcrypto with schema extensions");
     await db.$executeRawUnsafe(`create table public.usuario (
       sync_uid uuid primary key, usuario text unique, nome text, senha_hash text,
       perfil text, ativo boolean default true, origem text default 'nuvem',
@@ -40,8 +42,9 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
       descricao text, busca_norm text default '', ativo boolean default true,
       excluido_em timestamptz)`);
     await db.$executeRaw`insert into public.usuario(sync_uid,usuario,senha_hash,perfil)
-      values(${adminUid}::uuid,'admin',crypt(${password},gen_salt('bf')),'admin'),
-      (${operatorUid}::uuid,'operador',crypt(${password},gen_salt('bf')),'operador')`;
+      values(${adminUid}::uuid,'admin',extensions.crypt(${password},extensions.gen_salt('bf')),'admin'),
+      (${operatorUid}::uuid,'operador',extensions.crypt(${password},extensions.gen_salt('bf')),'operador'),
+      (${legacyUid}::uuid,'legado',encode(extensions.digest(${password},'sha256'),'hex'),'admin')`;
     const sql = fs.readFileSync(path.resolve(__dirname, "../sql/001_protocolo_catalogo.sql"), "utf8");
     // psql supports the multi-statement migration; input contains no credentials.
     const { execFileSync } = require("node:child_process");
@@ -72,6 +75,10 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
       assert.equal(me.perfil, "admin");
       assert.equal(me.usuario, "admin");
       assert.equal(me.uid, adminUid);
+      assert.ok((await request("/auth/login", null, { usuario: "LEGADO", senha: password })).body.accessToken);
+      const upgraded = await db.$queryRaw`select left(senha_hash,2) as prefixo from public.usuario
+        where sync_uid=${legacyUid}::uuid`;
+      assert.equal(upgraded[0].prefixo, "$2");
     });
     await t.test("usuario autenticado troca a propria senha", async () => {
       const novaSenha = randomUUID();

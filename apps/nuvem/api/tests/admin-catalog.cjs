@@ -18,7 +18,7 @@ module.exports = async function adminCatalog(t, db, base, adminToken, deviceToke
     const user = randomUUID();
     const password = randomUUID();
     await db.$executeRaw`insert into public.usuario(sync_uid,usuario,senha_hash,perfil)
-      values(${user}::uuid,${user},crypt(${password},gen_salt('bf')),'operador')`;
+      values(${user}::uuid,${user},extensions.crypt(${password},extensions.gen_salt('bf')),'operador')`;
     const login = await fetch(base + "/auth/login", { method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ usuario: user, senha: password }) });
     const operator = await login.json();

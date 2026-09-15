@@ -35,7 +35,7 @@ export class UsersService {
       const rows = await this.db.$queryRaw<{ sync_uid: string }[]>`
         insert into public.usuario(sync_uid,usuario,nome,senha_hash,perfil,origem,
           criado_por,atualizado_em,sincronizado_em)
-        values(gen_random_uuid(),${usuario},${nome},crypt(${senha},gen_salt('bf')),${perfil},
+        values(gen_random_uuid(),${usuario},${nome},extensions.crypt(${senha},extensions.gen_salt('bf')),${perfil},
           'nuvem',${actor}::uuid,now(),now()) returning sync_uid::text`;
       return rows[0];
     } catch (error) {
@@ -72,7 +72,7 @@ export class UsersService {
     const senha = textInput(objectInput(value).senha, 200, true)!;
     if (senha.length < 4) throw new BadRequestException("Senha muito curta");
     const changed = await this.db.$executeRaw`update public.usuario set
-      senha_hash=crypt(${senha},gen_salt('bf')),atualizado_em=now(),sincronizado_em=now(),origem='nuvem'
+      senha_hash=extensions.crypt(${senha},extensions.gen_salt('bf')),atualizado_em=now(),sincronizado_em=now(),origem='nuvem'
       where usuario=${usuario}`;
     if (!changed) throw new NotFoundException();
     return { atualizado: true };

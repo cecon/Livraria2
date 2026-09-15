@@ -4,7 +4,7 @@ import { PrismaService } from "../database/prisma.service";
 import { Principal } from "./principal";
 import { refreshHash } from "./device-credentials";
 
-interface Usuario { uid: string; usuario: string; nome: string | null; perfil: "admin" | "operador" }
+interface Usuario { uid: string; usuario: string; nome: string | null; perfil: "admin" | "operador"; legacy?: boolean }
 interface Claims { sub: string; tipo: string; versao?: number; exp?: number }
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const USER_SESSION_SECONDS = 8 * 60 * 60;
@@ -22,11 +22,21 @@ export class AuthService {
       throw new UnauthorizedException("Credenciais invalidas");
     }
     const rows = await this.db.$queryRaw<Usuario[]>`
-      select sync_uid::text as uid, usuario, nome, perfil from public.usuario
+      select sync_uid::text as uid, usuario, nome, perfil,
+        left(senha_hash,2) <> '$2' as legacy from public.usuario
       where usuario = ${usuario.trim().toLowerCase()} and ativo and excluido_em is null
-      and perfil in ('admin','operador') and senha_hash = crypt(${senha}, senha_hash)`;
+      and perfil in ('admin','operador') and senha_hash <> '' and
+        (case when left(senha_hash,2) = '$2'
+          then senha_hash = extensions.crypt(${senha}, senha_hash)
+          else senha_hash = encode(extensions.digest(${senha}, 'sha256'), 'hex') end)`;
     const user = rows[0];
     if (!user) throw new UnauthorizedException("Credenciais invalidas");
+    if (user.legacy) {
+      await this.db.$executeRaw`update public.usuario set
+        senha_hash=extensions.crypt(${senha},extensions.gen_salt('bf')),
+        atualizado_em=now(),sincronizado_em=now(),origem='nuvem'
+        where sync_uid=${user.uid}::uuid and left(senha_hash,2) <> '$2'`;
+    }
     return {
       accessToken: await this.jwt.signAsync({ sub: user.uid, tipo: "usuario" },
         { expiresIn: USER_SESSION_SECONDS }),
@@ -93,7 +103,7 @@ export class AuthService {
       throw new BadRequestException("A senha deve ter entre 8 e 200 caracteres");
     }
     const changed = await this.db.$executeRaw`update public.usuario set
-      senha_hash=crypt(${senha},gen_salt('bf')),atualizado_em=now(),
+      senha_hash=extensions.crypt(${senha},extensions.gen_salt('bf')),atualizado_em=now(),
       sincronizado_em=now(),origem='nuvem'
       where sync_uid=${principal.uid}::uuid and ativo and excluido_em is null`;
     if (!changed) throw new UnauthorizedException();
