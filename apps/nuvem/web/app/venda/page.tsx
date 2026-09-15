@@ -6,12 +6,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { AlertCircle, Clock, RefreshCw, ShoppingCart } from "lucide-react";
+import { Clock, ShoppingCart } from "lucide-react";
 import { Button } from "@livraria/ui/ui/button";
 import { EntradaProduto, type LivroBusca } from "@/components/EntradaProduto";
 import { Carrinho } from "@/components/Carrinho";
 import { FormasPagamento } from "@/components/FormasPagamento";
 import { VendaConcluida } from "@/components/VendaConcluida";
+import { LoadFailure } from "@/components/LoadFailure";
 import { parseBRLInput } from "@/lib/brl";
 import { reais } from "@/utils/texto";
 import { listarLivros } from "@/lib/nuvem/livro";
@@ -109,17 +110,7 @@ export default function VendaPage() {
           <div className="section-kicker mb-1">Operação</div>
           <h1>Venda</h1>
         </div>
-        <div role="alert" className="admin-panel flex flex-col items-center gap-3 border bg-card p-6 text-center">
-          <AlertCircle className="text-destructive" size={36} />
-          <div>
-            <h2 className="font-semibold">Não foi possível carregar a venda</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{erroCarregamento}</p>
-          </div>
-          <Button onClick={carregarBase} className="h-9">
-            <RefreshCw className="size-4" />
-            Tentar novamente
-          </Button>
-        </div>
+        <LoadFailure title="Não foi possível carregar a venda" message={erroCarregamento} onRetry={carregarBase} />
       </div>
     );
   }

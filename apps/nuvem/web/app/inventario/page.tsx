@@ -9,6 +9,7 @@ import { ClipboardList } from "lucide-react";
 import { Button } from "@livraria/ui/ui/button";
 import { ContagemInventario, type ItemContado } from "@/components/ContagemInventario";
 import { RevisaoContagem } from "@/components/RevisaoContagem";
+import { LoadFailure } from "@/components/LoadFailure";
 import type { LivroBusca } from "@/components/EntradaProduto";
 import {
   aplicarContagem,
@@ -23,6 +24,7 @@ const DRAFT = "eldl-inventario-contados";
 
 export default function InventarioPage() {
   const [carregando, setCarregando] = useState(true);
+  const [erroCarregamento, setErroCarregamento] = useState<string | null>(null);
   const [livros, setLivros] = useState<LivroContagem[]>([]);
   const [modo, setModo] = useState<ModoInventario>("parcial");
   const [contados, setContados] = useState<Map<string, number>>(new Map());
@@ -31,11 +33,20 @@ export default function InventarioPage() {
   const [ocupado, setOcupado] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  async function carregarLivros() {
+    setCarregando(true);
+    setErroCarregamento(null);
+    try {
+      setLivros(await livrosParaContagem());
+    } catch (error) {
+      setErroCarregamento(error instanceof Error ? error.message : "Não foi possível carregar o inventário.");
+    } finally {
+      setCarregando(false);
+    }
+  }
+
   useEffect(() => {
-    livrosParaContagem()
-      .then(setLivros)
-      .catch(() => toast.error("Falha ao carregar. Verifique o login."))
-      .finally(() => setCarregando(false));
+    void carregarLivros();
     try {
       const raw = localStorage.getItem(DRAFT);
       if (raw) setContados(new Map(JSON.parse(raw) as [string, number][]));
@@ -122,7 +133,9 @@ export default function InventarioPage() {
         </p>
       </div>
 
-      {revisao ? (
+      {erroCarregamento ? (
+        <LoadFailure title="Não foi possível carregar o inventário" message={erroCarregamento} onRetry={carregarLivros} />
+      ) : revisao ? (
         <RevisaoContagem divergencias={revisao} ocupado={ocupado} onAplicar={aplicar} onVoltar={() => setRevisao(null)} />
       ) : (
         <>
