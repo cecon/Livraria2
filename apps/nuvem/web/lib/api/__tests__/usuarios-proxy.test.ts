@@ -1,21 +1,19 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const mocked = vi.hoisted(() => ({ enabled: true, token: "test-only", fetcher: vi.fn() }));
+const mocked = vi.hoisted(() => ({ token: "test-only", fetcher: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => mocked.token ? { value: mocked.token } : undefined }) }));
-vi.mock("../server", () => ({ API_COOKIE: "nuvem_usuario", usersApiEnabled: () => mocked.enabled,
+vi.mock("../server", () => ({ API_COOKIE: "nuvem_usuario",
   apiFetch: (...args: unknown[]) => mocked.fetcher(...args) }));
 import { usersProxy } from "../usuarios-proxy";
 
-afterEach(() => { mocked.enabled = true; mocked.token = "test-only"; mocked.fetcher.mockReset(); });
+afterEach(() => { mocked.token = "test-only"; mocked.fetcher.mockReset(); });
 const request = (method = "GET", origin?: string) => new NextRequest("https://livraria.test/api/usuarios", {
   method, ...(origin && { headers: { origin } }),
 });
 
-test("usuarios desligados ou sem sessao nao chamam API", async () => {
-  mocked.enabled = false;
-  expect((await usersProxy(request())).status).toBe(503);
-  mocked.enabled = true; mocked.token = "";
+test("usuarios sem sessao nao chamam API", async () => {
+  mocked.token = "";
   expect((await usersProxy(request())).status).toBe(401);
   expect(mocked.fetcher).not.toHaveBeenCalled();
 });

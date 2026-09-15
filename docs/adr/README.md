@@ -32,6 +32,7 @@ As decisões nascem do `/speckit-plan` (ver `specs/001-sistema-estoque-vendas/re
 | [0025](0025-identificador-usuario-minusculo.md) | Identificador de usuário em minúsculas | Aceito |
 | [0026](0026-tema-wowdash-referencia-visual-obrigatoria.md) | Tema WowDash como referência visual obrigatória | Aceito |
 | [0027](0027-convencoes-de-interface-no-agentmemory.md) | Convenções de interface persistidas no AgentMemory | Aceito |
+| [0028](0028-web-nuvem-exclusivamente-api-nestjs.md) | Web da nuvem exclusivamente pela API NestJS | Aceito |
 
 **Versionamento**: um arquivo por decisão, numeração sequencial. Mudança de decisão → novo ADR que
 "supersedes" o anterior (não reescrever o histórico).

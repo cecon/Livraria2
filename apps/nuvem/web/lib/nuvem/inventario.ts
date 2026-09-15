@@ -3,10 +3,8 @@
 // (ADR-0010). Só os ajustes vão para movimento_estoque (tipo `contagem`, como o PDV).
 "use client";
 
-import { createClient } from "@/utils/supabase/client";
 import { dominio } from "@/lib/dominio";
-import { stockApiEnabled, stockRequest } from "@/lib/api/estoque-client";
-import { operadorAtual } from "@/lib/nuvem/operador";
+import { stockRequest } from "@/lib/api/estoque-client";
 import { listarLivros } from "@/lib/nuvem/livro";
 import { listarSaldos } from "@/lib/nuvem/estoque";
 
@@ -54,31 +52,11 @@ export async function reconciliar(
 export async function aplicarContagem(divergencias: Divergencia[]): Promise<{ error?: string; ajustes?: number }> {
   const aplicar = divergencias.filter((d) => d.diferenca !== 0);
   try {
-    if (await stockApiEnabled()) {
-      const result = await stockRequest("/contagens", "POST", { itens: aplicar.map(d => ({
-        sync_uid: crypto.randomUUID(), livro_uid: d.livroUid, qtd: d.diferenca,
-      })) }) as { ajustes: number };
-      return { ajustes: result.ajustes };
-    }
+    const result = await stockRequest("/contagens", "POST", { itens: aplicar.map(d => ({
+      sync_uid: crypto.randomUUID(), livro_uid: d.livroUid, qtd: d.diferenca,
+    })) }) as { ajustes: number };
+    return { ajustes: result.ajustes };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Falha ao aplicar contagem" };
   }
-  const sb = createClient();
-  const op = await operadorAtual();
-  const agora = new Date().toISOString();
-  for (const d of aplicar) {
-    const { error } = await sb.from("movimento_estoque").insert({
-      sync_uid: crypto.randomUUID(),
-      livro_uid: d.livroUid,
-      tipo: "contagem",
-      qtd: d.diferenca,
-      referencia: "inventario",
-      criado_em: agora,
-      origem: "escritorio",
-      atualizado_em: agora,
-      criado_por: op.uid,
-    });
-    if (error) return { error: error.message };
-  }
-  return { ajustes: aplicar.length };
 }

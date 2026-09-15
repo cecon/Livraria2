@@ -1,12 +1,11 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { API_COOKIE, apiFetch, reportsApiEnabled } from "./server";
+import { API_COOKIE, apiFetch } from "./server";
 
 const PARAMETERS: Record<string, string[]> = {
   estoque: [], destinacoes: ["inicio", "fim"], vendas: ["data", "periodo"], dashboard: ["periodo"],
 };
 export async function reportsProxy(req: NextRequest, resource: string) {
-  if (!reportsApiEnabled()) return NextResponse.json({ erro: "API desativada" }, { status: 503 });
   const expected = PARAMETERS[resource];
   if (req.method !== "GET" || !expected) return NextResponse.json({ erro: "Operacao invalida" }, { status: 400 });
   const keys = [...req.nextUrl.searchParams.keys()];

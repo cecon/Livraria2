@@ -1,7 +1,6 @@
 // Camada de dados de estoque (US2). Saldo pela view; movimentos crus para o
 // fold de custo médio do domínio (WASM) — mesma regra do PDV (ADR-0009/0016).
-import { createClient } from "@/utils/supabase/client";
-import { stockApiEnabled, stockRequest } from "@/lib/api/estoque-client";
+import { stockRequest } from "@/lib/api/estoque-client";
 import {
   payloadStatusDivergencia,
   type StatusDivergenciaEstoque,
@@ -40,36 +39,12 @@ export type ProdutoPdvPublicado = {
 };
 
 export async function listarSaldos(): Promise<Map<string, number>> {
-  if (await stockApiEnabled()) {
-    const rows = await stockRequest("/saldos") as { livro_uid: string; saldo: number }[];
-    return new Map(rows.map(row => [row.livro_uid, row.saldo]));
-  }
-  const sb = createClient();
-  const { data } = await sb.from("vw_saldo_livro").select("livro_uid,saldo");
-  const m = new Map<string, number>();
-  for (const r of (data as { livro_uid: string; saldo: number }[]) ?? []) {
-    m.set(r.livro_uid, Number(r.saldo));
-  }
-  return m;
+  const rows = await stockRequest("/saldos") as { livro_uid: string; saldo: number }[];
+  return new Map(rows.map(row => [row.livro_uid, row.saldo]));
 }
 
 export async function listarDivergenciasEstoque(): Promise<DivergenciaEstoque[]> {
-  if (await stockApiEnabled()) return stockRequest("/divergencias");
-  const sb = createClient();
-  const { data } = await sb
-    .from("divergencia_estoque")
-    .select(
-      "sync_uid,pedido_uid,item_pedido_uid,livro_uid,tipo,descricao,saldo_antes,qtd_evento,status,criado_em,resolvida_em,resolvida_por",
-    )
-    .eq("status", "aberta")
-    .is("excluido_em", null)
-    .order("criado_em", { ascending: false });
-
-  return ((data as DivergenciaEstoque[]) ?? []).map((d) => ({
-    ...d,
-    saldo_antes: d.saldo_antes == null ? null : Number(d.saldo_antes),
-    qtd_evento: d.qtd_evento == null ? null : Number(d.qtd_evento),
-  }));
+  return stockRequest("/divergencias");
 }
 
 async function atualizarStatusDivergencia(
@@ -77,22 +52,11 @@ async function atualizarStatusDivergencia(
   status: Exclude<StatusDivergenciaEstoque, "aberta">,
 ): Promise<{ error?: string }> {
   try {
-    if (await stockApiEnabled()) {
-      await stockRequest(`/divergencias/${syncUid}`, "PUT", { status });
-      return {};
-    }
+    await stockRequest(`/divergencias/${syncUid}`, "PUT", { status });
+    return {};
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Falha ao atualizar divergencia" };
   }
-  const sb = createClient();
-  const { data: sessao } = await sb.auth.getUser();
-  const atualizadoEm = new Date().toISOString();
-  const { error } = await sb
-    .from("divergencia_estoque")
-    .update(payloadStatusDivergencia(status, sessao.user?.id ?? null, atualizadoEm))
-    .eq("sync_uid", syncUid)
-    .eq("status", "aberta");
-  return error ? { error: error.message } : {};
 }
 
 export async function resolverDivergenciaEstoque(syncUid: string): Promise<{ error?: string }> {
@@ -107,19 +71,7 @@ export async function ignorarDivergenciaEstoque(syncUid: string): Promise<{ erro
 export type MovLedger = [number, number | null];
 
 export async function movimentosDoLivro(livroUid: string): Promise<MovLedger[]> {
-  if (await stockApiEnabled()) {
-    const rows = await stockRequest(`/livros/${livroUid}/movimentos`) as
-      { qtd: number; custo_unit_centavos: number | null }[];
-    return rows.map(row => [row.qtd, row.custo_unit_centavos]);
-  }
-  const sb = createClient();
-  const { data } = await sb
-    .from("movimento_estoque")
-    .select("qtd,custo_unit_centavos,criado_em")
-    .eq("livro_uid", livroUid)
-    .is("excluido_em", null)
-    .order("criado_em");
-  return ((data as { qtd: number; custo_unit_centavos: number | null }[]) ?? []).map(
-    (r) => [Number(r.qtd), r.custo_unit_centavos == null ? null : Number(r.custo_unit_centavos)] as MovLedger,
-  );
+  const rows = await stockRequest(`/livros/${livroUid}/movimentos`) as
+    { qtd: number; custo_unit_centavos: number | null }[];
+  return rows.map(row => [row.qtd, row.custo_unit_centavos]);
 }

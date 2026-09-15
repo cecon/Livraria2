@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-const UI_PATH = /^(?:apps\/(?:escritorio|pdv|nuvem\/web)\/|packages\/ui\/|src\/).+\.(?:css|jsx|scss|tsx)$/i;
+const UI_PATH = /^(?:apps\/(?:pdv|nuvem\/web)\/|packages\/ui\/).+\.(?:css|jsx|scss|tsx)$/i;
 const REVIEW_PATH = /^docs\/theme-reviews\/.+\.md$/i;
 const REQUIRED_CHECKS = [
   'AgentMemory recall', 'Desktop', 'Smartphone', 'Light mode', 'Dark mode', 'Accessibility',

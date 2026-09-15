@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { API_COOKIE, apiFetch, usersApiEnabled } from "./server";
+import { API_COOKIE, apiFetch } from "./server";
 
 function sameOrigin(req: NextRequest) {
   try {
@@ -13,7 +13,6 @@ function sameOrigin(req: NextRequest) {
 }
 
 export async function usersProxy(req: NextRequest, id?: string, action?: "senha" | "ativa", body?: unknown) {
-  if (!usersApiEnabled()) return NextResponse.json({ erro: "API desativada" }, { status: 503 });
   if (id && !/^[a-z0-9._-]{1,100}$/.test(id)) return NextResponse.json({ erro: "Usuario invalido" }, { status: 400 });
   if (req.method !== "GET" && !sameOrigin(req)) return NextResponse.json({ erro: "Origem invalida" }, { status: 403 });
   if (!(await cookies()).get(API_COOKIE)?.value) {

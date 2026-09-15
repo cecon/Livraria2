@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { API_COOKIE, apiFetch, shiftsApiEnabled } from "./server";
+import { API_COOKIE, apiFetch } from "./server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function sameOrigin(req: NextRequest) {
@@ -22,7 +22,6 @@ function allowed(method: string, path: string[]) {
 }
 
 export async function shiftsProxy(req: NextRequest, path: string[]) {
-  if (!shiftsApiEnabled()) return NextResponse.json({ erro: "API desativada" }, { status: 503 });
   if (!allowed(req.method, path)) return NextResponse.json({ erro: "Operacao invalida" }, { status: 400 });
   if (req.method !== "GET" && !sameOrigin(req)) return NextResponse.json({ erro: "Origem invalida" }, { status: 403 });
   if (!(await cookies()).get(API_COOKIE)?.value) return NextResponse.json({ erro: "Sessao expirada." }, { status: 401 });

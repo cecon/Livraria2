@@ -30,8 +30,8 @@ Execute `npm run hooks:install` uma vez por clone. O `pre-commit` verifica se o 
 disponivel quando houver arquivos de UI no commit. O `pre-push` compara a branch com
 `origin/main` e exige um relatorio de tema novo e completo antes de permitir a publicacao.
 
-O verificador considera UI em `apps/pdv`, `apps/nuvem/web`, `packages/ui` e nos caminhos legados
-`apps/escritorio` e `src`. Testes e mudancas apenas de backend/documentacao nao exigem relatorio.
+O verificador considera UI em `apps/pdv`, `apps/nuvem/web` e `packages/ui`. Testes e mudancas
+apenas de backend/documentacao nao exigem relatorio.
 Execute manualmente com `npm run theme:check`; os testes do guardrail usam `npm run theme:test`.
 
 ## Como Adaptar

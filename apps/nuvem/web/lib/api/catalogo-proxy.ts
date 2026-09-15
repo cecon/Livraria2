@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { API_COOKIE, apiFetch, catalogApiEnabled } from "./server";
+import { API_COOKIE, apiFetch } from "./server";
 
 function sameOrigin(req: NextRequest) {
   try {
@@ -14,7 +14,6 @@ function sameOrigin(req: NextRequest) {
 }
 
 export async function catalogProxy(req: NextRequest, id?: string) {
-  if (!catalogApiEnabled()) return NextResponse.json({ erro: "API desativada" }, { status: 503 });
   if (id && !/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ erro: "UUID invalido" }, { status: 400 });
   if (req.method !== "GET" && !sameOrigin(req)) {
     return NextResponse.json({ erro: "Origem invalida" }, { status: 403 });

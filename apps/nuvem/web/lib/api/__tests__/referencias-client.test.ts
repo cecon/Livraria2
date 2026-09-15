@@ -4,23 +4,6 @@ beforeEach(() => vi.resetModules());
 afterEach(() => vi.unstubAllGlobals());
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
-test("modo de referencias permanece legado quando desligado", async () => {
-  const fetcher = vi.fn().mockResolvedValue(response({ enabled: false }));
-  vi.stubGlobal("fetch", fetcher);
-  const { referencesApiEnabled } = await import("../referencias-client");
-  expect(await referencesApiEnabled()).toBe(false);
-  expect(await referencesApiEnabled()).toBe(false);
-  expect(fetcher).toHaveBeenCalledTimes(1);
-});
-
-test("falha de configuracao permite tentar novamente sem fallback silencioso", async () => {
-  vi.stubGlobal("fetch", vi.fn().mockRejectedValueOnce(new Error("offline"))
-    .mockResolvedValueOnce(response({ enabled: true })));
-  const { referencesApiEnabled } = await import("../referencias-client");
-  await expect(referencesApiEnabled()).rejects.toThrow("offline");
-  expect(await referencesApiEnabled()).toBe(true);
-});
-
 test("formas percorrem paginas e respeitam ordem administrativa", async () => {
   vi.stubGlobal("fetch", vi.fn()
     .mockResolvedValueOnce(response({ items: [{ sync_uid: "1", rotulo: "Z", ordem: 2 }], next: "1" }))

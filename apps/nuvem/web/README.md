@@ -1,7 +1,7 @@
 # App do escritorio
 
-Next.js App Router + Supabase (`@supabase/ssr`). Autentica por usuario
-Supabase Auth e fala com a nuvem `fiqzcnnibwzthhjatxvq` sob RLS.
+Next.js App Router integrado exclusivamente a API NestJS. A autenticacao e os
+dados administrativos passam pelo backend, sem acesso direto do navegador ao banco.
 
 ## Rodar local
 
@@ -15,25 +15,24 @@ npm run dev
 ## Build manual da imagem
 
 ```bash
-docker build -f apps/nuvem/web/Dockerfile \
-  --build-arg NEXT_PUBLIC_SUPABASE_URL=https://fiqzcnnibwzthhjatxvq.supabase.co \
-  --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable> \
-  -t livraria-escritorio:latest .
+docker build -f apps/nuvem/web/Dockerfile -t livraria-escritorio:latest .
 ```
 
 ## Auto-update local/prod-local com Docker Desktop
 
 O workflow `.github/workflows/web-images.yml` publica, a cada merge na `main`,
-duas imagens no GHCR:
+tres imagens no GHCR:
 
 - `ghcr.io/cecon/livraria2-escritorio:latest`
+- `ghcr.io/cecon/livraria2-nuvem-api:latest`
 - `ghcr.io/cecon/livraria2-migrator:latest`
 
 O arquivo `apps/nuvem/web/stack.yml` e um Docker Compose para Docker Desktop e
-sobe tres containers:
+sobe quatro containers:
 
 - `migrator`: aplica migrations do Supabase e registra hash em
   `public.livraria_schema_migrations`.
+- `api`: backend NestJS da nuvem.
 - `escritorio`: app Next.js standalone.
 - `watchtower`: observa imagens com label e recria containers quando `:latest`
   muda.
@@ -42,9 +41,8 @@ Variaveis exigidas no ambiente do Docker Desktop/Compose:
 
 ```text
 ESCRITORIO_PORT=47612
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
-ESCRITORIO_EMAIL=...
-ESCRITORIO_SENHA=...
+NUVEM_DATABASE_URL=...
+API_JWT_SECRET=...
 SUPABASE_DB_PASSWORD=...
 MIGRATION_BASELINE_UP_TO=0011_estoque_oficial_venda
 ```

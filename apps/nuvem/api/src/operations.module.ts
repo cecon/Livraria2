@@ -6,7 +6,7 @@ import { AuthGuard } from "./auth/auth.guard";
 import { DatabaseModule } from "./database/database.module";
 import { DevicesController } from "./sync/devices.controller";
 import { CatalogController } from "./sync/catalog.controller";
-import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { APP_GUARD } from "@nestjs/core";
 import { SalesController } from "./sales/sales.controller";
 import { SalesService } from "./sales/sales.service";
@@ -29,11 +29,12 @@ import { AdminSalesController } from "./admin/admin-sales.controller";
 import { AdminSalesService } from "./admin/admin-sales.service";
 import { ReportsController } from "./admin/reports.controller";
 import { ReportsService } from "./admin/reports.service";
+import { ApiThrottlerGuard } from "./auth/api-throttler.guard";
 
 @Module({
   imports: [
     DatabaseModule,
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 600 }]),
     JwtModule.registerAsync({
       useFactory: () => {
         const secret = process.env.API_JWT_SECRET;
@@ -54,6 +55,6 @@ import { ReportsService } from "./admin/reports.service";
   providers: [AuthService, AuthGuard, SalesService, BooksService, FormsService, SuppliersService,
     UsersService, DestinationsService, StockService, EntriesService, ShiftsService, AdminSalesService,
     ReportsService,
-    { provide: APP_GUARD, useClass: ThrottlerGuard }],
+    { provide: APP_GUARD, useClass: ApiThrottlerGuard }],
 })
 export class OperationsModule {}
