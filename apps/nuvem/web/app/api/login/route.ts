@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { API_COOKIE, apiLogin } from "@/lib/api/server";
+import { requestUsesHttps } from "@/lib/api/request-security";
 
 export async function POST(request: NextRequest) {
   const { usuario, senha } = await request.json().catch(() => ({}));
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
     store.set("app_user", session.user.usuario, { httpOnly: true, sameSite: "lax", path: "/" });
     store.set(API_COOKIE, session.accessToken, {
       httpOnly: true, sameSite: "strict", path: "/", maxAge: session.expiresIn,
-      secure: process.env.NODE_ENV === "production",
+      secure: requestUsesHttps(request),
     });
     return NextResponse.json({ ok: true });
   } catch {
