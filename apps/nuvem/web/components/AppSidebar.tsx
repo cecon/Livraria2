@@ -24,7 +24,7 @@ type NavEntry = ItemNav | {
 };
 
 const extra: NavEntry[] = [
-  { to: "/pdvs", rotulo: "Caixas", Icon: MonitorCheck, end: false },
+  { to: "/pdvs", rotulo: "Máquinas", Icon: MonitorCheck, end: false },
   { to: "/usuarios", rotulo: "Usuários", Icon: Users, end: false },
 ];
 

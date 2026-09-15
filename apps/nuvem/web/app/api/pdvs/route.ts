@@ -1,18 +1,5 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { API_COOKIE, apiFetch } from "@/lib/api/server";
+import { NextRequest } from "next/server";
+import { devicesProxy } from "@/lib/api/pdvs-proxy";
 
-export async function GET() {
-  if (!(await cookies()).get(API_COOKIE)?.value) {
-    return NextResponse.json({ erro: "Sessao expirada. Entre novamente." }, { status: 401 });
-  }
-  try {
-    const response = await apiFetch("pdvs");
-    const body = await response.json();
-    if (!response.ok) return NextResponse.json({ erro: response.status === 403 ? "Sem permissao." :
-      "Nao foi possivel consultar os caixas." }, { status: response.status });
-    return NextResponse.json(body, { headers: { "cache-control": "no-store" } });
-  } catch {
-    return NextResponse.json({ erro: "API indisponivel. Tente novamente." }, { status: 502 });
-  }
-}
+export const GET = (request: NextRequest) => devicesProxy(request);
+export const POST = (request: NextRequest) => devicesProxy(request);
