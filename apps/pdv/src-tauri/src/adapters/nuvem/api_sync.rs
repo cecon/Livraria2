@@ -36,8 +36,8 @@ impl ApiSync {
         uuid::Uuid::parse_str(&uid).map_err(erro)?;
         let client = Client::builder().timeout(Duration::from_secs(30))
             .connect_timeout(Duration::from_secs(5)).redirect(reqwest::redirect::Policy::none()).build().map_err(erro)?;
-        let base = format!("{}/api/v1", url.trim_end_matches('/'));
-        let response = client.post(format!("{base}/auth/pdv/renovar"))
+        let base = format!("{}/api/pdv", url.trim_end_matches('/'));
+        let response = client.post(format!("{base}/renovar"))
             .json(&json!({"pdvUid":uid,"refreshToken":refresh})).send().await.map_err(erro)?;
         if !response.status().is_success() {
             return Err(RepoErro::Persistencia(format!("Renovacao de credencial API HTTP {}", response.status())));
@@ -58,14 +58,14 @@ impl ApiSync {
 #[async_trait]
 impl NuvemApi for ApiSync {
     async fn pagina(&self, cursor: &str) -> Result<PaginaApi, RepoErro> {
-        let response = self.client.get(format!("{}/sync/catalogo", self.base))
+        let response = self.client.get(format!("{}/catalogo", self.base))
             .bearer_auth(&self.token).query(&[("cursor", cursor), ("limite", "100")])
             .send().await.map_err(erro)?;
         serde_json::from_value(Self::resposta(response).await?).map_err(erro)
     }
 
     async fn confirmar(&self, cursor: &str) -> Result<(), RepoErro> {
-        let response = self.client.post(format!("{}/sync/catalogo/confirmacao", self.base))
+        let response = self.client.post(format!("{}/catalogo/confirmacao", self.base))
             .bearer_auth(&self.token).json(&json!({"cursorAplicado":cursor})).send().await.map_err(erro)?;
         let value = Self::resposta(response).await?;
         if value.get("cursorAplicado").and_then(Value::as_str) != Some(cursor) { return Err(erro("cursor")); }
@@ -74,8 +74,8 @@ impl NuvemApi for ApiSync {
 
     async fn enviar(&self, envio: &EnvioApi) -> Result<Value, RepoErro> {
         let path = if envio.cancelamento {
-            format!("{}/sync/vendas/{}/cancelamento", self.base, envio.uid)
-        } else { format!("{}/sync/vendas", self.base) };
+            format!("{}/vendas/{}/cancelamento", self.base, envio.uid)
+        } else { format!("{}/vendas", self.base) };
         let response = self.client.post(path).bearer_auth(&self.token)
             .json(&envio.corpo).send().await.map_err(erro)?;
         Self::resposta(response).await
