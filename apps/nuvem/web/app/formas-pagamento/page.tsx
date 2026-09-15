@@ -23,10 +23,11 @@ export default function FormasPagamentoPage() {
   const [criando, setCriando] = useState(false);
 
   async function carregar() {
-    setFormas(await listarFormas());
+    try { setFormas(await listarFormas()); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar as formas."); }
   }
   useEffect(() => {
-    carregar();
+    void carregar();
   }, []);
 
   function fecharForm() {
@@ -42,14 +43,14 @@ export default function FormasPagamentoPage() {
     setFormas(nova);
     const { error } = await reordenarFormas(nova);
     if (error) toast.error(error);
-    carregar();
+    void carregar();
   }
 
   async function alternarAtiva(f: Forma) {
     const { error } = await definirFormaAtiva(f.sync_uid, !f.ativa);
     if (error) return toast.error(error);
     toast.success(`"${f.rotulo}" ${f.ativa ? "desativada" : "ativada"}`);
-    carregar();
+    void carregar();
   }
 
   async function excluir(f: Forma) {

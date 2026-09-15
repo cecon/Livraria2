@@ -7,11 +7,19 @@ module.exports = async function webCatalog(t, db, apiBase, adminToken, deviceTok
   const base = "http://127.0.0.1:3004";
   const child = spawn(process.execPath, [require.resolve("next/dist/bin/next"), "start", "-p", "3004", "-H", "127.0.0.1"], {
     cwd: path.resolve(__dirname, "../../web"), stdio: "ignore",
-    env: { ...process.env, API_CATALOGO_ENABLED: "true", NUVEM_API_URL: new URL(apiBase).origin,
+    env: { ...process.env, API_CATALOGO_ENABLED: "true", API_REFERENCIAS_ENABLED: "true",
+      NUVEM_API_URL: new URL(apiBase).origin,
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "placeholder-build-only" },
   });
   const call = async (method, route, body, token = adminToken, origin = base) => {
     const response = await fetch(base + "/api/catalogo" + route, {
+      method, headers: { origin, cookie: "nuvem_usuario=" + token, "content-type": "application/json" },
+      ...(body && { body: JSON.stringify(body) }),
+    });
+    return { status: response.status, body: await response.json() };
+  };
+  const reference = async (method, route, body, token = adminToken, origin = base) => {
+    const response = await fetch(base + "/api/referencias" + route, {
       method, headers: { origin, cookie: "nuvem_usuario=" + token, "content-type": "application/json" },
       ...(body && { body: JSON.stringify(body) }),
     });
@@ -45,6 +53,27 @@ module.exports = async function webCatalog(t, db, apiBase, adminToken, deviceTok
       assert.equal(events[0].produto.saldoPublicado, 9);
       assert.equal((await call("DELETE", "/" + uid)).status, 200);
       assert.equal((await db.livro.findUnique({ where: { syncUid: uid } })).ativo, false);
+    });
+    await t.test("proxy Next real administra fornecedores e formas atomicamente", async () => {
+      assert.equal((await reference("GET", "/config")).body.enabled, true);
+      const supplier = randomUUID();
+      const form = randomUUID();
+      assert.equal((await reference("POST", "/fornecedores", { sync_uid: supplier,
+        nome: "Fornecedor Web", ativo: true }, deviceToken)).status, 403);
+      assert.equal((await reference("POST", "/fornecedores", { sync_uid: supplier,
+        nome: "Fornecedor Web", ativo: true }, adminToken, "http://attacker.test")).status, 403);
+      assert.equal((await reference("POST", "/fornecedores", { sync_uid: supplier,
+        nome: "Fornecedor Web", ativo: true })).status, 201);
+      assert.equal((await reference("PUT", "/fornecedores/" + supplier, { nome: "Fornecedor Web Atualizado",
+        ativo: true })).status, 200);
+      assert.equal((await db.fornecedor.findUnique({ where: { sync_uid: supplier } })).nome, "Fornecedor Web Atualizado");
+      assert.equal((await reference("POST", "/formas", { sync_uid: form, rotulo: "Forma Web",
+        ativa: true, ordem: 50 })).status, 201);
+      const forms = (await reference("GET", "/formas")).body.items;
+      assert.equal((await reference("PUT", "/formas/reordenar", { uids: forms.map(row => row.sync_uid).reverse() })).status, 200);
+      assert.equal((await reference("PUT", `/formas/${form}/ativa`, { ativa: false })).status, 200);
+      assert.equal((await reference("DELETE", "/formas/" + form)).status, 200);
+      assert.equal((await reference("DELETE", "/fornecedores/" + supplier)).status, 200);
     });
   } finally {
     if (child.exitCode === null && child.signalCode === null) {

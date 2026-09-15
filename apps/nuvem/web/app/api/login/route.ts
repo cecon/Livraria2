@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { cleanEnv } from "@/utils/env";
-import { API_COOKIE, apiLogin, catalogApiEnabled } from "@/lib/api/server";
+import { API_COOKIE, apiLogin, userApiEnabled } from "@/lib/api/server";
 
 async function autenticarPerfil(usuario: string, senha: string) {
   const url = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
   }
 
   let apiToken: string | undefined;
-  if (catalogApiEnabled()) {
+  if (userApiEnabled()) {
     try { apiToken = await apiLogin(u, String(senha)); }
     catch { return NextResponse.json({ erro: "Nao foi possivel entrar. Confira suas credenciais e a conexao." }, { status: 403 }); }
   }

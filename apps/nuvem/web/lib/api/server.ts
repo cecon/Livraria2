@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 
 export const API_COOKIE = "nuvem_usuario";
 export const catalogApiEnabled = () => process.env.API_CATALOGO_ENABLED === "true";
+export const referencesApiEnabled = () => process.env.API_REFERENCIAS_ENABLED === "true";
+export const userApiEnabled = () => catalogApiEnabled() || referencesApiEnabled();
 
 export async function apiFetch(path: string, init: RequestInit = {}, token?: string) {
   const value = process.env.NUVEM_API_URL;

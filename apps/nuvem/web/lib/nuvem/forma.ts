@@ -1,6 +1,8 @@
 // Camada de dados de formas de pagamento (US2/T029) — dedup por chave; LWW.
 import { createClient } from "@/utils/supabase/client";
 import { normalizar } from "@/utils/texto";
+import { deleteApiForm, listApiForms, referencesApiEnabled, reorderApiForms,
+  saveApiForm, setApiFormActive } from "@/lib/api/referencias-client";
 
 export type Forma = {
   sync_uid: string;
@@ -12,6 +14,7 @@ export type Forma = {
 };
 
 export async function listarFormas(): Promise<Forma[]> {
+  if (await referencesApiEnabled()) return listApiForms();
   const sb = createClient();
   const { data } = await sb
     .from("forma_pagamento")
@@ -32,6 +35,8 @@ export type EntradaForma = {
 };
 
 export async function salvarForma(f: EntradaForma): Promise<{ error?: string }> {
+  try { if (await referencesApiEnabled()) return saveApiForm(f); }
+  catch (error) { return { error: error instanceof Error ? error.message : "Configuracao indisponivel" }; }
   const sb = createClient();
   const { data: sessao } = await sb.auth.getUser();
   const linha = {
@@ -53,12 +58,16 @@ export async function salvarForma(f: EntradaForma): Promise<{ error?: string }> 
 }
 
 export async function definirFormaAtiva(sync_uid: string, ativa: boolean): Promise<{ error?: string }> {
+  try { if (await referencesApiEnabled()) return setApiFormActive(sync_uid, ativa); }
+  catch (error) { return { error: error instanceof Error ? error.message : "Configuracao indisponivel" }; }
   const sb = createClient();
   const { error } = await sb.from("forma_pagamento").update({ ativa, atualizado_em: new Date().toISOString() }).eq("sync_uid", sync_uid);
   return error ? { error: error.message } : {};
 }
 
 export async function excluirForma(sync_uid: string): Promise<{ error?: string }> {
+  try { if (await referencesApiEnabled()) return deleteApiForm(sync_uid); }
+  catch (error) { return { error: error instanceof Error ? error.message : "Configuracao indisponivel" }; }
   const sb = createClient();
   const agora = new Date().toISOString();
   const { error } = await sb.from("forma_pagamento").update({ excluido_em: agora, atualizado_em: agora }).eq("sync_uid", sync_uid);
@@ -66,6 +75,8 @@ export async function excluirForma(sync_uid: string): Promise<{ error?: string }
 }
 
 export async function reordenarFormas(ordenadas: Forma[]): Promise<{ error?: string }> {
+  try { if (await referencesApiEnabled()) return reorderApiForms(ordenadas); }
+  catch (error) { return { error: error instanceof Error ? error.message : "Configuracao indisponivel" }; }
   const sb = createClient();
   const agora = new Date().toISOString();
   for (let i = 0; i < ordenadas.length; i++) {

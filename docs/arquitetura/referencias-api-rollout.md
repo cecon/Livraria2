@@ -34,11 +34,18 @@ novo; a sincronizacao desses dados continua hibrida.
 
 ## Validacao e proxima etapa
 
-Build API e 26 testes de integracao passaram em PostgreSQL local isolado,
-incluindo os seis cenarios de referencias. Os testes usam triggers reais e
-simulam falha na reordenacao para conferir rollback integral.
+Builds API/web, 26 testes de integracao API e 20 testes web passaram. O teste
+com Next, NestJS e PostgreSQL reais tambem percorre os dois recursos pelo proxy.
+Os testes usam triggers reais e simulam falha na reordenacao para conferir
+rollback integral.
 
-As telas web continuam no caminho legado nesta entrega. T017b deve introduzir
-chave experimental independente, proxy de mesma origem com cookie HTTP-only,
-tratamento de erros nas telas e testes web/API antes de qualquer ativacao.
-Nao houve atualizacao de producao nem alteracao do Docker operacional.
+As telas web usam o caminho legado com `API_REFERENCIAS_ENABLED=false`. Quando
+a chave e ligada, fornecedores e formas passam integralmente pelo proxy de mesma
+origem, com JWT individual em cookie HTTP-only. Falha de configuracao ou da API
+e exibida e nao aciona gravacao silenciosa pelo cliente Supabase. O login passa
+a exigir sessao individual da API quando catalogo ou referencias estiver ativo.
+
+O rollout deve ligar a chave apenas depois de publicar API e web compativeis.
+Rollback consiste em desliga-la e reiniciar somente o web; os campos legados de
+sincronizacao foram mantidos. Nao houve atualizacao de producao nem alteracao do
+Docker operacional nesta etapa.

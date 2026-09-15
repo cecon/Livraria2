@@ -21,10 +21,14 @@ export default function FornecedoresPage() {
   const [lista, setLista] = useState<Fornecedor[] | null>(null);
 
   async function carregar() {
-    setLista(await listarFornecedores());
+    try { setLista(await listarFornecedores()); }
+    catch (error) {
+      setLista([]);
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar os fornecedores.");
+    }
   }
   useEffect(() => {
-    carregar();
+    void carregar();
   }, []);
 
   const filtrados = useMemo(() => {
