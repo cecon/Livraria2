@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { API_COOKIE, apiFetch, salesApiEnabled } from "./server";
+import { API_COOKIE, apiFetch } from "./server";
 function sameOrigin(req: NextRequest) {
   try {
     const origin = new URL(req.headers.get("origin") || "");
@@ -11,7 +11,6 @@ function sameOrigin(req: NextRequest) {
   } catch { return false; }
 }
 export async function salesProxy(req: NextRequest, path: string[]) {
-  if (!salesApiEnabled()) return NextResponse.json({ erro: "API desativada" }, { status: 503 });
   const allowed = (req.method === "POST" && path.length === 0) ||
     (req.method === "GET" && path.length === 1 && path[0] === "hoje");
   if (!allowed) return NextResponse.json({ erro: "Operacao invalida" }, { status: 400 });

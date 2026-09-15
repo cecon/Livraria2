@@ -18,11 +18,6 @@ FROM node:22-alpine AS builder
 WORKDIR /repo
 COPY --from=deps /repo/node_modules ./node_modules
 COPY . .
-# As NEXT_PUBLIC_* precisam existir no build (embutidas no bundle do cliente).
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
-ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 RUN npm run build -w apps/nuvem/web
 
 FROM node:22-alpine AS runner

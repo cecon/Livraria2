@@ -1,8 +1,4 @@
-// Camada de dados de fornecedores (US2/T028) — dedup por nome_norm; LWW.
-import { createClient } from "@/utils/supabase/client";
-import { normalizar } from "@/utils/texto";
-import { deleteApiSupplier, listApiSuppliers, referencesApiEnabled,
-  saveApiSupplier } from "@/lib/api/referencias-client";
+import { deleteApiSupplier, listApiSuppliers, saveApiSupplier } from "@/lib/api/referencias-client";
 
 export type Fornecedor = {
   sync_uid: string;
@@ -15,49 +11,17 @@ export type Fornecedor = {
 };
 
 export async function listarFornecedores(): Promise<Fornecedor[]> {
-  if (await referencesApiEnabled()) return listApiSuppliers();
-  const sb = createClient();
-  const { data } = await sb
-    .from("fornecedor")
-    .select("sync_uid,nome,documento,telefone,email,observacoes,ativo")
-    .is("excluido_em", null)
-    .order("nome");
-  return (data as Fornecedor[]) ?? [];
+  return listApiSuppliers();
 }
 
 export type EntradaFornecedor = Partial<Fornecedor> & { nome: string };
 
 export async function salvarFornecedor(f: EntradaFornecedor): Promise<{ error?: string }> {
-  try { if (await referencesApiEnabled()) return saveApiSupplier(f); }
+  try { return await saveApiSupplier(f); }
   catch (error) { return { error: error instanceof Error ? error.message : "Configuracao indisponivel" }; }
-  const sb = createClient();
-  const { data: sessao } = await sb.auth.getUser();
-  const linha = {
-    sync_uid: f.sync_uid ?? crypto.randomUUID(),
-    nome: f.nome.trim(),
-    nome_norm: normalizar(f.nome),
-    documento: f.documento || null,
-    telefone: f.telefone || null,
-    email: f.email || null,
-    observacoes: f.observacoes || null,
-    ativo: f.ativo ?? true,
-    origem: "escritorio",
-    atualizado_em: new Date().toISOString(),
-    criado_por: sessao.user?.id ?? null,
-  };
-  const { error } = await sb.from("fornecedor").upsert(linha, { onConflict: "sync_uid" });
-  if (error) {
-    return { error: error.message.includes("nome_norm") ? "Já existe um fornecedor com esse nome." : error.message };
-  }
-  return {};
 }
 
 export async function inativarFornecedor(sync_uid: string): Promise<{ error?: string }> {
-  try { if (await referencesApiEnabled()) return deleteApiSupplier(sync_uid); }
+  try { return await deleteApiSupplier(sync_uid); }
   catch (error) { return { error: error instanceof Error ? error.message : "Configuracao indisponivel" }; }
-  const sb = createClient();
-  const agora = new Date().toISOString();
-  const { error } = await sb.from("fornecedor").update({ ativo: false, excluido_em: agora, atualizado_em: agora }).eq("sync_uid", sync_uid);
-  if (error) return { error: error.message };
-  return {};
 }

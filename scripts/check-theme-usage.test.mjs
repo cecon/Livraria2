@@ -15,10 +15,10 @@ const complete = `# Theme Review
 
 test('detects UI files and ignores tests', () => {
   assert.deepEqual(uiFiles([
-    'apps/pdv/src/Pdv.tsx', 'apps/escritorio/app/page.tsx',
+    'apps/pdv/src/Pdv.tsx',
     'apps/nuvem/web/app/page.tsx', 'packages/ui/theme.css',
     'apps/pdv/src/Pdv.test.tsx', 'apps/nuvem/api/src/main.ts', 'docs/readme.md',
-  ]), ['apps/pdv/src/Pdv.tsx', 'apps/escritorio/app/page.tsx',
+  ]), ['apps/pdv/src/Pdv.tsx',
     'apps/nuvem/web/app/page.tsx', 'packages/ui/theme.css']);
 });
 

@@ -1,5 +1,3 @@
-export const apiOnlyMode = () => process.env.API_ONLY_MODE === "true";
-
 export function apiOrigin() {
   const value = process.env.NUVEM_API_URL;
   if (!value) throw new Error("API nao configurada");
@@ -10,14 +8,3 @@ export function apiOrigin() {
   }
   return url.origin;
 }
-
-export const apiFeaturesEnabled = () => apiOnlyMode() ||
-  process.env.API_CATALOGO_ENABLED === "true" ||
-  process.env.API_REFERENCIAS_ENABLED === "true" ||
-  process.env.API_USUARIOS_ENABLED === "true" ||
-  process.env.API_PDV_STATUS_ENABLED === "true" ||
-  process.env.API_ESTOQUE_ENABLED === "true" ||
-  process.env.API_LANCAMENTOS_ENABLED === "true" ||
-  process.env.API_TURNOS_ENABLED === "true" ||
-  process.env.API_VENDAS_ENABLED === "true" ||
-  process.env.API_RELATORIOS_ENABLED === "true";

@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { API_COOKIE, apiFetch, pdvStatusApiEnabled } from "@/lib/api/server";
+import { API_COOKIE, apiFetch } from "@/lib/api/server";
 
 export async function GET() {
-  if (!pdvStatusApiEnabled()) return NextResponse.json({ erro: "API desativada" }, { status: 503 });
   if (!(await cookies()).get(API_COOKIE)?.value) {
     return NextResponse.json({ erro: "Sessao expirada. Entre novamente." }, { status: 401 });
   }

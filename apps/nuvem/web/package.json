@@ -2,7 +2,7 @@
   "name": "livraria-escritorio",
   "version": "0.1.0",
   "private": true,
-  "description": "App web do escritório (retaguarda) — Next.js + Supabase. Consome @livraria/ui e @livraria/domain (workspace).",
+  "description": "App web do escritorio (retaguarda) em Next.js, integrado exclusivamente a API NestJS.",
   "scripts": {
     "test:api": "vitest run",
     "dev": "next dev",
@@ -14,8 +14,6 @@
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@supabase/supabase-js": "^2.47.0",
-    "@supabase/ssr": "^0.5.2",
     "@livraria/ui": "*",
     "@livraria/domain": "*",
     "class-variance-authority": "^0.7.1",

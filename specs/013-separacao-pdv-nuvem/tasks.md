@@ -26,19 +26,19 @@
 
 ## Administrativo e entrega
 
-- [x] T016 Migrar catalogo web para API (experimental; homologacao e ativacao em T020).
+- [x] T016 Migrar catalogo web para API.
 - [x] T017 Migrar demais fluxos administrativos.
 - [x] T017a API de fornecedores e formas de pagamento, com autorizacao e testes PostgreSQL isolados.
-- [x] T017b Conectar telas de fornecedores e formas a API por chave experimental independente.
+- [x] T017b Conectar telas de fornecedores e formas a API.
 - [x] T017c Padronizar identificadores de usuario em minusculas na nuvem e no PDV.
-- [x] T017d Migrar gestao de usuarios e destinacoes para a API experimental.
+- [x] T017d Migrar gestao de usuarios e destinacoes para a API.
 - [x] T017e Migrar estoque, inventario, entradas, turnos, vendas e relatorios administrativos.
 - [x] T018 Exibir confirmacao de alteracoes por caixa.
 - [x] T019 Integrar alteracoes mobile preservadas no worktree original.
-- [ ] T020 Ativar gradualmente com rollback e remover acesso direto legado.
+- [x] T020 Ativar gradualmente e remover o acesso direto antigo.
 - [x] T020a Publicar imagem independente da API e preparar migrations com ativacao explicita.
 - [x] T020b Implementar modo API-only para login, sessao, identidade e troca de senha.
 - [x] T020c Validar todos os modulos web em Docker contra API e PostgreSQL isolados.
 - [x] T020d Homologar contra copia dos dados reais sem modificar a origem.
 - [x] T020e Ativar producao gradualmente e validar saude, banco e modulos administrativos.
-- [ ] T020f Remover fallbacks Supabase depois da janela de rollback aprovada.
+- [x] T020f Remover fallbacks Supabase depois da janela de rollback aprovada.

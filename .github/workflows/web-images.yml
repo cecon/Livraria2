@@ -27,7 +27,6 @@ env:
   ESCRITORIO_IMAGE: ghcr.io/cecon/livraria2-escritorio
   MIGRATOR_IMAGE: ghcr.io/cecon/livraria2-migrator
   API_IMAGE: ghcr.io/cecon/livraria2-nuvem-api
-  NEXT_PUBLIC_SUPABASE_URL: https://fiqzcnnibwzthhjatxvq.supabase.co
 
 jobs:
   build-push:
@@ -49,9 +48,6 @@ jobs:
           context: .
           file: apps/nuvem/web/Dockerfile
           push: true
-          build-args: |
-            NEXT_PUBLIC_SUPABASE_URL=${{ env.NEXT_PUBLIC_SUPABASE_URL }}
-            NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
           tags: |
             ${{ env.ESCRITORIO_IMAGE }}:latest
             ${{ env.ESCRITORIO_IMAGE }}:${{ github.sha }}

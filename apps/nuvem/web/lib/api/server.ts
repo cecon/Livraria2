@@ -1,21 +1,8 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { apiOnlyMode, apiOrigin } from "./config";
+import { apiOrigin } from "./config";
 
 export const API_COOKIE = "nuvem_usuario";
-export { apiOnlyMode };
-export const catalogApiEnabled = () => apiOnlyMode() || process.env.API_CATALOGO_ENABLED === "true";
-export const referencesApiEnabled = () => apiOnlyMode() || process.env.API_REFERENCIAS_ENABLED === "true";
-export const usersApiEnabled = () => apiOnlyMode() || process.env.API_USUARIOS_ENABLED === "true";
-export const pdvStatusApiEnabled = () => apiOnlyMode() || process.env.API_PDV_STATUS_ENABLED === "true";
-export const stockApiEnabled = () => apiOnlyMode() || process.env.API_ESTOQUE_ENABLED === "true";
-export const entriesApiEnabled = () => apiOnlyMode() || process.env.API_LANCAMENTOS_ENABLED === "true";
-export const shiftsApiEnabled = () => apiOnlyMode() || process.env.API_TURNOS_ENABLED === "true";
-export const salesApiEnabled = () => apiOnlyMode() || process.env.API_VENDAS_ENABLED === "true";
-export const reportsApiEnabled = () => apiOnlyMode() || process.env.API_RELATORIOS_ENABLED === "true";
-export const userApiEnabled = () => catalogApiEnabled() || referencesApiEnabled() ||
-  usersApiEnabled() || pdvStatusApiEnabled() || stockApiEnabled() || entriesApiEnabled() ||
-  shiftsApiEnabled() || salesApiEnabled() || reportsApiEnabled();
 
 export async function apiFetch(path: string, init: RequestInit = {}, token?: string) {
   const credential = token ?? (await cookies()).get(API_COOKIE)?.value;

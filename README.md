@@ -16,13 +16,14 @@ Plano: [separacao PDV/nuvem](specs/013-separacao-pdv-nuvem/plan.md).
 
 - `apps/pdv`: Tauri e layout React, com banco local.
 - `apps/nuvem/web`: administrativo Next.js.
-- `apps/nuvem/api`: API NestJS com Prisma/PostgreSQL, em introducao gradual.
+- `apps/nuvem/api`: API NestJS com Prisma/PostgreSQL.
 - `packages/contratos`: comunicacao versionada entre sistemas.
 
 Na raiz: `npm run dev` (PDV), `npm run dev:web` (administrativo),
 `npm run dev:api` (API). Builds: `npm run build`, `npm run build:web`,
 `npm run build:api`. API health: `/api/v1/health`.
-O protocolo novo ainda nao substitui o acesso Supabase legado.
+O administrativo acessa os dados exclusivamente pela API NestJS; o navegador nao se conecta
+diretamente ao banco.
 
 - **Tauri 2** (shell desktop) · **Rust** (núcleo de domínio)
 - **React + TypeScript + Vite** · **shadcn/ui + Tailwind**

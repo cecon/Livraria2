@@ -1,16 +1,5 @@
 import type { EntradaLivro, Livro } from "@/lib/nuvem/livro";
 
-let mode: Promise<boolean> | undefined;
-export function catalogApiEnabled() {
-  mode ??= fetch("/api/catalogo/config", { cache: "no-store", signal: AbortSignal.timeout(10000) }).then(async response => {
-    if (!response.ok) throw new Error("Configuracao do catalogo indisponivel");
-    const result = await response.json();
-    if (typeof result.enabled !== "boolean") throw new Error("Configuracao invalida");
-    return result.enabled as boolean;
-  }).catch(error => { mode = undefined; throw error; });
-  return mode;
-}
-
 export async function catalogRequest(path: string, method = "GET", body?: unknown) {
   const response = await fetch(`/api/catalogo${path}`, {
     method, cache: "no-store", signal: AbortSignal.timeout(10000),
