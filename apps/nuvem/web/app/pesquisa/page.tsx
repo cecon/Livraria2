@@ -120,16 +120,16 @@ export default function PesquisaPage() {
       <h1 className="text-2xl font-semibold tracking-tight">Pesquisa</h1>
       <div className="bg-card mt-4 grid grid-cols-1 gap-4 rounded-xl border p-5 sm:grid-cols-2">
         <div>
-          <Label>Código de Barras</Label>
+          <Label htmlFor="pesquisa-codigo">Código de Barras</Label>
           <div className="mt-1 flex flex-col gap-2 sm:flex-row">
-            <Input value={porCodigo} onChange={(e) => setPorCodigo(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && buscarCodigo()} className="h-9 font-mono" />
+            <Input id="pesquisa-codigo" value={porCodigo} onChange={(e) => setPorCodigo(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && buscarCodigo()} className="h-9 font-mono" />
             <Button onClick={buscarCodigo} className="h-9">Pesquisar</Button>
           </div>
         </div>
         <div>
-          <Label>Título ou Autor</Label>
+          <Label htmlFor="pesquisa-texto">Título ou Autor</Label>
           <div className="mt-1 flex flex-col gap-2 sm:flex-row">
-            <Input value={porTexto} onChange={(e) => setPorTexto(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && buscarTexto()} className="h-9" />
+            <Input id="pesquisa-texto" value={porTexto} onChange={(e) => setPorTexto(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && buscarTexto()} className="h-9" />
             <Button onClick={buscarTexto} className="h-9">Pesquisar</Button>
           </div>
         </div>

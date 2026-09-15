@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Button } from "@livraria/ui/ui/button";
+import { Input } from "@livraria/ui/ui/input";
+import { Label } from "@livraria/ui/ui/label";
+import { KeyRound, Pencil, Plus, UserCheck, UserX, X } from "lucide-react";
 
 // Gestão de usuários (feature 010, ADR-0019): cadastro/edição com **perfil** (operador/admin)
 // e **senha**, desativar/reativar. Identidade única com o PDV. Escrita sensível passa pelas
-// rotas server-side (`/api/usuarios*`) → RPCs (o hash vira bcrypt no Postgres; nunca lido).
+// rotas server-side (`/api/usuarios*`) da API da nuvem.
 type Usuario = { usuario: string; nome: string | null; perfil: string; excluido_em: string | null };
 
 export default function Usuarios() {
@@ -91,88 +95,95 @@ export default function Usuarios() {
     acao(u.usuario, "senha", s);
   }
 
-  const btn = "rounded-md px-2 py-1 text-xs";
-
   return (
-    <main className="mx-auto max-w-4xl px-4 py-4 sm:p-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Usuários</h1>
-        <button onClick={aberto && !editando ? fechar : abrirNovo} className="rounded-lg bg-[#1f7a4d] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+    <main className="mx-auto max-w-5xl px-4 py-5 sm:p-6 lg:py-7">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="section-kicker mb-1">Administração</div>
+          <h1>Usuários</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Acessos do PDV e do escritório.</p>
+        </div>
+        <Button onClick={aberto && !editando ? fechar : abrirNovo} className="h-10">
+          {aberto && !editando ? <X className="size-4" /> : <Plus className="size-4" />}
           {aberto && !editando ? "Fechar" : "Novo usuário"}
-        </button>
+        </Button>
       </div>
 
       {aberto && (
-        <form onSubmit={salvar} className="mb-6 space-y-3 rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
-          <div className="text-sm font-medium">{editando ? `Editando ${editando}` : "Novo usuário"}</div>
+        <form onSubmit={salvar} className="admin-panel mb-5 space-y-4 border bg-card p-4 sm:p-5">
+          <div>
+            <div className="section-kicker">Cadastro</div>
+            <h2 className="mt-1 text-base font-semibold">{editando ? `Editando ${editando}` : "Novo usuário"}</h2>
+          </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {!editando && (
-              <label className="text-sm">
-                Usuário
-                <input className="mt-1 w-full rounded-md border px-3 py-2" value={usuario}
+              <div>
+                <Label htmlFor="usuario">Usuário</Label>
+                <Input id="usuario" className="mt-1 h-10" value={usuario}
                   onChange={(e) => setUsuario(e.target.value.toLowerCase())} autoCapitalize="none" autoComplete="off" />
-              </label>
+              </div>
             )}
-            <label className="text-sm">
-              Nome
-              <input className="mt-1 w-full rounded-md border px-3 py-2" value={nome} onChange={(e) => setNome(e.target.value)} />
-            </label>
+            <div>
+              <Label htmlFor="nome">Nome</Label>
+              <Input id="nome" className="mt-1 h-10" value={nome} onChange={(e) => setNome(e.target.value)} />
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-4 text-sm">
-            <span>Perfil:</span>
-            <label className="flex items-center gap-1">
-              <input type="radio" checked={perfil === "operador"} onChange={() => setPerfil("operador")} /> Operador <span className="text-zinc-500">(só PDV)</span>
+          <fieldset className="flex flex-wrap items-center gap-4 text-sm">
+            <legend className="mb-2 font-medium">Perfil</legend>
+            <label className="flex min-h-9 cursor-pointer items-center gap-2 rounded-md border px-3">
+              <input className="accent-primary" type="radio" checked={perfil === "operador"} onChange={() => setPerfil("operador")} />
+              Operador <span className="text-muted-foreground">(só PDV)</span>
             </label>
-            <label className="flex items-center gap-1">
-              <input type="radio" checked={perfil === "admin"} onChange={() => setPerfil("admin")} /> Admin <span className="text-zinc-500">(PDV + escritório)</span>
+            <label className="flex min-h-9 cursor-pointer items-center gap-2 rounded-md border px-3">
+              <input className="accent-primary" type="radio" checked={perfil === "admin"} onChange={() => setPerfil("admin")} />
+              Admin <span className="text-muted-foreground">(PDV + escritório)</span>
             </label>
-          </div>
+          </fieldset>
           {!editando && (
-            <label className="block text-sm">
-              Senha
-              <input type="password" className="mt-1 w-full rounded-md border px-3 py-2" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="new-password" />
-            </label>
+            <div>
+              <Label htmlFor="nova-senha">Senha</Label>
+              <Input id="nova-senha" type="password" className="mt-1 h-10" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="new-password" />
+            </div>
           )}
-          {erro && <p className="text-sm text-red-600">{erro}</p>}
+          {erro && <p role="alert" className="text-sm text-destructive">{erro}</p>}
           <div className="flex flex-wrap gap-2">
-            <button type="submit" disabled={salvando} className="rounded-lg bg-[#1f7a4d] px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
+            <Button type="submit" disabled={salvando} className="h-10">
               {salvando ? "Salvando…" : editando ? "Salvar" : "Cadastrar"}
-            </button>
-            <button type="button" onClick={fechar} className="rounded-lg border px-4 py-2 text-sm">Cancelar</button>
+            </Button>
+            <Button type="button" variant="outline" onClick={fechar} className="h-10">Cancelar</Button>
           </div>
         </form>
       )}
 
-      <div className="overflow-x-auto rounded-lg border">
-      <table className="w-full text-sm">
-        <thead className="text-left text-zinc-500">
-          <tr><th className="py-2">Usuário</th><th>Nome</th><th>Perfil</th><th>Estado</th><th>Ações</th></tr>
+      <div className="admin-panel overflow-x-auto border bg-card">
+      <table className="w-full min-w-[720px] text-sm">
+        <thead className="text-left text-muted-foreground">
+          <tr><th className="p-3">Usuário</th><th className="p-3">Nome</th><th className="p-3">Perfil</th><th className="p-3">Estado</th><th className="p-3 text-right">Ações</th></tr>
         </thead>
         <tbody>
-          {lista.length === 0 && <tr><td colSpan={5} className="py-4 text-zinc-500">Nenhum usuário.</td></tr>}
+          {lista.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhum usuário.</td></tr>}
           {lista.map((u) => {
             const ultimo = ehUltimoAdmin(u);
             const ativo = !u.excluido_em;
             return (
-              <tr key={u.usuario} className="border-t border-zinc-100 dark:border-zinc-800">
-                <td className="py-2 font-medium">{u.usuario}</td>
-                <td>{u.nome ?? "—"}</td>
-                <td>{u.perfil === "admin" ? "Admin" : "Operador"}</td>
-                <td>{ativo ? "Ativo" : "Desativado"}</td>
-                <td className="space-x-1">
-                  <button onClick={() => abrirEdicao(u)} className={`${btn} border`} title={ultimo ? "Último admin: não pode ser rebaixado" : ""}>Editar</button>
-                  <button onClick={() => redefinirSenha(u)} className={`${btn} border`}>Senha</button>
+              <tr key={u.usuario} className="border-t">
+                <td className="p-3 font-medium">{u.usuario}</td>
+                <td className="p-3">{u.nome ?? "—"}</td>
+                <td className="p-3">{u.perfil === "admin" ? "Admin" : "Operador"}</td>
+                <td className="p-3"><span className={`rounded px-2 py-1 text-xs font-medium ${ativo ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-muted text-muted-foreground"}`}>{ativo ? "Ativo" : "Desativado"}</span></td>
+                <td className="space-x-1 p-3 text-right">
+                  <Button size="icon-sm" variant="outline" onClick={() => abrirEdicao(u)} title={ultimo ? "Último admin: não pode ser rebaixado" : "Editar"}><Pencil /></Button>
+                  <Button size="icon-sm" variant="outline" onClick={() => redefinirSenha(u)} title="Redefinir senha"><KeyRound /></Button>
                   {ativo ? (
-                    <button
+                    <Button size="icon-sm" variant="destructive"
                       onClick={() => { if (confirm(`Desativar "${u.usuario}"?`)) acao(u.usuario, "desativar"); }}
                       disabled={ultimo}
-                      className={`${btn} border text-red-600 disabled:opacity-40`}
                       title={ultimo ? "Precisa existir ao menos um admin" : ""}
                     >
-                      Desativar
-                    </button>
+                      <UserX />
+                    </Button>
                   ) : (
-                    <button onClick={() => acao(u.usuario, "reativar")} className={`${btn} border text-green-700`}>Reativar</button>
+                    <Button size="icon-sm" variant="outline" onClick={() => acao(u.usuario, "reativar")} title="Reativar"><UserCheck className="text-emerald-600" /></Button>
                   )}
                 </td>
               </tr>

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@livraria/ui/ui/button";
 import { Input } from "@livraria/ui/ui/input";
 import { Label } from "@livraria/ui/ui/label";
+import { KeyRound } from "lucide-react";
+import { AuthLayout } from "@/components/AuthLayout";
 
 export default function TrocarSenhaPage() {
   const router = useRouter();
@@ -40,25 +42,22 @@ export default function TrocarSenhaPage() {
   }
 
   return (
-    <main className="grid min-h-dvh place-items-center px-4 py-8">
-      <form onSubmit={trocar} className="w-full max-w-sm rounded-xl border bg-card p-5 shadow-sm sm:p-6">
-        <h1 className="text-xl font-semibold">Definir nova senha</h1>
-        <p className="mb-6 mt-1 text-sm text-muted-foreground">Por seguranca, troque a senha temporaria antes de continuar.</p>
-        <div className="space-y-4">
+    <AuthLayout title="Definir nova senha" description="Troque a senha temporária antes de continuar.">
+      <form onSubmit={trocar} className="space-y-4">
           <div className="grid gap-1.5">
             <Label htmlFor="senha">Nova senha</Label>
-            <Input id="senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} minLength={8} required />
+            <Input className="h-10" id="senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} minLength={8} required />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="confirma">Confirmar senha</Label>
-            <Input id="confirma" type="password" value={confirma} onChange={(e) => setConfirma(e.target.value)} minLength={8} required />
+            <Input className="h-10" id="confirma" type="password" value={confirma} onChange={(e) => setConfirma(e.target.value)} minLength={8} required />
           </div>
-          {erro && <p className="text-sm text-destructive">{erro}</p>}
-          <Button type="submit" disabled={carregando} className="w-full">
+          {erro && <p role="alert" className="rounded-md bg-destructive/8 px-3 py-2.5 text-sm text-destructive">{erro}</p>}
+          <Button type="submit" disabled={carregando} className="h-10 w-full">
+            <KeyRound className="size-4" />
             {carregando ? "Salvando..." : "Salvar e continuar"}
           </Button>
-        </div>
       </form>
-    </main>
+    </AuthLayout>
   );
 }

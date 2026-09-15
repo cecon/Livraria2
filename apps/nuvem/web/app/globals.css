@@ -2,59 +2,169 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
-
-/* Tokens do design system (ADR-0020) — mesma fonte do PDV (@livraria/ui). */
 @import "@livraria/ui/theme.css";
 
-/* Tailwind v4 ignora node_modules; aponta explicitamente para os componentes do pacote. */
 @source "../../../../packages/ui/src";
 
-/* Padding base das telas (em @layer base — utilities do Tailwind sobrepõem quando a
-   tela já foi migrada ao design system). Telas ainda não migradas ganham respiro. */
+:root {
+  --background: #f5f6fa;
+  --foreground: #1f2937;
+  --card: #ffffff;
+  --card-foreground: #1f2937;
+  --popover: #ffffff;
+  --popover-foreground: #1f2937;
+  --primary: #1f7a4d;
+  --primary-foreground: #ffffff;
+  --secondary: #eef2f6;
+  --secondary-foreground: #253044;
+  --muted: #f1f4f8;
+  --muted-foreground: #667085;
+  --accent: #e8f5ee;
+  --accent-foreground: #155436;
+  --destructive: #dc2626;
+  --border: #e4e7ec;
+  --input: #d0d5dd;
+  --ring: #3fa978;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: #101828;
+  --foreground: #f2f4f7;
+  --card: #1d2939;
+  --card-foreground: #f2f4f7;
+  --popover: #1d2939;
+  --popover-foreground: #f2f4f7;
+  --primary: #6fc79b;
+  --primary-foreground: #0c2d1e;
+  --secondary: #27364a;
+  --secondary-foreground: #f2f4f7;
+  --muted: #263548;
+  --muted-foreground: #b0b9c8;
+  --accent: #173d2d;
+  --accent-foreground: #a9d9bf;
+  --destructive: #f97066;
+  --border: #344054;
+  --input: #475467;
+  --ring: #6fc79b;
+}
+
 @layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
   html,
   body {
     max-width: 100%;
+    min-height: 100%;
     overflow-x: hidden;
   }
 
-  main {
-    max-width: 960px;
-    margin-inline: auto;
-    padding: 24px 20px;
+  body {
+    @apply bg-background text-foreground antialiased;
   }
 
+  button,
+  a,
   input,
   textarea,
-  select,
-  button {
+  select {
     max-width: 100%;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  .admin-content {
+    min-height: calc(100dvh - 4rem);
+    background: var(--background);
+  }
+
+  .admin-content > main,
+  .admin-content > div {
+    width: 100%;
+  }
+
+  .admin-content h1 {
+    color: var(--foreground);
+    font-size: 1.5rem;
+    font-weight: 650;
+    line-height: 1.25;
+    letter-spacing: 0;
+  }
+
+  .admin-content h2 {
+    letter-spacing: 0;
+  }
+
+  .admin-content :where(.bg-card.border, .bg-card.rounded-lg, .bg-card.rounded-xl),
+  .admin-panel {
+    border-color: var(--border);
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px rgb(16 24 40 / 0.04);
+  }
+
+  .admin-content :where(table) thead {
+    background: color-mix(in srgb, var(--muted) 72%, var(--card));
+  }
+
+  .admin-content :where(table) tbody tr:hover {
+    background: color-mix(in srgb, var(--accent) 42%, transparent);
+  }
+
+  .admin-content :where(input, textarea, select) {
+    background-color: var(--card);
+  }
+
+  .admin-content :where(input, textarea, select):focus {
+    border-color: var(--ring);
+  }
+
+  .section-kicker {
+    color: var(--muted-foreground);
+    font-size: 0.6875rem;
+    font-weight: 650;
+    text-transform: uppercase;
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: #45b369;
+    box-shadow: 0 0 0 3px rgb(69 179 105 / 0.14);
+  }
+
+  .erro {
+    color: var(--destructive);
+    margin-top: 0.5rem;
   }
 }
 
 @media (max-width: 640px) {
-  main {
-    padding: 16px;
+  .admin-content {
+    min-height: calc(100dvh - 3.5rem);
   }
 
-  table {
+  .admin-content > main,
+  .admin-content > div {
+    padding-inline: 1rem;
+  }
+
+  .admin-content table {
     min-width: 560px;
   }
 
-  .grid.grid-cols-2,
-  .grid.grid-cols-3,
-  .grid.grid-cols-4 {
+  .admin-content .grid.grid-cols-2,
+  .admin-content .grid.grid-cols-3,
+  .admin-content .grid.grid-cols-4 {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .flex.items-center.justify-between,
-  .flex.items-end.justify-between {
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-
-  .flex.items-center.justify-between {
-    flex-wrap: wrap;
   }
 
   .mobile-stack {
@@ -70,37 +180,15 @@
     flex-wrap: wrap;
     justify-content: flex-start;
   }
-
-  .mobile-actions > * {
-    min-height: 2.25rem;
-  }
 }
 
-/* Estilos legados das telas atuais do Escritório — serão migrados ao design
-   system na US1 (T021). Mantidos aqui para não quebrar as telas existentes. */
-a.card {
-  display: block;
-  padding: 16px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  text-decoration: none;
-  color: inherit;
-  cursor: pointer;
-}
-.nav {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-}
-.erro {
-  color: var(--destructive);
-  margin-top: 8px;
-}
-
-/* Impressão de relatórios: esconde a navegação, só o conteúdo. */
 @media print {
-  aside {
+  aside,
+  header {
     display: none !important;
+  }
+
+  .admin-content {
+    background: #fff;
   }
 }

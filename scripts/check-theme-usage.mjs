@@ -52,8 +52,11 @@ function changedFiles(args) {
   const baseAt = args.indexOf('--base');
   const base = baseAt >= 0 ? args[baseAt + 1] : 'origin/main';
   if (!base) throw new Error('Informe a referencia depois de --base.');
-  return git(['diff', '--name-only', '--diff-filter=ACMRD', `${base}...HEAD`])
+  const changed = git(['diff', '--name-only', '--diff-filter=ACMRD', base])
     .split(/\r?\n/).filter(Boolean);
+  const untracked = git(['ls-files', '--others', '--exclude-standard'])
+    .split(/\r?\n/).filter(Boolean);
+  return [...new Set([...changed, ...untracked])];
 }
 
 export function validate({ files, staged, root = process.cwd(), read = readFileSync, exists = existsSync }) {
