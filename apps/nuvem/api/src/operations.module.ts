@@ -27,6 +27,8 @@ import { ShiftsController } from "./admin/shifts.controller";
 import { ShiftsService } from "./admin/shifts.service";
 import { AdminSalesController } from "./admin/admin-sales.controller";
 import { AdminSalesService } from "./admin/admin-sales.service";
+import { ReportsController } from "./admin/reports.controller";
+import { ReportsService } from "./admin/reports.service";
 
 @Module({
   imports: [
@@ -48,9 +50,10 @@ import { AdminSalesService } from "./admin/admin-sales.service";
   ],
   controllers: [AuthController, DevicesController, CatalogController, SalesController, BooksController,
     FormsController, SuppliersController, UsersController, DestinationsController, StockController,
-    EntriesController, ShiftsController, AdminSalesController],
+    EntriesController, ShiftsController, AdminSalesController, ReportsController],
   providers: [AuthService, AuthGuard, SalesService, BooksService, FormsService, SuppliersService,
     UsersService, DestinationsService, StockService, EntriesService, ShiftsService, AdminSalesService,
+    ReportsService,
     { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class OperationsModule {}

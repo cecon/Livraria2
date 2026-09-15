@@ -1,5 +1,6 @@
 // Camada de relatórios (US2/T031) — agrega no cliente (PostgREST não soma).
 import { createClient } from "@/utils/supabase/client";
+import { reportsApiEnabled, reportsRequest } from "@/lib/api/relatorios-client";
 import {
   montarItensRelatorioEstoque,
   type ItemRelatorioEstoque,
@@ -47,6 +48,7 @@ const proxDia = (d: string) => {
 };
 
 export async function relatorioEstoque(): Promise<RelatorioEstoque> {
+  if (await reportsApiEnabled()) return reportsRequest("estoque");
   const sb = createClient();
   const [saldoRes, livroRes] = await Promise.all([
     sb.from("vw_saldo_livro").select("livro_uid,codigo,saldo"),
@@ -58,6 +60,7 @@ export async function relatorioEstoque(): Promise<RelatorioEstoque> {
 }
 
 export async function relatorioDestinacoes(inicio: string, fim: string): Promise<RelatorioDestinacoes> {
+  if (await reportsApiEnabled()) return reportsRequest("destinacoes", { inicio, fim });
   const sb = createClient();
   const { data } = await sb
     .from("alocacao_venda")
@@ -76,6 +79,7 @@ export async function relatorioDestinacoes(inicio: string, fim: string): Promise
 }
 
 export async function relatorioVendas(data: string, periodo: string): Promise<RelatorioVendas> {
+  if (await reportsApiEnabled()) return reportsRequest("vendas", { data, periodo });
   const sb = createClient();
   let q = sb.from("pedido").select("sync_uid,numero,cliente,cancelado,total_centavos,turno").is("excluido_em", null).gte("data", data).lt("data", proxDia(data));
   if (periodo === "manha") q = q.eq("turno", "manha");

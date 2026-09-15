@@ -1,5 +1,6 @@
 // Dashboard do Início (US2) — agrega vendas/itens/estoque/canceladas por período.
 import { createClient } from "@/utils/supabase/client";
+import { reportsApiEnabled, reportsRequest } from "@/lib/api/relatorios-client";
 
 export type PeriodoDash = "hoje" | "7dias" | "mes" | "ano";
 
@@ -29,6 +30,7 @@ function inicioPeriodo(p: PeriodoDash): string {
 }
 
 export async function dashboard(p: PeriodoDash): Promise<DashboardDia> {
+  if (await reportsApiEnabled()) return reportsRequest("dashboard", { periodo: p });
   const sb = createClient();
   const desde = inicioPeriodo(p);
 
