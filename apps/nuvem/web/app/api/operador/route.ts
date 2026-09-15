@@ -7,7 +7,7 @@ import { createClient } from "@/utils/supabase/server";
 // `auth.uid()` da sessão de serviço COMPARTILHADA (#15) — que carimba turno/venda;
 // senão todos os operadores colidiriam numa só identidade.
 export async function GET() {
-  const login = (await cookies()).get("app_user")?.value;
+  const login = (await cookies()).get("app_user")?.value.trim().toLowerCase();
   if (!login) {
     return NextResponse.json({ erro: "Sem operador logado." }, { status: 401 });
   }

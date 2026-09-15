@@ -30,6 +30,7 @@
 - [ ] T017 Migrar demais fluxos administrativos.
 - [x] T017a API de fornecedores e formas de pagamento, com autorizacao e testes PostgreSQL isolados.
 - [x] T017b Conectar telas de fornecedores e formas a API por chave experimental independente.
+- [x] T017c Padronizar identificadores de usuario em minusculas na nuvem e no PDV.
 - [ ] T018 Exibir confirmacao de alteracoes por caixa.
 - [ ] T019 Integrar alteracoes mobile preservadas no worktree original.
 - [ ] T020 Ativar gradualmente com rollback e remover acesso direto legado.

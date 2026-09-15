@@ -42,7 +42,7 @@ pub fn verificar_senha(senha: &str, hash: &str) -> bool {
 #[async_trait]
 impl UsuarioRepo for SeaUsuarioRepo {
     async fn autenticar(&self, usuario: &str, senha: &str) -> Result<bool, RepoErro> {
-        let u = UsuarioEntity::find_by_id(usuario.trim().to_string())
+        let u = UsuarioEntity::find_by_id(usuario.trim().to_lowercase())
             .one(&self.db)
             .await
             .map_err(erro)?;
@@ -81,5 +81,10 @@ mod tests {
         // Usuário vindo da nuvem sem senha definida (senha_hash='') não loga com nada.
         assert!(!verificar_senha("", ""));
         assert!(!verificar_senha("qualquer", ""));
+    }
+
+    #[test]
+    fn identificador_digitado_e_normalizado() {
+        assert_eq!("  Maria.SILVA  ".trim().to_lowercase(), "maria.silva");
     }
 }

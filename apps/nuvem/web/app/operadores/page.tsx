@@ -42,7 +42,7 @@ export default function Operadores() {
     const { data: sessao } = await supabase.auth.getUser();
     const linha = {
       sync_uid: editUid ?? crypto.randomUUID(),
-      usuario: usuario.trim(),
+      usuario: usuario.trim().toLowerCase(),
       nome: nome || null,
       origem: "escritorio",
       atualizado_em: new Date().toISOString(),
@@ -67,7 +67,8 @@ export default function Operadores() {
       </p>
       <form onSubmit={salvar}>
         <label>Usuário</label>
-        <input value={usuario} onChange={(e) => setUsuario(e.target.value)} disabled={!!editUid} />
+        <input value={usuario} onChange={(e) => setUsuario(e.target.value.toLowerCase())}
+          autoCapitalize="none" disabled={!!editUid} />
         <label>Nome</label>
         <input value={nome} onChange={(e) => setNome(e.target.value)} />
         {erro && <p className="erro">{erro}</p>}

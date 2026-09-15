@@ -6,7 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 // Admin da sessão via cookie httpOnly; RPCs SECURITY DEFINER com guarda do último admin.
 export async function POST(request: NextRequest) {
   const b = await request.json().catch(() => ({}));
-  const usuario = String(b.usuario ?? "").trim();
+  const usuario = String(b.usuario ?? "").trim().toLowerCase();
   const acao = String(b.acao ?? "");
   const senha = String(b.senha ?? "");
   const admin = (await cookies()).get("app_user")?.value;

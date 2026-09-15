@@ -55,7 +55,7 @@ async function autenticarPerfil(usuario: string, senha: string) {
 // o acesso a dados (RLS `authenticated`). Registra quem logou em `app_user`.
 export async function POST(request: NextRequest) {
   const { usuario, senha } = await request.json().catch(() => ({}));
-  const u = String(usuario ?? "").trim();
+  const u = String(usuario ?? "").trim().toLowerCase();
   if (!u || !senha) {
     return NextResponse.json({ erro: "Informe usuário e senha." }, { status: 400 });
   }

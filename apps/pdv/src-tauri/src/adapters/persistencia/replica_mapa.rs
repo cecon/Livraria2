@@ -264,3 +264,11 @@ pub(crate) fn valor(dados: &serde_json::Value, chave: &str, tipo: Tipo) -> Value
         Tipo::Texto => Value::String(v.and_then(|x| x.as_str()).map(|s| Box::new(s.to_string()))),
     }
 }
+
+pub(crate) fn valor_canonico(recurso: &str, dados: &serde_json::Value, coluna: &Col) -> Value {
+    match (recurso, coluna.nome, valor(dados, coluna.nome, coluna.tipo)) {
+        ("usuario", "usuario", Value::String(Some(texto))) =>
+            Value::String(Some(Box::new(texto.trim().to_lowercase()))),
+        (_, _, value) => value,
+    }
+}

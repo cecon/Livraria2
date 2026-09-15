@@ -5,7 +5,7 @@
 //! **FK-remap** (`*_uid` → id local via subquery). Recursos ainda não mapeados
 //! são no-op seguro. `recomputar_derivados` refaz o estoque pelo ledger (ADR-0008).
 
-use super::replica_mapa::{expr_json, spec, valor, Tipo};
+use super::replica_mapa::{expr_json, spec, valor, valor_canonico, Tipo};
 use crate::application::ports::RepoErro;
 use crate::application::ports_sync::{RegistroSync, ReplicaLocalRepo};
 use async_trait::async_trait;
@@ -111,7 +111,7 @@ impl ReplicaLocalRepo for SeaReplicaSync {
             for c in s.cols {
                 colunas.push(c.nome.to_string());
                 placeholders.push("?".into());
-                vals.push(valor(&reg.dados, c.nome, c.tipo));
+                vals.push(valor_canonico(recurso, &reg.dados, c));
             }
             for r in s.refs {
                 colunas.push(r.col_local.to_string());

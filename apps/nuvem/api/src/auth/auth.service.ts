@@ -22,7 +22,7 @@ export class AuthService {
     }
     const rows = await this.db.$queryRaw<Usuario[]>`
       select sync_uid::text as uid, perfil from public.usuario
-      where usuario = ${usuario.trim()} and ativo and excluido_em is null
+      where usuario = ${usuario.trim().toLowerCase()} and ativo and excluido_em is null
       and perfil in ('admin','operador') and senha_hash = crypt(${senha}, senha_hash)`;
     const user = rows[0];
     if (!user) throw new UnauthorizedException("Credenciais invalidas");

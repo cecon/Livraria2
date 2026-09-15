@@ -57,6 +57,16 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
       await new Promise(r => setTimeout(r, 100));
     }
     const adminToken = (await request("/auth/login", null, { usuario: "admin", senha: password })).body.accessToken;
+    const mixedCaseToken = (await request("/auth/login", null, { usuario: "  AdMiN  ", senha: password })).body.accessToken;
+    assert.ok(mixedCaseToken);
+    const profile = await db.$queryRaw`select public.autenticar_perfil('  AdMiN  ', ${password}) as perfil`;
+    assert.equal(profile[0].perfil, "admin");
+    const uppercaseUid = randomUUID();
+    await db.$executeRaw`insert into public.usuario(sync_uid,usuario,senha_hash,perfil)
+      values(${uppercaseUid}::uuid,'Nova.PESSOA',crypt(${password},gen_salt('bf')),'operador')`;
+    assert.equal((await db.usuario.findUnique({ where: { sync_uid: uppercaseUid } })).usuario, "nova.pessoa");
+    await assert.rejects(db.$executeRaw`insert into public.usuario(sync_uid,usuario,senha_hash,perfil)
+      values(${randomUUID()}::uuid,'NOVA.PESSOA',crypt(${password},gen_salt('bf')),'operador')`);
     const firstDevice = (await request("/pdvs", adminToken, { nome: "caixa 1", usuarioUid: operatorUid })).body;
     const secondDevice = (await request("/pdvs", adminToken, { nome: "caixa 2", usuarioUid: operatorUid })).body;
     const sale = {

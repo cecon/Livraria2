@@ -18,7 +18,7 @@ function mapErro(msg: string): string {
 // Cria um usuário (US1).
 export async function POST(request: NextRequest) {
   const b = await request.json().catch(() => ({}));
-  const usuario = String(b.usuario ?? "").trim();
+  const usuario = String(b.usuario ?? "").trim().toLowerCase();
   const senha = String(b.senha ?? "");
   if (!usuario) return NextResponse.json({ erro: "Informe o usuário." }, { status: 400 });
   if (senha.length < 4) return NextResponse.json({ erro: "Senha deve ter ao menos 4 caracteres." }, { status: 400 });
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 // Edita nome/perfil (US3). A guarda do último admin é reforçada na RPC.
 export async function PATCH(request: NextRequest) {
   const b = await request.json().catch(() => ({}));
-  const usuario = String(b.usuario ?? "").trim();
+  const usuario = String(b.usuario ?? "").trim().toLowerCase();
   if (!usuario) return NextResponse.json({ erro: "Usuário inválido." }, { status: 400 });
   const admin = (await cookies()).get("app_user")?.value;
   if (!admin) return NextResponse.json({ erro: "Sessão inválida." }, { status: 401 });

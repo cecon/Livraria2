@@ -95,7 +95,7 @@ export async function turnoListar(operador: string): Promise<TurnoHistorico[]> {
 }
 
 export async function autenticar(usuario: string, senha: string): Promise<boolean> {
-  return await invoke("autenticar", { usuario, senha });
+  return await invoke("autenticar", { usuario: usuario.trim().toLowerCase(), senha });
 }
 
 // --- Relatórios (vendas + estoque) ---

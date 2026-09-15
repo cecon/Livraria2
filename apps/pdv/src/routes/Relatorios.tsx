@@ -213,7 +213,8 @@ export default function Relatorios() {
             <Input
               id="user"
               value={usuario}
-              onChange={(e) => setUsuario(e.currentTarget.value)}
+              autoCapitalize="none"
+              onChange={(e) => setUsuario(e.currentTarget.value.toLowerCase())}
               className="mt-1 h-9"
             />
           </div>

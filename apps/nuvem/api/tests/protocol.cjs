@@ -59,6 +59,7 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
     assert.ok(adminToken);
     assert.ok(operatorToken);
     await t.test("credenciais e permissoes", async () => {
+      assert.ok((await request("/auth/login", null, { usuario: "  AdMiN  ", senha: password })).body.accessToken);
       assert.equal((await request("/auth/login", null, { usuario: "admin", senha: "errada" })).status, 401);
       assert.equal((await request("/auth/me")).status, 401);
       assert.equal((await request("/auth/me", adminToken + "alterado")).status, 401);

@@ -40,7 +40,8 @@ export default function LoginPage() {
       <form onSubmit={entrar} className="flex flex-col gap-4">
         <div className="grid gap-1.5">
           <Label htmlFor="usuario">Usuário</Label>
-          <Input id="usuario" type="text" autoComplete="username" value={usuario} onChange={(e) => setUsuario(e.target.value)} required />
+          <Input id="usuario" type="text" autoComplete="username" autoCapitalize="none" value={usuario}
+            onChange={(e) => setUsuario(e.target.value.toLowerCase())} required />
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="senha">Senha</Label>

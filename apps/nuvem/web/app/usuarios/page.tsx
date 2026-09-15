@@ -110,7 +110,8 @@ export default function Usuarios() {
             {!editando && (
               <label className="text-sm">
                 Usuário
-                <input className="mt-1 w-full rounded-md border px-3 py-2" value={usuario} onChange={(e) => setUsuario(e.target.value)} autoComplete="off" />
+                <input className="mt-1 w-full rounded-md border px-3 py-2" value={usuario}
+                  onChange={(e) => setUsuario(e.target.value.toLowerCase())} autoCapitalize="none" autoComplete="off" />
               </label>
             )}
             <label className="text-sm">
