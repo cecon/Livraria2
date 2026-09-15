@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, LogOut, Menu, UserRound } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, ChevronRight, Home, LogOut, Menu, UserRound } from "lucide-react";
 import { AppSidebar } from "./AppSidebar";
 
 const SEM_CASCA = ["/login", "/trocar-senha"];
@@ -23,7 +24,7 @@ export function Shell({ children, usuario }: ShellProps) {
       <AppSidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Header usuario={usuario} onMenu={() => setNavOpen(true)} />
-        <div className="min-w-0 flex-1">{children}</div>
+        <div className="admin-content min-w-0 flex-1">{children}</div>
       </div>
     </div>
   );
@@ -31,9 +32,11 @@ export function Shell({ children, usuario }: ShellProps) {
 
 function Header({ usuario, onMenu }: { usuario: string | null; onMenu: () => void }) {
   const router = useRouter();
+  const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const nome = usuario || "Sessao ativa";
+  const pagina = TITULOS[pathname] ?? "Escritório";
 
   useEffect(() => {
     if (!open) return;
@@ -51,13 +54,14 @@ function Header({ usuario, onMenu }: { usuario: string | null; onMenu: () => voi
   }
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/95 px-3 backdrop-blur sm:px-5">
+    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-3 shadow-[0_1px_2px_rgb(16_24_40/0.03)] sm:h-16 sm:px-6">
       <div className="flex min-w-0 items-center gap-2">
-        <button type="button" onClick={onMenu} className="grid size-9 shrink-0 place-items-center rounded-md border border-border bg-card text-card-foreground md:hidden" aria-label="Abrir menu"><Menu className="size-4" /></button>
-        <div className="min-w-0">
-          <div className="truncate text-sm font-semibold">Escritorio</div>
-          <div className="truncate text-xs text-muted-foreground">Retaguarda</div>
-        </div>
+        <button type="button" onClick={onMenu} className="grid size-10 shrink-0 place-items-center rounded-md border border-border bg-card text-card-foreground md:hidden" aria-label="Abrir menu"><Menu className="size-5" /></button>
+        <nav aria-label="Localização" className="flex min-w-0 items-center gap-2 text-sm">
+          <Link href="/" aria-label="Início" className="hidden text-muted-foreground transition-colors hover:text-primary sm:block"><Home className="size-4" /></Link>
+          <ChevronRight className="hidden size-3.5 text-muted-foreground sm:block" />
+          <span className="truncate font-semibold">{pagina}</span>
+        </nav>
       </div>
 
       <div ref={menuRef} className="relative">
@@ -66,7 +70,7 @@ function Header({ usuario, onMenu }: { usuario: string | null; onMenu: () => voi
           aria-haspopup="menu"
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
-          className="flex h-9 max-w-[48vw] items-center gap-2 rounded-md border border-border bg-card px-2.5 text-sm text-card-foreground transition-colors hover:bg-muted sm:max-w-56"
+          className="flex h-10 max-w-[48vw] items-center gap-2 rounded-md border border-transparent px-2.5 text-sm text-card-foreground transition-colors hover:border-border hover:bg-muted sm:max-w-56"
         >
           <UserRound className="size-4 text-muted-foreground" />
           <span className="truncate">{nome}</span>
@@ -96,3 +100,20 @@ function Header({ usuario, onMenu }: { usuario: string | null; onMenu: () => voi
     </header>
   );
 }
+
+const TITULOS: Record<string, string> = {
+  "/": "Visão geral",
+  "/venda": "Venda",
+  "/turnos": "Turnos",
+  "/cadastro": "Cadastro",
+  "/pesquisa": "Pesquisa",
+  "/lancamentos": "Lançamentos",
+  "/fornecedores": "Fornecedores",
+  "/formas-pagamento": "Formas de pagamento",
+  "/destinacoes": "Destinações",
+  "/inventario": "Inventário",
+  "/estoque/divergencias": "Divergências de estoque",
+  "/relatorios": "Relatórios",
+  "/pdvs": "Caixas sincronizados",
+  "/usuarios": "Usuários",
+};

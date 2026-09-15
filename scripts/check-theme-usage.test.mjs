@@ -55,3 +55,13 @@ test('push accepts UI changes with complete changed report', () => {
   });
   assert.deepEqual(result.errors, []);
 });
+
+test('detects web stylesheet and shared layout as UI', () => {
+  assert.deepEqual(uiFiles([
+    'apps/nuvem/web/app/globals.css',
+    'apps/nuvem/web/components/Shell.tsx',
+  ]), [
+    'apps/nuvem/web/app/globals.css',
+    'apps/nuvem/web/components/Shell.tsx',
+  ]);
+});

@@ -102,10 +102,14 @@ export default function VendaPage() {
 
   if (!turno) {
     return (
-      <div className="mx-auto max-w-md px-4 py-4 sm:p-6">
-        <div className="bg-card space-y-3 rounded-lg border p-6 text-center">
+      <div className="mx-auto max-w-2xl space-y-5 px-4 py-5 sm:p-6 lg:py-7">
+        <div>
+          <div className="section-kicker mb-1">Operação</div>
+          <h1>Venda</h1>
+        </div>
+        <div className="admin-panel space-y-3 border bg-card p-6 text-center">
           <Clock className="text-muted-foreground mx-auto" size={40} />
-          <div className="font-medium">Nenhum turno aberto</div>
+          <h2 className="font-semibold">Nenhum turno aberto</h2>
           <p className="text-muted-foreground text-sm">Abra um turno antes de registrar vendas.</p>
           <Button asChild className="h-9">
             <Link href="/turnos">Abrir turno</Link>

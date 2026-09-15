@@ -4,80 +4,109 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { MonitorCheck, Moon, Sun, Users, X } from "lucide-react";
-import { NAV_ITENS } from "@livraria/ui/nav";
+import {
+  BookOpen,
+  MonitorCheck,
+  Moon,
+  Settings2,
+  Sun,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import { NAV_ITENS, type ItemNav } from "@livraria/ui/nav";
 
-// Barra lateral do Escritório — MESMA aparência/itens do PDV (fonte única: @livraria/ui/nav),
-// com navegação do Next (next/link + usePathname) e tema via next-themes.
+type NavEntry = ItemNav | {
+  to: string;
+  rotulo: string;
+  Icon: LucideIcon;
+  end: boolean;
+};
+
+const extra: NavEntry[] = [
+  { to: "/pdvs", rotulo: "Caixas", Icon: MonitorCheck, end: false },
+  { to: "/usuarios", rotulo: "Usuários", Icon: Users, end: false },
+];
+
+const GRUPOS = [
+  { titulo: "Operação", rotas: ["/", "/venda", "/turnos"] },
+  { titulo: "Catálogo", rotas: ["/cadastro", "/pesquisa", "/lancamentos", "/fornecedores"] },
+  { titulo: "Gestão", rotas: ["/formas-pagamento", "/destinacoes", "/inventario", "/estoque/divergencias", "/relatorios"] },
+  { titulo: "Administração", rotas: ["/pdvs", "/usuarios"] },
+];
+
 export function AppSidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const dark = mounted && resolvedTheme === "dark";
+  const entries = [...NAV_ITENS, ...extra];
 
   return (
     <>
-      {open && <button type="button" aria-label="Fechar menu" className="fixed inset-0 z-30 bg-black/45 md:hidden" onClick={onClose} />}
-      <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[86vw] shrink-0 flex-col bg-zinc-900 text-zinc-100 transition-transform md:sticky md:top-0 md:z-auto md:min-h-screen md:w-64 md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
-      <div className="flex items-center gap-2 px-5 py-4">
-        <div className="grid h-8 w-8 place-items-center rounded-md bg-[#1f7a4d] text-sm font-bold text-white">
-          EL
+      {open ? (
+        <button type="button" aria-label="Fechar menu" className="fixed inset-0 z-30 bg-black/55 md:hidden" onClick={onClose} />
+      ) : null}
+      <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[86vw] shrink-0 flex-col border-r border-white/8 bg-[#182230] text-white transition-transform md:sticky md:top-0 md:z-auto md:h-screen md:w-64 md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-white/8 px-5">
+          <div className="grid size-9 shrink-0 place-items-center rounded-md bg-[#45b369] text-white shadow-[0_6px_16px_rgb(69_179_105/0.22)]">
+            <BookOpen className="size-5" />
+          </div>
+          <div className="min-w-0 flex-1 leading-tight">
+            <div className="truncate text-sm font-semibold">Espaço do Livro</div>
+            <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-400">
+              <span className="status-dot" />
+              Escritório
+            </div>
+          </div>
+          <button type="button" aria-label="Fechar menu" onClick={onClose} className="grid size-9 place-items-center rounded-md text-slate-300 hover:bg-white/8 md:hidden">
+            <X className="size-5" />
+          </button>
         </div>
-        <div className="min-w-0 flex-1 leading-tight">
-          <div className="truncate text-sm font-semibold">Espaço do Livro</div>
-          <div className="truncate text-[11px] text-zinc-400">Escritório</div>
+
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
+          {GRUPOS.map((grupo) => (
+            <div key={grupo.titulo} className="mb-4">
+              <div className="mb-1.5 px-3 text-[10px] font-semibold text-slate-500 uppercase">{grupo.titulo}</div>
+              <div className="space-y-1">
+                {entries.filter((item) => grupo.rotas.includes(item.to)).map((item) => (
+                  <NavLink key={item.to} item={item} pathname={pathname} onClose={onClose} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        <div className="border-t border-white/8 p-3">
+          <button
+            type="button"
+            onClick={() => setTheme(dark ? "light" : "dark")}
+            className="flex min-h-10 w-full items-center gap-3 rounded-md px-3 text-sm text-slate-300 transition-colors hover:bg-white/8 hover:text-white"
+          >
+            {dark ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
+            <span className="flex-1 text-left">{dark ? "Tema claro" : "Tema escuro"}</span>
+            <Settings2 className="size-3.5 text-slate-500" />
+          </button>
         </div>
-        <button type="button" aria-label="Fechar menu" onClick={onClose} className="grid size-8 place-items-center rounded-md text-zinc-300 hover:bg-zinc-800 md:hidden"><X size={18} /></button>
-      </div>
-
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-2">
-        {NAV_ITENS.map(({ to, rotulo, Icon, end }) => {
-          const active = end ? pathname === to : pathname.startsWith(to);
-          return (
-            <Link
-              key={to}
-              href={to}
-              onClick={onClose}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                active ? "bg-zinc-800 text-white" : "text-zinc-300 hover:bg-zinc-800/60"
-              }`}
-            >
-              <Icon size={18} />
-              <span className="truncate">{rotulo}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <Link href="/pdvs" onClick={onClose} className={`mx-3 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-        pathname.startsWith("/pdvs") ? "bg-zinc-800 text-white" : "text-zinc-300 hover:bg-zinc-800/60"
-      }`}>
-        <MonitorCheck size={18} /> Caixas
-      </Link>
-
-      {/* Só do Escritório (não entra no nav compartilhado do PDV) — gestão de usuários (feature 010). */}
-      <Link
-        href="/usuarios"
-        onClick={onClose}
-        className={`mx-3 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-          pathname.startsWith("/usuarios")
-            ? "bg-zinc-800 text-white"
-            : "text-zinc-300 hover:bg-zinc-800/60"
-        }`}
-      >
-        <Users size={18} />
-        Usuários
-      </Link>
-
-      <button
-        onClick={() => setTheme(dark ? "light" : "dark")}
-        className="m-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800/60"
-      >
-        {dark ? <Sun size={18} /> : <Moon size={18} />}
-        {dark ? "Tema claro" : "Tema escuro"}
-      </button>
       </aside>
     </>
+  );
+}
+
+function NavLink({ item, pathname, onClose }: { item: NavEntry; pathname: string; onClose?: () => void }) {
+  const active = item.end ? pathname === item.to : pathname.startsWith(item.to);
+  const { Icon } = item;
+  return (
+    <Link
+      href={item.to}
+      onClick={onClose}
+      aria-current={active ? "page" : undefined}
+      className={`relative flex min-h-10 items-center gap-3 rounded-md px-3 text-sm transition-colors ${active ? "bg-[#45b369]/14 font-medium text-white" : "text-slate-300 hover:bg-white/7 hover:text-white"}`}
+    >
+      {active ? <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-[#45b369]" /> : null}
+      <Icon className={`size-[18px] ${active ? "text-[#6fc79b]" : "text-slate-400"}`} />
+      <span className="truncate">{item.rotulo}</span>
+    </Link>
   );
 }
