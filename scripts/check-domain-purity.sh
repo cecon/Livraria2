@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
 # Guardrail Hexagonal (Constituição, Princípio I / ADR-0002):
-# o domínio (src-tauri/src/domain) é PURO — não pode importar infraestrutura.
+# o domínio (apps/pdv/src-tauri/src/domain) é PURO — não pode importar infraestrutura.
 #
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
-DOMINIO="$ROOT/src-tauri/src/domain"
+DOMINIO="$ROOT/apps/pdv/src-tauri/src/domain"
 
 if [ ! -d "$DOMINIO" ]; then
   exit 0

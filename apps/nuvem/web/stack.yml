@@ -1,0 +1,71 @@
+# Compose do ambiente web local/prod-local em Docker Desktop.
+# As imagens sao publicadas no GHCR pelo workflow `.github/workflows/web-images.yml`.
+# Watchtower atualiza os containers quando `:latest` muda apos merge na main.
+
+services:
+  api:
+    image: ghcr.io/cecon/livraria2-nuvem-api:latest
+    container_name: livraria-nuvem-api
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3001
+      API_OPERATIONS_ENABLED: "true"
+      DATABASE_URL: ${NUVEM_DATABASE_URL}
+      API_JWT_SECRET: ${API_JWT_SECRET}
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  migrator:
+    image: ghcr.io/cecon/livraria2-migrator:latest
+    container_name: livraria-migrator
+    restart: unless-stopped
+    environment:
+      SUPABASE_PROJECT_REF: fiqzcnnibwzthhjatxvq
+      SUPABASE_DB_PASSWORD: ${SUPABASE_DB_PASSWORD}
+      MIGRATION_BASELINE_UP_TO: ${MIGRATION_BASELINE_UP_TO:-0011_estoque_oficial_venda}
+      APPLY_API_MIGRATIONS: ${APPLY_API_MIGRATIONS:-false}
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  escritorio:
+    image: ghcr.io/cecon/livraria2-escritorio:latest
+    container_name: livraria-escritorio
+    restart: unless-stopped
+    ports:
+      # Porta externa nao obvia; o Next.js escuta na 3000 internamente.
+      - "${ESCRITORIO_PORT:-47612}:3000"
+    environment:
+      NEXT_PUBLIC_SUPABASE_URL: https://fiqzcnnibwzthhjatxvq.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+      ESCRITORIO_EMAIL: ${ESCRITORIO_EMAIL}
+      ESCRITORIO_SENHA: ${ESCRITORIO_SENHA}
+      NUVEM_API_URL: http://api:3001
+      API_ONLY_MODE: ${API_ONLY_MODE:-false}
+      API_CATALOGO_ENABLED: ${API_CATALOGO_ENABLED:-false}
+      API_REFERENCIAS_ENABLED: ${API_REFERENCIAS_ENABLED:-false}
+      API_USUARIOS_ENABLED: ${API_USUARIOS_ENABLED:-false}
+      API_PDV_STATUS_ENABLED: ${API_PDV_STATUS_ENABLED:-false}
+      API_ESTOQUE_ENABLED: ${API_ESTOQUE_ENABLED:-false}
+      API_LANCAMENTOS_ENABLED: ${API_LANCAMENTOS_ENABLED:-false}
+      API_TURNOS_ENABLED: ${API_TURNOS_ENABLED:-false}
+      API_VENDAS_ENABLED: ${API_VENDAS_ENABLED:-false}
+      API_RELATORIOS_ENABLED: ${API_RELATORIOS_ENABLED:-false}
+      NODE_ENV: production
+    depends_on:
+      - api
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: livraria-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      DOCKER_API_VERSION: "1.40"
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_POLL_INTERVAL: "300"
+      WATCHTOWER_INCLUDE_RESTARTING: "true"

@@ -4,10 +4,12 @@
 node_modules
 **/node_modules
 target
+**/target
+**/.env*
 src-tauri/target
 crates/*/target
 dist
 **/.next
-apps/escritorio/.next
+apps/nuvem/web/.next
 **/*.log
 .DS_Store

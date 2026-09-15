@@ -1,0 +1,26 @@
+name: Agent memory validation
+on:
+  pull_request:
+    paths:
+      - 'tools/agent-memory/**'
+      - 'opencode.json'
+      - '.mcp.json'
+      - 'docker-compose.agentmemory.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/agent-memory-validate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mock-and-mcp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --workspaces=false --ignore-scripts
+      - run: npm run memory:test

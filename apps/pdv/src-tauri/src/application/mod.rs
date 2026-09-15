@@ -1,0 +1,24 @@
+//! Camada de aplicação (Hexagonal): portas e casos de uso.
+//! Orquestra o domínio e fala com o mundo externo apenas por meio das portas.
+
+pub mod cancelamento;
+pub mod api_sync;
+pub mod erros;
+#[cfg(test)]
+pub mod fakes;
+pub mod estoque_setup;
+pub mod extrato;
+pub mod formas_pagamento;
+pub mod fornecedores;
+pub mod pesquisa;
+pub mod destinacoes;
+pub mod ports;
+pub mod ports_compras;
+pub mod ports_destinacao;
+pub mod ports_estoque;
+pub mod ports_sync;
+pub mod ports_turno;
+pub mod sincronizacao;
+pub mod relatorios;
+pub mod turno;
+pub mod venda;

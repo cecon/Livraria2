@@ -4,7 +4,25 @@ Sistema desktop de **estoque & vendas** da livraria da igreja. Aplicativo gerenc
 **offline**, orientado a leitor de código de barras. Sem TEF nem nota fiscal — as formas de pagamento
 apenas registram como a venda foi recebida.
 
+## Agent Memory
+
+Agentes de desenvolvimento podem usar um AgentMemory externo e opcional.
+Configuracao, MCP e limites: [docs/agent-memory.md](docs/agent-memory.md).
+
 ## Stack
+
+Marco da reorganizacao: `marco-pre-separacao-2026-09-14`.
+Plano: [separacao PDV/nuvem](specs/013-separacao-pdv-nuvem/plan.md).
+
+- `apps/pdv`: Tauri e layout React, com banco local.
+- `apps/nuvem/web`: administrativo Next.js.
+- `apps/nuvem/api`: API NestJS com Prisma/PostgreSQL, em introducao gradual.
+- `packages/contratos`: comunicacao versionada entre sistemas.
+
+Na raiz: `npm run dev` (PDV), `npm run dev:web` (administrativo),
+`npm run dev:api` (API). Builds: `npm run build`, `npm run build:web`,
+`npm run build:api`. API health: `/api/v1/health`.
+O protocolo novo ainda nao substitui o acesso Supabase legado.
 
 - **Tauri 2** (shell desktop) · **Rust** (núcleo de domínio)
 - **React + TypeScript + Vite** · **shadcn/ui + Tailwind**
@@ -14,14 +32,14 @@ apenas registram como a venda foi recebida.
 ## Arquitetura (Hexagonal / SOLID)
 
 ```
-src-tauri/src/
+apps/pdv/src-tauri/src/
   domain/        # regras puras (Rust): Dinheiro (centavos), Livro, Pedido, ... — SEM UI/banco
   application/   # casos de uso + portas (traits): venda, cadastro, pesquisa, dashboard,
                  # relatorios, migracao
   adapters/      # implementações das portas: persistencia (SeaORM), legado (mdbtools), relogio
   migration/     # sea-orm-migration (idempotente)
   commands.rs    # porta de entrada Tauri (invoke)
-src/             # UI React (adapter de UI): routes/, components/, lib/
+apps/pdv/src/    # UI React (adapter de UI): routes/, components/, lib/
 docs/adr/        # decisões de arquitetura
 ```
 

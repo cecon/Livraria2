@@ -50,9 +50,14 @@ run_sql "create table if not exists public.livraria_schema_migrations (
 );"
 
 shopt -s nullglob
-for file in migrations/*.sql; do
+apply_migration() {
+  local file="$1"
+  local prefix="$2"
+  local allow_baseline="$3"
+  local filename version hash version_sql filename_sql hash_sql
+  local current_row current baseline
   filename="$(basename "$file")"
-  version="${filename%.sql}"
+  version="${prefix}${filename%.sql}"
   hash="$(sha256sum "$file" | awk '{print $1}')"
   version_sql="$(sql_escape "$version")"
   filename_sql="$(sql_escape "$filename")"
@@ -68,27 +73,39 @@ for file in migrations/*.sql; do
     if [[ "$current" != "$hash" ]]; then
       if [[ "$baseline" == "true" ]]; then
         echo "Skipping ${filename}; already recorded as production baseline"
-        continue
+        return
       fi
       echo "Hash mismatch for ${filename}; refusing to continue" >&2
       exit 1
     fi
     echo "Skipping ${filename}; already recorded"
-    continue
+    return
   fi
 
-  if [[ -n "$BASELINE_UP_TO" ]] && version_le "$version" "$BASELINE_UP_TO"; then
+  if [[ "$allow_baseline" == "true" && -n "$BASELINE_UP_TO" ]] && version_le "$version" "$BASELINE_UP_TO"; then
     echo "Recording baseline ${filename}"
     run_sql "insert into public.livraria_schema_migrations (version, filename, sha256, baseline)
              values ('${version_sql}', '${filename_sql}', '${hash_sql}', true);"
-    continue
+    return
   fi
 
   echo "Applying ${filename}"
   "${PSQL[@]}" -f "$file" >/dev/null
   run_sql "insert into public.livraria_schema_migrations (version, filename, sha256, baseline)
            values ('${version_sql}', '${filename_sql}', '${hash_sql}', false);"
+}
+
+for file in migrations/*.sql; do
+  apply_migration "$file" "" "true"
 done
+
+if [[ "${APPLY_API_MIGRATIONS:-false}" == "true" ]]; then
+  for file in api-migrations/*.sql; do
+    apply_migration "$file" "api_" "false"
+  done
+else
+  echo "API migrations disabled; set APPLY_API_MIGRATIONS=true after validation"
+fi
 
 echo "Migrations are up to date. Sleeping for watchtower monitoring."
 sleep "${SLEEP_SECONDS}"

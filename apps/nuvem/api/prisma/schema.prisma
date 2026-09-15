@@ -1,0 +1,367 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Livro {
+  syncUid                  String                     @id @map("sync_uid") @db.Uuid
+  codigo                   String                     @unique
+  titulo                   String
+  autor                    String?
+  precoCentavos            BigInt                     @default(0) @map("preco_centavos")
+  categoria                Int                        @default(0)
+  descricao                String?
+  buscaNorm                String                     @default("") @map("busca_norm")
+  ativo                    Boolean                    @default(true)
+  origem                   String                     @default("pdv")
+  atualizadoEm             DateTime?                  @map("atualizado_em") @db.Timestamptz(6)
+  excluidoEm               DateTime?                  @map("excluido_em") @db.Timestamptz(6)
+  criadoPor                String?                    @map("criado_por") @db.Uuid
+  sincronizadoEm           DateTime                   @default(now()) @map("sincronizado_em") @db.Timestamptz(6)
+  divergencia_estoque      divergencia_estoque[]
+  item_lancamento          item_lancamento[]
+  item_pedido              item_pedido[]
+  movimento_estoque        movimento_estoque[]
+  saldo_partida_producao   saldo_partida_producao?
+  transferencia_destinacao transferencia_destinacao[]
+
+  @@index([sincronizadoEm], map: "idx_livro_sinc")
+  @@map("livro")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model alocacao_venda {
+  sync_uid        String      @id @db.Uuid
+  pedido_uid      String      @db.Uuid
+  item_uid        String      @db.Uuid
+  destinacao_uid  String      @db.Uuid
+  qtd             BigInt
+  valor_centavos  BigInt
+  origem          String      @default("pdv")
+  atualizado_em   DateTime?   @db.Timestamptz(6)
+  excluido_em     DateTime?   @db.Timestamptz(6)
+  criado_por      String?     @db.Uuid
+  sincronizado_em DateTime    @default(now()) @db.Timestamptz(6)
+  destinacao      destinacao  @relation(fields: [destinacao_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+  item_pedido     item_pedido @relation(fields: [item_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+  pedido          pedido      @relation(fields: [pedido_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([sincronizado_em], map: "idx_alocacao_venda_sinc")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model destinacao {
+  sync_uid                                                                          String                     @id @db.Uuid
+  nome                                                                              String
+  nome_norm                                                                         String                     @unique
+  de_sistema                                                                        Boolean                    @default(false)
+  ativa                                                                             Boolean                    @default(true)
+  ordem                                                                             Int                        @default(0)
+  origem                                                                            String                     @default("pdv")
+  atualizado_em                                                                     DateTime?                  @db.Timestamptz(6)
+  excluido_em                                                                       DateTime?                  @db.Timestamptz(6)
+  criado_por                                                                        String?                    @db.Uuid
+  sincronizado_em                                                                   DateTime                   @default(now()) @db.Timestamptz(6)
+  alocacao_venda                                                                    alocacao_venda[]
+  transferencia_destinacao_transferencia_destinacao_de_destinacao_uidTodestinacao   transferencia_destinacao[] @relation("transferencia_destinacao_de_destinacao_uidTodestinacao")
+  transferencia_destinacao_transferencia_destinacao_para_destinacao_uidTodestinacao transferencia_destinacao[] @relation("transferencia_destinacao_para_destinacao_uidTodestinacao")
+
+  @@index([sincronizado_em], map: "idx_destinacao_sinc")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model divergencia_estoque {
+  sync_uid        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pedido_uid      String?      @db.Uuid
+  item_pedido_uid String?      @db.Uuid
+  livro_uid       String?      @db.Uuid
+  tipo            String
+  descricao       String       @default("")
+  saldo_antes     BigInt?
+  qtd_evento      BigInt?
+  status          String       @default("aberta")
+  criado_em       DateTime     @default(now()) @db.Timestamptz(6)
+  resolvida_em    DateTime?    @db.Timestamptz(6)
+  resolvida_por   String?      @db.Uuid
+  origem          String       @default("escritorio")
+  atualizado_em   DateTime?    @db.Timestamptz(6)
+  excluido_em     DateTime?    @db.Timestamptz(6)
+  criado_por      String?      @db.Uuid
+  sincronizado_em DateTime     @default(now()) @db.Timestamptz(6)
+  item_pedido     item_pedido? @relation(fields: [item_pedido_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+  livro           Livro?       @relation(fields: [livro_uid], references: [syncUid], onDelete: NoAction, onUpdate: NoAction)
+  pedido          pedido?      @relation(fields: [pedido_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+  usuario         usuario?     @relation(fields: [resolvida_por], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([status, criado_em], map: "idx_divergencia_estoque_status")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model forma_pagamento {
+  sync_uid         String             @id @db.Uuid
+  chave            String             @unique
+  rotulo           String
+  de_sistema       Boolean            @default(false)
+  ativa            Boolean            @default(true)
+  ordem            Int                @default(0)
+  origem           String             @default("pdv")
+  atualizado_em    DateTime?          @db.Timestamptz(6)
+  excluido_em      DateTime?          @db.Timestamptz(6)
+  criado_por       String?            @db.Uuid
+  sincronizado_em  DateTime           @default(now()) @db.Timestamptz(6)
+  pagamento_pedido pagamento_pedido[]
+
+  @@index([sincronizado_em], map: "idx_forma_pagamento_sinc")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model fornecedor {
+  sync_uid           String               @id @db.Uuid
+  nome               String
+  nome_norm          String               @unique
+  documento          String?
+  telefone           String?
+  email              String?
+  observacoes        String?
+  ativo              Boolean              @default(true)
+  origem             String               @default("pdv")
+  atualizado_em      DateTime?            @db.Timestamptz(6)
+  excluido_em        DateTime?            @db.Timestamptz(6)
+  criado_por         String?              @db.Uuid
+  sincronizado_em    DateTime             @default(now()) @db.Timestamptz(6)
+  lancamento_entrada lancamento_entrada[]
+
+  @@index([sincronizado_em], map: "idx_fornecedor_sinc")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model item_lancamento {
+  sync_uid            String             @id @db.Uuid
+  lancamento_uid      String             @db.Uuid
+  livro_uid           String             @db.Uuid
+  qtd                 BigInt
+  custo_unit_centavos BigInt             @default(0)
+  origem              String             @default("pdv")
+  atualizado_em       DateTime?          @db.Timestamptz(6)
+  excluido_em         DateTime?          @db.Timestamptz(6)
+  criado_por          String?            @db.Uuid
+  sincronizado_em     DateTime           @default(now()) @db.Timestamptz(6)
+  lancamento_entrada  lancamento_entrada @relation(fields: [lancamento_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+  livro               Livro              @relation(fields: [livro_uid], references: [syncUid], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([sincronizado_em], map: "idx_item_lancamento_sinc")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model item_pedido {
+  sync_uid            String                @id @db.Uuid
+  pedido_uid          String                @db.Uuid
+  codigo              String
+  titulo              String
+  preco_centavos      BigInt
+  qtd                 BigInt
+  origem              String                @default("pdv")
+  atualizado_em       DateTime?             @db.Timestamptz(6)
+  excluido_em         DateTime?             @db.Timestamptz(6)
+  criado_por          String?               @db.Uuid
+  sincronizado_em     DateTime              @default(now()) @db.Timestamptz(6)
+  livro_uid           String?               @db.Uuid
+  alocacao_venda      alocacao_venda[]
+  divergencia_estoque divergencia_estoque[]
+  livro               Livro?                @relation(fields: [livro_uid], references: [syncUid], onDelete: NoAction, onUpdate: NoAction)
+  pedido              pedido                @relation(fields: [pedido_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+  movimento_estoque   movimento_estoque[]
+
+  @@index([sincronizado_em], map: "idx_item_pedido_sinc")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model lancamento_entrada {
+  sync_uid        String            @id @db.Uuid
+  fornecedor_uid  String?           @db.Uuid
+  numero          String?
+  data            String            @default("")
+  status          String            @default("rascunho")
+  finalizada_em   String?
+  origem          String            @default("pdv")
+  atualizado_em   DateTime?         @db.Timestamptz(6)
+  excluido_em     DateTime?         @db.Timestamptz(6)
+  criado_por      String?           @db.Uuid
+  sincronizado_em DateTime          @default(now()) @db.Timestamptz(6)
+  item_lancamento item_lancamento[]
+  fornecedor      fornecedor?       @relation(fields: [fornecedor_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([sincronizado_em], map: "idx_lancamento_entrada_sinc")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model livraria_schema_migrations {
+  version    String   @id
+  filename   String
+  sha256     String
+  applied_at DateTime @default(now()) @db.Timestamptz(6)
+  baseline   Boolean  @default(false)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model movimento_estoque {
+  sync_uid                String              @id @db.Uuid
+  livro_uid               String              @db.Uuid
+  tipo                    String
+  qtd                     BigInt
+  custo_unit_centavos     BigInt?
+  fornecedor              String?
+  motivo                  String?
+  referencia              String?
+  criado_em               String              @default("")
+  origem                  String              @default("pdv")
+  atualizado_em           DateTime?           @db.Timestamptz(6)
+  excluido_em             DateTime?           @db.Timestamptz(6)
+  criado_por              String?             @db.Uuid
+  sincronizado_em         DateTime            @default(now()) @db.Timestamptz(6)
+  pedido_uid              String?             @db.Uuid
+  item_pedido_uid         String?             @db.Uuid
+  movimento_origem_uid    String?             @db.Uuid
+  item_pedido             item_pedido?        @relation(fields: [item_pedido_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+  livro                   Livro               @relation(fields: [livro_uid], references: [syncUid], onDelete: NoAction, onUpdate: NoAction)
+  movimento_estoque       movimento_estoque?  @relation("movimento_estoqueTomovimento_estoque", fields: [movimento_origem_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+  other_movimento_estoque movimento_estoque[] @relation("movimento_estoqueTomovimento_estoque")
+  pedido                  pedido?             @relation(fields: [pedido_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([sincronizado_em], map: "idx_movimento_estoque_sinc")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pagamento_pedido {
+  sync_uid        String          @id @db.Uuid
+  pedido_uid      String          @db.Uuid
+  forma_uid       String          @db.Uuid
+  valor_centavos  BigInt
+  origem          String          @default("pdv")
+  atualizado_em   DateTime?       @db.Timestamptz(6)
+  excluido_em     DateTime?       @db.Timestamptz(6)
+  criado_por      String?         @db.Uuid
+  sincronizado_em DateTime        @default(now()) @db.Timestamptz(6)
+  forma_pagamento forma_pagamento @relation(fields: [forma_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+  pedido          pedido          @relation(fields: [pedido_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([pedido_uid, forma_uid])
+  @@index([sincronizado_em], map: "idx_pagamento_pedido_sinc")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pedido {
+  sync_uid               String                @id @db.Uuid
+  numero                 BigInt
+  cliente                String                @default("CLIENTE")
+  turno                  String
+  data                   String
+  total_centavos         BigInt
+  cancelado              Boolean               @default(false)
+  cancelado_em           DateTime?             @db.Timestamptz(6)
+  operador_uid           String?               @db.Uuid
+  origem                 String                @default("pdv")
+  atualizado_em          DateTime?             @db.Timestamptz(6)
+  excluido_em            DateTime?             @db.Timestamptz(6)
+  criado_por             String?               @db.Uuid
+  sincronizado_em        DateTime              @default(now()) @db.Timestamptz(6)
+  turno_uid              String?               @db.Uuid
+  numero_no_turno        BigInt?
+  estoque_status         String                @default("rascunho")
+  estoque_pronta_em      DateTime?             @db.Timestamptz(6)
+  estoque_incorporada_em DateTime?             @db.Timestamptz(6)
+  estoque_estornada_em   DateTime?             @db.Timestamptz(6)
+  alocacao_venda         alocacao_venda[]
+  divergencia_estoque    divergencia_estoque[]
+  item_pedido            item_pedido[]
+  movimento_estoque      movimento_estoque[]
+  pagamento_pedido       pagamento_pedido[]
+  usuario                usuario?              @relation(fields: [operador_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+  turno_operacao         turno_operacao?       @relation(fields: [turno_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([sincronizado_em], map: "idx_pedido_sinc")
+  @@index([turno_uid], map: "idx_pedido_turno")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model saldo_partida_producao {
+  sync_uid     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  livro_uid    String   @unique(map: "idx_saldo_partida_producao_livro") @db.Uuid
+  saldo        BigInt
+  capturado_em DateTime @default(now()) @db.Timestamptz(6)
+  origem       String   @default("producao")
+  livro        Livro    @relation(fields: [livro_uid], references: [syncUid], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model transferencia_destinacao {
+  sync_uid                                                            String      @id @db.Uuid
+  livro_uid                                                           String      @db.Uuid
+  de_destinacao_uid                                                   String?     @db.Uuid
+  para_destinacao_uid                                                 String?     @db.Uuid
+  qtd                                                                 BigInt
+  motivo                                                              String?
+  criado_em                                                           String      @default("")
+  origem                                                              String      @default("pdv")
+  atualizado_em                                                       DateTime?   @db.Timestamptz(6)
+  excluido_em                                                         DateTime?   @db.Timestamptz(6)
+  criado_por                                                          String?     @db.Uuid
+  sincronizado_em                                                     DateTime    @default(now()) @db.Timestamptz(6)
+  destinacao_transferencia_destinacao_de_destinacao_uidTodestinacao   destinacao? @relation("transferencia_destinacao_de_destinacao_uidTodestinacao", fields: [de_destinacao_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+  livro                                                               Livro       @relation(fields: [livro_uid], references: [syncUid], onDelete: NoAction, onUpdate: NoAction)
+  destinacao_transferencia_destinacao_para_destinacao_uidTodestinacao destinacao? @relation("transferencia_destinacao_para_destinacao_uidTodestinacao", fields: [para_destinacao_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([sincronizado_em], map: "idx_transferencia_destinacao_sinc")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model turno_operacao {
+  sync_uid               String    @id @db.Uuid
+  operador_uid           String?   @db.Uuid
+  caixa_inicial_centavos BigInt    @default(0)
+  status                 String    @default("aberto")
+  abertura               String
+  encerramento           String?
+  esperado_centavos      BigInt?
+  conferido_centavos     BigInt?
+  diferenca_centavos     BigInt?
+  origem                 String    @default("pdv")
+  atualizado_em          DateTime? @db.Timestamptz(6)
+  excluido_em            DateTime? @db.Timestamptz(6)
+  criado_por             String?   @db.Uuid
+  sincronizado_em        DateTime  @default(now()) @db.Timestamptz(6)
+  maquina                String?
+  pedido                 pedido[]
+  usuario                usuario?  @relation(fields: [operador_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([maquina, status], map: "idx_turno_operacao_maquina")
+  @@index([sincronizado_em], map: "idx_turno_operacao_sinc")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model usuario {
+  sync_uid            String                @id @db.Uuid
+  usuario             String                @unique
+  nome                String?
+  ativo               Boolean               @default(true)
+  origem              String                @default("pdv")
+  atualizado_em       DateTime?             @db.Timestamptz(6)
+  excluido_em         DateTime?             @db.Timestamptz(6)
+  criado_por          String?               @db.Uuid
+  sincronizado_em     DateTime              @default(now()) @db.Timestamptz(6)
+  senha_hash          String                @default("") @ignore
+  perfil              String                @default("operador")
+  divergencia_estoque divergencia_estoque[]
+  pedido              pedido[]
+  turno_operacao      turno_operacao[]
+
+  @@index([sincronizado_em], map: "idx_usuario_sinc")
+}
