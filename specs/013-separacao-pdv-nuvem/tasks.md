@@ -40,5 +40,5 @@
 - [x] T020b Implementar modo API-only para login, sessao, identidade e troca de senha.
 - [x] T020c Validar todos os modulos web em Docker contra API e PostgreSQL isolados.
 - [x] T020d Homologar contra copia dos dados reais sem modificar a origem.
-- [ ] T020e Ativar producao gradualmente e observar login, operacoes e sincronizacao.
+- [x] T020e Ativar producao gradualmente e validar saude, banco e modulos administrativos.
 - [ ] T020f Remover fallbacks Supabase depois da janela de rollback aprovada.

@@ -73,5 +73,21 @@ Em 2026-09-15, uma copia local somente-leitura da origem foi restaurada em Postg
 17. A normalizacao encontrou 11 usuarios, 3 fora do padrao e nenhuma colisao. Depois
 das migrations, a API publicou 517 eventos iniciais para 517 produtos e os dez grupos
 administrativos responderam HTTP 200. A origem nao foi modificada.
+
+## Ativacao de producao em 2026-09-15
+
+- PR 25 mergeado na `main`; imagens web, migrador e API publicadas com sucesso.
+- Watchtower executado manualmente: web e migrador atualizados sem falha.
+- `0019_usuario_minusculo` aplicada: 11 usuarios, nenhum fora do padrao.
+- Migrations `api_001_protocolo_catalogo` e `api_002_ingestao_vendas` aplicadas.
+- API iniciada na rede privada Docker; saude 200 e consulta de autenticacao 401
+  controlada confirmaram conexao com o PostgreSQL.
+- Web ativada com `API_ONLY_MODE=true`; pagina protegida e dez grupos administrativos
+  responderam HTTP 200. Dominio publico respondeu 200 no login e 307 para login sem sessao.
+- Chave JWT registrada somente na pagina restrita `API NestJS - producao` no Notion.
+
+Durante a janela de observacao, o rollback continua sendo `API_ONLY_MODE=false` no
+container web. Nao remover os fallbacks Supabase antes de confirmar uso real dos
+operadores e sincronizacao de pelo menos um PDV.
 Limite desta entrega: consulta cliente ate 100 paginas (50 mil produtos), sem truncar silenciosamente.
 Em futuras edicoes, concorrencia entre admins ainda segue ultimo commit; nao ha ETag/versionamento.
