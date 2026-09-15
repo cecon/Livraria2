@@ -43,11 +43,3 @@ export function countInput(value: unknown): StockMovementInput[] {
   }
   return parsed;
 }
-
-export function divergenceStatus(value: unknown): "resolvida" | "ignorada" {
-  const status = objectInput(value).status;
-  if (status !== "resolvida" && status !== "ignorada") {
-    throw new BadRequestException("Status invalido");
-  }
-  return status;
-}

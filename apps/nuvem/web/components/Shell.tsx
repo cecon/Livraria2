@@ -112,7 +112,6 @@ const TITULOS: Record<string, string> = {
   "/formas-pagamento": "Formas de pagamento",
   "/destinacoes": "Destinações",
   "/inventario": "Inventário",
-  "/estoque/divergencias": "Divergências de estoque",
   "/relatorios": "Relatórios",
   "/pdvs": "Caixas sincronizados",
   "/usuarios": "Usuários",

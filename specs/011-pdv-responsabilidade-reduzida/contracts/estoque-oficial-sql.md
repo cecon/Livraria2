@@ -34,8 +34,8 @@ For each item:
   - `pedido_uid = pedido.sync_uid`
   - `item_pedido_uid = item_pedido.sync_uid`
   - `referencia = pedido.numero`
-- if resulting official saldo becomes negative, insert `divergencia_estoque(tipo='saldo_negativo')`
-- if product is inactive, insert `divergencia_estoque(tipo='produto_inativo')`
+- resulting official saldo may become negative and remains visible in the official ledger
+- inactive products already present in synchronized sales keep their sale movement
 - set pedido status to `incorporada` after successful movement generation
 
 ### Idempotency
@@ -75,16 +75,11 @@ Required uniqueness:
 - one reversal movement per `movimento_origem_uid`
 - repeated cancellation sync does not duplicate reversal
 
-## Divergencias
+## Conferencia de estoque
 
-`divergencia_estoque` must be append-only for detection and resolvable by explicit admin action.
-
-Minimum divergence types:
-
-- `saldo_negativo`
-- `produto_inativo`
-- `venda_invalida`
-- `processamento_estoque`
+Per ADR-0029 there is no parallel divergence queue. Real corrections use inventory, explicit stock
+adjustments and the movement ledger. A sale with an unresolved product remains `pronta` until its
+item can be incorporated.
 
 ## Production Baseline
 

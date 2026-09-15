@@ -25,7 +25,6 @@ export type VendaResultado = {
   numeroNoTurno: number;
   totalCentavos: number;
   trocoCentavos: number;
-  divergenciasEstoque: number;
 };
 
 export async function registrarVenda(input: VendaInput): Promise<{ error?: string; resultado?: VendaResultado }> {

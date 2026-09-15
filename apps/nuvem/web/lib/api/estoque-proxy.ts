@@ -15,11 +15,11 @@ function sameOrigin(req: NextRequest) {
 }
 
 function allowed(method: string, path: string[]) {
-  if (method === "GET" && path.length === 1 && ["saldos", "divergencias"].includes(path[0])) return true;
+  if (method === "GET" && path.length === 1 && path[0] === "saldos") return true;
   if (method === "GET" && path.length === 3 && path[0] === "livros" &&
       UUID.test(path[1]) && path[2] === "movimentos") return true;
   if (method === "POST" && path.length === 1 && ["ajustes", "contagens"].includes(path[0])) return true;
-  return method === "PUT" && path.length === 2 && path[0] === "divergencias" && UUID.test(path[1]);
+  return false;
 }
 
 export async function stockProxy(req: NextRequest, path: string[]) {
@@ -38,7 +38,7 @@ export async function stockProxy(req: NextRequest, path: string[]) {
     if (!response.ok) {
       const error = response.status === 401 ? "Sessao expirada. Entre novamente."
         : response.status === 403 ? "Esta operacao nao e permitida."
-        : response.status === 404 ? "Produto ou divergencia nao localizado."
+        : response.status === 404 ? "Produto nao localizado."
         : response.status === 409 ? "Os dados mudaram. Recarregue e tente novamente."
         : response.status === 400 ? "Confira os dados informados." : "Estoque indisponivel.";
       return NextResponse.json({ erro: error }, { status: response.status });

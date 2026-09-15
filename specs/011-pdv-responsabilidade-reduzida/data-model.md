@@ -1,5 +1,7 @@
 # Data Model: PDV com Responsabilidade Reduzida
 
+> Atualizacao: o modelo `divergencia_estoque` e o estado `divergente` foram removidos pela ADR-0029.
+
 ## Existing Entities Used
 
 ### livro

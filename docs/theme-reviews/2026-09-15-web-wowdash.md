@@ -29,7 +29,6 @@
 | Formas de pagamento | Sim | Sim | Sem overflow global |
 | Destinacoes | Sim | Sim | Sem overflow global |
 | Inventario | Sim | Sim | Sem overflow global |
-| Divergencias | Sim | Sim | Tabela com rolagem interna |
 | Relatorios | Sim | Sim | Seletor e resultados responsivos |
 | Caixas | Sim | Sim | Tabela com rolagem interna |
 | Usuarios | Sim | Sim | Tabela com rolagem interna e acoes por icone |

@@ -27,11 +27,6 @@ export function VendaConcluida({ resultado, onNova }: { resultado: VendaResultad
           </div>
         )}
       </div>
-      {resultado.divergenciasEstoque > 0 && (
-        <div className="bg-amber-50 text-amber-700 rounded-md p-2 text-left text-xs">
-          Estoque gerou {resultado.divergenciasEstoque} divergencia(s) para revisao administrativa.
-        </div>
-      )}
       <Button onClick={onNova} className="h-9 w-full">
         Nova venda
       </Button>

@@ -62,4 +62,3 @@ docker compose -f apps/nuvem/web/stack.yml up -d
 - `/login`: entrar
 - `/`: home com navegacao
 - `/cadastro`: cadastro oficial de produtos
-- `/estoque/divergencias`: revisao administrativa de divergencias

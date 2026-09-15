@@ -2,7 +2,7 @@ import { ConflictException, Inject, Injectable, NotFoundException } from "@nestj
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../database/prisma.service";
 import { uuid } from "../sync/validation";
-import { adjustmentInput, countInput, divergenceStatus, StockMovementInput } from "./stock-input";
+import { adjustmentInput, countInput, StockMovementInput } from "./stock-input";
 
 function safeInteger(value: bigint | null, label: string): number | null {
   if (value === null) return null;
@@ -80,33 +80,5 @@ export class StockService {
       if ((error as { code?: string }).code === "P2002") throw new ConflictException("Movimento duplicado");
       throw error;
     }
-  }
-
-  async divergences() {
-    const rows = await this.db.divergencia_estoque.findMany({
-      where: { status: "aberta", excluido_em: null }, orderBy: { criado_em: "desc" },
-      select: { sync_uid: true, pedido_uid: true, item_pedido_uid: true, livro_uid: true,
-        tipo: true, descricao: true, saldo_antes: true, qtd_evento: true, status: true,
-        criado_em: true, resolvida_em: true, resolvida_por: true },
-    });
-    return rows.map(row => ({ ...row, saldo_antes: safeInteger(row.saldo_antes, "Saldo"),
-      qtd_evento: safeInteger(row.qtd_evento, "Quantidade") }));
-  }
-
-  async decide(id: string, value: unknown, actor: string) {
-    const syncUid = uuid(id);
-    const status = divergenceStatus(value);
-    const now = new Date();
-    const updated = await this.db.divergencia_estoque.updateMany({
-      where: { sync_uid: syncUid, status: "aberta", excluido_em: null },
-      data: { status, resolvida_em: now, resolvida_por: actor, atualizado_em: now,
-        sincronizado_em: now, origem: "escritorio" },
-    });
-    if (!updated.count) {
-      const existing = await this.db.divergencia_estoque.findUnique({ where: { sync_uid: syncUid } });
-      if (!existing || existing.excluido_em) throw new NotFoundException();
-      throw new ConflictException("Divergencia ja tratada");
-    }
-    return { sync_uid: syncUid, status };
   }
 }
