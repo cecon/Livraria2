@@ -71,6 +71,10 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
     const deviceUid = enrolled.body.uid;
     const refreshToken = enrolled.body.refreshToken;
     let token = enrolled.body.accessToken;
+    const devices = await request("/pdvs", adminToken);
+    assert.equal(devices.status, 200);
+    assert.equal(devices.body[0].uid, deviceUid);
+    assert.equal(devices.body[0].cursorAplicado, "0");
     await t.test("produto conserva UUID na troca 503 para ISBN", async () => {
       await db.$executeRaw`insert into public.livro(sync_uid,codigo,titulo,preco_centavos)
         values(${productUid}::uuid,'503','Livro teste',6000)`;

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { Moon, Sun, Users } from "lucide-react";
+import { MonitorCheck, Moon, Sun, Users } from "lucide-react";
 import { NAV_ITENS } from "@livraria/ui/nav";
 
 // Barra lateral do Escritório — MESMA aparência/itens do PDV (fonte única: @livraria/ui/nav),
@@ -45,6 +45,12 @@ export function AppSidebar() {
           );
         })}
       </nav>
+
+      <Link href="/pdvs" className={`mx-3 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+        pathname.startsWith("/pdvs") ? "bg-zinc-800 text-white" : "text-zinc-300 hover:bg-zinc-800/60"
+      }`}>
+        <MonitorCheck size={18} /> Caixas
+      </Link>
 
       {/* Só do Escritório (não entra no nav compartilhado do PDV) — gestão de usuários (feature 010). */}
       <Link
