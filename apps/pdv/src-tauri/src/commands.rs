@@ -25,6 +25,8 @@ pub struct AppState {
     /// Caminho do `sync.json` (config da nuvem) na pasta de config do app.
     /// `None` = usa só env vars (dev). Feature 007.
     pub config_sync_path: Option<std::path::PathBuf>,
+    /// Identidade nao secreta da maquina; o refresh token fica no cofre do SO.
+    pub machine_config_path: Option<std::path::PathBuf>,
 }
 
 /// Erro serializado que cruza a fronteira Tauri: `{ codigo, mensagem }`.

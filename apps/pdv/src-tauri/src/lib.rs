@@ -6,6 +6,7 @@ pub mod commands;
 pub mod commands_destinacao;
 pub mod commands_estoque;
 pub mod commands_formas;
+pub mod commands_machine;
 pub mod commands_sync;
 pub mod commands_turno;
 pub mod sync_dispatch;
@@ -13,6 +14,7 @@ pub mod sync_dispatch;
 // `crate::domain` para manter todas as referências existentes (`crate::domain::…`).
 pub use livraria_domain as domain;
 pub mod migration;
+pub mod machine_config;
 
 use commands::AppState;
 use commands_formas::BootState;
@@ -69,13 +71,20 @@ pub fn run() {
                         .app_config_dir()
                         .ok()
                         .map(|d| d.join("sync.json"));
+                    let machine_config_path = tauri::Manager::path(app)
+                        .app_config_dir()
+                        .ok()
+                        .map(|d| d.join("machine.json"));
                     app.manage(AppState {
                         db: db.clone(),
                         config_sync_path: config_sync_path.clone(),
+                        machine_config_path: machine_config_path.clone(),
                     });
                     app.manage(BootState { erro_migracao: None });
                     // Sincronização em background (oportunista, não bloqueia a venda).
-                    tauri::async_runtime::spawn(sincronizacao_periodica(db, config_sync_path));
+                    tauri::async_runtime::spawn(sincronizacao_periodica(
+                        db, config_sync_path, machine_config_path,
+                    ));
                 }
                 Err(e) => {
                     eprintln!("boot: migração falhou — app bloqueado para operação: {e}");
@@ -88,6 +97,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands_formas::estado_boot,
+            commands_machine::estado_maquina,
+            commands_machine::configurar_maquina,
             commands_formas::listar_formas_ativas,
             commands::proximo_numero_pedido,
             commands::registrar_venda,
@@ -117,12 +128,18 @@ pub fn run() {
 
 /// Feature 007: loop de sincronização em background. Oportunista — se não houver
 /// config/rede, apenas dorme e tenta de novo; nunca bloqueia a operação do PDV.
-async fn sincronizacao_periodica(db: DatabaseConnection, config_path: Option<std::path::PathBuf>) {
+async fn sincronizacao_periodica(
+    db: DatabaseConnection,
+    config_path: Option<std::path::PathBuf>,
+    machine_config_path: Option<std::path::PathBuf>,
+) {
     // Espera o app assentar antes da 1ª tentativa.
     tokio::time::sleep(std::time::Duration::from_secs(15)).await;
     loop {
         {
-            match sync_dispatch::executar(&db, config_path.as_deref()).await {
+            match sync_dispatch::executar(
+                &db, config_path.as_deref(), machine_config_path.as_deref(),
+            ).await {
                 Ok(r) if r.enviados + r.recebidos > 0 => {
                     eprintln!("sync: enviados={} recebidos={} orfas={}", r.enviados, r.recebidos, r.orfas);
                 }

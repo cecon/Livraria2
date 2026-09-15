@@ -8,22 +8,35 @@ use std::path::Path;
 
 static SYNC_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
-pub async fn executar(db: &DatabaseConnection, config: Option<&Path>) -> Result<ResumoSync, RepoErro> {
+pub async fn executar(
+    db: &DatabaseConnection,
+    legacy_config: Option<&Path>,
+    machine_config: Option<&Path>,
+) -> Result<ResumoSync, RepoErro> {
     let _lock = SYNC_LOCK.try_lock().map_err(|_| RepoErro::Persistencia("Sincronizacao ja em andamento".into()))?;
     let local = SeaReplicaSync::new(db.clone());
-    let legacy = SupabaseSync::conectar(config).await?;
-    if std::env::var("NUVEM_API_ENABLED").as_deref() != Ok("true") {
+    if !crate::machine_config::is_configured(machine_config) {
+        let legacy = SupabaseSync::conectar(legacy_config).await?;
         return sincronizacao::sincronizar(&legacy, &local).await;
     }
-    // Explicit hybrid rollout: reference data/turns remain legacy. Never resend
-    // API-owned sales through Supabase when the API fails.
-    let recursos: Vec<&str> = ORDEM_DEPENDENCIA.iter().copied().filter(|r|
-        !matches!(*r, "livro" | "pedido" | "item_pedido" | "pagamento_pedido")).collect();
-    let mut summary = sincronizacao::sincronizar_recursos(&legacy, &local, &recursos).await?;
-    let api = ApiSync::conectar().await?;
+    let api = ApiSync::conectar_com_config(machine_config).await?;
     let replica = SeaApiReplica { db: db.clone() };
     let result = sincronizar_api(&api, &replica).await?;
-    summary.enviados += result.enviados;
-    summary.recebidos += result.recebidos;
+    let mut summary = ResumoSync {
+        enviados: result.enviados,
+        recebidos: result.recebidos,
+        orfas: 0,
+    };
+    // Na transicao, referencia e turnos ainda podem vir do legado. A ausencia
+    // dessa configuracao nao pode impedir catalogo e vendas da API nova.
+    if let Ok(legacy) = SupabaseSync::conectar(legacy_config).await {
+        let recursos: Vec<&str> = ORDEM_DEPENDENCIA.iter().copied().filter(|r|
+            !matches!(*r, "livro" | "pedido" | "item_pedido" | "pagamento_pedido")).collect();
+        if let Ok(r) = sincronizacao::sincronizar_recursos(&legacy, &local, &recursos).await {
+            summary.enviados += r.enviados;
+            summary.recebidos += r.recebidos;
+            summary.orfas += r.orfas;
+        }
+    }
     Ok(summary)
 }
