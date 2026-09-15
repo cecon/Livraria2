@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "apps/nuvem/web/**"
+      - "apps/nuvem/api/**"
       - "apps/nuvem/migrations/**"
       - "apps/nuvem/migrator/**"
       - "packages/**"
@@ -25,6 +26,7 @@ env:
   REGISTRY: ghcr.io
   ESCRITORIO_IMAGE: ghcr.io/cecon/livraria2-escritorio
   MIGRATOR_IMAGE: ghcr.io/cecon/livraria2-migrator
+  API_IMAGE: ghcr.io/cecon/livraria2-nuvem-api
   NEXT_PUBLIC_SUPABASE_URL: https://fiqzcnnibwzthhjatxvq.supabase.co
 
 jobs:
@@ -63,3 +65,13 @@ jobs:
           tags: |
             ${{ env.MIGRATOR_IMAGE }}:latest
             ${{ env.MIGRATOR_IMAGE }}:${{ github.sha }}
+
+      - name: Build and push Nuvem API
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/nuvem/api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.API_IMAGE }}:latest
+            ${{ env.API_IMAGE }}:${{ github.sha }}

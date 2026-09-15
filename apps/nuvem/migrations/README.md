@@ -11,6 +11,10 @@ Aplicadas via Management API (`POST /v1/projects/{ref}/database/query`) — toke
 | `0011_estoque_oficial_venda.sql` | Estoque oficial na nuvem por venda pronta: status de estoque no pedido, vinculos de item/movimento, divergencias, baseline de producao, view `vw_produto_pdv` e gatilhos idempotentes de baixa/estorno. | reservado; aplicar somente apos backup/snapshot de producao |
 | `0019_usuario_minusculo.sql` | Normaliza identificadores de usuario, autentica sem diferenciar maiusculas e impede novas gravacoes fora do padrao. Interrompe sem mesclar dados se houver colisao preexistente. | experimental; validar colisao antes do rollout |
 
+As migrations aditivas da API NestJS ficam em `apps/nuvem/api/sql`. O mesmo
+migrador as registra com prefixo `api_`, mas somente quando
+`APPLY_API_MIGRATIONS=true`; por padrao elas permanecem desativadas.
+
 ## Decisão-chave: FK por `sync_uid`
 
 As tabelas-filhas referenciam os pais por **`<pai>_uid uuid REFERENCES pai(sync_uid)`** (ex.: `movimento_estoque.livro_uid`, `pagamento_pedido.forma_uid`, `pedido.operador_uid`). O adapter de sync do PDV (T012/T013) faz o **remap**: ao empurrar, traduz o id local do pai → `sync_uid`; ao aplicar um pull, traduz `sync_uid` → id local.

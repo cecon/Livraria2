@@ -1,6 +1,7 @@
-# Catalogo Web via API
+# Nuvem Web via API
 
-T016 e experimental e opt-in. Nenhuma configuracao/SQL de producao foi alterada.
+T016-T019 estao implementadas e continuam opt-in. Nenhuma configuracao ou SQL de
+producao foi alterada durante a implementacao.
 
 ## Contrato
 
@@ -19,8 +20,8 @@ Nao usar Prisma Migrate; baseline/triggers existentes continuam sendo autoridade
 
 1. Aplicar baseline e SQL experimental SOMENTE no banco isolado.
 2. API: DATABASE_URL, API_JWT_SECRET, API_OPERATIONS_ENABLED=true.
-3. Web: NUVEM_API_URL apontando a API; API_CATALOGO_ENABLED=true em runtime.
-4. Entrar novamente: JWT individual fica no cookie HttpOnly nuvem_usuario, 15 minutos.
+3. Web: `NUVEM_API_URL` apontando a API; usar flags individuais no modo hibrido.
+4. Entrar novamente: JWT individual fica no cookie HttpOnly `nuvem_usuario` por 8 horas.
 5. Verificar cadastro, pesquisa, renomeacao, preco e exclusao; confirmar diario por PDV.
 
 O proxy Next nunca expoe JWT ao JavaScript e nao aceita mutacao de outra origem.
@@ -28,10 +29,21 @@ No proxy reverso, preservar Host e sobrescrever x-forwarded-proto com protocolo 
 Nao publicar a API experimental diretamente na internet via HTTP; usar TLS ou rede privada.
 Sessao expirada exige novo login; nao existe refresh de usuario nesta entrega.
 
-Modo permanece HIBRIDO: login tambem abre sessao legado para saldo, inventario,
-notas, formas, operadores e demais fluxos ainda nao migrados (T017).
-Nao remover configuracao Supabase/conta de servico enquanto esses fluxos a exigirem.
-API habilitada indisponivel resulta em erro controlado, nunca escrita legado alternativa.
+## Modo API-only
+
+`API_ONLY_MODE=true` ativa todos os modulos administrativos e autentica somente
+pela API NestJS. O middleware valida o JWT individual no banco antes de liberar
+cada tela; identidade e troca de senha tambem nao usam Supabase. A sessao web dura
+8 horas e deixa de valer imediatamente se o usuario for desativado.
+
+O migrador inclui o schema aditivo da API, mas so o aplica com
+`APPLY_API_MIGRATIONS=true`. A imagem `livraria2-nuvem-api` e publicada junto das
+imagens web. A ativacao exige `NUVEM_DATABASE_URL` e `API_JWT_SECRET` no host; esses
+segredos ficam somente na Memoria do Projeto.
+
+Para rollback durante a homologacao, voltar `API_ONLY_MODE=false` e manter as
+variaveis Supabase. Isso troca o caminho da aplicacao sem desfazer gravacoes validas.
+Os fallbacks legados so devem ser removidos depois da janela observada em producao.
 
 Flag e lida em runtime via /api/catalogo/config; navegador memoriza modo por carregamento.
 Alterar flag exige reiniciar web e recarregar navegador. Desabilitar volta ao legado;
@@ -49,7 +61,8 @@ API_WEB_E2E=true adiciona proxy Next real na porta 3004, apos build web.
 API_NATIVE_E2E=true inclui Rust real contra API na porta 3003.
 Os dois servidores efemeros sao encerrados ao terminar; nao tocam producao.
 
-Login completo com Supabase real, navegador autenticado e proxy publico ainda precisam
-de homologacao antes de T020. Teste do proxy usa JWT individual emitido pela API real.
+O modo API-only foi validado em Docker com login normalizado, sessao, identidade,
+troca de senha e os dez grupos administrativos contra PostgreSQL isolado. Ainda falta
+homologar contra uma copia dos dados reais antes de ativar producao e concluir T020.
 Limite desta entrega: consulta cliente ate 100 paginas (50 mil produtos), sem truncar silenciosamente.
 Em futuras edicoes, concorrencia entre admins ainda segue ultimo commit; nao ha ETag/versionamento.

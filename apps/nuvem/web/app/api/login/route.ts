@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { cleanEnv } from "@/utils/env";
-import { API_COOKIE, apiLogin, userApiEnabled } from "@/lib/api/server";
+import { API_COOKIE, apiLogin, apiOnlyMode, userApiEnabled } from "@/lib/api/server";
 
 async function autenticarPerfil(usuario: string, senha: string) {
   const url = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
@@ -60,10 +60,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: "Informe usuário e senha." }, { status: 400 });
   }
 
-  let apiToken: string | undefined;
+  let apiSession: Awaited<ReturnType<typeof apiLogin>> | undefined;
   if (userApiEnabled()) {
-    try { apiToken = await apiLogin(u, String(senha)); }
+    try { apiSession = await apiLogin(u, String(senha)); }
     catch { return NextResponse.json({ erro: "Nao foi possivel entrar. Confira suas credenciais e a conexao." }, { status: 403 }); }
+  }
+
+  if (apiOnlyMode() && apiSession) {
+    const store = await cookies();
+    store.set("app_user", apiSession.user.usuario, { httpOnly: true, sameSite: "lax", path: "/" });
+    store.set(API_COOKIE, apiSession.accessToken, {
+      httpOnly: true, sameSite: "strict", path: "/", maxAge: apiSession.expiresIn,
+      secure: process.env.NODE_ENV === "production",
+    });
+    return NextResponse.json({ ok: true });
   }
 
   const supabase = await createClient();
@@ -96,8 +106,8 @@ export async function POST(request: NextRequest) {
 
   // 3) quem está logado (exibição/atribuição) — não é a credencial de dados.
   (await cookies()).set("app_user", u, { httpOnly: true, sameSite: "lax", path: "/" });
-  if (apiToken) (await cookies()).set(API_COOKIE, apiToken, {
-    httpOnly: true, sameSite: "strict", path: "/", maxAge: 900,
+  if (apiSession) (await cookies()).set(API_COOKIE, apiSession.accessToken, {
+    httpOnly: true, sameSite: "strict", path: "/", maxAge: apiSession.expiresIn,
     secure: process.env.NODE_ENV === "production",
   });
   else (await cookies()).delete(API_COOKIE);

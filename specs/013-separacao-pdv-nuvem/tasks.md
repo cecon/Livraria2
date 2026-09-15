@@ -36,3 +36,8 @@
 - [x] T018 Exibir confirmacao de alteracoes por caixa.
 - [x] T019 Integrar alteracoes mobile preservadas no worktree original.
 - [ ] T020 Ativar gradualmente com rollback e remover acesso direto legado.
+- [x] T020a Publicar imagem independente da API e preparar migrations com ativacao explicita.
+- [x] T020b Implementar modo API-only para login, sessao, identidade e troca de senha.
+- [x] T020c Validar todos os modulos web em Docker contra API e PostgreSQL isolados.
+- [ ] T020d Homologar contra copia dos dados reais, ativar producao e observar sincronizacao.
+- [ ] T020e Remover fallbacks Supabase depois da janela de rollback aprovada.

@@ -1,4 +1,4 @@
--- Experimental API schema: apply explicitly, never through the legacy migrator.
+-- API schema: applied explicitly by the migrator only with APPLY_API_MIGRATIONS=true.
 begin;
 create table if not exists public.nuvem_sync_contador (
   id integer primary key check (id = 1),

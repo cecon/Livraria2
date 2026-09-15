@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@livraria/ui/ui/button";
 import { Input } from "@livraria/ui/ui/input";
 import { Label } from "@livraria/ui/ui/label";
-import { createClient } from "@/utils/supabase/client";
 
 export default function TrocarSenhaPage() {
   const router = useRouter();
@@ -26,14 +25,14 @@ export default function TrocarSenhaPage() {
       return;
     }
     setCarregando(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({
-      password: senha,
-      data: { must_change_password: false },
+    const response = await fetch("/api/trocar-senha", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ senha }),
     });
     setCarregando(false);
-    if (error) {
-      setErro(error.message || "Nao foi possivel trocar a senha.");
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      setErro(body.erro || "Nao foi possivel trocar a senha.");
       return;
     }
     router.replace("/");

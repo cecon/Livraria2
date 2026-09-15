@@ -4,13 +4,11 @@ import { requiredEnv } from "@/utils/env";
 
 type CookieItem = { name: string; value: string; options: CookieOptions };
 
-const supabaseUrl = requiredEnv("NEXT_PUBLIC_SUPABASE_URL");
-const supabaseKey = requiredEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
-
 // Cliente Supabase para Server Components / Route Handlers (sessão por cookies).
 export async function createClient() {
   const cookieStore = await cookies();
-  return createServerClient(supabaseUrl, supabaseKey, {
+  return createServerClient(requiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requiredEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"), {
     cookies: {
       getAll() {
         return cookieStore.getAll();

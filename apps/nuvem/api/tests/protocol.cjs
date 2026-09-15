@@ -30,8 +30,10 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
     await db.$executeRawUnsafe("create schema public");
     await db.$executeRawUnsafe("create extension if not exists pgcrypto");
     await db.$executeRawUnsafe(`create table public.usuario (
-      sync_uid uuid primary key, usuario text unique, senha_hash text,
-      perfil text, ativo boolean default true, excluido_em timestamptz)`);
+      sync_uid uuid primary key, usuario text unique, nome text, senha_hash text,
+      perfil text, ativo boolean default true, origem text default 'nuvem',
+      atualizado_em timestamptz, sincronizado_em timestamptz default now(),
+      excluido_em timestamptz)`);
     await db.$executeRawUnsafe(`create table public.livro (
       sync_uid uuid primary key, codigo text unique not null, titulo text not null,
       autor text, preco_centavos bigint default 0, categoria integer default 0,
@@ -54,7 +56,9 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
       try { if ((await fetch(base + "/health")).ok) break; } catch {}
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    const adminToken = (await request("/auth/login", null, { usuario: "admin", senha: password })).body.accessToken;
+    const adminLogin = (await request("/auth/login", null, { usuario: "admin", senha: password })).body;
+    assert.equal(adminLogin.expiresIn, 28800);
+    const adminToken = adminLogin.accessToken;
     const operatorToken = (await request("/auth/login", null, { usuario: "operador", senha: password })).body.accessToken;
     assert.ok(adminToken);
     assert.ok(operatorToken);
@@ -64,7 +68,27 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
       assert.equal((await request("/auth/me")).status, 401);
       assert.equal((await request("/auth/me", adminToken + "alterado")).status, 401);
       assert.equal((await request("/pdvs", operatorToken, { nome: "caixa", usuarioUid: operatorUid })).status, 403);
-      assert.equal((await request("/auth/me", adminToken)).body.perfil, "admin");
+      const me = (await request("/auth/me", adminToken)).body;
+      assert.equal(me.perfil, "admin");
+      assert.equal(me.usuario, "admin");
+      assert.equal(me.uid, adminUid);
+    });
+    await t.test("usuario autenticado troca a propria senha", async () => {
+      const novaSenha = randomUUID();
+      const response = await fetch(base + "/auth/senha", {
+        method: "PUT",
+        headers: { "content-type": "application/json", authorization: "Bearer " + adminToken },
+        body: JSON.stringify({ senha: novaSenha }),
+      });
+      assert.equal(response.status, 200);
+      assert.equal((await request("/auth/login", null, { usuario: "admin", senha: password })).status, 401);
+      assert.ok((await request("/auth/login", null, { usuario: "ADMIN", senha: novaSenha })).body.accessToken);
+      const denied = await fetch(base + "/auth/senha", {
+        method: "PUT",
+        headers: { "content-type": "application/json", authorization: "Bearer " + operatorToken },
+        body: JSON.stringify({ senha: "curta" }),
+      });
+      assert.equal(denied.status, 400);
     });
     const enrolled = await request("/pdvs", adminToken, { nome: "caixa teste", usuarioUid: operatorUid });
     assert.equal(enrolled.status, 201);
