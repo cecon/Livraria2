@@ -3,6 +3,7 @@ use crate::application::ports::RepoErro;
 use async_trait::async_trait;
 use reqwest::{Client, Url};
 use serde_json::{json, Value};
+use std::path::Path;
 use std::time::Duration;
 
 pub struct ApiSync {
@@ -17,9 +18,14 @@ fn erro(_: impl std::fmt::Display) -> RepoErro {
 
 impl ApiSync {
     pub async fn conectar() -> Result<Self, RepoErro> {
-        let url = std::env::var("NUVEM_API_URL").map_err(erro)?;
-        let uid = std::env::var("NUVEM_PDV_UID").map_err(erro)?;
-        let refresh = std::env::var("NUVEM_PDV_REFRESH_TOKEN").map_err(erro)?;
+        Self::conectar_com_config(None).await
+    }
+
+    pub async fn conectar_com_config(path: Option<&Path>) -> Result<Self, RepoErro> {
+        let credentials = crate::machine_config::load(path).map_err(erro)?;
+        let url = credentials.api_url;
+        let uid = credentials.pdv_uid;
+        let refresh = credentials.refresh_token;
         let parsed = Url::parse(&url).map_err(erro)?;
         let loopback = matches!(parsed.host_str(), Some("127.0.0.1" | "localhost" | "[::1]"));
         if (parsed.scheme() != "https" && !(parsed.scheme() == "http" && loopback)) ||

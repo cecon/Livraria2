@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { ErroMigracao } from "@/components/ErroMigracao";
 import { Toaster } from "@/components/ui/sonner";
 import { estadoBoot, type EstadoBoot } from "@/lib/ipc";
+import { estadoMaquina, type MachineState } from "@/lib/ipc_machine";
 import { aplicarTema, temaInicial, type Tema } from "@/lib/theme";
 import { verificarAtualizacao } from "@/lib/updater";
 import Inicio from "@/routes/Inicio";
@@ -12,10 +13,12 @@ import Venda from "@/routes/Venda";
 import Turnos from "@/routes/Turnos";
 import Pesquisa from "@/routes/Pesquisa";
 import Relatorios from "@/routes/Relatorios";
+import ConfigurarMaquina from "@/routes/ConfigurarMaquina";
 
 function App() {
   const [tema, setTema] = useState<Tema>(temaInicial);
   const [boot, setBoot] = useState<EstadoBoot | null>(null);
+  const [machine, setMachine] = useState<MachineState | null>(null);
   const versaoAvisada = useRef<string | null>(null);
 
   useEffect(() => {
@@ -27,6 +30,9 @@ function App() {
     estadoBoot()
       .then(setBoot)
       .catch(() => setBoot({ ok: true })); // comando indisponível: segue normal
+    estadoMaquina()
+      .then(setMachine)
+      .catch(() => setMachine({ configured: true, nome: null, nomeSugerido: "" }));
   }, []);
 
   useEffect(() => {
@@ -53,6 +59,23 @@ function App() {
 
   if (boot && !boot.ok) {
     return <ErroMigracao detalhe={boot.erroMigracao} />;
+  }
+
+  if (!boot || !machine) {
+    return <div className="bg-background min-h-screen" aria-label="Carregando" />;
+  }
+
+  if (!machine.configured) {
+    return (
+      <ConfigurarMaquina
+        nomeSugerido={machine.nomeSugerido}
+        tema={tema}
+        onToggleTema={() => setTema((value) => (value === "dark" ? "light" : "dark"))}
+        onConfigured={() =>
+          setMachine((value) => (value ? { ...value, configured: true } : value))
+        }
+      />
+    );
   }
 
   return (
