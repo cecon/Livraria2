@@ -59,20 +59,8 @@ module.exports = async function adminStock(t, db, base, adminToken, deviceToken)
     assert.equal(await db.movimento_estoque.count({ where: { sync_uid: valid } }), 0);
   });
 
-  await t.test("divergencia aberta registra decisao e autor", async () => {
-    const divergenceUid = randomUUID();
-    await db.divergencia_estoque.create({ data: {
-      sync_uid: divergenceUid, livro_uid: bookUid, tipo: "saldo_negativo",
-      descricao: "Saldo abaixo de zero", saldo_antes: 1n, qtd_evento: -2n,
-    } });
-    const listed = await call("GET", "/divergencias");
-    assert.equal(listed.body[0].sync_uid, divergenceUid);
-    assert.equal(listed.body[0].qtd_evento, -2);
-    assert.equal((await call("PUT", `/divergencias/${divergenceUid}`, { status: "resolvida" })).status, 200);
-    const saved = await db.divergencia_estoque.findUnique({ where: { sync_uid: divergenceUid } });
-    assert.equal(saved.status, "resolvida");
-    assert.ok(saved.resolvida_por);
-    assert.ok(saved.resolvida_em);
-    assert.equal((await call("PUT", `/divergencias/${divergenceUid}`, { status: "ignorada" })).status, 409);
+  await t.test("antiga fila de divergencias nao e exposta", async () => {
+    assert.equal((await call("GET", "/divergencias")).status, 404);
+    assert.equal((await call("PUT", `/divergencias/${randomUUID()}`, { status: "resolvida" })).status, 404);
   });
 };
