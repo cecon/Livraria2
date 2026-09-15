@@ -5,6 +5,7 @@ import { listarFormas } from "@/lib/nuvem/forma";
 import { operadorAtual } from "@/lib/nuvem/operador";
 import { contarPedidosDoTurno } from "@/lib/nuvem/turno";
 import { createClient } from "@/utils/supabase/client";
+import { salesApiEnabled, salesRequest } from "@/lib/api/vendas-client";
 
 export type ItemVenda = {
   livroUid: string;
@@ -61,6 +62,24 @@ export async function registrarVenda(input: VendaInput): Promise<{ error?: strin
     faltaCentavos?: number;
   };
   if (!val.ok) return { error: mensagemErro(val) };
+
+  try {
+    if (await salesApiEnabled()) {
+      const resultado = await salesRequest("", "POST", {
+        pedidoUid: crypto.randomUUID(), turnoUid: input.turnoUid,
+        cliente: (input.cliente ?? "").trim() || "CLIENTE",
+        itens: input.itens.map(item => ({ uid: crypto.randomUUID(), livroUid: item.livroUid,
+          codigo: item.codigo, titulo: item.titulo, precoCentavos: item.precoCentavos,
+          quantidade: item.qtd })),
+        pagamentos: input.pagamentos.filter(payment => payment.valorCentavos > 0)
+          .map(payment => ({ uid: crypto.randomUUID(), formaUid: payment.formaUid,
+            valorCentavos: payment.valorCentavos })),
+      }) as VendaResultado;
+      return { resultado };
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Falha ao registrar venda" };
+  }
 
   const numeroNoTurno = Number(dom.turno_proximo_numero(await contarPedidosDoTurno(input.turnoUid)));
   const numeroGlobal = await proximoNumeroGlobal(sb);
@@ -165,6 +184,7 @@ export type VendaResumo = {
 };
 
 export async function listarVendasDoDia(): Promise<VendaResumo[]> {
+  if (await salesApiEnabled()) return salesRequest("/hoje");
   const sb = createClient();
   const hoje = new Date().toISOString().slice(0, 10);
   const { data } = await sb

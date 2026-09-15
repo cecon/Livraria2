@@ -9,8 +9,10 @@ export const pdvStatusApiEnabled = () => process.env.API_PDV_STATUS_ENABLED === 
 export const stockApiEnabled = () => process.env.API_ESTOQUE_ENABLED === "true";
 export const entriesApiEnabled = () => process.env.API_LANCAMENTOS_ENABLED === "true";
 export const shiftsApiEnabled = () => process.env.API_TURNOS_ENABLED === "true";
+export const salesApiEnabled = () => process.env.API_VENDAS_ENABLED === "true";
 export const userApiEnabled = () => catalogApiEnabled() || referencesApiEnabled() ||
-  usersApiEnabled() || pdvStatusApiEnabled() || stockApiEnabled() || entriesApiEnabled() || shiftsApiEnabled();
+  usersApiEnabled() || pdvStatusApiEnabled() || stockApiEnabled() || entriesApiEnabled() ||
+  shiftsApiEnabled() || salesApiEnabled();
 
 export async function apiFetch(path: string, init: RequestInit = {}, token?: string) {
   const value = process.env.NUVEM_API_URL;
