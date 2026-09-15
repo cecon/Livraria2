@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { API_COOKIE, apiFetch, referencesApiEnabled } from "./server";
 
-export type ReferenceResource = "formas" | "fornecedores";
+export type ReferenceResource = "formas" | "fornecedores" | "destinacoes";
 
 function sameOrigin(req: NextRequest) {
   try {
@@ -22,8 +22,8 @@ export async function referencesProxy(req: NextRequest, resource: ReferenceResou
   action?: "ativa" | "reordenar") {
   if (!referencesApiEnabled()) return NextResponse.json({ erro: "API desativada" }, { status: 503 });
   if (id && !validUuid(id)) return NextResponse.json({ erro: "UUID invalido" }, { status: 400 });
-  if ((action === "ativa" && (!id || resource !== "formas")) ||
-      (action === "reordenar" && (id || resource !== "formas"))) {
+  if ((action === "ativa" && (!id || resource === "fornecedores")) ||
+      (action === "reordenar" && (id || resource === "fornecedores"))) {
     return NextResponse.json({ erro: "Operacao invalida" }, { status: 400 });
   }
   if (req.method !== "GET" && !sameOrigin(req)) {

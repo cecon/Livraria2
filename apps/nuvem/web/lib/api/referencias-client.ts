@@ -1,5 +1,6 @@
 import type { EntradaForma, Forma } from "@/lib/nuvem/forma";
 import type { EntradaFornecedor, Fornecedor } from "@/lib/nuvem/fornecedor";
+import type { Destinacao, EntradaDestinacao } from "@/lib/nuvem/destinacao";
 
 let mode: Promise<boolean> | undefined;
 export function referencesApiEnabled() {
@@ -43,6 +44,10 @@ export async function listApiForms() {
 export async function listApiSuppliers() {
   return (await listAll<Fornecedor>("fornecedores")).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 }
+export async function listApiDestinations() {
+  return (await listAll<Destinacao>("destinacoes"))
+    .sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome, "pt-BR"));
+}
 async function result(operation: () => Promise<unknown>) {
   try { await operation(); return {}; }
   catch (error) { return { error: error instanceof Error ? error.message : "Falha no cadastro" }; }
@@ -63,3 +68,13 @@ export function saveApiSupplier(input: EntradaFornecedor) {
     input.sync_uid ? "PUT" : "POST", { ...input, sync_uid: id }));
 }
 export const deleteApiSupplier = (id: string) => result(() => request(`/fornecedores/${id}`, "DELETE"));
+export function saveApiDestination(input: EntradaDestinacao) {
+  const id = input.sync_uid || crypto.randomUUID();
+  return result(() => request(`/destinacoes${input.sync_uid ? `/${id}` : ""}`,
+    input.sync_uid ? "PUT" : "POST", { ...input, sync_uid: id }));
+}
+export const setApiDestinationActive = (id: string, ativa: boolean) =>
+  result(() => request(`/destinacoes/${id}/ativa`, "PUT", { ativa }));
+export const deleteApiDestination = (id: string) => result(() => request(`/destinacoes/${id}`, "DELETE"));
+export const reorderApiDestinations = (items: Destinacao[]) =>
+  result(() => request("/destinacoes/reordenar", "PUT", { uids: items.map(item => item.sync_uid) }));

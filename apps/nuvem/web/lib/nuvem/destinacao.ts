@@ -1,6 +1,8 @@
 // Camada de dados de destinações/fundos (US2/T030) — dedup por nome_norm; LWW.
 import { createClient } from "@/utils/supabase/client";
 import { normalizar } from "@/utils/texto";
+import { deleteApiDestination, listApiDestinations, referencesApiEnabled,
+  reorderApiDestinations, saveApiDestination, setApiDestinationActive } from "@/lib/api/referencias-client";
 
 export type Destinacao = {
   sync_uid: string;
@@ -11,6 +13,7 @@ export type Destinacao = {
 };
 
 export async function listarDestinacoes(): Promise<Destinacao[]> {
+  if (await referencesApiEnabled()) return listApiDestinations();
   const sb = createClient();
   const { data } = await sb
     .from("destinacao")
@@ -24,6 +27,8 @@ export async function listarDestinacoes(): Promise<Destinacao[]> {
 export type EntradaDestinacao = { sync_uid?: string; nome: string; ativa: boolean; ordem: number; de_sistema?: boolean };
 
 export async function salvarDestinacao(d: EntradaDestinacao): Promise<{ error?: string }> {
+  try { if (await referencesApiEnabled()) return saveApiDestination(d); }
+  catch (error) { return { error: error instanceof Error ? error.message : "Configuracao indisponivel" }; }
   const sb = createClient();
   const { data: sessao } = await sb.auth.getUser();
   const linha = {
@@ -45,12 +50,16 @@ export async function salvarDestinacao(d: EntradaDestinacao): Promise<{ error?: 
 }
 
 export async function definirDestinacaoAtiva(sync_uid: string, ativa: boolean): Promise<{ error?: string }> {
+  try { if (await referencesApiEnabled()) return setApiDestinationActive(sync_uid, ativa); }
+  catch (error) { return { error: error instanceof Error ? error.message : "Configuracao indisponivel" }; }
   const sb = createClient();
   const { error } = await sb.from("destinacao").update({ ativa, atualizado_em: new Date().toISOString() }).eq("sync_uid", sync_uid);
   return error ? { error: error.message } : {};
 }
 
 export async function excluirDestinacao(sync_uid: string): Promise<{ error?: string }> {
+  try { if (await referencesApiEnabled()) return deleteApiDestination(sync_uid); }
+  catch (error) { return { error: error instanceof Error ? error.message : "Configuracao indisponivel" }; }
   const sb = createClient();
   const agora = new Date().toISOString();
   const { error } = await sb.from("destinacao").update({ excluido_em: agora, atualizado_em: agora }).eq("sync_uid", sync_uid);
@@ -58,6 +67,8 @@ export async function excluirDestinacao(sync_uid: string): Promise<{ error?: str
 }
 
 export async function reordenarDestinacoes(livresOrdenadas: Destinacao[]): Promise<{ error?: string }> {
+  try { if (await referencesApiEnabled()) return reorderApiDestinations(livresOrdenadas); }
+  catch (error) { return { error: error instanceof Error ? error.message : "Configuracao indisponivel" }; }
   const sb = createClient();
   const agora = new Date().toISOString();
   // "Loja" (sistema) fica em 0; as livres seguem a partir de 1.

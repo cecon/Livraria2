@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
+import { usersApiEnabled } from "@/lib/api/server";
+import { usersProxy } from "@/lib/api/usuarios-proxy";
 
 // Ações sobre um usuário (feature 010, US3): redefinir senha, desativar, reativar.
 // Admin da sessão via cookie httpOnly; RPCs SECURITY DEFINER com guarda do último admin.
@@ -12,6 +14,13 @@ export async function POST(request: NextRequest) {
   const admin = (await cookies()).get("app_user")?.value;
   if (!admin) return NextResponse.json({ erro: "Sessão inválida." }, { status: 401 });
   if (!usuario) return NextResponse.json({ erro: "Usuário inválido." }, { status: 400 });
+  if (usersApiEnabled()) {
+    if (acao === "senha") return usersProxy(request, usuario, "senha", { senha });
+    if (acao === "desativar" || acao === "reativar") {
+      return usersProxy(request, usuario, "ativa", { ativa: acao === "reativar" });
+    }
+    return NextResponse.json({ erro: "Ação inválida." }, { status: 400 });
+  }
 
   const supabase = await createClient();
   let error;

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
+import { usersApiEnabled } from "@/lib/api/server";
+import { usersProxy } from "@/lib/api/usuarios-proxy";
 
 // Gestão de usuários (feature 010). O admin da sessão vem do cookie httpOnly `app_user`
 // (server-side, nunca do cliente) e é validado pelas RPCs SECURITY DEFINER. O hash da
@@ -17,6 +19,7 @@ function mapErro(msg: string): string {
 
 // Cria um usuário (US1).
 export async function POST(request: NextRequest) {
+  if (usersApiEnabled()) return usersProxy(request);
   const b = await request.json().catch(() => ({}));
   const usuario = String(b.usuario ?? "").trim().toLowerCase();
   const senha = String(b.senha ?? "");
@@ -41,6 +44,8 @@ export async function PATCH(request: NextRequest) {
   const b = await request.json().catch(() => ({}));
   const usuario = String(b.usuario ?? "").trim().toLowerCase();
   if (!usuario) return NextResponse.json({ erro: "Usuário inválido." }, { status: 400 });
+  if (usersApiEnabled()) return usersProxy(request, usuario, undefined,
+    { nome: String(b.nome ?? "").trim(), perfil: b.perfil === "admin" ? "admin" : "operador" });
   const admin = (await cookies()).get("app_user")?.value;
   if (!admin) return NextResponse.json({ erro: "Sessão inválida." }, { status: 401 });
   const supabase = await createClient();
@@ -52,4 +57,13 @@ export async function PATCH(request: NextRequest) {
   });
   if (error) return NextResponse.json({ erro: mapErro(error.message) }, { status: 400 });
   return NextResponse.json({ ok: true });
+}
+
+export async function GET(request: NextRequest) {
+  if (usersApiEnabled()) return usersProxy(request);
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("usuario")
+    .select("sync_uid,usuario,nome,perfil,ativo,excluido_em").order("usuario");
+  if (error) return NextResponse.json({ erro: mapErro(error.message) }, { status: 500 });
+  return NextResponse.json(data ?? []);
 }

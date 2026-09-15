@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
 
 // Gestão de usuários (feature 010, ADR-0019): cadastro/edição com **perfil** (operador/admin)
 // e **senha**, desativar/reativar. Identidade única com o PDV. Escrita sensível passa pelas
@@ -9,7 +8,6 @@ import { createClient } from "@/utils/supabase/client";
 type Usuario = { usuario: string; nome: string | null; perfil: string; excluido_em: string | null };
 
 export default function Usuarios() {
-  const supabase = createClient();
   const [lista, setLista] = useState<Usuario[]>([]);
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState<string | null>(null);
@@ -21,12 +19,13 @@ export default function Usuarios() {
   const [salvando, setSalvando] = useState(false);
 
   async function carregar() {
-    const { data } = await supabase.from("usuario").select("usuario,nome,perfil,excluido_em").order("usuario");
-    setLista((data as Usuario[]) ?? []);
+    const response = await fetch("/api/usuarios", { cache: "no-store" });
+    const data = await response.json();
+    if (!response.ok) return setErro(data.erro || "Nao foi possivel carregar os usuarios.");
+    setLista(data as Usuario[]);
   }
   useEffect(() => {
     carregar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const adminsAtivos = lista.filter((u) => u.perfil === "admin" && !u.excluido_em).length;

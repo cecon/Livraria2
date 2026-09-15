@@ -23,7 +23,8 @@ export default function DestinacoesPage() {
   const [criando, setCriando] = useState(false);
 
   async function carregar() {
-    setDestinacoes(await listarDestinacoes());
+    try { setDestinacoes(await listarDestinacoes()); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar."); }
   }
   useEffect(() => {
     carregar();
