@@ -117,7 +117,7 @@ export default function ConfigurarMaquina({
                   value={nome}
                   maxLength={100}
                   disabled={loading}
-                  className="h-12"
+                  className="h-12 px-4"
                   onChange={(event) => setNome(event.target.value)}
                 />
               </div>
@@ -130,7 +130,7 @@ export default function ConfigurarMaquina({
                   value={usuario}
                   maxLength={100}
                   disabled={loading}
-                  className="h-12"
+                  className="h-12 px-4"
                   onChange={(event) => setUsuario(event.target.value.toLowerCase())}
                 />
               </div>
@@ -144,7 +144,7 @@ export default function ConfigurarMaquina({
                     value={senha}
                     maxLength={200}
                     disabled={loading}
-                    className="h-12 pr-12"
+                    className="h-12 pr-12 pl-4"
                     onChange={(event) => setSenha(event.target.value)}
                   />
                   <Button
