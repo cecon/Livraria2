@@ -139,6 +139,9 @@ Filtro basico de credenciais tambem na leitura; nao substitui revisao humana.
 
 ### Convencao visual obrigatoria
 
+Esta convencao e formalizada pelos ADRs
+[`0026`](adr/0026-tema-wowdash-referencia-visual-obrigatoria.md) e
+[`0027`](adr/0027-convencoes-de-interface-no-agentmemory.md).
 Antes de qualquer tarefa de interface, consulte a memoria com o nome da tela e os termos
 `tema visual WowDash`. Em seguida, valide o resultado contra `docs/ui-theme-policy.md`,
 `docs/references/theme/documentation` e os exemplos em `docs/references/theme`; os arquivos
