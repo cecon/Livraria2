@@ -36,6 +36,7 @@ jobs:
             sleep 1
           done
           test "$ready" = true
+          sleep 2
       - run: npm run test:integration -w @livraria/nuvem-api
         env:
           API_TEST_DATABASE: isolated-local
