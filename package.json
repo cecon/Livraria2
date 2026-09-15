@@ -10,6 +10,9 @@
     "apps/nuvem/api"
   ],
   "scripts": {
+    "hooks:install": "git config core.hooksPath .githooks",
+    "theme:check": "node scripts/check-theme-usage.mjs --base origin/main",
+    "theme:test": "node --test scripts/check-theme-usage.test.mjs",
     "memory:health": "node --env-file-if-exists=.env tools/agent-memory/cli.mjs health",
     "memory:recall": "node --env-file-if-exists=.env tools/agent-memory/cli.mjs recall",
     "memory:remember": "node --env-file-if-exists=.env tools/agent-memory/cli.mjs remember",

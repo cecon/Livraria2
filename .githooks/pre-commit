@@ -16,4 +16,5 @@ if [ "${#staged[@]}" -eq 0 ]; then
 fi
 
 "$ROOT/scripts/check-file-size.sh" "${staged[@]}"
-exec "$ROOT/scripts/check-domain-purity.sh"
+"$ROOT/scripts/check-domain-purity.sh"
+exec node "$ROOT/scripts/check-theme-usage.mjs" --staged

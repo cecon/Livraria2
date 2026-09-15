@@ -21,6 +21,18 @@ que o material seja restaurado; nao e permitido substituir a referencia por supo
 4. Procure componentes equivalentes em `docs/references/theme/components`.
 5. Verifique primeiro o que ja existe em `packages/ui` e nos layouts compartilhados.
 6. Implemente a adaptacao e valide em desktop e smartphone, nos modos claro e escuro.
+7. Copie `docs/theme-reviews/TEMPLATE.md` para um novo arquivo nessa pasta, preencha as
+   referencias e marque as validacoes antes de publicar a branch.
+
+## Hooks
+
+Execute `npm run hooks:install` uma vez por clone. O `pre-commit` verifica se o tema esta
+disponivel quando houver arquivos de UI no commit. O `pre-push` compara a branch com
+`origin/main` e exige um relatorio de tema novo e completo antes de permitir a publicacao.
+
+O verificador considera UI em `apps/pdv`, `apps/nuvem/web`, `packages/ui` e nos caminhos legados
+`apps/escritorio` e `src`. Testes e mudancas apenas de backend/documentacao nao exigem relatorio.
+Execute manualmente com `npm run theme:check`; os testes do guardrail usam `npm run theme:test`.
 
 ## Como Adaptar
 
