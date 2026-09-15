@@ -1,5 +1,8 @@
 # Politica de Uso do Tema
 
+Decisoes arquiteturais: [ADR-0026](adr/0026-tema-wowdash-referencia-visual-obrigatoria.md) e
+[ADR-0027](adr/0027-convencoes-de-interface-no-agentmemory.md).
+
 ## Regra
 
 O tema em `docs/references/theme` e a referencia visual obrigatoria para toda interface do PDV e

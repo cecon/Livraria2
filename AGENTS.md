@@ -22,6 +22,8 @@ Nunca envie credenciais, .env, dados de clientes ou arquivos inteiros. Segredos 
 
 ## Tema Visual Obrigatorio
 
+Decisoes: `docs/adr/0026-tema-wowdash-referencia-visual-obrigatoria.md` e
+`docs/adr/0027-convencoes-de-interface-no-agentmemory.md`.
 Toda criacao, alteracao ou revisao de interface do PDV ou da nuvem DEVE seguir
 `docs/references/theme` e sua documentacao em
 `docs/references/theme/documentation`. Antes de editar UI, leia
