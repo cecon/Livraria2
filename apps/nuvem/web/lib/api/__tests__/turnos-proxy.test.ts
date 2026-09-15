@@ -22,3 +22,10 @@ test("resumo permitido passa somente pela API interna", async () => {
   expect((await shiftsProxy(request("GET", `/${uid}/resumo`), [uid, "resumo"])).status).toBe(200);
   expect(mocked.fetcher.mock.calls[0][0]).toBe(`admin/turnos/${uid}/resumo`);
 });
+
+test("turno aberto vazio e uma resposta valida sem turno", async () => {
+  mocked.fetcher.mockResolvedValueOnce(new Response(null, { status: 200 }));
+  const response = await shiftsProxy(request("GET", "/aberto"), ["aberto"]);
+  expect(response.status).toBe(200);
+  expect(await response.json()).toBeNull();
+});

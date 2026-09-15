@@ -30,7 +30,8 @@ export async function shiftsProxy(req: NextRequest, path: string[]) {
     if (body && body.length > 10000) return NextResponse.json({ erro: "Dados excessivos" }, { status: 413 });
     const response = await apiFetch(`admin/turnos${path.length ? `/${path.join("/")}` : ""}`,
       { method: req.method, body });
-    const result = await response.json();
+    const responseBody = await response.text();
+    const result = responseBody ? JSON.parse(responseBody) : null;
     if (!response.ok) return NextResponse.json({ erro: response.status === 409 ?
       "O turno mudou. Atualize a tela." : response.status === 400 ? "Confira os valores informados." :
       response.status === 401 ? "Sessao expirada." : "Turnos indisponiveis." }, { status: response.status });

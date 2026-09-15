@@ -22,3 +22,5 @@ carregamento. A composicao permanece em uma coluna e respeita a largura do smart
 
 Falhas transitorias de leitura sao repetidas automaticamente. Sessao expirada limpa o cookie local,
 abre o login e preserva a rota de origem para retorno apos a autenticacao.
+Se a indisponibilidade durar mais que as tentativas imediatas, o painel repete o carregamento a cada
+cinco segundos e informa a contagem regressiva com uma regiao acessivel.
