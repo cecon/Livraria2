@@ -1,14 +1,12 @@
 import type { EntradaForma, Forma } from "@/lib/nuvem/forma";
 import type { EntradaFornecedor, Fornecedor } from "@/lib/nuvem/fornecedor";
 import type { Destinacao, EntradaDestinacao } from "@/lib/nuvem/destinacao";
+import { browserApiRequest } from "./browser-client";
 
 async function request(path: string, method = "GET", body?: unknown) {
-  const response = await fetch(`/api/referencias${path}`, { method, cache: "no-store",
-    signal: AbortSignal.timeout(10000), headers: { "content-type": "application/json" },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.erro || "Referencias indisponiveis");
-  return result;
+  return browserApiRequest<any>(`/api/referencias${path}`, {
+    method, body, fallback: "Referências indisponíveis",
+  });
 }
 
 async function listAll<T>(resource: string) {

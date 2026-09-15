@@ -32,7 +32,9 @@ export default function LoginPage() {
       setErro(j.erro ?? "Não foi possível entrar.");
       return;
     }
-    router.replace("/");
+    const requested = new URLSearchParams(window.location.search).get("next");
+    const destination = requested?.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+    router.replace(destination);
     router.refresh();
   }
 

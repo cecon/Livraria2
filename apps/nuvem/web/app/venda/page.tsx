@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Clock, ShoppingCart } from "lucide-react";
+import { AlertCircle, Clock, RefreshCw, ShoppingCart } from "lucide-react";
 import { Button } from "@livraria/ui/ui/button";
 import { EntradaProduto, type LivroBusca } from "@/components/EntradaProduto";
 import { Carrinho } from "@/components/Carrinho";
@@ -22,6 +22,7 @@ import { registrarVenda, listarVendasDoDia, type ItemVenda, type VendaResultado,
 
 export default function VendaPage() {
   const [carregando, setCarregando] = useState(true);
+  const [erroCarregamento, setErroCarregamento] = useState<string | null>(null);
   const [turno, setTurno] = useState<TurnoAberto | null>(null);
   const [livros, setLivros] = useState<LivroBusca[]>([]);
   const [formas, setFormas] = useState<Forma[]>([]);
@@ -36,13 +37,14 @@ export default function VendaPage() {
 
   async function carregarBase() {
     setCarregando(true);
+    setErroCarregamento(null);
     try {
       const [t, ls, saldos, fs] = await Promise.all([turnoAberto(), listarLivros(), listarSaldos(), listarFormas()]);
       setTurno(t);
       setLivros(ls.map((l) => ({ sync_uid: l.sync_uid, codigo: l.codigo, titulo: l.titulo, autor: l.autor, preco_centavos: l.preco_centavos, estoque: saldos.get(l.sync_uid) ?? 0 })));
       setFormas(fs.filter((f) => f.ativa));
-    } catch {
-      toast.error("Falha ao carregar. Verifique o login.");
+    } catch (error) {
+      setErroCarregamento(error instanceof Error ? error.message : "Não foi possível carregar a venda.");
     } finally {
       setCarregando(false);
     }
@@ -99,6 +101,28 @@ export default function VendaPage() {
   }
 
   if (carregando) return <div className="p-6 text-muted-foreground text-sm">Carregando…</div>;
+
+  if (erroCarregamento) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-5 px-4 py-5 sm:p-6 lg:py-7">
+        <div>
+          <div className="section-kicker mb-1">Operação</div>
+          <h1>Venda</h1>
+        </div>
+        <div role="alert" className="admin-panel flex flex-col items-center gap-3 border bg-card p-6 text-center">
+          <AlertCircle className="text-destructive" size={36} />
+          <div>
+            <h2 className="font-semibold">Não foi possível carregar a venda</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{erroCarregamento}</p>
+          </div>
+          <Button onClick={carregarBase} className="h-9">
+            <RefreshCw className="size-4" />
+            Tentar novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!turno) {
     return (
