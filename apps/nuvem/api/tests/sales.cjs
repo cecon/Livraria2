@@ -138,6 +138,7 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
     await require("./admin-destinations.cjs")(t, db, base, adminToken, firstDevice.accessToken);
     await require("./admin-stock.cjs")(t, db, base, adminToken, firstDevice.accessToken);
     await require("./admin-entries.cjs")(t, db, base, adminToken, firstDevice.accessToken, run);
+    await require("./admin-shifts.cjs")(t, db, base, adminToken, firstDevice.accessToken);
     await require("./admin-users.cjs")(t, db, base, adminToken, firstDevice.accessToken, request);
     if (process.env.API_WEB_E2E === "true") {
       await require("./web-catalog.cjs")(t, db, base, adminToken, firstDevice.accessToken);

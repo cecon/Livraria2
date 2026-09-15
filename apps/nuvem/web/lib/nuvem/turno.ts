@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 import { dominio } from "@/lib/dominio";
 import { operadorAtual } from "@/lib/nuvem/operador";
 import { listarFormas } from "@/lib/nuvem/forma";
+import { shiftsApiEnabled, shiftsRequest } from "@/lib/api/turnos-client";
 
 const ORIGEM = "escritorio";
 
@@ -36,6 +37,7 @@ export type TurnoHistorico = {
 
 // Turno aberto do operador logado nesta origem (ou null).
 export async function turnoAberto(): Promise<TurnoAberto | null> {
+  if (await shiftsApiEnabled()) return shiftsRequest("/aberto");
   const sb = createClient();
   const op = await operadorAtual();
   const { data } = await sb
@@ -58,6 +60,17 @@ export async function turnoAberto(): Promise<TurnoAberto | null> {
 
 // Abre um turno. Falha se já houver um aberto do operador nesta origem (D7).
 export async function abrirTurno(caixaInicialCentavos = 0): Promise<{ error?: string; turno?: TurnoAberto }> {
+  try {
+    if (await shiftsApiEnabled()) {
+      const uid = crypto.randomUUID();
+      const turno = await shiftsRequest("", "POST", {
+        sync_uid: uid, caixa_inicial_centavos: caixaInicialCentavos,
+      }) as TurnoAberto;
+      return { turno };
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Falha ao abrir turno" };
+  }
   const jaAberto = await turnoAberto();
   if (jaAberto) {
     return { error: "Já existe um turno aberto. Encerre-o antes de abrir outro." };
@@ -82,6 +95,7 @@ export async function abrirTurno(caixaInicialCentavos = 0): Promise<{ error?: st
 
 // Quantidade de pedidos (não cancelados) já registrados no turno — base do Pedido Nº.
 export async function contarPedidosDoTurno(turnoUid: string): Promise<number> {
+  if (await shiftsApiEnabled()) return shiftsRequest(`/${turnoUid}/pedidos/contagem`);
   const sb = createClient();
   const { count } = await sb
     .from("pedido")
@@ -94,6 +108,7 @@ export async function contarPedidosDoTurno(turnoUid: string): Promise<number> {
 
 // Resumo de caixa ao vivo do turno (totais por forma + esperado só do dinheiro).
 export async function resumoDoTurno(turnoUid: string, caixaInicialCentavos: number): Promise<ResumoTurno> {
+  if (await shiftsApiEnabled()) return shiftsRequest(`/${turnoUid}/resumo`);
   const sb = createClient();
   const dom = await dominio();
 
@@ -146,6 +161,15 @@ export async function encerrarTurno(
   caixaInicialCentavos: number,
   conferidoDinheiroCentavos: number,
 ): Promise<{ error?: string; diferencaCentavos?: number }> {
+  try {
+    if (await shiftsApiEnabled()) {
+      return shiftsRequest(`/${turnoUid}/encerramento`, "POST", {
+        conferido_centavos: conferidoDinheiroCentavos,
+      });
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Falha ao encerrar turno" };
+  }
   const sb = createClient();
   const dom = await dominio();
   const resumo = await resumoDoTurno(turnoUid, caixaInicialCentavos);
@@ -172,6 +196,7 @@ export async function encerrarTurno(
 
 // Histórico de turnos do operador (mais recentes primeiro).
 export async function listarTurnos(): Promise<TurnoHistorico[]> {
+  if (await shiftsApiEnabled()) return shiftsRequest("");
   const sb = createClient();
   const op = await operadorAtual();
   const { data } = await sb

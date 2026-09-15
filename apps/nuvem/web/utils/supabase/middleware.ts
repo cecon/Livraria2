@@ -40,7 +40,8 @@ export async function updateSession(request: NextRequest) {
     path === "/favicon.ico";
   const apiEnabled = process.env.API_CATALOGO_ENABLED === "true" || process.env.API_REFERENCIAS_ENABLED === "true" ||
     process.env.API_USUARIOS_ENABLED === "true" || process.env.API_PDV_STATUS_ENABLED === "true" ||
-    process.env.API_ESTOQUE_ENABLED === "true" || process.env.API_LANCAMENTOS_ENABLED === "true";
+    process.env.API_ESTOQUE_ENABLED === "true" || process.env.API_LANCAMENTOS_ENABLED === "true" ||
+    process.env.API_TURNOS_ENABLED === "true";
   const apiSessionMissing = apiEnabled && !request.cookies.get("nuvem_usuario")?.value;
   if ((!user || apiSessionMissing) && !publica) {
     const url = request.nextUrl.clone();
