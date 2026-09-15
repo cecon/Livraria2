@@ -1,13 +1,10 @@
 import type { EntradaLivro, Livro } from "@/lib/nuvem/livro";
+import { browserApiRequest } from "./browser-client";
 
 export async function catalogRequest(path: string, method = "GET", body?: unknown) {
-  const response = await fetch(`/api/catalogo${path}`, {
-    method, cache: "no-store", signal: AbortSignal.timeout(10000),
-    headers: { "content-type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  return browserApiRequest<any>(`/api/catalogo${path}`, {
+    method, body, fallback: "Catálogo indisponível",
   });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.erro || "Catalogo indisponivel");
-  return result;
 }
 
 export async function listApiBooks(): Promise<Livro[]> {

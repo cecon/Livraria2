@@ -25,5 +25,5 @@ test("middleware redireciona quando o cookie esta ausente", async () => {
   process.env.NUVEM_API_URL = "https://api.test";
   const missing = await updateSession(new NextRequest("https://livraria.test/cadastro"));
   expect(missing.status).toBe(307);
-  expect(missing.headers.get("location")).toBe("https://livraria.test/login");
+  expect(missing.headers.get("location")).toBe("https://livraria.test/login?next=%2Fcadastro");
 });
