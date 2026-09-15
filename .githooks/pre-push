@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Exige evidencia de consulta ao tema antes de publicar uma alteracao de UI.
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+exec node "$ROOT/scripts/check-theme-usage.mjs" --base origin/main

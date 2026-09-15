@@ -38,6 +38,7 @@ fica bloqueada ate a restauracao do material; nao se substitui a referencia por 
 - Revisoes de UI podem comparar a implementacao com exemplos concretos do tema.
 - `packages/ui` permanece a fonte executavel dos componentes; o tema permanece referencia.
 - Alteracoes visuais exigem verificacao em smartphone, mesmo quando a demanda nasce no desktop.
+- Hooks locais exigem disponibilidade do tema no commit e um relatorio de conformidade no push.
 - O material de referencia deve ser tratado com cuidado para nao versionar segredos como
   `.env.local` nem enviar seu conteudo integral para servicos de memoria.
 
