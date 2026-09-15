@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { Button } from "@livraria/ui/ui/button";
 import { Input } from "@livraria/ui/ui/input";
 import { Label } from "@livraria/ui/ui/label";
-import { KeyRound, Pencil, Plus, UserCheck, UserX, X } from "lucide-react";
+import { KeyRound, Pencil, Plus, UserCheck, UserX } from "lucide-react";
+import { ContentPanel } from "@/components/ContentPanel";
+import { PageHeader } from "@/components/PageHeader";
 
 // Gestão de usuários (feature 010, ADR-0019): cadastro/edição com **perfil** (operador/admin)
 // e **senha**, desativar/reativar. Identidade única com o PDV. Escrita sensível passa pelas
@@ -96,25 +98,25 @@ export default function Usuarios() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-5 sm:p-6 lg:py-7">
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="section-kicker mb-1">Administração</div>
-          <h1>Usuários</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Acessos do PDV e do escritório.</p>
-        </div>
-        <Button onClick={aberto && !editando ? fechar : abrirNovo} className="h-10">
-          {aberto && !editando ? <X className="size-4" /> : <Plus className="size-4" />}
-          {aberto && !editando ? "Fechar" : "Novo usuário"}
-        </Button>
-      </div>
+    <main className="mx-auto max-w-5xl space-y-5 px-4 py-5 sm:p-6 lg:py-7">
+      <PageHeader
+        title={editando ? "Editar usuário" : aberto ? "Novo usuário" : "Usuários"}
+        description="Gerencie os acessos compartilhados entre o PDV e o escritório."
+        crumbs={aberto
+          ? [{ label: "Administração" }, { label: "Usuários", onClick: fechar }, { label: editando ? "Editar" : "Novo" }]
+          : [{ label: "Administração" }, { label: "Usuários" }]}
+        back={aberto ? { label: "Voltar para usuários", onClick: fechar } : undefined}
+        action={!aberto ? <Button onClick={abrirNovo} className="h-10">
+          <Plus className="size-4" /> Novo usuário
+        </Button> : undefined}
+      />
 
       {aberto && (
-        <form onSubmit={salvar} className="admin-panel mb-5 space-y-4 border bg-card p-4 sm:p-5">
-          <div>
-            <div className="section-kicker">Cadastro</div>
-            <h2 className="mt-1 text-base font-semibold">{editando ? `Editando ${editando}` : "Novo usuário"}</h2>
-          </div>
+        <ContentPanel
+          title={editando ? `Dados de ${editando}` : "Dados do usuário"}
+          description={editando ? "Atualize o nome e o nível de acesso." : "Crie a identificação e defina o acesso inicial."}
+        >
+        <form onSubmit={salvar} className="admin-form space-y-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {!editando && (
               <div>
@@ -153,12 +155,18 @@ export default function Usuarios() {
             <Button type="button" variant="outline" onClick={fechar} className="h-10">Cancelar</Button>
           </div>
         </form>
+        </ContentPanel>
       )}
 
-      <div className="admin-panel overflow-x-auto border bg-card">
-      <table className="w-full min-w-[720px] text-sm">
+      <ContentPanel
+        title="Usuários cadastrados"
+        description={`${lista.length} usuário(s), incluindo acessos desativados.`}
+        flush
+      >
+      <div className="overflow-x-auto">
+      <table className="w-full table-fixed text-sm">
         <thead className="text-left text-muted-foreground">
-          <tr><th className="p-3">Usuário</th><th className="p-3">Nome</th><th className="p-3">Perfil</th><th className="p-3">Estado</th><th className="p-3 text-right">Ações</th></tr>
+          <tr><th className="p-3">Usuário</th><th className="hidden p-3 lg:table-cell">Nome</th><th className="hidden w-24 p-3 sm:table-cell">Perfil</th><th className="hidden w-28 p-3 md:table-cell">Estado</th><th className="w-[116px] p-3 text-right">Ações</th></tr>
         </thead>
         <tbody>
           {lista.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhum usuário.</td></tr>}
@@ -167,10 +175,17 @@ export default function Usuarios() {
             const ativo = !u.excluido_em;
             return (
               <tr key={u.usuario} className="border-t">
-                <td className="p-3 font-medium">{u.usuario}</td>
-                <td className="p-3">{u.nome ?? "—"}</td>
-                <td className="p-3">{u.perfil === "admin" ? "Admin" : "Operador"}</td>
-                <td className="p-3"><span className={`rounded px-2 py-1 text-xs font-medium ${ativo ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-muted text-muted-foreground"}`}>{ativo ? "Ativo" : "Desativado"}</span></td>
+                <td className="p-3 font-medium">
+                  <div className="truncate">{u.usuario}</div>
+                  <div className="truncate text-[11px] font-normal text-muted-foreground lg:hidden">{u.nome ?? "Sem nome"}</div>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] font-normal sm:hidden">
+                    <span>{u.perfil === "admin" ? "Admin" : "Operador"}</span>
+                    <span className={ativo ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}>{ativo ? "Ativo" : "Desativado"}</span>
+                  </div>
+                </td>
+                <td className="hidden p-3 lg:table-cell">{u.nome ?? "—"}</td>
+                <td className="hidden p-3 sm:table-cell">{u.perfil === "admin" ? "Admin" : "Operador"}</td>
+                <td className="hidden p-3 md:table-cell"><span className={`rounded px-2 py-1 text-xs font-medium ${ativo ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-muted text-muted-foreground"}`}>{ativo ? "Ativo" : "Desativado"}</span></td>
                 <td className="space-x-1 p-3 text-right">
                   <Button size="icon-sm" variant="outline" onClick={() => abrirEdicao(u)} title={ultimo ? "Último admin: não pode ser rebaixado" : "Editar"}><Pencil /></Button>
                   <Button size="icon-sm" variant="outline" onClick={() => redefinirSenha(u)} title="Redefinir senha"><KeyRound /></Button>
@@ -192,6 +207,7 @@ export default function Usuarios() {
         </tbody>
       </table>
       </div>
+      </ContentPanel>
     </main>
   );
 }

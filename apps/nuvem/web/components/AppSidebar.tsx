@@ -48,7 +48,7 @@ export function AppSidebar({ open = false, onClose }: { open?: boolean; onClose?
       {open ? (
         <button type="button" aria-label="Fechar menu" className="fixed inset-0 z-30 bg-black/55 md:hidden" onClick={onClose} />
       ) : null}
-      <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[86vw] shrink-0 flex-col border-r border-white/8 bg-[#182230] text-white transition-transform md:sticky md:top-0 md:z-auto md:h-screen md:w-64 md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
+      <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[86vw] flex-col border-r border-white/8 bg-[#182230] text-white transition-transform md:w-64 md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-16 shrink-0 items-center gap-3 border-b border-white/8 px-5">
           <div className="grid size-9 shrink-0 place-items-center rounded-md bg-[#45b369] text-white shadow-[0_6px_16px_rgb(69_179_105/0.22)]">
             <BookOpen className="size-5" />

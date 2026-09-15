@@ -6,6 +6,8 @@ import { ArrowDown, ArrowUp, Lock, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@livraria/ui/ui/button";
 import { Input } from "@livraria/ui/ui/input";
 import { Label } from "@livraria/ui/ui/label";
+import { ContentPanel } from "@/components/ContentPanel";
+import { PageHeader } from "@/components/PageHeader";
 import {
   listarFormas,
   salvarForma,
@@ -61,25 +63,27 @@ export default function FormasPagamentoPage() {
     carregar();
   }
 
+  const emFormulario = criando || editando !== null;
+
   return (
-    <div className="mx-auto max-w-2xl space-y-4 px-4 py-4 sm:p-6">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Formas de pagamento</h1>
-          <p className="text-muted-foreground text-sm">
-            A ordem daqui vale para o PDV e os relatórios. Formas com o selo “sistema” podem ser renomeadas, mas não excluídas nem desativadas.
-          </p>
-        </div>
-        <Button
+    <div className="mx-auto max-w-4xl space-y-5 px-4 py-5 sm:p-6 lg:py-7">
+      <PageHeader
+        title={editando ? "Renomear forma" : criando ? "Nova forma de pagamento" : "Formas de pagamento"}
+        description="Defina as opções e a ordem exibidas no PDV e nos relatórios."
+        crumbs={emFormulario
+          ? [{ label: "Configurações" }, { label: "Formas de pagamento", onClick: fecharForm }, { label: editando ? "Renomear" : "Nova" }]
+          : [{ label: "Configurações" }, { label: "Formas de pagamento" }]}
+        back={emFormulario ? { label: "Voltar para formas de pagamento", onClick: fecharForm } : undefined}
+        action={!emFormulario ? <Button
           onClick={() => {
             setEditando(null);
             setCriando(true);
           }}
-          className="h-9"
+          className="h-10"
         >
           <Plus size={15} /> Nova forma
-        </Button>
-      </div>
+        </Button> : undefined}
+      />
 
       {(criando || editando) && (
         <FormaForm
@@ -93,12 +97,17 @@ export default function FormasPagamentoPage() {
         />
       )}
 
-      {formas.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Nenhuma forma cadastrada.</p>
-      ) : (
-        <div className="space-y-1">
+      <ContentPanel
+        title="Formas cadastradas"
+        description={`${formas.length} forma(s) disponível(is) para configuração.`}
+        flush
+      >
+        {formas.length === 0 ? (
+          <p className="p-5 text-sm text-muted-foreground">Nenhuma forma cadastrada.</p>
+        ) : (
+          <div className="divide-y">
           {formas.map((f, i) => (
-            <div key={f.sync_uid} className={`bg-card flex flex-wrap items-center gap-2 rounded-lg border p-2 text-sm ${f.ativa ? "" : "opacity-60"}`}>
+            <div key={f.sync_uid} className={`grid min-h-14 grid-cols-[auto_minmax(0,1fr)] items-center gap-2 px-4 py-2 text-sm sm:flex sm:px-5 ${f.ativa ? "" : "opacity-60"}`}>
               <div className="flex flex-col">
                 <Button variant="ghost" size="icon" className="h-5 w-6" disabled={i === 0} title="Mover para cima" onClick={() => mover(i, -1)}>
                   <ArrowUp size={13} />
@@ -107,26 +116,25 @@ export default function FormasPagamentoPage() {
                   <ArrowDown size={13} />
                 </Button>
               </div>
-              <span className="flex-1 font-medium">{f.rotulo}</span>
-              {f.de_sistema && (
-                <span className="text-muted-foreground bg-muted flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] uppercase" title="Forma de sistema: pode ser renomeada e reordenada.">
-                  <Lock size={10} /> sistema
-                </span>
-              )}
-              {!f.ativa && <span className="text-muted-foreground bg-muted rounded px-1.5 py-0.5 text-[10px] uppercase">inativa</span>}
-              <Button variant="ghost" size="icon" className="h-7 w-7" title="Renomear" onClick={() => { setCriando(false); setEditando(f); }}>
-                <Pencil size={14} />
-              </Button>
-              <Button variant="outline" size="sm" className="h-7 text-[12px]" disabled={f.de_sistema} title={f.de_sistema ? "Formas de sistema não podem ser desativadas" : f.ativa ? "Some das opções do PDV; o histórico continua" : "Volta a aparecer no PDV"} onClick={() => alternarAtiva(f)}>
-                {f.ativa ? "Desativar" : "Ativar"}
-              </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-600" disabled={f.de_sistema} title={f.de_sistema ? "Formas de sistema não podem ser excluídas" : "Excluir"} onClick={() => excluir(f)}>
-                <Trash2 size={14} />
-              </Button>
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                <span className="min-w-0 font-medium">{f.rotulo}</span>
+                {f.de_sistema && (
+                  <span className="text-muted-foreground bg-muted flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] uppercase" title="Forma de sistema: pode ser renomeada e reordenada.">
+                    <Lock size={10} /> sistema
+                  </span>
+                )}
+                {!f.ativa && <span className="text-muted-foreground bg-muted rounded px-1.5 py-0.5 text-[10px] uppercase">inativa</span>}
+              </div>
+              <div className="col-span-2 flex items-center justify-end gap-1 sm:col-span-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Renomear" onClick={() => { setCriando(false); setEditando(f); }}><Pencil size={14} /></Button>
+                <Button variant="outline" size="sm" className="h-8 text-[12px]" disabled={f.de_sistema} title={f.de_sistema ? "Formas de sistema não podem ser desativadas" : f.ativa ? "Some das opções do PDV; o histórico continua" : "Volta a aparecer no PDV"} onClick={() => alternarAtiva(f)}>{f.ativa ? "Desativar" : "Ativar"}</Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500 hover:text-rose-600" disabled={f.de_sistema} title={f.de_sistema ? "Formas de sistema não podem ser excluídas" : "Excluir"} onClick={() => excluir(f)}><Trash2 size={14} /></Button>
+              </div>
             </div>
           ))}
-        </div>
-      )}
+          </div>
+        )}
+      </ContentPanel>
     </div>
   );
 }
@@ -148,17 +156,21 @@ function FormaForm({ forma, proximaOrdem, onSalvo, onCancelar }: { forma: Forma 
   }
 
   return (
-    <div className="bg-card space-y-3 rounded-lg border p-4">
-      <div className="text-sm font-medium">{forma ? `Renomear "${forma.rotulo}"` : "Nova forma de pagamento"}</div>
+    <ContentPanel
+      title={forma ? `Renomear "${forma.rotulo}"` : "Dados da forma de pagamento"}
+      description="Use um nome curto e fácil de identificar durante a venda."
+    >
+      <div className="admin-form space-y-4">
       <div>
         <Label htmlFor="rotulo-forma">Nome</Label>
-        <Input id="rotulo-forma" value={rotulo} onChange={(e) => setRotulo(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && salvar()} placeholder="Ex.: Boleto" className="mt-1 h-9" autoFocus />
+        <Input id="rotulo-forma" value={rotulo} onChange={(e) => setRotulo(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && salvar()} placeholder="Ex.: Boleto" className="mt-1 h-10" autoFocus />
         {forma?.de_sistema && <p className="text-muted-foreground mt-1 text-[11px]">Forma de sistema: pode ser renomeada, mas não excluída nem desativada.</p>}
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button onClick={salvar} disabled={ocupado} className="h-9">{forma ? "Renomear" : "Criar"}</Button>
-        <Button variant="ghost" onClick={onCancelar} className="h-9">Cancelar</Button>
+        <Button onClick={salvar} disabled={ocupado} className="h-10">{forma ? "Renomear" : "Criar"}</Button>
+        <Button variant="outline" onClick={onCancelar} className="h-10">Cancelar</Button>
       </div>
-    </div>
+      </div>
+    </ContentPanel>
   );
 }

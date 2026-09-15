@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@livraria/ui/ui/button";
 import { Input } from "@livraria/ui/ui/input";
 import { Label } from "@livraria/ui/ui/label";
@@ -14,6 +14,8 @@ import { CATEGORIAS } from "@/lib/catalogo";
 import { listarLivros, salvarLivro, excluirLivro, type Livro } from "@/lib/nuvem/livro";
 import { listarSaldos } from "@/lib/nuvem/estoque";
 import { centavos, reais } from "@/utils/texto";
+import { PageHeader } from "@/components/PageHeader";
+import { ContentPanel } from "@/components/ContentPanel";
 
 const POR_PAGINA = 12;
 const centsInput = (c: number) => (c / 100).toFixed(2).replace(".", ",");
@@ -67,33 +69,58 @@ export default function CadastroPage() {
 
   // ---- Tela de lista ----
   return (
-    <div className="mx-auto max-w-4xl px-4 py-4 sm:p-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Cadastro</h1>
-        <Button onClick={() => setAberto("novo")} className="h-9">
+    <div className="mx-auto max-w-5xl space-y-5 px-4 py-5 sm:p-6 lg:py-7">
+      <PageHeader
+        title="Livros"
+        description="Consulte e mantenha o catálogo disponível para os caixas."
+        crumbs={[{ label: "Catálogo" }, { label: "Livros" }]}
+        action={<Button onClick={() => setAberto("novo")} className="h-10">
           <Plus size={16} className="mr-1" /> Novo livro
-        </Button>
-      </div>
-
-      <Input
-        value={termo}
-        onChange={(e) => {
-          setTermo(e.currentTarget.value);
-          setPagina(1);
-        }}
-        className="mt-4 h-9"
-        placeholder="Buscar por título, autor ou código…"
-        autoFocus
+        </Button>}
       />
 
-      <div className="bg-card mt-4 rounded-xl border">
+      <ContentPanel
+        title="Livros cadastrados"
+        description={livros === null ? "Carregando catálogo..." : `${total} livro(s) encontrado(s)`}
+        toolbar={
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground" />
+            <Input
+              aria-label="Buscar livros"
+              value={termo}
+              onChange={(e) => {
+                setTermo(e.currentTarget.value);
+                setPagina(1);
+              }}
+              className="h-10 w-full pl-9 sm:w-80"
+              placeholder="Título, autor ou código"
+              autoFocus
+            />
+          </div>
+        }
+        flush
+        footer={total > 0 ? (
+          <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+            <span>{inicio + 1}–{Math.min(inicio + POR_PAGINA, total)} de {total}</span>
+            <div className="flex items-center gap-2">
+              <Button aria-label="Página anterior" title="Página anterior" variant="outline" size="icon-sm" disabled={pagina <= 1} onClick={() => setPagina((p) => p - 1)}>
+                <ChevronLeft size={15} />
+              </Button>
+              <span className="tabular-nums">{pagina} / {totalPaginas}</span>
+              <Button aria-label="Próxima página" title="Próxima página" variant="outline" size="icon-sm" disabled={pagina >= totalPaginas} onClick={() => setPagina((p) => p + 1)}>
+                <ChevronRight size={15} />
+              </Button>
+            </div>
+          </div>
+        ) : undefined}
+      >
         <Table className="table-fixed">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[48%]">Livro</TableHead>
-              <TableHead className="w-[18%] text-right">Preço</TableHead>
-              <TableHead className="w-[18%] text-center">Estoque</TableHead>
-              <TableHead className="w-[16%] text-right">Ações</TableHead>
+              <TableHead>Livro</TableHead>
+              <TableHead className="w-20 text-right sm:w-28">Preço</TableHead>
+              <TableHead className="hidden w-[18%] text-center md:table-cell">Estoque</TableHead>
+              <TableHead className="w-[84px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -107,9 +134,13 @@ export default function CadastroPage() {
                       {l.autor ? `${l.autor} · ` : ""}
                       <span className="font-mono">{l.codigo}</span>
                     </div>
+                    <div className="mt-1 flex items-center gap-1.5 md:hidden">
+                      <span className="text-[11px] text-muted-foreground">Estoque</span>
+                      <StockBadge estoque={est} />
+                    </div>
                   </TableCell>
                   <TableCell className="text-right font-mono whitespace-nowrap">{reais(l.preco_centavos)}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <div className="flex items-center justify-center gap-2">
                       <span className="font-mono">{est}</span>
                       <StockBadge estoque={est} />
@@ -117,10 +148,10 @@ export default function CadastroPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => setAberto(l)} title="Editar">
+                      <Button variant="ghost" size="icon" onClick={() => setAberto(l)} title="Editar" aria-label={`Editar ${l.titulo}`}>
                         <Pencil size={15} />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => remover(l)} title="Remover" className="text-rose-500 hover:text-rose-600">
+                      <Button variant="ghost" size="icon" onClick={() => remover(l)} title="Remover" aria-label={`Remover ${l.titulo}`} className="text-rose-500 hover:text-rose-600">
                         <Trash2 size={15} />
                       </Button>
                     </div>
@@ -137,24 +168,7 @@ export default function CadastroPage() {
             )}
           </TableBody>
         </Table>
-      </div>
-
-      {total > 0 && (
-        <div className="text-muted-foreground mt-3 flex items-center justify-between text-sm">
-          <span>
-            {inicio + 1}–{Math.min(inicio + POR_PAGINA, total)} de {total}
-          </span>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled={pagina <= 1} onClick={() => setPagina((p) => p - 1)}>
-              <ChevronLeft size={15} />
-            </Button>
-            <span className="tabular-nums">{pagina} / {totalPaginas}</span>
-            <Button variant="outline" size="sm" disabled={pagina >= totalPaginas} onClick={() => setPagina((p) => p + 1)}>
-              <ChevronRight size={15} />
-            </Button>
-          </div>
-        </div>
-      )}
+      </ContentPanel>
     </div>
   );
 }
@@ -193,10 +207,16 @@ function LivroForm({ inicial, onSalvo, onCancelar }: { inicial: Livro | null; on
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-4 sm:p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{editando ? "Alterar livro" : "Novo livro"}</h1>
+    <div className="mx-auto max-w-3xl space-y-5 px-4 py-5 sm:p-6 lg:py-7">
+      <PageHeader
+        title={editando ? "Alterar livro" : "Novo livro"}
+        description={editando ? "Atualize os dados comerciais e bibliográficos." : "Inclua um novo título no catálogo da livraria."}
+        crumbs={[{ label: "Livros", onClick: onCancelar }, { label: editando ? "Alterar" : "Novo" }]}
+        back={{ label: "Voltar para livros", onClick: onCancelar }}
+      />
 
-      <div className="bg-card mt-4 space-y-4 rounded-xl border p-5">
+      <ContentPanel title="Dados do livro" description="Campos usados na pesquisa, venda e sincronização com os caixas.">
+        <div className="admin-form space-y-4">
         <div>
           <Label htmlFor="cod">Código de barras (EAN/ISBN)</Label>
           <Input id="cod" value={form.codigo} disabled={editando} onChange={(e) => setForm({ ...form, codigo: e.currentTarget.value })} className="mt-1 h-9 font-mono" placeholder="ex.: 9788573671469" />
@@ -220,9 +240,9 @@ function LivroForm({ inicial, onSalvo, onCancelar }: { inicial: Livro | null; on
           </div>
         </div>
         <div>
-          <Label>Categoria</Label>
+          <Label htmlFor="categoria">Categoria</Label>
           <Select value={String(form.categoria)} onValueChange={(v) => setForm({ ...form, categoria: Number(v) })}>
-            <SelectTrigger className="mt-1 h-9">
+            <SelectTrigger id="categoria" className="mt-1 h-10">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -240,14 +260,15 @@ function LivroForm({ inicial, onSalvo, onCancelar }: { inicial: Livro | null; on
         </div>
 
         <div className="flex flex-wrap gap-2 pt-2">
-          <Button onClick={salvar} disabled={salvando} className="h-9 bg-[#1f7a4d] text-white hover:bg-[#1a6a43]">
+          <Button onClick={salvar} disabled={salvando} className="h-10">
             {editando ? "Alterar" : "Cadastrar"}
           </Button>
-          <Button variant="outline" onClick={onCancelar} className="h-9 sm:ml-auto">
+          <Button variant="outline" onClick={onCancelar} className="h-10 sm:ml-auto">
             Cancelar
           </Button>
         </div>
-      </div>
+        </div>
+      </ContentPanel>
     </div>
   );
 }
