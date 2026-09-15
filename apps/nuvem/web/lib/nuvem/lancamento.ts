@@ -1,6 +1,7 @@
 // Ciclo de nota de entrada na nuvem (US2/T027). Rascunho editável; ao dar
 // entrada gera os movimentos; cancelar (finalizada) estorna. Eventos por sync_uid.
 import { createClient } from "@/utils/supabase/client";
+import { entriesApiEnabled, entriesRequest } from "@/lib/api/lancamentos-client";
 
 export type StatusNota = "rascunho" | "finalizada" | "cancelada";
 export type NotaResumo = { sync_uid: string; fornecedorNome: string | null; data: string; status: StatusNota; qtdItens: number; totalCentavos: number };
@@ -22,6 +23,7 @@ type LinhaResumo = {
 };
 
 export async function lancamentosListar(): Promise<NotaResumo[]> {
+  if (await entriesApiEnabled()) return entriesRequest("");
   const sb = createClient();
   const { data } = await sb
     .from("lancamento_entrada")
@@ -40,8 +42,12 @@ export async function lancamentosListar(): Promise<NotaResumo[]> {
 }
 
 export async function lancamentoCriar(): Promise<string> {
-  const sb = createClient();
   const uid = crypto.randomUUID();
+  if (await entriesApiEnabled()) {
+    await entriesRequest("", "POST", { sync_uid: uid });
+    return uid;
+  }
+  const sb = createClient();
   const agora = new Date().toISOString();
   await sb.from("lancamento_entrada").insert({ sync_uid: uid, data: agora, status: "rascunho", origem: "escritorio", criado_por: await sessao(), atualizado_em: agora });
   return uid;
@@ -57,6 +63,7 @@ type LinhaDetalhe = {
 };
 
 export async function lancamentoObter(uid: string): Promise<NotaDetalhe | null> {
+  if (await entriesApiEnabled()) return entriesRequest(`/${uid}`);
   const sb = createClient();
   const { data } = await sb
     .from("lancamento_entrada")
@@ -84,11 +91,20 @@ export async function lancamentoObter(uid: string): Promise<NotaDetalhe | null> 
 }
 
 export async function lancamentoDefinirFornecedor(uid: string, fornecedorUid: string | null, numero?: string | null): Promise<void> {
+  if (await entriesApiEnabled()) {
+    await entriesRequest(`/${uid}`, "PUT", { fornecedor_uid: fornecedorUid, numero: numero ?? null });
+    return;
+  }
   const sb = createClient();
   await sb.from("lancamento_entrada").update({ fornecedor_uid: fornecedorUid, numero: numero ?? null, atualizado_em: new Date().toISOString() }).eq("sync_uid", uid);
 }
 
 export async function lancamentoAdicionarItem(uid: string, livroUid: string, qtd: number, custoUnitCentavos: number): Promise<void> {
+  if (await entriesApiEnabled()) {
+    await entriesRequest(`/${uid}/itens`, "POST", { sync_uid: crypto.randomUUID(),
+      livro_uid: livroUid, qtd, custo_unit_centavos: custoUnitCentavos });
+    return;
+  }
   const sb = createClient();
   await sb.from("item_lancamento").insert({
     sync_uid: crypto.randomUUID(),
@@ -101,13 +117,26 @@ export async function lancamentoAdicionarItem(uid: string, livroUid: string, qtd
   });
 }
 
-export async function lancamentoRemoverItem(itemUid: string): Promise<void> {
+export async function lancamentoRemoverItem(itemUid: string, lancamentoUid?: string): Promise<void> {
+  if (await entriesApiEnabled()) {
+    if (!lancamentoUid) throw new Error("Lancamento nao informado");
+    await entriesRequest(`/${lancamentoUid}/itens/${itemUid}`, "DELETE");
+    return;
+  }
   const sb = createClient();
   await sb.from("item_lancamento").update({ excluido_em: new Date().toISOString() }).eq("sync_uid", itemUid);
 }
 
 // Dar entrada: finaliza e gera um movimento `entrada` por item.
 export async function lancamentoFinalizar(uid: string): Promise<{ error?: string }> {
+  try {
+    if (await entriesApiEnabled()) {
+      await entriesRequest(`/${uid}/finalizacao`, "POST", {});
+      return {};
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Falha ao finalizar lancamento" };
+  }
   const sb = createClient();
   const nota = await lancamentoObter(uid);
   if (!nota) return { error: "Nota não encontrada." };
@@ -133,6 +162,14 @@ export async function lancamentoFinalizar(uid: string): Promise<{ error?: string
 
 // Cancelar nota finalizada: estorna (ajuste negativo) e marca cancelada.
 export async function lancamentoCancelar(uid: string): Promise<{ error?: string }> {
+  try {
+    if (await entriesApiEnabled()) {
+      await entriesRequest(`/${uid}/cancelamento`, "POST", {});
+      return {};
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Falha ao cancelar lancamento" };
+  }
   const sb = createClient();
   const { data: itensRaw } = await sb.from("item_lancamento").select("livro_uid,qtd").eq("lancamento_uid", uid).is("excluido_em", null);
   const criadoPor = await sessao();
@@ -154,6 +191,10 @@ export async function lancamentoCancelar(uid: string): Promise<{ error?: string 
 }
 
 export async function lancamentoExcluir(uid: string): Promise<void> {
+  if (await entriesApiEnabled()) {
+    await entriesRequest(`/${uid}`, "DELETE");
+    return;
+  }
   const sb = createClient();
   await sb.from("lancamento_entrada").update({ excluido_em: new Date().toISOString() }).eq("sync_uid", uid);
 }

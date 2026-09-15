@@ -156,7 +156,7 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
   }
 
   async function remover(itemUid: string) {
-    await lancamentoRemoverItem(itemUid);
+    await lancamentoRemoverItem(itemUid, uid);
     recarregar();
   }
 
