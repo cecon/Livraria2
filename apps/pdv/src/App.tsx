@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { toast } from "sonner";
 import { AppSidebar } from "@/components/AppSidebar";
+import { DashboardHeader } from "@/components/DashboardHeader";
 import { ErroMigracao } from "@/components/ErroMigracao";
 import { Toaster } from "@/components/ui/sonner";
 import { estadoBoot, type EstadoBoot } from "@/lib/ipc";
@@ -19,6 +20,8 @@ function App() {
   const [tema, setTema] = useState<Tema>(temaInicial);
   const [boot, setBoot] = useState<EstadoBoot | null>(null);
   const [machine, setMachine] = useState<MachineState | null>(null);
+  const [menuMobileAberto, setMenuMobileAberto] = useState(false);
+  const [menuRecolhido, setMenuRecolhido] = useState(false);
   const versaoAvisada = useRef<string | null>(null);
 
   useEffect(() => {
@@ -80,24 +83,38 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="bg-background text-foreground flex h-screen overflow-hidden">
+      <div className="bg-neutral-100 text-foreground flex h-screen overflow-hidden dark:bg-[#1e2734]">
         <AppSidebar
           tema={tema}
+          abertoNoMobile={menuMobileAberto}
+          recolhido={menuRecolhido}
+          onCloseMobile={() => setMenuMobileAberto(false)}
           onToggleTema={() => setTema((t) => (t === "dark" ? "light" : "dark"))}
         />
-        <main className="flex-1 overflow-auto">
-          <Routes>
-            {/* PDV consumidor (feature 012): cadastro/lançamento/inventário e a edição de
-                cadastros (fornecedor/forma/destinação) vivem na nuvem — não há telas aqui.
-                URLs antigas caem no catch-all abaixo. */}
-            <Route path="/" element={<Inicio />} />
-            <Route path="/venda" element={<Venda />} />
-            <Route path="/turnos" element={<Turnos />} />
-            <Route path="/pesquisa" element={<Pesquisa />} />
-            <Route path="/relatorios" element={<Relatorios />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <DashboardHeader
+            tema={tema}
+            onToggleTema={() => setTema((t) => (t === "dark" ? "light" : "dark"))}
+            onToggleMenu={() => {
+              if (window.matchMedia("(min-width: 1024px)").matches) {
+                setMenuRecolhido((value) => !value);
+              } else {
+                setMenuMobileAberto(true);
+              }
+            }}
+          />
+          <main className="min-h-0 flex-1 overflow-auto">
+            <Routes>
+              {/* PDV consumidor: as rotas administrativas vivem na nuvem. */}
+              <Route path="/" element={<Inicio />} />
+              <Route path="/venda" element={<Venda />} />
+              <Route path="/turnos" element={<Turnos />} />
+              <Route path="/pesquisa" element={<Pesquisa />} />
+              <Route path="/relatorios" element={<Relatorios />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+        </div>
       </div>
       <Toaster richColors position="top-right" />
     </BrowserRouter>

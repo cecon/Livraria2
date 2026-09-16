@@ -2,6 +2,7 @@
 // (sincronizado / pendente / sem conexão) e permite disparar manualmente. A venda
 // nunca depende disto — é só visão + gatilho.
 import { useCallback, useEffect, useState } from "react";
+import { CloudOff, RefreshCw } from "lucide-react";
 import { sincronizarAgora, statusSincronizacao } from "../lib/ipc_sync";
 
 type Estado = "sincronizado" | "pendente" | "sincronizando" | "offline";
@@ -49,33 +50,29 @@ export function SyncStatus() {
           ? `${pendentes} pendente${pendentes > 1 ? "s" : ""}`
           : "Sincronizado";
 
-  const cor =
-    estado === "offline" ? "#b3261e" : pendentes > 0 || estado === "sincronizando" ? "#b8860b" : "#1a7f37";
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+    <div className="space-y-1">
       <button
         type="button"
         onClick={sincronizar}
         disabled={estado === "sincronizando"}
         title={erro ?? "Sincronizar com a nuvem"}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          border: "1px solid #d0d5da",
-          background: "transparent",
-          borderRadius: 8,
-          padding: "4px 10px",
-          cursor: "pointer",
-          font: "inherit",
-        }}
+        className="flex h-10 w-full items-center gap-2 rounded-md border border-neutral-200 px-3 text-sm hover:bg-brand-50 hover:text-brand disabled:opacity-60 dark:border-slate-600 dark:hover:bg-slate-700"
       >
-        <span style={{ width: 8, height: 8, borderRadius: "50%", background: cor }} />
+        {estado === "offline" ? (
+          <CloudOff size={16} className="text-red-600" />
+        ) : (
+          <RefreshCw
+            size={16}
+            className={`${estado === "sincronizando" ? "animate-spin" : ""} ${
+              pendentes > 0 ? "text-amber-600" : "text-emerald-600"
+            }`}
+          />
+        )}
         <span>{rotulo}</span>
       </button>
       {erro && (
-        <span style={{ color: "#b3261e", fontSize: 11, maxWidth: 180, wordBreak: "break-word" }}>
+        <span className="block break-words text-[11px] text-red-600">
           {erro}
         </span>
       )}
