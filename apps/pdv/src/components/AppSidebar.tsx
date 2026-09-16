@@ -1,75 +1,123 @@
-// Barra lateral fixa (256px), sempre escura (design handoff). Navegação + tema.
-
 import { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
 import { getVersion } from "@tauri-apps/api/app";
-import { SyncStatus } from "./SyncStatus";
-import { OperadorAtual } from "./OperadorAtual";
-import { Moon, Sun } from "lucide-react";
+import { BookOpen, Moon, Sun, X } from "lucide-react";
+import { NavLink } from "react-router-dom";
 import { NAV_ITENS_PDV as ITENS } from "@livraria/ui/nav";
+import { OperadorAtual } from "./OperadorAtual";
+import { SyncStatus } from "./SyncStatus";
 import type { Tema } from "@/lib/theme";
 
 interface Props {
   tema: Tema;
+  abertoNoMobile: boolean;
+  recolhido: boolean;
+  onCloseMobile: () => void;
   onToggleTema: () => void;
 }
 
-export function AppSidebar({ tema, onToggleTema }: Props) {
+export function AppSidebar({
+  tema,
+  abertoNoMobile,
+  recolhido,
+  onCloseMobile,
+  onToggleTema,
+}: Props) {
   const [versao, setVersao] = useState("");
 
   useEffect(() => {
-    getVersion()
-      .then(setVersao)
-      .catch(() => setVersao(""));
+    getVersion().then(setVersao).catch(() => setVersao(""));
   }, []);
 
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col bg-zinc-900 text-zinc-100">
-      <div className="flex items-center gap-2 px-5 py-4">
-        <div className="grid h-8 w-8 place-items-center rounded-md bg-[#1f7a4d] text-sm font-bold text-white">
-          EL
-        </div>
-        <div className="leading-tight">
-          <div className="text-sm font-semibold">Espaço do Livro</div>
-          <div className="text-[11px] text-zinc-400">
-            Livraria 2{versao && ` · v${versao}`}
-          </div>
-        </div>
-      </div>
-
-      <nav className="flex-1 space-y-1 px-3">
-        {ITENS.map(({ to, rotulo, Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                isActive
-                  ? "bg-zinc-800 text-white"
-                  : "text-zinc-300 hover:bg-zinc-800/60"
-              }`
-            }
-          >
-            <Icon size={18} />
-            {rotulo}
-          </NavLink>
-        ))}
-      </nav>
-
-      <OperadorAtual />
-
-      <div className="mx-3 mb-1">
-        <SyncStatus />
-      </div>
-
-      <button
-        onClick={onToggleTema}
-        className="m-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800/60"
+    <>
+      {abertoNoMobile && (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={onCloseMobile}
+          aria-label="Fechar menu"
+        />
+      )}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex shrink-0 flex-col border-r border-neutral-200 bg-white text-neutral-700 transition-[width,transform] duration-200 dark:border-slate-700 dark:bg-[#273142] dark:text-slate-100 lg:static lg:translate-x-0 ${
+          abertoNoMobile ? "translate-x-0" : "-translate-x-full"
+        } ${recolhido ? "lg:w-[76px]" : "w-[260px]"}`}
       >
-        {tema === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-        {tema === "dark" ? "Tema claro" : "Tema escuro"}
-      </button>
-    </aside>
+        <div className="flex h-[72px] shrink-0 items-center border-b border-neutral-200 px-4 dark:border-slate-700">
+          <NavLink to="/" onClick={onCloseMobile} className="flex min-w-0 items-center gap-3">
+            <span className="grid size-11 shrink-0 place-items-center rounded-md bg-brand text-white">
+              <BookOpen size={22} />
+            </span>
+            {!recolhido && (
+              <span className="min-w-0 leading-tight">
+                <span className="block truncate text-base font-semibold text-neutral-900 dark:text-white">
+                  Espaco do Livro
+                </span>
+                <span className="block text-xs text-neutral-500 dark:text-slate-400">
+                  PDV{versao && ` v${versao}`}
+                </span>
+              </span>
+            )}
+          </NavLink>
+          <button
+            type="button"
+            onClick={onCloseMobile}
+            className="ml-auto grid size-9 place-items-center rounded-md hover:bg-neutral-100 lg:hidden dark:hover:bg-slate-700"
+            aria-label="Fechar menu"
+          >
+            <X size={19} />
+          </button>
+        </div>
+
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
+          {!recolhido && (
+            <p className="px-3 pb-2 pt-1 text-xs font-medium uppercase text-neutral-400">
+              Operacao
+            </p>
+          )}
+          {ITENS.map(({ to, rotulo, Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              onClick={onCloseMobile}
+              title={recolhido ? rotulo : undefined}
+              className={({ isActive }) =>
+                `flex h-11 items-center rounded-md text-sm transition-colors ${
+                  recolhido ? "justify-center px-2" : "gap-3 px-3"
+                } ${
+                  isActive
+                    ? "bg-brand text-white"
+                    : "hover:bg-brand-50 hover:text-brand dark:hover:bg-slate-700 dark:hover:text-white"
+                }`
+              }
+            >
+              <Icon size={19} />
+              {!recolhido && <span>{rotulo}</span>}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="border-t border-neutral-200 p-3 dark:border-slate-700">
+          {!recolhido && (
+            <div className="space-y-3">
+              <OperadorAtual />
+              <SyncStatus />
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={onToggleTema}
+            className={`mt-2 flex h-10 w-full items-center rounded-md text-sm hover:bg-brand-50 hover:text-brand dark:hover:bg-slate-700 dark:hover:text-white ${
+              recolhido ? "justify-center" : "gap-3 px-3"
+            }`}
+            title={tema === "dark" ? "Tema claro" : "Tema escuro"}
+          >
+            {tema === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            {!recolhido && (tema === "dark" ? "Tema claro" : "Tema escuro")}
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }

@@ -4,7 +4,15 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FileBarChart, Search, ShoppingCart } from "lucide-react";
+import {
+  Banknote,
+  Clock3,
+  FileBarChart,
+  House,
+  ReceiptText,
+  Search,
+  ShoppingCart,
+} from "lucide-react";
 import { brl } from "@/lib/format";
 import { operadorAtual } from "@/lib/operador";
 import { turnoAberto, type TurnoAberto } from "@/lib/ipc";
@@ -61,24 +69,67 @@ export default function Inicio() {
   });
   const ativas = vendas.filter((v) => !v.cancelada);
   const totalTurno = ativas.reduce((s, v) => s + v.totalCentavos, 0);
+  const resumo = [
+    {
+      rotulo: "Turno atual",
+      valor: !operador ? "Sem operador" : turno ? "Aberto" : "Fechado",
+      Icon: Clock3,
+      cor: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300",
+    },
+    {
+      rotulo: "Vendas do turno",
+      valor: turno ? String(ativas.length) : "0",
+      Icon: ReceiptText,
+      cor: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
+    },
+    {
+      rotulo: "Total vendido",
+      valor: brl(totalTurno),
+      Icon: Banknote,
+      cor: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+    },
+  ];
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <div className="flex items-end justify-between">
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Espaço do Livro</h1>
-          <p className="text-muted-foreground text-sm">Bem-vindo de volta.</p>
+          <h1 className="text-2xl font-semibold">Painel do PDV</h1>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-slate-400">
+            Acompanhe o turno e acesse as operacoes do caixa.
+          </p>
         </div>
-        <div className="text-muted-foreground text-sm capitalize">{hoje}</div>
+        <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-slate-400">
+          <House size={16} />
+          <span>Inicio</span>
+          <span>/</span>
+          <span className="text-neutral-800 dark:text-white">Painel</span>
+        </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-4 gap-3">
+      <div className="grid gap-4 sm:grid-cols-3">
+        {resumo.map(({ rotulo, valor, Icon, cor }) => (
+          <div key={rotulo} className="wow-card flex items-center gap-4 p-5">
+            <span className={`grid size-12 shrink-0 place-items-center rounded-full ${cor}`}>
+              <Icon size={22} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm text-neutral-500 dark:text-slate-400">{rotulo}</p>
+              <p className="mt-1 truncate text-xl font-semibold">{valor}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
         {ACOES.map(({ to, rotulo, Icon, destaque }) => (
           <Link
             key={to}
             to={to}
-            className={`flex items-center gap-2 rounded-xl border p-4 text-sm font-medium transition-all hover:-translate-y-0.5 hover:shadow-md ${
-              destaque ? "bg-[#1f7a4d] text-white" : "bg-card"
+            className={`flex h-14 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium shadow-sm transition-colors ${
+              destaque
+                ? "bg-brand text-white hover:bg-brand-600"
+                : "bg-white hover:bg-brand-50 hover:text-brand dark:bg-[#273142] dark:hover:bg-slate-700"
             }`}
           >
             <Icon size={18} />
@@ -87,9 +138,14 @@ export default function Inicio() {
         ))}
       </div>
 
-      <div className="bg-card mt-5 rounded-xl border p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Vendas do turno</h2>
+      <section className="wow-card mt-6 overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 px-5 py-4 dark:border-slate-700 sm:px-6">
+          <div>
+            <h2 className="text-base font-semibold">Vendas do turno</h2>
+            <p className="mt-0.5 text-xs capitalize text-neutral-500 dark:text-slate-400">
+              {hoje}
+            </p>
+          </div>
           {turno && (
             <span className="text-muted-foreground text-xs">
               {ativas.length} venda(s) · {brl(totalTurno)}
@@ -97,7 +153,7 @@ export default function Inicio() {
           )}
         </div>
 
-        <div className="mt-3">
+        <div className="min-h-28 px-5 py-5 sm:px-6">
           {!operador ? (
             <p className="text-muted-foreground text-sm">
               Selecione o operador do caixa (barra lateral) para ver o turno.
@@ -117,7 +173,7 @@ export default function Inicio() {
           ) : (
             <div className="divide-y">
               {vendas.map((v) => (
-                <div key={v.numero} className="flex items-center justify-between py-2">
+                <div key={v.numero} className="flex items-center justify-between py-3">
                   <div className="min-w-0">
                     <span className="font-mono text-sm">Pedido {v.numero}</span>
                     <span className="text-muted-foreground ml-2 text-xs">{v.data}</span>
@@ -141,7 +197,7 @@ export default function Inicio() {
             </div>
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

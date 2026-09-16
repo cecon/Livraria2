@@ -10,7 +10,7 @@ export default function Venda() {
   const [aba, setAba] = useState<Aba>("pdv");
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <div className="flex gap-1 border-b px-5 pt-3">
         <TabBtn ativo={aba === "pdv"} onClick={() => setAba("pdv")}>
           Venda

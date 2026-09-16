@@ -39,12 +39,12 @@ export function OperadorAtual() {
   }
 
   return (
-    <label className="mx-3 mb-1 block text-xs text-zinc-400">
+    <label className="block text-xs text-neutral-500 dark:text-slate-400">
       Operador
       <select
         value={atual}
         onChange={(e) => trocar(e.target.value)}
-        className="mt-1 w-full rounded-md border border-zinc-700 bg-transparent px-2 py-1 text-sm text-zinc-200"
+        className="mt-1 h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm text-neutral-700 dark:border-slate-600 dark:bg-[#273142] dark:text-slate-100"
       >
         <option value="">— não informado —</option>
         {opcoes.map((o) => (
