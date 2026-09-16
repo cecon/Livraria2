@@ -18,6 +18,17 @@ pub struct DadosFechamento {
     pub caixa_inicial_centavos: i64,
     pub pagamentos: Vec<Recebimento>,
     pub qtd_vendas: i64,
+    pub suprimentos_centavos: i64,
+    pub sangrias_centavos: i64,
+}
+
+pub struct MovimentoCaixaInfo {
+    pub sync_uid: String,
+    pub tipo: String,
+    pub valor_centavos: i64,
+    pub motivo: String,
+    pub operador: String,
+    pub criado_em: String,
 }
 
 /// Linha do histórico de turnos encerrados.
@@ -42,6 +53,8 @@ pub trait TurnoRepo: Send + Sync {
     async fn dados_fechamento(&self, turno_uid: &str) -> Result<DadosFechamento, RepoErro>;
     /// Id da forma de sistema "Dinheiro" (para o esperado só-dinheiro).
     async fn dinheiro_forma_id(&self) -> Result<i64, RepoErro>;
+    async fn registrar_movimento(&self, turno_uid: &str, operador: &str, tipo: &str, valor_centavos: i64, motivo: &str) -> Result<(), RepoErro>;
+    async fn listar_movimentos(&self, turno_uid: &str) -> Result<Vec<MovimentoCaixaInfo>, RepoErro>;
     /// Persiste o fechamento e marca o turno como encerrado.
     async fn encerrar(&self, turno_uid: &str, esperado: i64, conferido: i64, diferenca: i64) -> Result<(), RepoErro>;
     /// Histórico de turnos do operador (recentes primeiro).

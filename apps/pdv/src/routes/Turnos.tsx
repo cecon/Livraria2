@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Clock, Play } from "lucide-react";
+import { CaixaMovimentos } from "@/components/CaixaMovimentos";
 import { operadorAtual } from "@/lib/operador";
 import { brl, parseBrlParaCentavos } from "@/lib/format";
 import { listarFormasAtivas } from "@/lib/ipc_formas";
@@ -70,9 +71,14 @@ export default function Turnos() {
 
   async function encerrar() {
     if (!turno) return;
+    const conferidoCentavos = parseBrlParaCentavos(conferido);
+    if (conferidoCentavos === null || conferidoCentavos < 0) {
+      toast.error("Informe o dinheiro conferido");
+      return;
+    }
     setOcupado(true);
     try {
-      const f = await turnoEncerrar(turno.syncUid, parseBrlParaCentavos(conferido) ?? 0);
+      const f = await turnoEncerrar(turno.syncUid, conferidoCentavos);
       toast.success(f.diferencaCentavos === 0 ? "Turno encerrado — caixa confere" : `Turno encerrado — diferença de ${brl(Math.abs(f.diferencaCentavos))}`);
       setEncerrando(false);
       setConferido("");
@@ -144,6 +150,8 @@ export default function Turnos() {
             )}
           </div>
           <div className="space-y-2 border-t pt-3 text-sm">
+            <div className="flex justify-between text-muted-foreground"><span>Suprimentos</span><span className="tabular-nums">+{brl(resumo.suprimentosCentavos)}</span></div>
+            <div className="flex justify-between text-muted-foreground"><span>Sangrias</span><span className="tabular-nums">−{brl(resumo.sangriasCentavos)}</span></div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Dinheiro esperado</span>
               <span className="font-medium tabular-nums">{brl(esperado)}</span>
@@ -179,6 +187,7 @@ export default function Turnos() {
             <button onClick={() => setEncerrando(true)} className="h-9 rounded-md bg-[#1f7a4d] px-4 text-sm text-white hover:bg-[#1a6a43]">Encerrar turno</button>
             <button onClick={carregar} className="h-9 rounded-md px-4 text-sm hover:bg-muted">Atualizar</button>
           </div>
+          <CaixaMovimentos turnoUid={turno.syncUid} operador={operador} saldo={esperado} onRegistrar={carregar} />
         </div>
       )}
 

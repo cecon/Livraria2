@@ -67,7 +67,8 @@ export async function registrarVenda(
 // --- Turno de operação (feature 009, ADR-0021) ---
 
 export type TurnoAberto = { syncUid: string; caixaInicialCentavos: number; abertura: string };
-export type ResumoTurno = { qtdVendas: number; porForma: [number, number][]; esperadoDinheiroCentavos: number };
+export type ResumoTurno = { qtdVendas: number; porForma: [number, number][]; esperadoDinheiroCentavos: number; suprimentosCentavos: number; sangriasCentavos: number };
+export type MovimentoCaixa = { syncUid: string; tipo: "sangria" | "suprimento"; valorCentavos: number; motivo: string; operador: string; criadoEm: string };
 export type TurnoFechamento = { esperadoCentavos: number; conferidoCentavos: number; diferencaCentavos: number };
 export type TurnoHistorico = {
   abertura: string;
@@ -91,7 +92,13 @@ export async function turnoEncerrar(turnoUid: string, conferidoCentavos: number)
   return await invoke("turno_encerrar", { turnoUid, conferidoCentavos });
 }
 export async function turnoListar(operador: string): Promise<TurnoHistorico[]> {
-  return await invoke("turno_listar", { operador });
+    return await invoke("turno_listar", { operador });
+}
+export async function caixaMovimentoRegistrar(turnoUid: string, operador: string, tipo: "sangria" | "suprimento", valorCentavos: number, motivo: string): Promise<void> {
+  await invoke("caixa_movimento_registrar", { turnoUid, operador, tipo, valorCentavos, motivo });
+}
+export async function caixaMovimentosListar(turnoUid: string): Promise<MovimentoCaixa[]> {
+  return await invoke("caixa_movimentos_listar", { turnoUid });
 }
 
 export async function autenticar(usuario: string, senha: string): Promise<boolean> {

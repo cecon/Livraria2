@@ -2,12 +2,12 @@
 //! `turno_operacao` (m009), que sincroniza com a nuvem por `sync_uid`.
 
 use crate::application::ports::RepoErro;
-use crate::application::ports_turno::{DadosFechamento, TurnoAbertoInfo, TurnoHistorico, TurnoRepo};
+use crate::application::ports_turno::{DadosFechamento, MovimentoCaixaInfo, TurnoAbertoInfo, TurnoHistorico, TurnoRepo};
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::pedido::Recebimento;
 use async_trait::async_trait;
 use chrono::Local;
-use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, Statement};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, Statement, TransactionTrait};
 
 pub struct SeaTurnoRepo {
     db: DatabaseConnection,
@@ -126,7 +126,11 @@ impl TurnoRepo for SeaTurnoRepo {
                 })
             })
             .collect();
-        Ok(DadosFechamento { caixa_inicial_centavos: caixa, pagamentos, qtd_vendas: vendas })
+        let movimentos = self.listar_movimentos(turno_uid).await?;
+        let suprimentos_centavos = movimentos.iter().filter(|m| m.tipo == "suprimento").map(|m| m.valor_centavos).sum();
+        let sangrias_centavos = movimentos.iter().filter(|m| m.tipo == "sangria").map(|m| m.valor_centavos).sum();
+        Ok(DadosFechamento { caixa_inicial_centavos: caixa, pagamentos, qtd_vendas: vendas,
+            suprimentos_centavos, sangrias_centavos })
     }
 
     async fn dinheiro_forma_id(&self) -> Result<i64, RepoErro> {
@@ -142,19 +146,67 @@ impl TurnoRepo for SeaTurnoRepo {
         Ok(row.and_then(|r| r.try_get::<i64>("", "id").ok()).unwrap_or(-1))
     }
 
+    async fn registrar_movimento(&self, turno_uid: &str, operador: &str, tipo: &str, valor_centavos: i64, motivo: &str) -> Result<(), RepoErro> {
+        let tx = self.db.begin().await.map_err(erro)?;
+        let backend = tx.get_database_backend();
+        let row = tx.query_one(Statement::from_sql_and_values(backend,
+            "SELECT t.caixa_inicial_centavos
+              + COALESCE((SELECT SUM(pp.valor_centavos) FROM pagamento_pedido pp
+                  JOIN pedido p ON p.numero=pp.pedido_numero
+                  JOIN forma_pagamento f ON f.id=pp.forma_id
+                  WHERE p.turno_uid=t.sync_uid AND p.cancelado=0 AND f.chave='dinheiro'), 0)
+              + COALESCE((SELECT SUM(CASE WHEN m.tipo='suprimento' THEN m.valor_centavos ELSE -m.valor_centavos END)
+                  FROM caixa_movimento m WHERE m.turno_uid=t.sync_uid), 0) AS saldo
+             FROM turno_operacao t WHERE t.sync_uid=? AND t.operador=? AND t.status='aberto' AND t.excluido_em IS NULL",
+            [turno_uid.into(), operador.into()])).await.map_err(erro)?;
+        let saldo = row.ok_or_else(|| RepoErro::Persistencia("turno aberto do operador nao encontrado".into()))?
+            .try_get::<i64>("", "saldo").map_err(erro)?;
+        if tipo == "sangria" && valor_centavos > saldo {
+            return Err(RepoErro::Persistencia("sangria maior que o dinheiro disponivel no caixa".into()));
+        }
+        let uid: String = tx.query_one(Statement::from_string(backend,
+            format!("SELECT ({}) AS uid", crate::migration::m008::UUID_V4)))
+            .await.map_err(erro)?.ok_or_else(|| RepoErro::Persistencia("falha ao gerar identificador".into()))?
+            .try_get("", "uid").map_err(erro)?;
+        tx.execute(Statement::from_sql_and_values(backend,
+            "INSERT INTO caixa_movimento(sync_uid,turno_uid,operador,tipo,valor_centavos,motivo,criado_em)
+             VALUES(?,?,?,?,?,?,?)",
+            [uid.into(), turno_uid.into(), operador.into(), tipo.into(), valor_centavos.into(), motivo.into(), agora().into()]))
+            .await.map_err(erro)?;
+        tx.commit().await.map_err(erro)
+    }
+
+    async fn listar_movimentos(&self, turno_uid: &str) -> Result<Vec<MovimentoCaixaInfo>, RepoErro> {
+        let rows = self.db.query_all(Statement::from_sql_and_values(self.db.get_database_backend(),
+            "SELECT sync_uid,tipo,valor_centavos,motivo,operador,criado_em FROM caixa_movimento
+             WHERE turno_uid=? ORDER BY criado_em DESC, sync_uid DESC", [turno_uid.into()]))
+            .await.map_err(erro)?;
+        rows.into_iter().map(|r| Ok(MovimentoCaixaInfo {
+            sync_uid: r.try_get("", "sync_uid").map_err(erro)?,
+            tipo: r.try_get("", "tipo").map_err(erro)?,
+            valor_centavos: r.try_get("", "valor_centavos").map_err(erro)?,
+            motivo: r.try_get("", "motivo").map_err(erro)?,
+            operador: r.try_get("", "operador").map_err(erro)?,
+            criado_em: r.try_get("", "criado_em").map_err(erro)?,
+        })).collect()
+    }
+
     async fn encerrar(&self, turno_uid: &str, esperado: i64, conferido: i64, diferenca: i64) -> Result<(), RepoErro> {
         let backend = self.db.get_database_backend();
         let ts = agora();
-        self.db
+        let resultado = self.db
             .execute(Statement::from_sql_and_values(
                 backend,
                 "UPDATE turno_operacao SET status = 'encerrado', encerramento = ?, \
                  esperado_centavos = ?, conferido_centavos = ?, diferenca_centavos = ?, atualizado_em = ? \
-                 WHERE sync_uid = ?",
+                 WHERE sync_uid = ? AND status = 'aberto'",
                 [ts.clone().into(), esperado.into(), conferido.into(), diferenca.into(), ts.into(), turno_uid.into()],
             ))
             .await
             .map_err(erro)?;
+        if resultado.rows_affected() != 1 {
+            return Err(RepoErro::Persistencia("turno nao esta aberto".into()));
+        }
         Ok(())
     }
 
@@ -182,5 +234,31 @@ impl TurnoRepo for SeaTurnoRepo {
                 diferenca_centavos: r.try_get("", "diferenca_centavos").ok(),
             })
             .collect())
+    }
+}
+
+#[cfg(test)]
+mod testes {
+    use super::*;
+    use crate::application::turno;
+    use sea_orm::Database;
+
+    #[tokio::test]
+    async fn movimentos_entram_no_fechamento_e_param_apos_encerrar() {
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+        crate::adapters::persistencia::inicializar_schema(&db).await.unwrap();
+        let repo = SeaTurnoRepo::new(db);
+        assert!(turno::abrir(&repo, "op", -1).await.is_err());
+        let aberto = turno::abrir(&repo, "op", 10_000).await.unwrap();
+        turno::registrar_movimento(&repo, &aberto.sync_uid, "op", "suprimento", 5_000, "troco").await.unwrap();
+        turno::registrar_movimento(&repo, &aberto.sync_uid, "op", "sangria", 3_000, "cofre").await.unwrap();
+        let r = turno::resumo(&repo, &aberto.sync_uid).await.unwrap();
+        assert_eq!((r.suprimentos_centavos, r.sangrias_centavos, r.esperado_dinheiro_centavos), (5_000, 3_000, 12_000));
+        assert_eq!(repo.listar_movimentos(&aberto.sync_uid).await.unwrap().len(), 2);
+        assert!(turno::registrar_movimento(&repo, &aberto.sync_uid, "op", "sangria", 12_001, "excesso").await.is_err());
+        let f = turno::encerrar(&repo, &aberto.sync_uid, 12_000).await.unwrap();
+        assert_eq!(f.diferenca_centavos, 0);
+        assert!(turno::encerrar(&repo, &aberto.sync_uid, 12_000).await.is_err());
+        assert!(turno::registrar_movimento(&repo, &aberto.sync_uid, "op", "suprimento", 1, "tarde").await.is_err());
     }
 }

@@ -20,6 +20,8 @@ pub struct ResumoTurnoDto {
     pub qtd_vendas: i64,
     pub por_forma: Vec<(i64, i64)>,
     pub esperado_dinheiro_centavos: i64,
+    pub suprimentos_centavos: i64,
+    pub sangrias_centavos: i64,
     pub pendencias_sync: i64,
 }
 
@@ -97,8 +99,38 @@ pub async fn turno_resumo(state: tauri::State<'_, AppState>, turno_uid: String) 
         qtd_vendas: r.qtd_vendas,
         por_forma: r.por_forma,
         esperado_dinheiro_centavos: r.esperado_dinheiro_centavos,
+        suprimentos_centavos: r.suprimentos_centavos,
+        sangrias_centavos: r.sangrias_centavos,
         pendencias_sync: pendencias,
     })
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MovimentoCaixaDto {
+    pub sync_uid: String,
+    pub tipo: String,
+    pub valor_centavos: i64,
+    pub motivo: String,
+    pub operador: String,
+    pub criado_em: String,
+}
+
+#[tauri::command]
+pub async fn caixa_movimento_registrar(state: tauri::State<'_, AppState>, turno_uid: String,
+    operador: String, tipo: String, valor_centavos: i64, motivo: String) -> Result<(), ErroDto> {
+    let repo = SeaTurnoRepo::new(state.db.clone());
+    turno::registrar_movimento(&repo, &turno_uid, &operador, &tipo, valor_centavos, &motivo).await?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn caixa_movimentos_listar(state: tauri::State<'_, AppState>, turno_uid: String) -> Result<Vec<MovimentoCaixaDto>, ErroDto> {
+    let repo = SeaTurnoRepo::new(state.db.clone());
+    Ok(turno::listar_movimentos(&repo, &turno_uid).await?.into_iter().map(|m| MovimentoCaixaDto {
+        sync_uid: m.sync_uid, tipo: m.tipo, valor_centavos: m.valor_centavos,
+        motivo: m.motivo, operador: m.operador, criado_em: m.criado_em,
+    }).collect())
 }
 
 #[tauri::command]

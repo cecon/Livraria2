@@ -127,6 +127,11 @@ pub fn encerrar(esperado: Dinheiro, conferido: Dinheiro) -> Fechamento {
     }
 }
 
+/// Ajusta o dinheiro esperado pelos movimentos fisicos do caixa.
+pub fn esperado_com_movimentos(esperado_vendas: Dinheiro, suprimentos: Dinheiro, sangrias: Dinheiro) -> Dinheiro {
+    Dinheiro::de_centavos(esperado_vendas.centavos() + suprimentos.centavos() - sangrias.centavos())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -134,6 +139,13 @@ mod tests {
 
     const DINHEIRO_ID: i64 = 3;
     const CREDITO_ID: i64 = 1;
+
+    #[test]
+    fn movimentos_alteram_apenas_o_dinheiro_esperado() {
+        let esperado = esperado_com_movimentos(
+            Dinheiro::de_centavos(10_000), Dinheiro::de_centavos(2_000), Dinheiro::de_centavos(3_000));
+        assert_eq!(esperado.centavos(), 9_000);
+    }
 
     fn recebe(forma_id: i64, centavos: i64) -> Recebimento {
         Recebimento {

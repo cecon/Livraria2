@@ -70,5 +70,6 @@ pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     crate::migration::m013::aplicar(db).await?;
     crate::migration::m014::aplicar(db).await?;
     crate::migration::m_api_v1::aplicar(db).await?;
+    crate::migration::m015::aplicar(db).await?;
     Ok(())
 }
