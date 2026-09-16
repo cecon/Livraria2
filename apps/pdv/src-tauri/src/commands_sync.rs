@@ -7,7 +7,7 @@ use crate::adapters::persistencia::replica_sync::SeaReplicaSync;
 use crate::application::sincronizacao::semear;
 use crate::commands::AppState;
 use crate::domain::sincronizacao::ORDEM_DEPENDENCIA;
-use sea_orm::{ConnectionTrait, Statement};
+use sea_orm::{ConnectionTrait, DatabaseConnection, Statement};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -82,7 +82,25 @@ pub struct StatusSyncDto {
 /// Estado de sincronização para o indicador da UI (não usa rede).
 #[tauri::command]
 pub async fn status_sincronizacao(state: tauri::State<'_, AppState>) -> Result<StatusSyncDto, String> {
-    let backend = state.db.get_database_backend();
+    let api_mode = crate::machine_config::is_configured(state.machine_config_path.as_deref());
+    Ok(StatusSyncDto { pendentes: contar_pendentes(&state.db, api_mode).await? })
+}
+
+async fn contar_pendentes(db: &DatabaseConnection, api_mode: bool) -> Result<i64, String> {
+    let backend = db.get_database_backend();
+    if api_mode {
+        // A API publica o catalogo e recebe vendas. Baselines locais de estoque nao
+        // sao envios pendentes; a mesma venda pode estar no pedido e no outbox.
+        let row = db.query_one(Statement::from_string(backend,
+            "SELECT COUNT(DISTINCT uid) AS n FROM (
+               SELECT COALESCE(sync_uid, 'pedido:' || numero) AS uid FROM pedido
+               WHERE sincronizado_em IS NULL
+               UNION ALL
+               SELECT pedido_uid AS uid FROM nuvem_api_outbox WHERE enviada=0
+             )".to_string(),
+        )).await.map_err(|e| e.to_string())?;
+        return Ok(row.and_then(|r| r.try_get::<i64>("", "n").ok()).unwrap_or(0));
+    }
     let mut pendentes = 0i64;
     for recurso in ORDEM_DEPENDENCIA {
         let filtro = if *recurso == "movimento_estoque" {
@@ -90,8 +108,7 @@ pub async fn status_sincronizacao(state: tauri::State<'_, AppState>) -> Result<S
         } else {
             "sincronizado_em IS NULL"
         };
-        let rows = state
-            .db
+        let rows = db
             .query_all(Statement::from_string(
                 backend,
                 format!("SELECT COUNT(*) AS n FROM {recurso} WHERE {filtro}"),
@@ -100,5 +117,39 @@ pub async fn status_sincronizacao(state: tauri::State<'_, AppState>) -> Result<S
             .map_err(|e| e.to_string())?;
         pendentes += rows.first().and_then(|r| r.try_get::<i64>("", "n").ok()).unwrap_or(0);
     }
-    Ok(StatusSyncDto { pendentes })
+    Ok(pendentes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sea_orm::Database;
+
+    #[tokio::test]
+    async fn modo_api_conta_vendas_sem_duplicar_outbox_e_ignora_baselines() {
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+        for sql in [
+            "CREATE TABLE pedido (numero INTEGER PRIMARY KEY, sync_uid TEXT, sincronizado_em TEXT)",
+            "CREATE TABLE nuvem_api_outbox (pedido_uid TEXT, enviada INTEGER)",
+            "CREATE TABLE movimento_estoque (tipo TEXT, sincronizado_em TEXT)",
+            "INSERT INTO movimento_estoque VALUES ('saldo_inicial', NULL)",
+            "INSERT INTO pedido VALUES (1, 'venda-1', NULL)",
+            "INSERT INTO nuvem_api_outbox VALUES ('venda-1', 0)",
+            "INSERT INTO pedido VALUES (2, 'venda-2', '2026-09-16')",
+            "INSERT INTO nuvem_api_outbox VALUES ('venda-2', 0)",
+            "INSERT INTO pedido VALUES (3, 'venda-3', '2026-09-16')",
+            "INSERT INTO nuvem_api_outbox VALUES ('venda-3', 1)",
+        ] {
+            db.execute(Statement::from_string(db.get_database_backend(), sql.to_string()))
+                .await.unwrap();
+        }
+        assert_eq!(contar_pendentes(&db, true).await.unwrap(), 2);
+        db.execute(Statement::from_string(db.get_database_backend(),
+            "UPDATE pedido SET sincronizado_em='2026-09-16' WHERE numero=1".to_string(),
+        )).await.unwrap();
+        db.execute(Statement::from_string(db.get_database_backend(),
+            "UPDATE nuvem_api_outbox SET enviada=1".to_string(),
+        )).await.unwrap();
+        assert_eq!(contar_pendentes(&db, true).await.unwrap(), 0);
+    }
 }
