@@ -124,7 +124,7 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
   useEffect(() => {
     recarregar();
     (async () => {
-      const [fs, ls, ss] = await Promise.all([listarFornecedores(), listarLivros(), listarSaldos()]);
+      const [fs, ls, ss] = await Promise.all([listarFornecedores(), listarLivros(true), listarSaldos()]);
       setFornecedores(fs);
       setLivros(ls.map((l) => ({ sync_uid: l.sync_uid, codigo: l.codigo, titulo: l.titulo, autor: l.autor, preco_centavos: l.preco_centavos, estoque: ss.get(l.sync_uid) ?? 0 })));
     })().catch(() => toast.error("Catalogo indisponivel. Confira sua sessao."));

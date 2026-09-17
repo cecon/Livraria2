@@ -103,7 +103,7 @@ function Header({ usuario, onMenu }: { usuario: string | null; onMenu: () => voi
 
 const TITULOS: Record<string, string> = {
   "/": "Visão geral",
-  "/venda": "Venda",
+  "/venda": "Vendas",
   "/turnos": "Turnos",
   "/cadastro": "Cadastro",
   "/pesquisa": "Pesquisa",

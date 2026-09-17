@@ -41,7 +41,11 @@ export function AppSidebar({ open = false, onClose }: { open?: boolean; onClose?
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const dark = mounted && resolvedTheme === "dark";
-  const entries = [...NAV_ITENS, ...extra];
+  const entries = [
+    ...NAV_ITENS.map((item) => item.to === "/venda" ? { ...item, rotulo: "Vendas" } :
+      item.to === "/turnos" ? { ...item, rotulo: "Turnos" } : item),
+    ...extra,
+  ];
 
   return (
     <>

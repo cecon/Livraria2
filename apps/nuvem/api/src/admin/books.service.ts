@@ -8,9 +8,10 @@ import { uuid } from "../sync/validation";
 export class BooksService {
   constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
 
-  async list(after?: string) {
+  async list(after?: string, includeInactive = false) {
     const rows = await this.db.livro.findMany({
-      where: { excluidoEm: null, ...(after && { syncUid: { gt: uuid(after) } }) },
+      where: { excluidoEm: null, ...(!includeInactive && { ativo: true }),
+        ...(after && { syncUid: { gt: uuid(after) } }) },
       orderBy: { syncUid: "asc" }, take: 501,
     });
     const items = rows.slice(0, 500).map(row => {
@@ -33,7 +34,7 @@ export class BooksService {
         await tx.$queryRaw`select id from public.nuvem_sync_contador where id=1 for update`;
         const now = new Date();
         if (creating) {
-          await tx.livro.create({ data: { syncUid: uid, ...data, criadoPor: actor,
+          await tx.livro.create({ data: { syncUid: uid, ...data, ativo: initial > 0n, criadoPor: actor,
             origem: "nuvem", atualizadoEm: now, sincronizadoEm: now } });
           if (initial > 0n) {
             await tx.movimento_estoque.create({ data: {
@@ -45,6 +46,17 @@ export class BooksService {
             await tx.livro.update({ where: { syncUid: uid }, data: { atualizadoEm: now } });
           }
         } else {
+          const existing = await tx.livro.findFirst({ where: { syncUid: uid, excluidoEm: null },
+            select: { ativo: true } });
+          if (!existing) throw new NotFoundException("Produto indisponivel");
+          if (!existing.ativo && data.ativo === true) {
+            const balance = await tx.$queryRaw<{ saldo: bigint }[]>`
+              select coalesce(s.saldo,0)::bigint as saldo from public.vw_saldo_livro s
+              where s.livro_uid=${uid}::uuid`;
+            if (!balance[0] || balance[0].saldo <= 0n) {
+              throw new ConflictException("Registre estoque positivo antes de reativar o produto");
+            }
+          }
           const changed = await tx.livro.updateMany({ where: { syncUid: uid, excluidoEm: null },
             data: { ...data, atualizadoEm: now, sincronizadoEm: now } });
           if (!changed.count) throw new NotFoundException("Produto indisponivel");

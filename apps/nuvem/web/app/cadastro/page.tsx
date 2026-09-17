@@ -26,12 +26,13 @@ export default function CadastroPage() {
   const [aberto, setAberto] = useState<Livro | "novo" | null>(null);
   const [termo, setTermo] = useState("");
   const [pagina, setPagina] = useState(1);
+  const [mostrarInativos, setMostrarInativos] = useState(false);
   const [livros, setLivros] = useState<Livro[] | null>(null);
   const [saldos, setSaldos] = useState<Map<string, number>>(new Map());
 
   async function carregar() {
     try {
-      const [ls, ss] = await Promise.all([listarLivros(), listarSaldos()]);
+      const [ls, ss] = await Promise.all([listarLivros(true), listarSaldos()]);
       setLivros(ls);
       setSaldos(ss);
     } catch (error) {
@@ -43,11 +44,11 @@ export default function CadastroPage() {
   }, []);
 
   const filtrados = useMemo(() => {
-    const base = livros ?? [];
+    const base = (livros ?? []).filter((livro) => livro.ativo === !mostrarInativos);
     const q = termo.trim().toLowerCase();
     if (!q) return base;
     return base.filter((l) => `${l.titulo} ${l.autor ?? ""} ${l.codigo}`.toLowerCase().includes(q));
-  }, [livros, termo]);
+  }, [livros, termo, mostrarInativos]);
 
   const total = filtrados.length;
   const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
@@ -80,10 +81,17 @@ export default function CadastroPage() {
       />
 
       <ContentPanel
-        title="Livros cadastrados"
+        title={mostrarInativos ? "Livros inativos" : "Livros cadastrados"}
         description={livros === null ? "Carregando catálogo..." : `${total} livro(s) encontrado(s)`}
         toolbar={
-          <div className="relative">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex rounded-md border p-1" role="group" aria-label="Situação dos livros">
+              <Button type="button" size="sm" variant={mostrarInativos ? "ghost" : "secondary"}
+                onClick={() => { setMostrarInativos(false); setPagina(1); }}>Ativos</Button>
+              <Button type="button" size="sm" variant={mostrarInativos ? "secondary" : "ghost"}
+                onClick={() => { setMostrarInativos(true); setPagina(1); }}>Inativos</Button>
+            </div>
+            <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground" />
             <Input
               aria-label="Buscar livros"
@@ -96,6 +104,7 @@ export default function CadastroPage() {
               placeholder="Título, autor ou código"
               autoFocus
             />
+            </div>
           </div>
         }
         flush
@@ -148,7 +157,7 @@ export default function CadastroPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => setAberto(l)} title="Editar" aria-label={`Editar ${l.titulo}`}>
+                      <Button variant="ghost" size="icon" onClick={() => setAberto(l)} title={l.ativo ? "Editar" : "Editar ou reativar"} aria-label={`${l.ativo ? "Editar" : "Editar ou reativar"} ${l.titulo}`}>
                         <Pencil size={15} />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => remover(l)} title="Remover" aria-label={`Remover ${l.titulo}`} className="text-rose-500 hover:text-rose-600">
@@ -162,7 +171,7 @@ export default function CadastroPage() {
             {livros !== null && itens.length === 0 && (
               <TableRow className="hover:bg-transparent">
                 <TableCell colSpan={4} className="text-muted-foreground py-10 text-center">
-                  {termo.trim() ? "Nenhum livro encontrado." : "Nenhum livro cadastrado."}
+                  {termo.trim() ? "Nenhum livro encontrado." : mostrarInativos ? "Nenhum livro inativo." : "Nenhum livro ativo."}
                 </TableCell>
               </TableRow>
             )}
@@ -184,6 +193,7 @@ function LivroForm({ inicial, onSalvo, onCancelar }: { inicial: Livro | null; on
     estoque: "0",
     categoria: inicial?.categoria ?? 0,
     descricao: inicial?.descricao ?? "",
+    ativo: inicial?.ativo ?? true,
   }));
   const [salvando, setSalvando] = useState(false);
 
@@ -198,6 +208,7 @@ function LivroForm({ inicial, onSalvo, onCancelar }: { inicial: Livro | null; on
       preco_centavos: centavos(form.valor),
       categoria: form.categoria,
       descricao: form.descricao,
+      ativo: editando ? form.ativo : undefined,
       estoqueInicial: editando ? undefined : parseInt(form.estoque, 10) || 0,
     });
     setSalvando(false);
@@ -258,6 +269,10 @@ function LivroForm({ inicial, onSalvo, onCancelar }: { inicial: Livro | null; on
           <Label htmlFor="desc">Descrição</Label>
           <Textarea id="desc" value={form.descricao ?? ""} onChange={(e) => setForm({ ...form, descricao: e.currentTarget.value })} className="mt-1" />
         </div>
+        {editando && <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={form.ativo} onChange={(e) => setForm({ ...form, ativo: e.currentTarget.checked })} />
+          Ativo no catálogo e no PDV
+        </label>}
 
         <div className="flex flex-wrap gap-2 pt-2">
           <Button onClick={salvar} disabled={salvando} className="h-10">
