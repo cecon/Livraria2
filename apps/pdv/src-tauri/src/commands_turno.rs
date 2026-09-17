@@ -3,6 +3,7 @@
 use crate::adapters::persistencia::turno_repo::SeaTurnoRepo;
 use crate::application::turno;
 use crate::commands::{AppState, ErroDto};
+use crate::machine_config;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, Statement};
 use serde::Serialize;
 
@@ -65,7 +66,7 @@ pub async fn pendencias_sync_turno(db: &DatabaseConnection, turno_uid: &str) -> 
 
 #[tauri::command]
 pub async fn turno_aberto(state: tauri::State<'_, AppState>, operador: String) -> Result<Option<TurnoAbertoDto>, ErroDto> {
-    let repo = SeaTurnoRepo::new(state.db.clone());
+    let repo = repo_maquina(&state)?;
     Ok(turno::turno_aberto(&repo, &operador).await?.map(|t| TurnoAbertoDto {
         sync_uid: t.sync_uid,
         caixa_inicial_centavos: t.caixa_inicial_centavos,
@@ -79,7 +80,7 @@ pub async fn turno_abrir(
     operador: String,
     caixa_inicial_centavos: i64,
 ) -> Result<TurnoAbertoDto, ErroDto> {
-    let repo = SeaTurnoRepo::new(state.db.clone());
+    let repo = repo_maquina(&state)?;
     let t = turno::abrir(&repo, &operador, caixa_inicial_centavos).await?;
     Ok(TurnoAbertoDto {
         sync_uid: t.sync_uid,
@@ -103,6 +104,12 @@ pub async fn turno_resumo(state: tauri::State<'_, AppState>, turno_uid: String) 
         sangrias_centavos: r.sangrias_centavos,
         pendencias_sync: pendencias,
     })
+}
+
+fn repo_maquina(state: &AppState) -> Result<SeaTurnoRepo, ErroDto> {
+    let machine = machine_config::identity(state.machine_config_path.as_deref())
+        .map_err(|mensagem| ErroDto { codigo: "MAQUINA_NAO_CONFIGURADA".into(), mensagem })?;
+    Ok(SeaTurnoRepo::with_machine(state.db.clone(), machine))
 }
 
 #[derive(Serialize)]
@@ -154,7 +161,7 @@ pub async fn turno_encerrar(
 
 #[tauri::command]
 pub async fn turno_listar(state: tauri::State<'_, AppState>, operador: String) -> Result<Vec<TurnoHistoricoDto>, ErroDto> {
-    let repo = SeaTurnoRepo::new(state.db.clone());
+    let repo = repo_maquina(&state)?;
     Ok(turno::listar(&repo, &operador)
         .await?
         .into_iter()

@@ -26,6 +26,13 @@ export class SalesService {
       }
       const existing = await tx.pedido.findUnique({ where: { sync_uid: sale.pedidoUid }, select: { sync_uid: true } });
       if (existing) throw new ConflictException("Pedido legado exige reconciliacao antes da migracao");
+      if (sale.turnoUid) {
+        const shift = await tx.turno_operacao.findUnique({ where: { sync_uid: sale.turnoUid },
+          select: { pdv_uid: true } });
+        if (!shift || shift.pdv_uid !== pdv) {
+          throw new ConflictException("Turno nao pertence a esta maquina");
+        }
+      }
       // Keep rascunho until all children exist: legacy triggers cannot incorporate partial items.
       await tx.pedido.create({ data: {
         sync_uid: sale.pedidoUid, numero: BigInt(sale.numero), cliente: sale.cliente,

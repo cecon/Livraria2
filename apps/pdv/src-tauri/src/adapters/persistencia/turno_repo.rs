@@ -5,17 +5,23 @@ use crate::application::ports::RepoErro;
 use crate::application::ports_turno::{DadosFechamento, MovimentoCaixaInfo, TurnoAbertoInfo, TurnoHistorico, TurnoRepo};
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::pedido::Recebimento;
+use crate::machine_config::MachineConfig;
 use async_trait::async_trait;
 use chrono::Local;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, Statement, TransactionTrait};
 
 pub struct SeaTurnoRepo {
     db: DatabaseConnection,
+    machine: Option<MachineConfig>,
 }
 
 impl SeaTurnoRepo {
     pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+        Self { db, machine: None }
+    }
+
+    pub fn with_machine(db: DatabaseConnection, machine: MachineConfig) -> Self {
+        Self { db, machine: Some(machine) }
     }
 }
 
@@ -31,14 +37,18 @@ fn agora() -> String {
 impl TurnoRepo for SeaTurnoRepo {
     async fn turno_aberto(&self, operador: &str) -> Result<Option<TurnoAbertoInfo>, RepoErro> {
         let backend = self.db.get_database_backend();
+        let (where_clause, identity) = match &self.machine {
+            Some(machine) => ("pdv_uid = ?", machine.pdv_uid.as_str()),
+            None => ("operador = ?", operador),
+        };
         let row = self
             .db
             .query_one(Statement::from_sql_and_values(
                 backend,
-                "SELECT sync_uid, caixa_inicial_centavos, abertura FROM turno_operacao \
-                 WHERE operador = ? AND status = 'aberto' AND excluido_em IS NULL \
-                 ORDER BY abertura DESC LIMIT 1",
-                [operador.into()],
+                format!("SELECT sync_uid, caixa_inicial_centavos, abertura FROM turno_operacao \
+                 WHERE {where_clause} AND status = 'aberto' AND excluido_em IS NULL \
+                 ORDER BY abertura DESC LIMIT 1"),
+                [identity.into()],
             ))
             .await
             .map_err(erro)?;
@@ -52,10 +62,10 @@ impl TurnoRepo for SeaTurnoRepo {
     }
 
     async fn abrir(&self, operador: &str, caixa_inicial_centavos: i64) -> Result<TurnoAbertoInfo, RepoErro> {
-        let backend = self.db.get_database_backend();
+        let tx = self.db.begin().await.map_err(erro)?;
+        let backend = tx.get_database_backend();
         // UUID v4 gerado em SQL (mesmo gerador da réplica — m008), lido de volta.
-        let uid: String = self
-            .db
+        let uid: String = tx
             .query_one(Statement::from_string(
                 backend,
                 format!("SELECT ({}) AS uid", crate::migration::m008::UUID_V4),
@@ -65,16 +75,25 @@ impl TurnoRepo for SeaTurnoRepo {
             .and_then(|r| r.try_get::<String>("", "uid").ok())
             .ok_or_else(|| RepoErro::Persistencia("falha ao gerar sync_uid".into()))?;
         let ts = agora();
-        self.db
+        if let Some(machine) = &self.machine {
+            tx.execute(Statement::from_sql_and_values(backend,
+                "INSERT INTO maquina_pdv(uid,nome) VALUES(?,?)
+                 ON CONFLICT(uid) DO UPDATE SET nome=excluded.nome",
+                [machine.pdv_uid.clone().into(), machine.nome.clone().into()]))
+                .await.map_err(erro)?;
+        }
+        tx
             .execute(Statement::from_sql_and_values(
                 backend,
                 "INSERT INTO turno_operacao \
-                 (sync_uid, operador, caixa_inicial_centavos, status, abertura, origem, atualizado_em) \
-                 VALUES (?, ?, ?, 'aberto', ?, 'pdv', ?)",
-                [uid.clone().into(), operador.into(), caixa_inicial_centavos.into(), ts.clone().into(), ts.clone().into()],
+                 (sync_uid, operador, caixa_inicial_centavos, status, abertura, origem, atualizado_em, pdv_uid) \
+                 VALUES (?, ?, ?, 'aberto', ?, 'pdv', ?, ?)",
+                [uid.clone().into(), operador.into(), caixa_inicial_centavos.into(), ts.clone().into(),
+                    ts.clone().into(), self.machine.as_ref().map(|m| m.pdv_uid.clone()).into()],
             ))
             .await
             .map_err(erro)?;
+        tx.commit().await.map_err(erro)?;
         Ok(TurnoAbertoInfo { sync_uid: uid, caixa_inicial_centavos, abertura: ts })
     }
 
@@ -212,14 +231,21 @@ impl TurnoRepo for SeaTurnoRepo {
 
     async fn listar(&self, operador: &str) -> Result<Vec<TurnoHistorico>, RepoErro> {
         let backend = self.db.get_database_backend();
+        let (where_clause, values) = match &self.machine {
+            Some(machine) => (
+                "(pdv_uid = ? OR (pdv_uid IS NULL AND operador = ?))",
+                vec![machine.pdv_uid.clone().into(), operador.into()],
+            ),
+            None => ("operador = ?", vec![operador.into()]),
+        };
         let rows = self
             .db
             .query_all(Statement::from_sql_and_values(
                 backend,
-                "SELECT abertura, encerramento, status, esperado_centavos, conferido_centavos, diferenca_centavos \
-                 FROM turno_operacao WHERE operador = ? AND excluido_em IS NULL \
-                 ORDER BY abertura DESC LIMIT 50",
-                [operador.into()],
+                format!("SELECT abertura, encerramento, status, esperado_centavos, conferido_centavos, diferenca_centavos \
+                 FROM turno_operacao WHERE {where_clause} AND excluido_em IS NULL \
+                 ORDER BY abertura DESC LIMIT 50"),
+                values,
             ))
             .await
             .map_err(erro)?;
@@ -242,6 +268,22 @@ mod testes {
     use super::*;
     use crate::application::turno;
     use sea_orm::Database;
+
+    #[tokio::test]
+    async fn turno_aberto_pertence_a_maquina_nao_ao_operador() {
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+        crate::adapters::persistencia::inicializar_schema(&db).await.unwrap();
+        let machine = |uid: &str| MachineConfig {
+            api_url: "https://example.test".into(), pdv_uid: uid.into(), nome: "Caixa".into(),
+        };
+        let caixa1 = SeaTurnoRepo::with_machine(db.clone(), machine("m1"));
+        let aberto = turno::abrir(&caixa1, "operador-a", 1_000).await.unwrap();
+        assert_eq!(caixa1.turno_aberto("operador-b").await.unwrap().unwrap().sync_uid, aberto.sync_uid);
+        assert!(turno::abrir(&caixa1, "operador-b", 0).await.is_err());
+        let caixa2 = SeaTurnoRepo::with_machine(db.clone(), machine("m2"));
+        assert!(caixa2.turno_aberto("operador-a").await.unwrap().is_none());
+        assert_eq!(caixa1.listar("operador-b").await.unwrap().len(), 1);
+    }
 
     #[tokio::test]
     async fn movimentos_entram_no_fechamento_e_param_apos_encerrar() {

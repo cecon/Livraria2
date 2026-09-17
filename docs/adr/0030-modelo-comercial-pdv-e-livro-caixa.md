@@ -22,12 +22,21 @@ catalogo e vendas, mas ainda nao transmite movimentos de caixa.
 - `caixa_movimento` registra sangria e suprimento vinculados ao turno, com UUID,
   operador, motivo, instante e valor positivo em centavos. O saldo esperado e
   abertura + vendas em dinheiro + suprimentos - sangrias.
+- O turno novo do PDV guarda `pdv_uid`, referencia ao ID estavel da maquina
+  (`maquina_pdv.uid` local, `nuvem_pdv.uid` na nuvem). Apenas um turno pode
+  estar aberto por maquina. `pedido.turno_uid` guarda o ID do turno; a venda
+  e seus itens, pagamentos e vinculo ao turno sao gravados na mesma transacao.
+- Turnos historicos sem ID de maquina permanecem nulos: o nome textual antigo
+  nao e prova de identidade e nao autoriza backfill automatico.
 - A migracao para novos nomes sera transacional e verificara contagens, chaves,
   totais e relacionamentos antes de trocar as leituras e escritas. Nao manteremos
   duas tabelas gravaveis para o mesmo fato nem apagaremos historico para renomear.
 - O contrato de sincronizacao da nuvem deve aceitar e confirmar movimentos de
   caixa por UUID antes de disponibilizar essa funcao em uma release. Turnos e
   movimentos offline precisam de reenvio idempotente e conciliacao explicita.
+- A nuvem precisa receber o turno antes de aceitar a venda que o referencia;
+  sem esse fluxo a FK rejeita a venda. A migracao de nuvem entra antes do novo
+  cliente, e o cliente nao deve ser publicado antes do envio de turnos.
 - Ate a conclusao desse contrato, a etapa `caixa_movimento` e estritamente local
   e nao deve ser confundida com um dado ja sincronizado.
 

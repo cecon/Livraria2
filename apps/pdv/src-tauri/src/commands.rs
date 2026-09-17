@@ -110,30 +110,17 @@ pub async fn registrar_venda(
     input: VendaInput,
 ) -> Result<PedidoDto, ErroDto> {
     let operador = input.operador.clone().unwrap_or_default();
-    let turnos = SeaTurnoRepo::new(state.db.clone());
+    let machine = crate::machine_config::identity(state.machine_config_path.as_deref())
+        .map_err(|mensagem| ErroDto { codigo: "MAQUINA_NAO_CONFIGURADA".into(), mensagem })?;
+    let turnos = SeaTurnoRepo::with_machine(state.db.clone(), machine.clone());
     let turno = turno::turno_aberto(&turnos, &operador)
         .await?
         .ok_or(ErroApp::Dominio(crate::domain::erros::ErroDominio::VendaSemTurno))?;
-    let numero_no_turno = turno::proximo_numero_no_turno(&turnos, &turno.sync_uid).await?;
-
     let livros = SeaLivroRepo::new(state.db.clone());
-    let pedidos = SeaPedidoRepo::new(state.db.clone());
+    let pedidos = SeaPedidoRepo::with_turno(state.db.clone(), turno.sync_uid, machine.pdv_uid);
     let formas = SeaFormaPagamentoRepo::new(state.db.clone());
     let pedido =
         venda::registrar_venda(input, &livros, &pedidos, &formas, &RelogioSistema).await?;
-
-    // Carimba o turno + Pedido Nº do turno no pedido recém-gravado (FR-003).
-    use sea_orm::{ConnectionTrait, Statement};
-    let backend = state.db.get_database_backend();
-    state
-        .db
-        .execute(Statement::from_sql_and_values(
-            backend,
-            "UPDATE pedido SET turno_uid = ?, numero_no_turno = ? WHERE numero = ?",
-            [turno.sync_uid.clone().into(), numero_no_turno.into(), pedido.numero.into()],
-        ))
-        .await
-        .map_err(|e| ErroDto { codigo: "PERSISTENCIA".into(), mensagem: e.to_string() })?;
 
     Ok(PedidoDto {
         numero: pedido.numero,

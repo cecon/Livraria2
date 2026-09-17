@@ -38,8 +38,9 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
     for (const file of fs.readdirSync(migrations).filter(f => f.endsWith(".sql")).sort()) {
       run(fs.readFileSync(path.join(migrations, file), "utf8"));
     }
-    for (const file of ["001_protocolo_catalogo.sql", "002_ingestao_vendas.sql"]) {
-      run(fs.readFileSync(path.resolve(__dirname, "../sql", file), "utf8"));
+    const apiMigrations = path.resolve(__dirname, "../sql");
+    for (const file of fs.readdirSync(apiMigrations).filter(f => f.endsWith(".sql")).sort()) {
+      run(fs.readFileSync(path.join(apiMigrations, file), "utf8"));
     }
     await db.$executeRaw`insert into public.usuario(sync_uid,usuario,senha_hash,perfil)
       values(${operatorUid}::uuid,'admin',extensions.crypt(${password},extensions.gen_salt('bf')),'admin')`;
@@ -71,9 +72,20 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
       values(${randomUUID()}::uuid,'NOVA.PESSOA',extensions.crypt(${password},extensions.gen_salt('bf')),'operador')`);
     const firstDevice = (await request("/pdvs", adminToken, { nome: "caixa 1", usuarioUid: operatorUid })).body;
     const secondDevice = (await request("/pdvs", adminToken, { nome: "caixa 2", usuarioUid: operatorUid })).body;
+    const shiftUid = randomUUID();
+    await db.$executeRaw`insert into public.turno_operacao
+      (sync_uid,operador_uid,caixa_inicial_centavos,abertura,pdv_uid)
+      values(${shiftUid}::uuid,${operatorUid}::uuid,0,'2026-09-14T09:00:00',${firstDevice.uid}::uuid)`;
+    await assert.rejects(db.$executeRaw`insert into public.turno_operacao
+      (sync_uid,operador_uid,caixa_inicial_centavos,abertura,pdv_uid)
+      values(${randomUUID()}::uuid,${operatorUid}::uuid,0,'2026-09-14T09:00:00',${firstDevice.uid}::uuid)`);
+    const otherShiftUid = randomUUID();
+    await db.$executeRaw`insert into public.turno_operacao
+      (sync_uid,operador_uid,caixa_inicial_centavos,abertura,pdv_uid)
+      values(${otherShiftUid}::uuid,${operatorUid}::uuid,0,'2026-09-14T09:00:00',${secondDevice.uid}::uuid)`;
     const sale = {
       pedidoUid: randomUUID(), numero: 6535, cliente: "CLIENTE", turno: "teste", data: "2026-09-14T10:00:00",
-      totalCentavos: 6200, operadorUid: operatorUid, turnoUid: null, numeroNoTurno: null, cancelado: false,
+      totalCentavos: 6200, operadorUid: operatorUid, turnoUid: shiftUid, numeroNoTurno: 1, cancelado: false,
       itens: [{ uid: randomUUID(), livroUid: bookUid, codigo: "503", titulo: "Livro vendido", precoCentavos: 3100, quantidade: 2 }],
       pagamentos: [{ uid: randomUUID(), formaUid: formUid, valorCentavos: 6200 }],
     };
@@ -94,6 +106,10 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
       assert.equal((await request("/sync/vendas", secondDevice.accessToken, sale)).status, 409);
       assert.equal((await request("/sync/vendas", firstDevice.accessToken, { ...sale, totalCentavos: 6000 })).status, 400);
       assert.equal((await request("/sync/vendas", adminToken, sale)).status, 403);
+      const foreign = { ...sale, pedidoUid: randomUUID(), numero: 6537,
+        turnoUid: otherShiftUid, itens: sale.itens.map(i => ({ ...i, uid: randomUUID() })),
+        pagamentos: sale.pagamentos.map(p => ({ ...p, uid: randomUUID() })) };
+      assert.equal((await request("/sync/vendas", firstDevice.accessToken, foreign)).status, 409);
     });
     await t.test("falha em pagamento desfaz pedido, itens e estoque", async () => {
       const bad = { ...sale, pedidoUid: randomUUID(), numero: 6536,

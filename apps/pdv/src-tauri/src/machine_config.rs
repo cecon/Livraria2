@@ -72,6 +72,25 @@ pub fn read(path: Option<&Path>) -> Result<MachineConfig, String> {
     serde_json::from_str(&text).map_err(|_| "Configuracao da maquina invalida".to_string())
 }
 
+pub fn identity(path: Option<&Path>) -> Result<MachineConfig, String> {
+    let config = if let (Ok(api_url), Ok(pdv_uid)) = (
+        std::env::var("NUVEM_API_URL"), std::env::var("NUVEM_PDV_UID"),
+    ) {
+        MachineConfig {
+            api_url,
+            pdv_uid,
+            nome: std::env::var("COMPUTERNAME").unwrap_or_else(|_| "PDV".into()),
+        }
+    } else {
+        read(path)?
+    };
+    uuid::Uuid::parse_str(&config.pdv_uid).map_err(|_| "ID da maquina invalido".to_string())?;
+    if config.nome.trim().is_empty() {
+        return Err("Nome da maquina vazio".into());
+    }
+    Ok(config)
+}
+
 pub fn save(path: &Path, config: &MachineConfig, refresh_token: &str) -> Result<(), String> {
     let entry = keyring::Entry::new(KEYRING_SERVICE, KEYRING_ACCOUNT)
         .map_err(|_| "Cofre de credenciais indisponivel".to_string())?;
