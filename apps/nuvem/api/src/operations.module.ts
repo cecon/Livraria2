@@ -10,6 +10,10 @@ import { ThrottlerModule } from "@nestjs/throttler";
 import { APP_GUARD } from "@nestjs/core";
 import { SalesController } from "./sales/sales.controller";
 import { SalesService } from "./sales/sales.service";
+import { ShiftSyncController } from "./sync/shift-sync.controller";
+import { ShiftSyncService } from "./sync/shift-sync.service";
+import { CashSyncController } from "./sync/cash-sync.controller";
+import { CashSyncService } from "./sync/cash-sync.service";
 import { BooksController } from "./admin/books.controller";
 import { BooksService } from "./admin/books.service";
 import { FormsService } from "./admin/forms.service";
@@ -49,10 +53,10 @@ import { ApiThrottlerGuard } from "./auth/api-throttler.guard";
       },
     }),
   ],
-  controllers: [AuthController, DevicesController, CatalogController, SalesController, BooksController,
+  controllers: [AuthController, DevicesController, CatalogController, SalesController, ShiftSyncController, CashSyncController, BooksController,
     FormsController, SuppliersController, UsersController, DestinationsController, StockController,
     EntriesController, ShiftsController, AdminSalesController, ReportsController],
-  providers: [AuthService, AuthGuard, SalesService, BooksService, FormsService, SuppliersService,
+  providers: [AuthService, AuthGuard, SalesService, ShiftSyncService, CashSyncService, BooksService, FormsService, SuppliersService,
     UsersService, DestinationsService, StockService, EntriesService, ShiftsService, AdminSalesService,
     ReportsService,
     { provide: APP_GUARD, useClass: ApiThrottlerGuard }],

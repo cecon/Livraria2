@@ -88,6 +88,16 @@ export async function publicPdvProxy(request: NextRequest, path: string[]) {
   if (request.method === "POST" && path.join("/") === "vendas") {
     return forward(request, "sync/vendas", true);
   }
+  if (request.method === "POST" && path.join("/") === "turnos") {
+    return forward(request, "sync/turnos", true);
+  }
+  if (request.method === "POST" && path.join("/") === "caixa-movimentos") {
+    return forward(request, "sync/caixa-movimentos", true);
+  }
+  if (request.method === "POST" && path.length === 3 && path[0] === "turnos" &&
+      UUID.test(path[1]) && path[2] === "encerramento") {
+    return forward(request, `sync/turnos/${path[1]}/encerramento`, true);
+  }
   if (request.method === "POST" && path.length === 3 && path[0] === "vendas" &&
       UUID.test(path[1]) && path[2] === "cancelamento") {
     return forward(request, `sync/vendas/${path[1]}/cancelamento`, true);

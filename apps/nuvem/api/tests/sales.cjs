@@ -38,8 +38,9 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
     for (const file of fs.readdirSync(migrations).filter(f => f.endsWith(".sql")).sort()) {
       run(fs.readFileSync(path.join(migrations, file), "utf8"));
     }
-    for (const file of ["001_protocolo_catalogo.sql", "002_ingestao_vendas.sql"]) {
-      run(fs.readFileSync(path.resolve(__dirname, "../sql", file), "utf8"));
+    const apiMigrations = path.resolve(__dirname, "../sql");
+    for (const file of fs.readdirSync(apiMigrations).filter(f => f.endsWith(".sql")).sort()) {
+      run(fs.readFileSync(path.join(apiMigrations, file), "utf8"));
     }
     await db.$executeRaw`insert into public.usuario(sync_uid,usuario,senha_hash,perfil)
       values(${operatorUid}::uuid,'admin',extensions.crypt(${password},extensions.gen_salt('bf')),'admin')`;
@@ -71,6 +72,26 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
       values(${randomUUID()}::uuid,'NOVA.PESSOA',extensions.crypt(${password},extensions.gen_salt('bf')),'operador')`);
     const firstDevice = (await request("/pdvs", adminToken, { nome: "caixa 1", usuarioUid: operatorUid })).body;
     const secondDevice = (await request("/pdvs", adminToken, { nome: "caixa 2", usuarioUid: operatorUid })).body;
+    await t.test("turno e movimento de caixa sincronizam com recibo idempotente", async () => {
+      const turnoUid = randomUUID();
+      const opening = { turnoUid, operadorUid: operatorUid,
+        caixaInicialCentavos: 1000, abertura: "2026-09-14T09:00:00" };
+      const opened = await request("/sync/turnos", firstDevice.accessToken, opening);
+      assert.equal(opened.status, 201, JSON.stringify(opened.body));
+      assert.deepEqual(await request("/sync/turnos", firstDevice.accessToken, opening), opened);
+      assert.equal((await request("/sync/turnos", secondDevice.accessToken, opening)).status, 409);
+      const movement = { movimentoUid: randomUUID(), turnoUid, operadorUid: operatorUid,
+        tipo: "suprimento", valorCentavos: 500, motivo: "troco", criadoEm: "2026-09-14T09:10:00" };
+      const received = await request("/sync/caixa-movimentos", firstDevice.accessToken, movement);
+      assert.equal(received.status, 201, JSON.stringify(received.body));
+      assert.deepEqual(await request("/sync/caixa-movimentos", firstDevice.accessToken, movement), received);
+      const close = { encerramento: "2026-09-14T18:00:00", esperadoCentavos: 1500,
+        conferidoCentavos: 1500, diferencaCentavos: 0 };
+      const route = `/sync/turnos/${turnoUid}/encerramento`;
+      const closed = await request(route, firstDevice.accessToken, close);
+      assert.equal(closed.status, 201, JSON.stringify(closed.body));
+      assert.deepEqual(await request(route, firstDevice.accessToken, close), closed);
+    });
     const sale = {
       pedidoUid: randomUUID(), numero: 6535, cliente: "CLIENTE", turno: "teste", data: "2026-09-14T10:00:00",
       totalCentavos: 6200, operadorUid: operatorUid, turnoUid: null, numeroNoTurno: null, cancelado: false,

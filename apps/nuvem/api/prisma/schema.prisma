@@ -294,6 +294,7 @@ model transferencia_destinacao {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model turno_operacao {
   sync_uid               String    @id @db.Uuid
+  pdv_uid                String?   @db.Uuid
   operador_uid           String?   @db.Uuid
   caixa_inicial_centavos BigInt    @default(0)
   status                 String    @default("aberto")
@@ -312,6 +313,7 @@ model turno_operacao {
   usuario                usuario?  @relation(fields: [operador_uid], references: [sync_uid], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([maquina, status], map: "idx_turno_operacao_maquina")
+  @@index([pdv_uid], map: "idx_turno_operacao_pdv_uid")
   @@index([sincronizado_em], map: "idx_turno_operacao_sinc")
 }
 
