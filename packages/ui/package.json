@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./ui/*": "./src/ui/*.tsx",
+    "./wowdash/*": "./src/wowdash/*.tsx",
     "./utils": "./src/utils.ts",
     "./nav": "./src/nav.tsx",
     "./theme.css": "./theme.css"

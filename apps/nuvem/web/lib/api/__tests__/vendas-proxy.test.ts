@@ -9,9 +9,10 @@ afterEach(() => { mocked.token = "test"; mocked.fetcher.mockReset(); });
 const request = (method: string, path = "", origin?: string) => new NextRequest(
   `https://livraria.test/api/vendas${path}`, { method, ...(origin && { headers: { origin } }) });
 
-test("venda exige mesma origem e lista somente hoje", async () => {
-  expect((await salesProxy(request("POST", "", "https://attacker.test"), [])).status).toBe(403);
-  expect((await salesProxy(request("GET", "/todas"), ["todas"])).status).toBe(400);
+test("online bloqueia criacao de venda e permite consulta de hoje", async () => {
+  expect((await salesProxy(request("POST", "", "https://livraria.test"), [])).status).toBe(405);
+  expect((await salesProxy(request("GET", "/todas"), ["todas"])).status).toBe(405);
+  expect(mocked.fetcher).not.toHaveBeenCalled();
   mocked.fetcher.mockResolvedValueOnce(new Response(JSON.stringify([])));
   expect((await salesProxy(request("GET", "/hoje"), ["hoje"])).status).toBe(200);
   expect(mocked.fetcher.mock.calls[0][0]).toBe("admin/vendas/hoje");

@@ -7,12 +7,15 @@ export async function catalogRequest(path: string, method = "GET", body?: unknow
   });
 }
 
-export async function listApiBooks(): Promise<Livro[]> {
+export async function listApiBooks(incluirInativos = false): Promise<Livro[]> {
   const books: Livro[] = [];
   const seen = new Set<string>();
   let after: string | null = null;
   for (let page = 0; page < 100; page++) {
-    const result = await catalogRequest(after ? `?after=${encodeURIComponent(after)}` : "");
+    const params = new URLSearchParams();
+    if (after) params.set("after", after);
+    if (incluirInativos) params.set("inativos", "1");
+    const result = await catalogRequest(params.size ? `?${params}` : "");
     if (!Array.isArray(result.items)) throw new Error("Pagina de catalogo invalida");
     books.push(...result.items);
     if (result.next === null) return books.sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR"));

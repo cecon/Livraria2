@@ -54,6 +54,16 @@ module.exports = async function adminCatalog(t, db, base, adminToken, deviceToke
     assert.equal((await call("PUT", "/" + id, input)).status, 400);
   });
 
+  await t.test("inativar e reativar preserva identidade e publica no PDV", async () => {
+    assert.equal((await call("PUT", "/" + id, { ...input, codigo: "9786585995887", estoqueInicial: 0, ativo: false })).status, 200);
+    assert.equal((await db.livro.findUnique({ where: { syncUid: id } })).ativo, false);
+    const removed = await db.$queryRaw`select operacao from public.nuvem_catalogo_evento
+      where produto_uid=${id}::uuid order by sequencia desc limit 1`;
+    assert.equal(removed[0].operacao, "delete");
+    assert.equal((await call("PUT", "/" + id, { ...input, codigo: "9786585995887", estoqueInicial: 0, ativo: true })).status, 200);
+    assert.equal((await db.livro.findUnique({ where: { syncUid: id } })).ativo, true);
+  });
+
   await t.test("falha no estoque inicial desfaz produto e diario", async () => {
     const failing = randomUUID();
     run(`create function public.test_reject_initial() returns trigger language plpgsql as $$
@@ -71,6 +81,8 @@ module.exports = async function adminCatalog(t, db, base, adminToken, deviceToke
   await t.test("codigo duplicado nao sobrescreve identidade nem publica alteracao parcial", async () => {
     const other = randomUUID();
     assert.equal((await call("POST", "", { ...input, sync_uid: other, codigo: "TEST-DUPLICATE", estoqueInicial: 0 })).status, 201);
+    assert.equal((await db.livro.findUnique({ where: { syncUid: other } })).ativo, false);
+    assert.equal((await call("PUT", "/" + other, { ...input, codigo: "TEST-DUPLICATE", estoqueInicial: 0, ativo: true })).status, 409);
     assert.equal((await call("PUT", "/" + id, { ...input, codigo: "TEST-DUPLICATE", estoqueInicial: 0 })).status, 409);
     assert.equal((await db.livro.findUnique({ where: { syncUid: id } })).codigo, "9786585995887");
     assert.equal((await db.livro.findUnique({ where: { syncUid: other } })).codigo, "TEST-DUPLICATE");
@@ -89,10 +101,10 @@ module.exports = async function adminCatalog(t, db, base, adminToken, deviceToke
   await t.test("catalogo pagina por UUID sem cortar em 2000 ou repetir registros", async () => {
     run(`insert into public.livro(sync_uid,codigo,titulo,preco_centavos)
       select gen_random_uuid(), 'PAG-'||i, 'Paginacao '||i, 0 from generate_series(1,501) i;`);
-    const first = await call("GET", "");
+    const first = await call("GET", "?inativos=1");
     assert.equal(first.body.items.length, 500);
     assert.ok(first.body.next);
-    const second = await call("GET", "?after=" + first.body.next);
+    const second = await call("GET", "?inativos=1&after=" + first.body.next);
     assert.ok(second.body.items.length > 0);
     assert.equal(second.body.next, null);
     const all = [...first.body.items, ...second.body.items].map(book => book.sync_uid);

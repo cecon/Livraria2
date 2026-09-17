@@ -1,200 +1,67 @@
 "use client";
 
-// Venda (checkout) no Escritório (feature 009, US2). Espelha o fluxo do PDV:
-// busca item → carrinho → formas de pagamento → concluir. Exige turno aberto
-// (FR-002); baixa/custo/troco vêm do domínio via WASM (paridade com o PDV).
-import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { toast } from "sonner";
-import { Clock, ShoppingCart } from "lucide-react";
-import { Button } from "@livraria/ui/ui/button";
-import { EntradaProduto, type LivroBusca } from "@/components/EntradaProduto";
-import { Carrinho } from "@/components/Carrinho";
-import { FormasPagamento } from "@/components/FormasPagamento";
-import { VendaConcluida } from "@/components/VendaConcluida";
+import { useCallback, useEffect, useState } from "react";
+import { ReceiptText, RefreshCw } from "lucide-react";
+import { Button } from "@livraria/ui/wowdash/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@livraria/ui/wowdash/table";
 import { LoadFailure } from "@/components/LoadFailure";
-import { parseBRLInput } from "@/lib/brl";
+import { listarVendasDoDia, type VendaResumo } from "@/lib/nuvem/venda";
 import { reais } from "@/utils/texto";
-import { listarLivros } from "@/lib/nuvem/livro";
-import { listarSaldos } from "@/lib/nuvem/estoque";
-import { listarFormas, type Forma } from "@/lib/nuvem/forma";
-import { turnoAberto, type TurnoAberto } from "@/lib/nuvem/turno";
-import { registrarVenda, listarVendasDoDia, type ItemVenda, type VendaResultado, type VendaResumo } from "@/lib/nuvem/venda";
 
-export default function VendaPage() {
+export default function VendasPage() {
+  const [vendas, setVendas] = useState<VendaResumo[]>([]);
+  const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
-  const [erroCarregamento, setErroCarregamento] = useState<string | null>(null);
-  const [turno, setTurno] = useState<TurnoAberto | null>(null);
-  const [livros, setLivros] = useState<LivroBusca[]>([]);
-  const [formas, setFormas] = useState<Forma[]>([]);
-  const [itens, setItens] = useState<ItemVenda[]>([]);
-  const [valores, setValores] = useState<Map<string, string>>(new Map());
-  const [busca, setBusca] = useState("");
-  const [concluida, setConcluida] = useState<VendaResultado | null>(null);
-  const [ocupado, setOcupado] = useState(false);
-  const [aba, setAba] = useState<"venda" | "lista">("venda");
-  const [vendasDia, setVendasDia] = useState<VendaResumo[]>([]);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  async function carregarBase() {
-    setCarregando(true);
-    setErroCarregamento(null);
+  const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null);
+  const carregar = useCallback(async () => {
     try {
-      const [t, ls, saldos, fs] = await Promise.all([turnoAberto(), listarLivros(), listarSaldos(), listarFormas()]);
-      setTurno(t);
-      setLivros(ls.map((l) => ({ sync_uid: l.sync_uid, codigo: l.codigo, titulo: l.titulo, autor: l.autor, preco_centavos: l.preco_centavos, estoque: saldos.get(l.sync_uid) ?? 0 })));
-      setFormas(fs.filter((f) => f.ativa));
+      setVendas(await listarVendasDoDia());
+      setErro(null);
+      setAtualizadoEm(new Date());
     } catch (error) {
-      setErroCarregamento(error instanceof Error ? error.message : "Não foi possível carregar a venda.");
+      setErro(error instanceof Error ? error.message : "Vendas indisponíveis.");
     } finally {
       setCarregando(false);
     }
-  }
-  useEffect(() => {
-    carregarBase();
   }, []);
 
-  const totalCentavos = useMemo(() => itens.reduce((s, i) => s + i.precoCentavos * i.qtd, 0), [itens]);
-  const pagoCentavos = useMemo(() => [...valores.values()].reduce((s, v) => s + parseBRLInput(v), 0), [valores]);
+  useEffect(() => {
+    void carregar();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") void carregar();
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [carregar]);
 
-  function adicionar(l: LivroBusca) {
-    setItens((prev) => {
-      const ex = prev.find((i) => i.codigo === l.codigo);
-      if (ex) return prev.map((i) => (i.codigo === l.codigo ? { ...i, qtd: i.qtd + 1 } : i));
-      return [...prev, { livroUid: l.sync_uid, codigo: l.codigo, titulo: l.titulo, precoCentavos: l.preco_centavos, qtd: 1 }];
-    });
-    setBusca("");
-    inputRef.current?.focus();
-  }
-  function codigoExato() {
-    const l = livros.find((x) => x.codigo === busca.trim());
-    if (l) adicionar(l);
-    else toast.error("Livro não encontrado.");
-  }
-  function alterarQtd(codigo: string, delta: number) {
-    setItens((prev) => prev.map((i) => (i.codigo === codigo ? { ...i, qtd: Math.max(1, i.qtd + delta) } : i)));
-  }
-  function remover(codigo: string) {
-    setItens((prev) => prev.filter((i) => i.codigo !== codigo));
-  }
-  function setValor(uid: string, v: string) {
-    setValores((prev) => new Map(prev).set(uid, v));
-  }
-
-  async function concluir() {
-    if (!turno) return;
-    setOcupado(true);
-    const pagamentos = formas
-      .map((f) => ({ formaUid: f.sync_uid, valorCentavos: parseBRLInput(valores.get(f.sync_uid) ?? "") }))
-      .filter((p) => p.valorCentavos > 0);
-    const { error, resultado } = await registrarVenda({ turnoUid: turno.sync_uid, itens, pagamentos });
-    setOcupado(false);
-    if (error) return toast.error(error);
-    setConcluida(resultado!);
-    setItens([]);
-    setValores(new Map());
-    carregarBase();
-  }
-
-  function novaVenda() {
-    setConcluida(null);
-    inputRef.current?.focus();
-  }
-
-  if (carregando) return <div className="p-6 text-muted-foreground text-sm">Carregando…</div>;
-
-  if (erroCarregamento) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-5 px-4 py-5 sm:p-6 lg:py-7">
-        <div>
-          <div className="section-kicker mb-1">Operação</div>
-          <h1>Venda</h1>
-        </div>
-        <LoadFailure title="Não foi possível carregar a venda" message={erroCarregamento} onRetry={carregarBase} />
+  return <div className="space-y-4 px-4 py-5 sm:p-6">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 className="flex items-center gap-2 text-xl font-semibold"><ReceiptText size={20} /> Vendas dos PDVs</h1>
+        <p className="text-muted-foreground mt-1 text-sm">Vendas de hoje recebidas da sincronização.{atualizadoEm && ` Atualizado às ${atualizadoEm.toLocaleTimeString("pt-BR")}.`}</p>
       </div>
-    );
-  }
-
-  if (!turno) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-5 px-4 py-5 sm:p-6 lg:py-7">
-        <div>
-          <div className="section-kicker mb-1">Operação</div>
-          <h1>Venda</h1>
-        </div>
-        <div className="admin-panel space-y-3 border bg-card p-6 text-center">
-          <Clock className="text-muted-foreground mx-auto" size={40} />
-          <h2 className="font-semibold">Nenhum turno aberto</h2>
-          <p className="text-muted-foreground text-sm">Abra um turno antes de registrar vendas.</p>
-          <Button asChild className="h-9">
-            <Link href="/turnos">Abrir turno</Link>
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (concluida) {
-    return (
-      <div className="px-4 py-4 sm:p-6">
-        <VendaConcluida resultado={concluida} onNova={novaVenda} />
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-5xl space-y-4 px-4 py-4 sm:p-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
-          <ShoppingCart size={20} /> Venda
-        </h1>
-        <div className="flex flex-wrap gap-1 text-sm">
-          <Aba ativa={aba === "venda"} onClick={() => setAba("venda")}>Venda</Aba>
-          <Aba ativa={aba === "lista"} onClick={() => { setAba("lista"); listarVendasDoDia().then(setVendasDia); }}>Lista de vendas</Aba>
-        </div>
-      </div>
-
-      {aba === "lista" ? (
-        <ListaVendas vendas={vendasDia} />
-      ) : (
-        <div className="grid gap-4 md:grid-cols-[1fr_20rem]">
-          <div className="space-y-3">
-            <EntradaProduto value={busca} onChange={setBusca} onSelecionar={adicionar} onCodigoExato={codigoExato} inputRef={inputRef} livros={livros} />
-            <div className="bg-card rounded-lg border p-3">
-              <Carrinho itens={itens} onQtd={alterarQtd} onRemover={remover} />
-            </div>
-          </div>
-          <div className="bg-card space-y-4 rounded-lg border p-4">
-            <FormasPagamento formas={formas} valores={valores} onValor={setValor} totalCentavos={totalCentavos} pagoCentavos={pagoCentavos} />
-            <Button onClick={concluir} disabled={ocupado || itens.length === 0} className="h-10 w-full">
-              Concluir venda · {reais(totalCentavos)}
-            </Button>
-          </div>
-        </div>
-      )}
+      <Button variant="outline" onClick={() => void carregar()} aria-label="Atualizar vendas" title="Atualizar vendas"><RefreshCw size={16} /> Atualizar</Button>
     </div>
-  );
-}
-
-function Aba({ ativa, onClick, children }: { ativa: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick} className={`rounded-md px-3 py-1.5 ${ativa ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted/60"}`}>
-      {children}
-    </button>
-  );
-}
-
-function ListaVendas({ vendas }: { vendas: VendaResumo[] }) {
-  if (vendas.length === 0) return <p className="text-muted-foreground text-sm">Nenhuma venda hoje.</p>;
-  return (
-    <div className="bg-card divide-y rounded-lg border">
-      {vendas.map((v) => (
-        <div key={v.sync_uid} className={`flex flex-wrap items-center justify-between gap-2 p-2 text-sm ${v.cancelado ? "opacity-50 line-through" : ""}`}>
-          <span className="text-muted-foreground">Nº {v.numeroNoTurno ?? v.numero}</span>
-          <span className="flex-1 px-3 truncate">{v.cliente}</span>
-          <span className="tabular-nums font-medium">{reais(v.totalCentavos)}</span>
-        </div>
-      ))}
+    {erro && <LoadFailure title="Não foi possível atualizar as vendas" message={erro} onRetry={carregar} />}
+    <div className="overflow-hidden rounded-lg border bg-card">
+      <div className="border-b px-4 py-3 text-sm font-semibold">Últimas vendas recebidas <span className="text-muted-foreground font-normal">· {vendas.length}</span></div>
+      <Table>
+        <TableHeader><TableRow className="bg-muted/40">
+          <TableHead className="px-4">Pedido</TableHead><TableHead>Máquina / operador</TableHead>
+          <TableHead className="hidden sm:table-cell">Cliente</TableHead><TableHead className="hidden md:table-cell">Recebida</TableHead>
+          <TableHead className="px-4 text-right">Total</TableHead>
+        </TableRow></TableHeader>
+        <TableBody>
+          {vendas.map((venda) => <TableRow key={venda.sync_uid}>
+            <TableCell className="px-4 font-medium">Nº {venda.numeroNoTurno ?? venda.numero}</TableCell>
+            <TableCell><div>{venda.maquina}</div><div className="text-muted-foreground text-xs">{venda.operador}</div></TableCell>
+            <TableCell className="hidden sm:table-cell">{venda.cliente}</TableCell>
+            <TableCell className="hidden md:table-cell">{new Date(venda.recebidoEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</TableCell>
+            <TableCell className="px-4 text-right tabular-nums"><span className={venda.cancelado ? "text-muted-foreground line-through" : ""}>{reais(venda.totalCentavos)}</span>{venda.cancelado && <span className="block text-xs text-red-600">Cancelada</span>}</TableCell>
+          </TableRow>)}
+          {!carregando && vendas.length === 0 && <TableRow><TableCell colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma venda recebida hoje.</TableCell></TableRow>}
+        </TableBody>
+      </Table>
+      {carregando && <p className="p-8 text-center text-sm text-muted-foreground">Carregando vendas…</p>}
     </div>
-  );
+  </div>;
 }

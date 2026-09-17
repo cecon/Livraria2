@@ -10,7 +10,6 @@ import {
   Package,
   ReceiptText,
   Search,
-  ShoppingCart,
   type LucideIcon,
 } from "lucide-react";
 import { StockBadge } from "@/components/StockBadge";
@@ -26,13 +25,13 @@ const PERIODOS: { id: PeriodoDash; rotulo: string }[] = [
 ];
 
 const ACOES = [
-  { to: "/venda", rotulo: "Nova Venda", Icon: ShoppingCart, destaque: true },
+  { to: "/venda", rotulo: "Vendas dos PDVs", Icon: ReceiptText, destaque: false },
   { to: "/cadastro", rotulo: "Cadastrar Livro", Icon: BookPlus, destaque: false },
   { to: "/pesquisa", rotulo: "Pesquisar", Icon: Search, destaque: false },
   { to: "/relatorios", rotulo: "Relatórios", Icon: FileBarChart, destaque: false },
 ];
 
-// Início / Dashboard (US2) — paridade com o PDV.
+// Painel de acompanhamento do escritório.
 export default function Inicio() {
   const [dash, setDash] = useState<DashboardDia | null>(null);
   const [periodo, setPeriodo] = useState<PeriodoDash>("hoje");

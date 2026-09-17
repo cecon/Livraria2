@@ -19,7 +19,7 @@ export class ReportsService {
       select l.codigo, l.titulo, l.categoria, l.preco_centavos as preco,
         coalesce(sum(m.qtd) filter (where m.excluido_em is null),0)::bigint as saldo
       from public.livro l left join public.movimento_estoque m on m.livro_uid=l.sync_uid
-      where l.excluido_em is null group by l.sync_uid order by l.titulo`;
+      where l.excluido_em is null and l.ativo group by l.sync_uid order by l.titulo`;
     const items = rows.map(row => ({ codigo: row.codigo, titulo: row.titulo, categoria: row.categoria,
       precoCentavos: integer(row.preco, "Preco"), estoque: integer(row.saldo, "Saldo"),
       valorCentavos: integer(row.preco * row.saldo, "Valor do estoque") }));
@@ -95,7 +95,7 @@ export class ReportsService {
     const stocks = await this.db.$queryRaw<{ codigo: string; titulo: string; autor: string | null; saldo: bigint }[]>`
       select l.codigo,l.titulo,l.autor,coalesce(sum(m.qtd) filter(where m.excluido_em is null),0)::bigint saldo
       from public.livro l left join public.movimento_estoque m on m.livro_uid=l.sync_uid
-      where l.excluido_em is null group by l.sync_uid order by saldo asc,l.titulo`;
+      where l.excluido_em is null and l.ativo group by l.sync_uid order by saldo asc,l.titulo`;
     const totalStock = stocks.reduce((sum, row) => sum + row.saldo, 0n);
     return { vendasCentavos: integer(sales, "Vendas"), itensVendidos: integer(itemCount, "Itens"),
       ticketMedioCentavos: valid.length ? integer((sales + BigInt(Math.floor(valid.length / 2))) /
