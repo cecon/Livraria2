@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { FileDown, FileSpreadsheet, MessageCircle } from "lucide-react";
+import { ArrowLeft, FileDown, FileSpreadsheet, MessageCircle } from "lucide-react";
 import { Button } from "@livraria/ui/ui/button";
 import { Input } from "@livraria/ui/ui/input";
 import { Label } from "@livraria/ui/ui/label";
@@ -113,22 +113,27 @@ export default function RelatoriosPage() {
   if (vendas || estoque || dest) {
     return (
       <div className={`mx-auto px-4 py-4 sm:p-6 ${estoque ? "max-w-7xl" : "max-w-3xl"}`}>
-        <div className="mb-4 flex flex-wrap gap-2 print:hidden">
-          <Button variant="outline" onClick={voltar}>← Voltar</Button>
-          <Button variant="outline" className="ml-auto" disabled={exportando}
+        <div className="mb-4 flex flex-nowrap items-center gap-2 print:hidden">
+          <Button variant="outline" onClick={voltar} aria-label="Voltar aos relatórios" title="Voltar aos relatórios"
+            className="h-11 w-11 px-0 sm:h-8 sm:w-auto sm:px-2.5">
+            <ArrowLeft size={16} aria-hidden="true" /><span className="hidden sm:inline">Voltar</span>
+          </Button>
+          <Button variant="outline" className="ml-auto h-11 w-11 px-0 sm:h-8 sm:w-auto sm:px-2.5"
+            aria-label="Baixar Excel" disabled={exportando}
             onClick={estoque ? () => exportarEstoque("xlsx") : exportarExcel}
             title={estoque ? "Baixar planilha Excel" : "Baixar em Excel (CSV)"}>
-            <FileSpreadsheet size={15} /> Excel
+            <FileSpreadsheet size={16} aria-hidden="true" /><span className="hidden sm:inline">Excel</span>
           </Button>
-          <Button variant="outline" disabled={exportando}
+          <Button variant="outline" className="h-11 w-11 px-0 sm:h-8 sm:w-auto sm:px-2.5"
+            aria-label="Baixar PDF" disabled={exportando}
             onClick={estoque ? () => exportarEstoque("pdf") : () => window.print()}
             title={estoque ? "Baixar PDF" : "Imprimir ou salvar em PDF"}>
-            <FileDown size={15} /> PDF
+            <FileDown size={16} aria-hidden="true" /><span className="hidden sm:inline">PDF</span>
           </Button>
-          <Button variant="outline" disabled={exportando}
+          <Button variant="outline" className="h-11 px-2.5 sm:h-8" disabled={exportando}
             onClick={estoque ? compartilharEstoque : exportarWhatsApp}
             title={estoque ? "Compartilhar PDF pelo celular" : "Compartilhar resumo por WhatsApp"}>
-            <MessageCircle size={15} /> WhatsApp
+            <MessageCircle size={16} aria-hidden="true" /> WhatsApp
           </Button>
         </div>
         {vendas && <VendasView rel={vendas} />}
