@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, FileDown, FileSpreadsheet, MessageCircle } from "lucide-react";
 import { Button } from "@livraria/ui/ui/button";
@@ -46,6 +46,7 @@ export default function RelatoriosPage() {
   const [dest, setDest] = useState<RelatorioDestinacoes | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [exportando, setExportando] = useState(false);
+  const compartilhando = useRef(false);
   const [pdfParaCompartilhar, setPdfParaCompartilhar] = useState<File | null>(null);
 
   useEffect(() => {
@@ -93,12 +94,14 @@ export default function RelatoriosPage() {
   }
 
   async function compartilharEstoque() {
+    if (compartilhando.current) return;
+    compartilhando.current = true;
     setExportando(true);
     try {
       const result = await shareStockPdf(pdfParaCompartilhar ?? undefined);
       if (result === "downloaded") toast.info("PDF baixado. Anexe o arquivo no WhatsApp.");
     } catch (error) { toast.error(error instanceof Error ? error.message : "Falha ao gerar PDF."); }
-    finally { setExportando(false); }
+    finally { compartilhando.current = false; setExportando(false); }
   }
 
   function exportarExcel() {
