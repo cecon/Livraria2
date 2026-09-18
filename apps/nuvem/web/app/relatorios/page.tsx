@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { FileSpreadsheet, MessageCircle, Printer } from "lucide-react";
+import { FileDown, FileSpreadsheet, MessageCircle } from "lucide-react";
 import { Button } from "@livraria/ui/ui/button";
 import { Input } from "@livraria/ui/ui/input";
 import { Label } from "@livraria/ui/ui/label";
-import { CATEGORIAS } from "@/lib/catalogo";
 import { reais } from "@/utils/texto";
+import { StockReportView } from "@/components/StockReportView";
+import { downloadStockFile, fetchStockFile, shareStockPdf, type StockFormat } from "@/lib/nuvem/stock-export";
 import {
   relatorioVendas,
   relatorioEstoque,
@@ -21,8 +22,6 @@ import {
   compartilharWhatsApp,
   csvVendas,
   txtVendas,
-  csvEstoque,
-  txtEstoque,
   csvDestinacoes,
   txtDestinacoes,
 } from "@/lib/nuvem/exportar";
@@ -46,6 +45,16 @@ export default function RelatoriosPage() {
   const [estoque, setEstoque] = useState<RelatorioEstoque | null>(null);
   const [dest, setDest] = useState<RelatorioDestinacoes | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  const [exportando, setExportando] = useState(false);
+  const [pdfParaCompartilhar, setPdfParaCompartilhar] = useState<File | null>(null);
+
+  useEffect(() => {
+    if (!estoque) { setPdfParaCompartilhar(null); return; }
+    let current = true;
+    setPdfParaCompartilhar(null);
+    fetchStockFile("pdf").then((file) => { if (current) setPdfParaCompartilhar(file); }).catch(() => {});
+    return () => { current = false; };
+  }, [estoque]);
 
   function voltar() {
     setVendas(null);
@@ -76,34 +85,54 @@ export default function RelatoriosPage() {
     }
   }
 
+  async function exportarEstoque(formato: StockFormat) {
+    setExportando(true);
+    try { downloadStockFile(await fetchStockFile(formato)); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Falha na exportação."); }
+    finally { setExportando(false); }
+  }
+
+  async function compartilharEstoque() {
+    setExportando(true);
+    try {
+      const result = await shareStockPdf(pdfParaCompartilhar ?? undefined);
+      if (result === "downloaded") toast.info("PDF baixado. Anexe o arquivo no WhatsApp.");
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Falha ao gerar PDF."); }
+    finally { setExportando(false); }
+  }
+
   function exportarExcel() {
     if (vendas) baixarCSV(`vendas-${vendas.data}.csv`, csvVendas(vendas));
-    else if (estoque) baixarCSV(`estoque-${hojeIso()}.csv`, csvEstoque(estoque));
     else if (dest) baixarCSV(`destinacoes-${dest.inicio}.csv`, csvDestinacoes(dest));
   }
   function exportarWhatsApp() {
     if (vendas) compartilharWhatsApp(txtVendas(vendas));
-    else if (estoque) compartilharWhatsApp(txtEstoque(estoque));
     else if (dest) compartilharWhatsApp(txtDestinacoes(dest));
   }
 
   if (vendas || estoque || dest) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-4 sm:p-6">
+      <div className={`mx-auto px-4 py-4 sm:p-6 ${estoque ? "max-w-7xl" : "max-w-3xl"}`}>
         <div className="mb-4 flex flex-wrap gap-2 print:hidden">
           <Button variant="outline" onClick={voltar}>← Voltar</Button>
-          <Button variant="outline" className="ml-auto" onClick={exportarExcel} title="Baixar em Excel (CSV)">
+          <Button variant="outline" className="ml-auto" disabled={exportando}
+            onClick={estoque ? () => exportarEstoque("xlsx") : exportarExcel}
+            title={estoque ? "Baixar planilha Excel" : "Baixar em Excel (CSV)"}>
             <FileSpreadsheet size={15} /> Excel
           </Button>
-          <Button variant="outline" onClick={() => window.print()} title="Imprimir ou salvar em PDF">
-            <Printer size={15} /> PDF
+          <Button variant="outline" disabled={exportando}
+            onClick={estoque ? () => exportarEstoque("pdf") : () => window.print()}
+            title={estoque ? "Baixar PDF" : "Imprimir ou salvar em PDF"}>
+            <FileDown size={15} /> PDF
           </Button>
-          <Button variant="outline" onClick={exportarWhatsApp} title="Compartilhar resumo por WhatsApp">
+          <Button variant="outline" disabled={exportando}
+            onClick={estoque ? compartilharEstoque : exportarWhatsApp}
+            title={estoque ? "Compartilhar PDF pelo celular" : "Compartilhar resumo por WhatsApp"}>
             <MessageCircle size={15} /> WhatsApp
           </Button>
         </div>
         {vendas && <VendasView rel={vendas} />}
-        {estoque && <EstoqueView rel={estoque} />}
+        {estoque && <StockReportView report={estoque} />}
         {dest && <DestinacoesView rel={dest} />}
       </div>
     );
@@ -215,42 +244,6 @@ function VendasView({ rel }: { rel: RelatorioVendas }) {
           <span>Total das Vendas (todas as formas)</span>
           <span>{reais(rel.resumo.subtotalCentavos)}</span>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function EstoqueView({ rel }: { rel: RelatorioEstoque }) {
-  const cat = (id: number) => CATEGORIAS.find((c) => c.id === id)?.nome ?? String(id);
-  return (
-    <div>
-      <h2 className="text-lg font-semibold">Relatório de Estoque</h2>
-      <p className="text-muted-foreground text-sm">{rel.titulos} títulos · Valor em estoque: {reais(rel.valorTotalCentavos)}</p>
-      <div className="overflow-x-auto">
-      <table className="mt-3 w-full text-sm">
-        <thead className="text-muted-foreground text-[11px] uppercase">
-          <tr className="border-b text-left">
-            <th className="py-1">Código</th>
-            <th>Título</th>
-            <th>Categoria</th>
-            <th className="text-right">Preço</th>
-            <th className="text-right">Estoque</th>
-            <th className="text-right">Valor</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rel.itens.map((i) => (
-            <tr key={i.codigo} className="border-b">
-              <td className="py-1 font-mono text-[12px]">{i.codigo}</td>
-              <td className="max-w-[220px] truncate">{i.titulo}</td>
-              <td className="text-[12px]">{cat(i.categoria)}</td>
-              <td className="text-right font-mono">{reais(i.precoCentavos)}</td>
-              <td className="text-right font-mono">{i.estoque}</td>
-              <td className="text-right font-mono">{reais(i.valorCentavos)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
       </div>
     </div>
   );
