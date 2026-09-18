@@ -27,10 +27,11 @@ export async function shareStockPdf(preloaded?: File): Promise<"shared" | "downl
   const file = preloaded ?? await fetchStockFile("pdf");
   if (navigator.canShare?.({ files: [file] }) && navigator.share) {
     try {
-      await navigator.share({ files: [file], title: "Relatorio de estoque" });
+      await navigator.share({ files: [file] });
       return "shared";
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return "cancelled";
+      throw error;
     }
   }
   downloadStockFile(file);
