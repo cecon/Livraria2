@@ -70,6 +70,29 @@ async function upstreamError(response: Response) {
 }
 
 export async function publicPdvProxy(request: NextRequest, path: string[]) {
+  if (request.method === "POST" && path.join("/") === "produtos/autorizacao") {
+    const text = await request.text();
+    if (text.length > 1000) return NextResponse.json({ erro: "Dados excessivos." }, { status: 413 });
+    try {
+      const body = JSON.parse(text);
+      if (typeof body.usuario !== "string" || typeof body.senha !== "string") throw new Error();
+      const session = await apiLogin(body.usuario.trim().toLowerCase(), body.senha);
+      return NextResponse.json({ accessToken: session.accessToken }, { headers: { "cache-control": "no-store" } });
+    } catch {
+      return NextResponse.json({ erro: "Informe um administrador ativo." }, { status: 403 });
+    }
+  }
+  if (request.method === "POST" && path.join("/") === "produtos") {
+    return forward(request, "produtos-pdv", true);
+  }
+  if (request.method === "GET" && path.join("/") === "produtos/codigo") {
+    const codigo = request.nextUrl.searchParams.get("codigo") ?? "";
+    if (!codigo.trim() || codigo.length > 100) return NextResponse.json({ erro: "Código inválido." }, { status: 400 });
+    return forward(request, `produtos-pdv/codigo?codigo=${encodeURIComponent(codigo)}`, true);
+  }
+  if (request.method === "GET" && path.length === 2 && path[0] === "produtos" && UUID.test(path[1])) {
+    return forward(request, `produtos-pdv/${path[1]}`, true);
+  }
   if (request.method === "POST" && path.join("/") === "configurar") return configure(request);
   if (request.method === "POST" && path.join("/") === "renovar") {
     return forward(request, "auth/pdv/renovar", false);

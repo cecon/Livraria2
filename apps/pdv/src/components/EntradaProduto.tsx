@@ -10,18 +10,22 @@ import { buscarPorTexto } from "@/lib/ipc";
 import type { Livro } from "@/lib/types";
 
 interface Props {
+  disabled?: boolean;
   value: string;
   onChange: (v: string) => void;
   onSelecionar: (livro: Livro) => void;
   onCodigoExato: () => void;
+  onPagamento: (direcao: -1 | 1) => void;
   inputRef: RefObject<HTMLInputElement | null>;
 }
 
 export function EntradaProduto({
+  disabled = false,
   value,
   onChange,
   onSelecionar,
   onCodigoExato,
+  onPagamento,
   inputRef,
 }: Props) {
   const [resultados, setResultados] = useState<Livro[]>([]);
@@ -29,27 +33,34 @@ export function EntradaProduto({
   const timer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
+    let active = true;
     window.clearTimeout(timer.current);
     const t = value.trim();
-    if (t.length < 2) {
+    if (disabled || t.length < 2) {
       setResultados([]);
       return;
     }
     timer.current = window.setTimeout(async () => {
       try {
-        setResultados((await buscarPorTexto(t)).slice(0, 10));
-        setAtivo(0);
+        const encontrados = await buscarPorTexto(t);
+        if (active) {
+          setResultados(encontrados.slice(0, 10));
+          setAtivo(0);
+        }
       } catch {
-        setResultados([]);
+        if (active) setResultados([]);
       }
     }, 160);
-    return () => window.clearTimeout(timer.current);
-  }, [value]);
+    return () => {
+      active = false;
+      window.clearTimeout(timer.current);
+    };
+  }, [value, disabled]);
 
   function aoEnter() {
     const t = value.trim();
     // Código numérico (leitor de código de barras): resolve direto.
-    if (/^\d+$/.test(t) && resultados.length === 0) {
+    if (/^\d+$/.test(t)) {
       onCodigoExato();
       return;
     }
@@ -65,11 +76,17 @@ export function EntradaProduto({
   return (
     <div className="relative flex-1">
       <Input
+        disabled={disabled}
         ref={inputRef}
         value={value}
         autoFocus
         onChange={(e) => onChange(e.currentTarget.value)}
         onKeyDown={(e) => {
+          if (!value.trim() && (e.key === "Enter" || e.key === "ArrowDown" || e.key === "ArrowUp")) {
+            e.preventDefault();
+            onPagamento(e.key === "ArrowUp" ? -1 : 1);
+            return;
+          }
           if (e.key === "Enter") {
             e.preventDefault();
             aoEnter();

@@ -4,9 +4,27 @@ import {
   paraCentavos,
   pagamentosParaPayload,
   parseRascunho,
+  quantidadeDoAtalho,
   somaPagamentos,
   type Pagamentos,
 } from "./venda";
+
+describe("quantidadeDoAtalho", () => {
+  it("interpreta quantidade seguida de asterisco", () => {
+    expect(quantidadeDoAtalho("2*")).toBe(2);
+    expect(quantidadeDoAtalho("12*")).toBe(12);
+  });
+
+  it("nao confunde ISBN ou busca com atalho", () => {
+    expect(quantidadeDoAtalho("9786585995887")).toBeUndefined();
+    expect(quantidadeDoAtalho("2 aventuras")).toBeUndefined();
+  });
+
+  it("rejeita quantidades invalidas", () => {
+    expect(quantidadeDoAtalho("0*")).toBeNull();
+    expect(quantidadeDoAtalho("99999999999999999*")).toBeNull();
+  });
+});
 
 describe("paraCentavos", () => {
   it("mantém inteiro", () => {

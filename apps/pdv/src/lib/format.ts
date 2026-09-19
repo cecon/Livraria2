@@ -30,14 +30,11 @@ export function digitosParaCentavos(entrada: string): number {
 
 /** "1.234,56" | "30" | "R$ 30,5" -> centavos (inteiro). null se inválido. */
 export function parseBrlParaCentavos(entrada: string): number | null {
-  const limpo = entrada
-    .replace(/[R$\s]/g, "")
-    .replace(/\./g, "")
-    .replace(",", ".");
-  if (limpo === "") return null;
-  const n = Number(limpo);
-  if (!Number.isFinite(n)) return null;
-  return Math.round(n * 100);
+  const limpo = entrada.trim().replace(/^R\$\s*/, "").replace(/\s/g, "");
+  if (!/^(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?$/.test(limpo)) return null;
+  const [reais, centavos = ""] = limpo.split(",");
+  const total = BigInt(reais.replace(/\./g, "")) * 100n + BigInt(centavos.padEnd(2, "0") || "0");
+  return total <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(total) : null;
 }
 
 /** Remove acento e caixa para busca: "Bíblia" -> "biblia" (espelha domain::texto). */

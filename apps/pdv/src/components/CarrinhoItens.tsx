@@ -1,7 +1,7 @@
-// Tabela de itens do PDV (US1): título, preço, stepper de qtd, total, remover.
-
 import { Minus, Plus, ScanBarcode, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@livraria/ui/wowdash/button";
+import { Card, CardContent } from "@livraria/ui/wowdash/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@livraria/ui/wowdash/table";
 import { brl } from "@/lib/format";
 
 export interface ItemCarrinho {
@@ -17,67 +17,44 @@ interface Props {
   onRemover: (codigo: string) => void;
 }
 
-const GRID = "grid grid-cols-[1fr_96px_128px_100px_52px]";
-
 export function CarrinhoItens({ itens, onAlterar, onRemover }: Props) {
-  return (
-    <div className="bg-card flex-1 overflow-auto rounded-xl border">
-      <div
-        className={`${GRID} text-muted-foreground border-b px-4 py-2 text-[11px] uppercase`}
-      >
-        <span>Título</span>
-        <span className="text-right">Preço</span>
-        <span className="text-center">Quantidade</span>
-        <span className="text-right">Total</span>
-        <span />
-      </div>
-
-      {itens.length === 0 ? (
-        <div className="flex h-full min-h-48 flex-col items-center justify-center gap-2 p-8 text-center">
-          <ScanBarcode size={40} className="text-[#1f7a4d] opacity-70" aria-hidden />
-          <div className="text-lg font-semibold tracking-tight">Caixa livre</div>
-          <div className="text-muted-foreground text-sm">
-            Bipe um código de barras ou busque pelo título para iniciar a venda.
-          </div>
-        </div>
-      ) : (
-        itens.map((i) => (
-          <div key={i.codigo} className={`${GRID} items-center border-b px-4 py-2 text-sm`}>
-            <div className="min-w-0">
-              <div className="truncate">{i.titulo}</div>
-              <div className="text-muted-foreground font-mono text-[11px]">{i.codigo}</div>
-            </div>
-            <span className="text-right font-mono">{brl(i.precoCentavos)}</span>
+  return <Card className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden rounded-lg py-0">
+    <CardContent className="flex min-h-0 flex-1 flex-col overflow-auto px-0">
+      <Table className="min-w-[650px] border-separate border-spacing-0">
+        <TableHeader className="[&_th]:border-b [&_th]:border-neutral-200 dark:[&_th]:border-slate-600"><TableRow className="border-0">
+          <TableHead className="h-12 bg-neutral-100 px-4 dark:bg-slate-700">Título</TableHead>
+          <TableHead className="h-12 bg-neutral-100 px-4 text-right dark:bg-slate-700">Preço</TableHead>
+          <TableHead className="h-12 bg-neutral-100 px-4 text-center dark:bg-slate-700">Quantidade</TableHead>
+          <TableHead className="h-12 bg-neutral-100 px-4 text-right dark:bg-slate-700">Total</TableHead>
+          <TableHead className="h-12 bg-neutral-100 px-4 text-center dark:bg-slate-700"><span className="sr-only">Ações</span></TableHead>
+        </TableRow></TableHeader>
+        <TableBody className="[&_td]:border-b [&_td]:border-neutral-200 dark:[&_td]:border-slate-600">{itens.map((item) => <TableRow key={item.codigo}>
+          <TableCell className="min-w-52 px-4 py-3">
+            <div className="font-medium">{item.titulo}</div>
+            <div className="text-xs text-muted-foreground">{item.codigo}</div>
+          </TableCell>
+          <TableCell className="px-4 py-3 text-right tabular-nums">{brl(item.precoCentavos)}</TableCell>
+          <TableCell className="px-4 py-3">
             <div className="flex items-center justify-center gap-1">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => onAlterar(i.codigo, -1)}
-              >
-                <Minus size={14} />
-              </Button>
-              <span className="w-8 text-center font-mono">{i.qtd}</span>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => onAlterar(i.codigo, 1)}
-              >
-                <Plus size={14} />
-              </Button>
+              <Button type="button" variant="outline" size="icon" className="size-8" aria-label={`Diminuir quantidade de ${item.titulo}`}
+                onClick={() => onAlterar(item.codigo, -1)} disabled={item.qtd <= 1}><Minus /></Button>
+              <span className="w-8 text-center tabular-nums">{item.qtd}</span>
+              <Button type="button" variant="outline" size="icon" className="size-8" aria-label={`Aumentar quantidade de ${item.titulo}`}
+                onClick={() => onAlterar(item.codigo, 1)}><Plus /></Button>
             </div>
-            <span className="text-right font-mono">{brl(i.precoCentavos * i.qtd)}</span>
-            <button
-              onClick={() => onRemover(i.codigo)}
-              className="text-rose-500 hover:text-rose-600"
-              title="Remover"
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-        ))
-      )}
-    </div>
-  );
+          </TableCell>
+          <TableCell className="px-4 py-3 text-right font-medium tabular-nums">{brl(item.precoCentavos * item.qtd)}</TableCell>
+          <TableCell className="px-4 py-3 text-center">
+            <Button type="button" variant="ghost" size="icon" className="size-8 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-600/20"
+              aria-label={`Remover ${item.titulo}`} title="Remover item" onClick={() => onRemover(item.codigo)}><Trash2 /></Button>
+          </TableCell>
+        </TableRow>)}</TableBody>
+      </Table>
+      {itens.length === 0 ? <div className="flex min-h-48 flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
+        <ScanBarcode size={40} className="text-brand opacity-70" aria-hidden="true" />
+        <div className="text-base font-semibold">Caixa livre</div>
+        <p className="text-sm text-muted-foreground">Bipe um código de barras ou busque pelo título para iniciar a venda.</p>
+      </div> : null}
+    </CardContent>
+  </Card>;
 }

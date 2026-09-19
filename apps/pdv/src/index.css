@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@source "../../../packages/ui/src";
 
 /* Tokens do design system (ADR-0020) — fonte única em @livraria/ui. */
 @import "../../../packages/ui/theme.css";

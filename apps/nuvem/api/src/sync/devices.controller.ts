@@ -99,8 +99,34 @@ export class DevicesController {
       select d.uid::text, d.nome, d.ativo, d.usuario_uid::text as "usuarioUid",
         u.usuario, u.nome as "usuarioNome", d.cursor_aplicado::text as "cursorAplicado",
         d.cursor_entregue::text as "cursorEntregue", d.confirmado_em as "confirmadoEm",
-        c.sequencia::text as "cursorDisponivel"
+        c.sequencia::text as "cursorDisponivel", t.status as "turnoStatus",
+        t.abertura as "turnoAbertura", t.encerramento as "turnoEncerramento",
+        operador.usuario as "turnoOperador", coalesce(v.quantidade, 0)::integer as "vendasTurno",
+        coalesce(v.total_centavos, 0)::text as "totalTurnoCentavos",
+        coalesce(t.caixa_inicial_centavos, 0)::text as "caixaInicialCentavos",
+        coalesce(m.suprimentos, 0)::text as "suprimentosCentavos",
+        coalesce(m.sangrias, 0)::text as "sangriasCentavos",
+        t.esperado_centavos::text as "esperadoCentavos",
+        t.conferido_centavos::text as "conferidoCentavos",
+        t.diferenca_centavos::text as "diferencaCentavos"
       from public.nuvem_pdv d join public.usuario u on u.sync_uid=d.usuario_uid
-      cross join public.nuvem_sync_contador c order by d.nome limit 1000`;
+      cross join public.nuvem_sync_contador c
+      left join lateral (
+        select sync_uid, operador_uid, status, abertura, encerramento,
+          caixa_inicial_centavos, esperado_centavos, conferido_centavos, diferenca_centavos
+        from public.turno_operacao where pdv_uid=d.uid and excluido_em is null
+        order by abertura desc limit 1
+      ) t on true
+      left join public.usuario operador on operador.sync_uid=t.operador_uid
+      left join lateral (
+        select count(*) as quantidade, coalesce(sum(total_centavos),0)::bigint as total_centavos
+        from public.pedido where turno_uid=t.sync_uid and not cancelado and excluido_em is null
+      ) v on true
+      left join lateral (
+        select coalesce(sum(valor_centavos) filter (where tipo='suprimento'),0)::bigint as suprimentos,
+          coalesce(sum(valor_centavos) filter (where tipo='sangria'),0)::bigint as sangrias
+        from public.caixa_movimento where turno_uid=t.sync_uid
+      ) m on true
+      order by d.nome limit 1000`;
   }
 }

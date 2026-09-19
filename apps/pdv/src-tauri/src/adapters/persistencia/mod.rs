@@ -1,4 +1,5 @@
 //! Adapter de persistência: conexão SQLite (SeaORM) e aplicação das migrations.
+pub mod produto_pontual;
 
 pub mod destinacao_repasse_sql;
 pub mod destinacao_repo;
@@ -12,6 +13,7 @@ pub mod livro_repo;
 pub mod pagamento_pedido_sql;
 pub mod pedido_repo;
 pub mod pedido_sql;
+pub mod pedido_turno_sql;
 pub mod relatorio_repo;
 pub mod turno_repo;
 pub mod usuario_repo;
@@ -70,5 +72,9 @@ pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     crate::migration::m013::aplicar(db).await?;
     crate::migration::m014::aplicar(db).await?;
     crate::migration::m_api_v1::aplicar(db).await?;
+    crate::migration::m015::aplicar(db).await?;
+    crate::migration::m016::aplicar(db).await?;
+    crate::migration::m017::aplicar(db).await?;
+    crate::migration::m018::aplicar(db).await?;
     Ok(())
 }

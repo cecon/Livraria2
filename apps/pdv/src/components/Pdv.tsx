@@ -6,35 +6,29 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import {
-  Banknote,
-  Church,
-  CreditCard,
-  Gift,
-  QrCode,
-  Wallet,
-  type LucideIcon,
-} from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PaymentRow } from "@/components/PaymentRow";
+import { Card, CardContent, CardHeader } from "@livraria/ui/wowdash/card";
+import { ResumoPedido } from "./ResumoPedido";
 import { EntradaProduto } from "@/components/EntradaProduto";
 import { CarrinhoItens, type ItemCarrinho } from "@/components/CarrinhoItens";
 import { VendaConcluida, type VendaConcluidaInfo } from "@/components/VendaConcluida";
 import { brl } from "@/lib/format";
 import { operadorAtual } from "@/lib/operador";
+import { vendaEmAndamento, guardarVenda } from "@/lib/venda-em-andamento";
+import { useProdutoNaVenda } from "./produtos/useProdutoNaVenda";
+import { usePaymentNavigation } from "@/lib/usePaymentNavigation";
 import {
-  RASCUNHO_KEY,
   pagamentosParaPayload,
   paraCentavos,
-  parseRascunho,
+  quantidadeDoAtalho,
   somaPagamentos,
   type Pagamentos,
 } from "@/lib/venda";
 import type { FormaPagamento, Livro } from "@/lib/types";
 import {
   listarFormasAtivas,
-  livroPorCodigo,
   proximoNumeroPedido,
   registrarVenda,
   turnoAberto,
@@ -42,19 +36,8 @@ import {
   type TurnoAberto,
 } from "@/lib/ipc";
 
-/** Ícone por chave estável; formas criadas pelo usuário caem no genérico. */
-const ICONES: Record<string, LucideIcon> = {
-  credito: CreditCard,
-  debito: CreditCard,
-  dinheiro: Banknote,
-  pix: QrCode,
-  pix_igreja: Church,
-  ministerio: Church,
-  vale: Gift,
-};
-
 export function Pdv() {
-  const inicial = parseRascunho(localStorage.getItem(RASCUNHO_KEY));
+  const inicial = vendaEmAndamento();
   const [numero, setNumero] = useState<number | null>(null);
   const [formas, setFormas] = useState<FormaPagamento[]>([]);
   const [cliente, setCliente] = useState(inicial?.cliente ?? "CLIENTE");
@@ -67,6 +50,8 @@ export function Pdv() {
   const [turno, setTurno] = useState<TurnoAberto | null>(null);
   const [turnoCarregado, setTurnoCarregado] = useState(false);
   const codigoRef = useRef<HTMLInputElement>(null);
+  const recebendoRef = useRef(false);
+  const { registrarCampo, focarPagamento } = usePaymentNavigation(formas, codigoRef);
 
   useEffect(() => {
     proximoNumeroPedido().then(setNumero).catch(() => setNumero(null));
@@ -83,7 +68,7 @@ export function Pdv() {
 
   // Salva o rascunho a cada mudança (sobrevive a reinício/atualização).
   useEffect(() => {
-    localStorage.setItem(RASCUNHO_KEY, JSON.stringify({ cliente, itens, pag }));
+    guardarVenda({ cliente, itens, pag });
   }, [cliente, itens, pag]);
 
   const dinheiro = useMemo(
@@ -101,6 +86,20 @@ export function Pdv() {
 
   function focarCodigo() {
     setTimeout(() => codigoRef.current?.focus(), 0);
+  }
+
+  function alterarCodigo(valor: string) {
+    const quantidade = quantidadeDoAtalho(valor);
+    if (quantidade === undefined) {
+      setCodigo(valor);
+      return;
+    }
+    setCodigo("");
+    if (quantidade === null) {
+      toast.error("Informe uma quantidade positiva válida antes de *.");
+      return;
+    }
+    setQtd(String(quantidade));
   }
 
   function qtdAtual() {
@@ -121,28 +120,11 @@ export function Pdv() {
         { codigo: livro.codigo, titulo: livro.titulo, precoCentavos: livro.precoCentavos, qtd: q },
       ];
     });
-    const saldoOperacional = livro.saldoOperacional ?? livro.estoque;
-    toast.info(`Saldo operacional: ${saldoOperacional}`);
     setQtd("1");
   }
 
-  async function adicionar() {
-    const cod = codigo.trim();
-    if (!cod) return;
-    try {
-      const livro = await livroPorCodigo(cod);
-      if (!livro) {
-        toast.error(`Código ${cod} não encontrado`);
-        return;
-      }
-      inserirNoCarrinho(livro, qtdAtual());
-      setCodigo("");
-    } catch (e) {
-      toast.error((e as ErroIpc).mensagem ?? "Erro ao buscar o livro");
-    } finally {
-      focarCodigo();
-    }
-  }
+  const produtoNaVenda = useProdutoNaVenda(inserirNoCarrinho, () => { setCodigo(""); focarCodigo(); });
+  function adicionar() { return produtoNaVenda.adicionar(codigo, qtdAtual()); }
 
   function alterarQtd(cod: string, delta: number) {
     setItens((atual) =>
@@ -166,6 +148,7 @@ export function Pdv() {
   }
 
   async function receber() {
+    if (recebendoRef.current || produtoNaVenda.bloqueado) return;
     if (!turno) {
       toast.error("Abra um turno antes de vender.");
       return;
@@ -182,6 +165,7 @@ export function Pdv() {
       toast.error("O troco só pode sair do dinheiro. Ajuste as formas de pagamento.");
       return;
     }
+    recebendoRef.current = true;
     setOcupado(true);
     try {
       const r = await registrarVenda({
@@ -206,64 +190,69 @@ export function Pdv() {
             (e instanceof Error ? e.message : JSON.stringify(e)));
       toast.error(msg || "Erro ao receber o pedido");
     } finally {
+      recebendoRef.current = false;
       setOcupado(false);
       focarCodigo();
     }
   }
 
   return (
-    <div className="grid h-full grid-cols-[1fr_356px] gap-5 p-5">
+    <div className="grid min-h-full grid-cols-1 gap-5 p-5 lg:h-full lg:grid-cols-[minmax(0,1fr)_356px]">
       <div className="flex min-w-0 flex-col gap-4">
         {turnoCarregado && !turno && (
           <div className="flex items-center gap-3 rounded-lg border border-amber-500 bg-amber-50 px-4 py-2 text-sm text-amber-800">
             <span className="flex-1">Nenhum turno aberto. Abra um turno para registrar vendas.</span>
-            <Link to="/turnos" className="rounded-md bg-[#1f7a4d] px-3 py-1.5 text-white hover:bg-[#1a6a43]">
-              Abrir turno
+            <Link to="/" className="rounded-md bg-[#1f7a4d] px-3 py-1.5 text-white hover:bg-[#1a6a43]">
+              Ir ao início
             </Link>
           </div>
         )}
-        <div className="flex items-center gap-3">
-          <span className="bg-muted rounded-md px-2 py-1 font-mono text-xs">
-            Pedido Nº {numero ?? "—"}
-          </span>
-          <Input
-            value={cliente}
-            onChange={(e) => setCliente(e.currentTarget.value)}
-            className="ml-auto h-9 w-56"
-            placeholder="Cliente"
-          />
-        </div>
-
-        <div className="flex items-end gap-2">
-          <div className="w-20">
-            <label className="text-muted-foreground text-[11px] uppercase">Qtd.</label>
+        <Card className="gap-0 rounded-lg py-0">
+          <CardHeader className="flex flex-wrap items-center gap-3 border-b px-4 py-3 sm:px-5">
+            <span className="bg-muted rounded-md px-2 py-1 font-mono text-xs">
+              Pedido Nº {numero ?? "—"}
+            </span>
             <Input
-              value={qtd}
-              onChange={(e) => setQtd(e.currentTarget.value)}
-              inputMode="numeric"
-              className="h-9 text-center font-mono"
+              value={cliente}
+              onChange={(e) => setCliente(e.currentTarget.value)}
+              className="ml-auto h-9 w-full sm:w-56"
+              placeholder="Cliente"
+              aria-label="Cliente"
             />
-          </div>
-          <div className="flex-1">
-            <label className="text-muted-foreground text-[11px] uppercase">
-              Código, título ou autor
-            </label>
-            <EntradaProduto
-              value={codigo}
-              onChange={setCodigo}
-              inputRef={codigoRef}
-              onCodigoExato={adicionar}
-              onSelecionar={(l) => {
-                inserirNoCarrinho(l, qtdAtual());
-                setCodigo("");
-                focarCodigo();
-              }}
-            />
-          </div>
-          <Button onClick={adicionar} className="h-9">
-            Adicionar
-          </Button>
-        </div>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-end gap-2 p-4 sm:p-5">
+            <div className="w-20">
+              <label className="text-muted-foreground text-[11px] uppercase">Qtd.</label>
+              <Input
+                value={qtd}
+                onChange={(e) => setQtd(e.currentTarget.value)}
+                inputMode="numeric"
+                className="h-9 text-center font-mono"
+              />
+            </div>
+            <div className="min-w-40 flex-1">
+              <label className="text-muted-foreground text-[11px] uppercase">
+                Código, título ou autor
+              </label>
+              <EntradaProduto
+                disabled={produtoNaVenda.bloqueado || ocupado}
+                value={codigo}
+                onChange={alterarCodigo}
+                inputRef={codigoRef}
+                onCodigoExato={adicionar}
+                onPagamento={(direcao) => focarPagamento(direcao === 1 ? 0 : formas.length - 1)}
+                onSelecionar={(l) => {
+                  inserirNoCarrinho(l, qtdAtual());
+                  setCodigo("");
+                  focarCodigo();
+                }}
+              />
+            </div>
+            <Button disabled={produtoNaVenda.bloqueado || ocupado} onClick={adicionar} className="h-9">
+              Adicionar
+            </Button>
+          </CardContent>
+        </Card>
 
         <div className="relative flex min-h-0 flex-1 flex-col">
           <CarrinhoItens itens={itens} onAlterar={alterarQtd} onRemover={remover} />
@@ -273,53 +262,13 @@ export function Pdv() {
         </div>
       </div>
 
-      <aside className="bg-card flex flex-col gap-3 rounded-xl border p-5">
-        <div className="text-muted-foreground text-[13px]">
-          Resumo do Pedido Nº {numero ?? "—"} · {cliente}
-        </div>
-        <div className="text-muted-foreground text-xs">
-          Títulos: {itens.length} · Itens: {totalItens}
-        </div>
-        <div className="font-mono text-2xl font-bold">{brl(totalCentavos)}</div>
-
-        <div className="bg-muted/40 space-y-2 rounded-lg p-3">
-          <div className="text-muted-foreground text-[11px] uppercase">Formas de Pagamento</div>
-          {formas.map((f) => (
-            <PaymentRow
-              key={f.id}
-              rotulo={f.rotulo}
-              Icon={ICONES[f.chave] ?? Wallet}
-              valor={paraCentavos(pag[f.id])}
-              onChange={(t) => setPag((p) => ({ ...p, [f.id]: t }))}
-              onReceberRestante={() => receberRestante(f.id)}
-              restanteCentavos={restante}
-            />
-          ))}
-        </div>
-
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Pago</span>
-          <span className="font-mono">{brl(pagoCentavos)}</span>
-        </div>
-        <div className="flex justify-between text-sm font-medium">
-          <span>{troco > 0 ? "Troco" : "Restante"}</span>
-          <span className={`font-mono ${troco > 0 ? "text-emerald-600" : "text-amber-600"}`}>
-            {brl(troco > 0 ? troco : restante)}
-          </span>
-        </div>
-
-        <Button
-          onClick={receber}
-          disabled={ocupado || !turno}
-          title={!turno ? "Abra um turno para vender" : undefined}
-          className="mt-1 h-11 bg-[#1f7a4d] text-white hover:bg-[#1a6a43]"
-        >
-          Receber
-        </Button>
-        <Button variant="ghost" onClick={limpar} className="text-rose-500 hover:text-rose-600">
-          Apagar Pedido
-        </Button>
-      </aside>
+      <ResumoPedido numero={numero} cliente={cliente} itens={itens} totalItens={totalItens}
+        totalCentavos={totalCentavos} pagoCentavos={pagoCentavos} restante={restante} troco={troco}
+        formas={formas} pag={pag} ocupado={ocupado} bloqueado={produtoNaVenda.bloqueado} caixaAberto={!!turno}
+        onPagamento={(id, valor) => setPag((p) => ({ ...p, [id]: valor }))}
+        receberRestante={receberRestante} receber={receber} limpar={limpar}
+        registrarCampo={registrarCampo} focarPagamento={focarPagamento} />
+      {produtoNaVenda.dialog}
     </div>
   );
 }

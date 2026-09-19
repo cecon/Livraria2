@@ -16,11 +16,16 @@ use sea_orm::{
 
 pub struct SeaPedidoRepo {
     db: DatabaseConnection,
+    turno: Option<(String, String)>,
 }
 
 impl SeaPedidoRepo {
     pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+        Self { db, turno: None }
+    }
+
+    pub fn with_turno(db: DatabaseConnection, turno_uid: String, pdv_uid: String) -> Self {
+        Self { db, turno: Some((turno_uid, pdv_uid)) }
     }
 }
 
@@ -51,6 +56,9 @@ impl PedidoRepo for SeaPedidoRepo {
         let backend = txn.get_database_backend();
 
         super::pedido_sql::inserir_cabecalho_e_itens(&txn, pedido).await.map_err(erro)?;
+        if let Some((turno_uid, pdv_uid)) = &self.turno {
+            super::pedido_turno_sql::vincular(&txn, pedido.numero, turno_uid, pdv_uid).await.map_err(erro)?;
+        }
         txn.execute(Statement::from_sql_and_values(backend,
             "UPDATE item_pedido SET livro_uid=(SELECT sync_uid FROM livro WHERE codigo=item_pedido.codigo)
              WHERE pedido_numero=? AND livro_uid IS NULL", [pedido.numero.into()])).await.map_err(erro)?;

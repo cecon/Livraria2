@@ -1,212 +1,145 @@
-// Turno de operação no PDV (feature 009, ADR-0021) — abrir (caixa inicial opcional),
-// acompanhar o resumo e encerrar com fechamento de caixa (conferência só do dinheiro).
-// Mesmo conceito/regra do Escritório (domínio compartilhado); persiste local e sincroniza.
-
 import { useCallback, useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Clock, Play } from "lucide-react";
-import { operadorAtual } from "@/lib/operador";
-import { brl, parseBrlParaCentavos } from "@/lib/format";
+import { ChevronRight, House, RefreshCw } from "lucide-react";
+import { Badge } from "@livraria/ui/wowdash/badge";
+import { Button } from "@livraria/ui/wowdash/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@livraria/ui/wowdash/card";
+import { Label } from "@livraria/ui/ui/label";
+import { CaixaMovimentos } from "@/components/CaixaMovimentos";
+import { ValorCentavosInput } from "@/components/ValorCentavosInput";
+import { brl } from "@/lib/format";
 import { listarFormasAtivas } from "@/lib/ipc_formas";
-import {
-  turnoAberto,
-  turnoAbrir,
-  turnoResumo,
-  turnoEncerrar,
-  turnoListar,
-  type TurnoAberto,
-  type ResumoTurno,
-  type TurnoHistorico,
-} from "@/lib/ipc";
+import { listarOperadores, turnoEncerrar, turnoResumo, type ResumoTurno, type TurnoAberto } from "@/lib/ipc";
 
-export default function Turnos() {
-  const operador = operadorAtual();
-  const [carregando, setCarregando] = useState(true);
-  const [turno, setTurno] = useState<TurnoAberto | null>(null);
+export default function Turnos({ turno, onClosed }: { turno: TurnoAberto; onClosed: () => void }) {
+  const { search } = useLocation();
+  const navigate = useNavigate();
+  const tipoInicial = new URLSearchParams(search).get("movimento") === "suprimento" ? "suprimento" : "sangria";
   const [resumo, setResumo] = useState<ResumoTurno | null>(null);
   const [rotulos, setRotulos] = useState<Map<number, string>>(new Map());
-  const [historico, setHistorico] = useState<TurnoHistorico[]>([]);
-  const [caixa, setCaixa] = useState("");
-  const [conferido, setConferido] = useState("");
-  const [encerrando, setEncerrando] = useState(false);
+  const [dinheiroFormaId, setDinheiroFormaId] = useState<number | null>(null);
+  const [responsavel, setResponsavel] = useState(turno.operador);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(false);
+  const [encerrando, setEncerrando] = useState(() => new URLSearchParams(search).get("encerrar") === "1");
+  const [conferidoCentavos, setConferidoCentavos] = useState(0);
+  const [conferenciaIniciada, setConferenciaIniciada] = useState(false);
   const [ocupado, setOcupado] = useState(false);
 
   const carregar = useCallback(async () => {
-    if (!operador) {
-      setCarregando(false);
-      return;
-    }
     setCarregando(true);
     try {
-      const [aberto, formas] = await Promise.all([turnoAberto(operador), listarFormasAtivas()]);
-      setRotulos(new Map(formas.map((f) => [f.id, f.rotulo])));
-      setTurno(aberto);
-      setResumo(aberto ? await turnoResumo(aberto.syncUid) : null);
-      setHistorico(await turnoListar(operador));
-    } catch (e) {
-      toast.error(String(e));
-    } finally {
-      setCarregando(false);
-    }
-  }, [operador]);
+      const [dados, formas] = await Promise.all([turnoResumo(turno.syncUid), listarFormasAtivas()]);
+      setResumo(dados);
+      setRotulos(new Map(formas.map((forma) => [forma.id, forma.rotulo])));
+      setDinheiroFormaId(formas.find((forma) => forma.chave === "dinheiro")?.id ?? null);
+      setErro(false);
+    } catch {
+      setErro(true);
+    } finally { setCarregando(false); }
+  }, [turno.syncUid]);
 
+  useEffect(() => { void carregar(); }, [carregar]);
   useEffect(() => {
-    carregar();
-  }, [carregar]);
-
-  async function abrir() {
-    setOcupado(true);
-    try {
-      await turnoAbrir(operador, parseBrlParaCentavos(caixa) ?? 0);
-      toast.success("Turno aberto");
-      setCaixa("");
-      await carregar();
-    } catch (e) {
-      toast.error(String(e));
-    } finally {
-      setOcupado(false);
-    }
-  }
+    if (new URLSearchParams(search).get("encerrar") === "1") setEncerrando(true);
+  }, [search]);
+  useEffect(() => {
+    let ativo = true;
+    setResponsavel(turno.operador);
+    listarOperadores().then((operadores) => {
+      const usuario = operadores.find((item) => item.usuario.toLowerCase() === turno.operador.toLowerCase());
+      if (ativo) setResponsavel(usuario?.nome || turno.operador);
+    }).catch(() => {});
+    return () => { ativo = false; };
+  }, [turno.operador]);
 
   async function encerrar() {
-    if (!turno) return;
+    if (!conferenciaIniciada || !resumo || carregando || erro) return toast.error("Atualize e confira o dinheiro antes de fechar o caixa.");
     setOcupado(true);
     try {
-      const f = await turnoEncerrar(turno.syncUid, parseBrlParaCentavos(conferido) ?? 0);
-      toast.success(f.diferencaCentavos === 0 ? "Turno encerrado — caixa confere" : `Turno encerrado — diferença de ${brl(Math.abs(f.diferencaCentavos))}`);
-      setEncerrando(false);
-      setConferido("");
-      await carregar();
-    } catch (e) {
-      toast.error(String(e));
-    } finally {
-      setOcupado(false);
-    }
+      const fechamento = await turnoEncerrar(turno.syncUid, conferidoCentavos);
+      toast.success(fechamento.diferencaCentavos === 0 ? "Caixa confere" :
+        `Diferença de ${brl(Math.abs(fechamento.diferencaCentavos))}`);
+      onClosed();
+    } catch (error) { toast.error(String(error)); }
+    finally { setOcupado(false); }
   }
 
-  if (!operador) {
-    return (
-      <div className="mx-auto max-w-2xl p-6">
-        <div className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
-          Selecione o operador do caixa (barra lateral) para usar o turno.
-        </div>
-      </div>
-    );
-  }
+  const esperado = resumo?.esperadoDinheiroCentavos ?? turno.caixaInicialCentavos;
+  const dinheiroVendas = resumo?.porForma.find(([id]) => id === dinheiroFormaId)?.[1] ?? 0;
+  const diferenca = conferidoCentavos - esperado;
 
-  const esperado = resumo?.esperadoDinheiroCentavos ?? turno?.caixaInicialCentavos ?? 0;
-  const dif = (parseBrlParaCentavos(conferido) ?? 0) - esperado;
-
-  return (
-    <div className="mx-auto max-w-2xl space-y-4 p-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
-          <Clock size={20} /> Turno de operação
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Abra um turno antes de vender. As vendas ficam contidas no turno e numeradas em sequência própria;
-          ao encerrar, confira o caixa (dinheiro).
-        </p>
-      </div>
-
-      {carregando ? (
-        <p className="text-sm text-muted-foreground">Carregando…</p>
-      ) : !turno ? (
-        <div className="space-y-3 rounded-lg border bg-card p-4">
-          <div className="text-sm font-medium">Nenhum turno aberto</div>
-          <label className="block text-sm">
-            Caixa inicial (opcional)
-            <input
-              value={caixa}
-              onChange={(e) => setCaixa(e.currentTarget.value)}
-              onKeyDown={(e) => e.key === "Enter" && abrir()}
-              placeholder="R$ 0,00"
-              className="mt-1 h-9 w-full rounded-md border bg-background px-3"
-            />
-          </label>
-          <button onClick={abrir} disabled={ocupado} className="inline-flex h-9 items-center gap-2 rounded-md bg-[#1f7a4d] px-4 text-sm text-white hover:bg-[#1a6a43] disabled:opacity-60">
-            <Play size={15} /> Abrir turno
-          </button>
-        </div>
-      ) : encerrando && resumo ? (
-        <div className="space-y-4 rounded-lg border bg-card p-4">
-          <div className="text-sm font-medium">Fechamento de caixa</div>
-          <div className="space-y-1 text-sm">
-            {resumo.porForma.length === 0 ? (
-              <p className="text-muted-foreground">Nenhuma venda no turno.</p>
-            ) : (
-              resumo.porForma.map(([id, c]) => (
-                <div key={id} className="flex justify-between">
-                  <span>{rotulos.get(id) ?? `Forma ${id}`}</span>
-                  <span className="tabular-nums">{brl(c)}</span>
-                </div>
-              ))
-            )}
-          </div>
-          <div className="space-y-2 border-t pt-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Dinheiro esperado</span>
-              <span className="font-medium tabular-nums">{brl(esperado)}</span>
-            </div>
-            <label className="block">
-              Dinheiro conferido (contagem física)
-              <input value={conferido} autoFocus onChange={(e) => setConferido(e.currentTarget.value)} placeholder="R$ 0,00" className="mt-1 h-9 w-full rounded-md border bg-background px-3" />
-            </label>
-            {conferido.trim() !== "" && (
-              <div className={`flex justify-between ${dif === 0 ? "text-emerald-600" : "text-amber-600"}`}>
-                <span>{dif === 0 ? "Confere" : dif > 0 ? "Sobra" : "Falta"}</span>
-                <span className="font-medium tabular-nums">{brl(Math.abs(dif))}</span>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <button onClick={encerrar} disabled={ocupado} className="h-9 rounded-md bg-[#1f7a4d] px-4 text-sm text-white hover:bg-[#1a6a43] disabled:opacity-60">Encerrar turno</button>
-            <button onClick={() => setEncerrando(false)} disabled={ocupado} className="h-9 rounded-md px-4 text-sm hover:bg-muted">Cancelar</button>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-3 rounded-lg border bg-card p-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-medium">Turno aberto</div>
-            <span className="text-xs text-muted-foreground">desde {new Date(turno.abertura).toLocaleString("pt-BR")}</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-sm">
-            <Stat rotulo="Caixa inicial" valor={brl(turno.caixaInicialCentavos)} />
-            <Stat rotulo="Vendas" valor={String(resumo?.qtdVendas ?? 0)} />
-            <Stat rotulo="Dinheiro esperado" valor={brl(esperado)} />
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setEncerrando(true)} className="h-9 rounded-md bg-[#1f7a4d] px-4 text-sm text-white hover:bg-[#1a6a43]">Encerrar turno</button>
-            <button onClick={carregar} className="h-9 rounded-md px-4 text-sm hover:bg-muted">Atualizar</button>
-          </div>
-        </div>
-      )}
-
-      {historico.filter((t) => t.status === "encerrado").length > 0 && (
-        <div className="space-y-1">
-          <div className="text-xs uppercase text-muted-foreground">Turnos encerrados</div>
-          {historico
-            .filter((t) => t.status === "encerrado")
-            .map((t, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg border bg-card p-2 text-sm">
-                <span className="text-muted-foreground">{new Date(t.abertura).toLocaleDateString("pt-BR")}</span>
-                <span className="tabular-nums">esperado {brl(t.esperadoCentavos ?? 0)}</span>
-                <span className={`tabular-nums ${(t.diferencaCentavos ?? 0) === 0 ? "text-emerald-600" : "text-amber-600"}`}>
-                  {(t.diferencaCentavos ?? 0) === 0 ? "confere" : `dif. ${brl(Math.abs(t.diferencaCentavos ?? 0))}`}
-                </span>
-              </div>
-            ))}
-        </div>
-      )}
+  return <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h1 className="text-2xl font-semibold">{encerrando ? "Encerrar turno" : "Movimentos de caixa"}</h1>
+      <nav aria-label="Navegação da página" className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link to="/" className="flex items-center gap-2 hover:text-brand"><House size={16} /> Início</Link>
+        <ChevronRight size={15} aria-hidden="true" /><span className="font-medium text-foreground" aria-current="page">{encerrando ? "Encerrar turno" : "Movimentos de caixa"}</span>
+      </nav>
     </div>
-  );
+
+    <Card className="gap-0 rounded-lg py-0">
+      <CardHeader className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <CardTitle className="text-lg font-semibold">Caixa aberto</CardTitle>
+          <Badge variant="success">Aberto</Badge>
+        </div>
+        <Button type="button" variant="outline" size="icon" onClick={() => void carregar()} disabled={carregando}
+          title="Atualizar turno" aria-label="Atualizar turno"><RefreshCw className={carregando ? "animate-spin" : ""} /></Button>
+      </CardHeader>
+      <CardContent className="space-y-6 p-6">
+        <div className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <Stat label="Responsável" value={responsavel} />
+          <Stat label="Aberto em" value={new Date(turno.abertura).toLocaleString("pt-BR")} />
+          <Stat label="Troco inicial" value={brl(turno.caixaInicialCentavos)} />
+          <Stat label="Vendas" value={resumo ? String(resumo.qtdVendas) : "—"} />
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-5">
+          <div><p className="text-sm text-muted-foreground">Dinheiro esperado no caixa</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">{resumo ? brl(esperado) : "—"}</p></div>
+          {!encerrando ? <Button type="button" className="h-11 bg-brand px-6 text-white hover:bg-brand-600"
+            onClick={() => setEncerrando(true)} disabled={!resumo || erro}>Fechar caixa</Button> : null}
+        </div>
+        {carregando && !resumo ? <p className="text-sm text-muted-foreground">Carregando turno…</p> : null}
+        {erro ? <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
+          <span>Não foi possível atualizar o turno.</span>
+          <Button type="button" variant="outline" size="sm" onClick={() => void carregar()}><RefreshCw /> Tentar novamente</Button>
+        </div> : null}
+        {encerrando ? <div className="space-y-5 border-t pt-5">
+          <h2 className="text-base font-semibold">Conferência de fechamento</h2>
+          <div className="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
+            {resumo?.porForma.filter(([id]) => id !== dinheiroFormaId).map(([id, cents]) => <div key={id} className="flex justify-between gap-3 border-b py-2">
+              <span>{rotulos.get(id) ?? `Forma ${id}`}</span><span className="tabular-nums">{brl(cents)}</span>
+            </div>)}
+            <div className="flex justify-between gap-3 border-b py-2"><span>Troco inicial</span><span className="tabular-nums">{brl(turno.caixaInicialCentavos)}</span></div>
+            <div className="flex justify-between gap-3 border-b py-2"><span>Dinheiro das vendas</span><span className="tabular-nums">+{brl(dinheiroVendas)}</span></div>
+            <div className="flex justify-between gap-3 border-b py-2"><span>Suprimentos adicionais</span><span className="tabular-nums">+{brl(resumo?.suprimentosCentavos ?? 0)}</span></div>
+            <div className="flex justify-between gap-3 border-b py-2"><span>Sangrias</span><span>-{brl(resumo?.sangriasCentavos ?? 0)}</span></div>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4 text-sm font-semibold">
+            <span>Esperado na gaveta</span><span className="tabular-nums">{resumo ? brl(esperado) : "—"}</span>
+          </div>
+          <div className="max-w-sm"><Label htmlFor="conferido" className="mb-2">Dinheiro na gaveta (conferido)</Label>
+            <ValorCentavosInput id="conferido" autoFocus className="h-12 px-4" centavos={conferidoCentavos}
+              onCentavosChange={(centavos) => { setConferidoCentavos(centavos); setConferenciaIniciada(true); }} />
+          </div>
+          {conferenciaIniciada ? <p className="text-sm">{diferenca === 0 ? "Confere" : diferenca > 0 ? "Sobra" : "Falta"}: {brl(Math.abs(diferenca))}</p> : null}
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" className="h-10 bg-brand text-white hover:bg-brand-600" onClick={() => void encerrar()}
+              disabled={ocupado || !conferenciaIniciada || !resumo || carregando || erro}>Confirmar fechamento</Button>
+            <Button type="button" variant="outline" onClick={() => { setEncerrando(false); navigate("/", { replace: true }); }} disabled={ocupado}>Cancelar</Button>
+          </div>
+        </div> : null}
+      </CardContent>
+    </Card>
+
+    {!encerrando ? <CaixaMovimentos turnoUid={turno.syncUid} operador={turno.operador} saldo={esperado}
+      tipoInicial={tipoInicial} onRegistrar={carregar} /> : null}
+  </div>;
 }
 
-function Stat({ rotulo, valor }: { rotulo: string; valor: string }) {
-  return (
-    <div className="rounded-md bg-muted/40 p-2">
-      <div className="text-[11px] uppercase text-muted-foreground">{rotulo}</div>
-      <div className="font-medium tabular-nums">{valor}</div>
-    </div>
-  );
+function Stat({ label, value }: { label: string; value: string }) {
+  return <div className="min-w-0"><p className="text-sm text-muted-foreground">{label}</p>
+    <p className="mt-1 break-words font-semibold tabular-nums">{value}</p></div>;
 }

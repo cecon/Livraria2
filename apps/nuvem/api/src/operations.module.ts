@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common";
+import { PdvProductsController } from "./admin/pdv-products.controller";
+import { PdvProductsService } from "./admin/pdv-products.service";
 import { JwtModule } from "@nestjs/jwt";
 import { AuthController } from "./auth/auth.controller";
 import { AuthService } from "./auth/auth.service";
@@ -53,10 +55,10 @@ import { ApiThrottlerGuard } from "./auth/api-throttler.guard";
       },
     }),
   ],
-  controllers: [AuthController, DevicesController, CatalogController, SalesController, ShiftSyncController, CashSyncController, BooksController,
+  controllers: [PdvProductsController, AuthController, DevicesController, CatalogController, SalesController, ShiftSyncController, CashSyncController, BooksController,
     FormsController, SuppliersController, UsersController, DestinationsController, StockController,
     EntriesController, ShiftsController, AdminSalesController, ReportsController],
-  providers: [AuthService, AuthGuard, SalesService, ShiftSyncService, CashSyncService, BooksService, FormsService, SuppliersService,
+  providers: [PdvProductsService, AuthService, AuthGuard, SalesService, ShiftSyncService, CashSyncService, BooksService, FormsService, SuppliersService,
     UsersService, DestinationsService, StockService, EntriesService, ShiftsService, AdminSalesService,
     ReportsService,
     { provide: APP_GUARD, useClass: ApiThrottlerGuard }],

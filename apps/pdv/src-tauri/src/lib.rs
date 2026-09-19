@@ -3,6 +3,7 @@
 pub mod adapters;
 pub mod application;
 pub mod commands;
+pub mod commands_produtos;
 pub mod commands_destinacao;
 pub mod commands_estoque;
 pub mod commands_formas;
@@ -10,6 +11,8 @@ pub mod commands_machine;
 pub mod commands_sync;
 pub mod commands_turno;
 pub mod sync_dispatch;
+pub mod shift_sync;
+pub mod cash_sync;
 // Domínio extraído para o crate `livraria-domain` (ADR-0022). Re-exporta como
 // `crate::domain` para manter todas as referências existentes (`crate::domain::…`).
 pub use livraria_domain as domain;
@@ -106,11 +109,15 @@ pub fn run() {
             commands_turno::turno_abrir,
             commands_turno::turno_resumo,
             commands_turno::turno_encerrar,
-            commands_turno::turno_listar,
+            commands_turno::caixa_movimento_registrar,
+            commands_turno::caixa_movimentos_listar,
             commands_turno::vendas_do_turno,
             commands::livro_por_codigo,
             commands::buscar_por_texto,
             commands::autenticar,
+            commands_produtos::produto_consultar,
+            commands_produtos::produtos_listar,
+            commands_produtos::produto_salvar,
             commands::relatorio_vendas,
             commands::relatorio_estoque,
             commands::excluir_pedido,
@@ -147,6 +154,9 @@ async fn sincronizacao_periodica(
                 Err(e) => eprintln!("sync falhou (segue offline): {e}"),
             }
         }
-        tokio::time::sleep(std::time::Duration::from_secs(120)).await;
+        tokio::select! {
+            _ = sync_dispatch::wait_request() => {},
+            _ = tokio::time::sleep(std::time::Duration::from_secs(60)) => {},
+        }
     }
 }

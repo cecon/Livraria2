@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { BookOpen, Moon, Sun, X } from "lucide-react";
+import { BookOpen, Moon, Settings, Sun, X } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { NAV_ITENS_PDV as ITENS } from "@livraria/ui/nav";
-import { OperadorAtual } from "./OperadorAtual";
 import { SyncStatus } from "./SyncStatus";
 import type { Tema } from "@/lib/theme";
 
 interface Props {
   tema: Tema;
+  caixaAberto: boolean;
   abertoNoMobile: boolean;
   recolhido: boolean;
   onCloseMobile: () => void;
@@ -17,6 +17,7 @@ interface Props {
 
 export function AppSidebar({
   tema,
+  caixaAberto,
   abertoNoMobile,
   recolhido,
   onCloseMobile,
@@ -75,7 +76,7 @@ export function AppSidebar({
               Operacao
             </p>
           )}
-          {ITENS.map(({ to, rotulo, Icon, end }) => (
+          {ITENS.filter((item) => caixaAberto || ["/", "/produtos"].includes(item.to)).map(({ to, rotulo, Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -96,12 +97,15 @@ export function AppSidebar({
               {!recolhido && <span>{rotulo}</span>}
             </NavLink>
           ))}
+          <NavLink to="/configuracoes" onClick={onCloseMobile} title={recolhido ? "Configurações" : undefined}
+            className={({ isActive }) => `flex h-11 items-center rounded-md text-sm transition-colors ${recolhido ? "justify-center px-2" : "gap-3 px-3"} ${isActive ? "bg-brand text-white" : "hover:bg-brand-50 hover:text-brand dark:hover:bg-slate-700"}`}>
+            <Settings size={19} /> {!recolhido && <span>Configurações</span>}
+          </NavLink>
         </nav>
 
         <div className="border-t border-neutral-200 p-3 dark:border-slate-700">
           {!recolhido && (
             <div className="space-y-3">
-              <OperadorAtual />
               <SyncStatus />
             </div>
           )}

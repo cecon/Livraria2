@@ -11,6 +11,13 @@ export const PAG_VAZIO: Pagamentos = {};
 
 export const RASCUNHO_KEY = "eldl-venda-rascunho";
 
+export function quantidadeDoAtalho(texto: string): number | null | undefined {
+  const match = /^(\d+)\*$/.exec(texto);
+  if (!match) return undefined;
+  const quantidade = Number(match[1]);
+  return Number.isSafeInteger(quantidade) && quantidade > 0 ? quantidade : null;
+}
+
 export interface Rascunho {
   cliente: string;
   itens: ItemCarrinho[];
