@@ -7,7 +7,7 @@
 
 ## Validacoes
 
-- [x] AgentMemory recall (tentativa; indisponibilidade não bloqueante)
+- [x] AgentMemory recall
 - [x] Desktop
 - [x] Smartphone
 - [x] Light mode
@@ -25,3 +25,4 @@ Validação reproduzível em `apps/pdv/tests/produtos-ui.cjs` com Chromium e IPC
 1440x960 e 390x844, claro/escuro, cancelar/criar/editar/contar e voltar à venda.
 Teste separado do fechamento confirma Caixa fechado, seleção de operador ao abrir e ausência
 de menu Turno. Credenciais não persistidas. A gravação real foi testada em PostgreSQL isolado.
+
