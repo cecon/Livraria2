@@ -17,6 +17,30 @@ fn erro(_: impl std::fmt::Display) -> RepoErro {
 }
 
 impl ApiSync {
+    pub async fn produto(&self, codigo: Option<&str>, uid: Option<&str>) -> Result<Value, RepoErro> {
+        let request = if let Some(codigo) = codigo {
+            self.client.get(format!("{}/produtos/codigo", self.base)).query(&[("codigo", codigo)])
+        } else {
+            let uid = uid.ok_or_else(|| erro("uid"))?;
+            uuid::Uuid::parse_str(uid).map_err(erro)?;
+            self.client.get(format!("{}/produtos/{uid}", self.base))
+        };
+        Self::resposta(request.bearer_auth(&self.token).send().await.map_err(erro)?).await
+    }
+    pub async fn enviar_movimento(&self, body: &Value) -> Result<Value, RepoErro> {
+        let response = self.client.post(format!("{}/caixa-movimentos", self.base))
+            .bearer_auth(&self.token).json(body).send().await.map_err(erro)?;
+        Self::resposta(response).await
+    }
+
+    pub async fn enviar_turno(&self, uid: &str, fechamento: bool, body: &Value) -> Result<Value, RepoErro> {
+        let path = if fechamento { format!("{}/turnos/{uid}/encerramento", self.base) }
+            else { format!("{}/turnos", self.base) };
+        let response = self.client.post(path).bearer_auth(&self.token)
+            .json(body).send().await.map_err(erro)?;
+        Self::resposta(response).await
+    }
+
     pub async fn conectar() -> Result<Self, RepoErro> {
         Self::conectar_com_config(None).await
     }

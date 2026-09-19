@@ -40,6 +40,9 @@ dist-ssr
 
 # Rust / Tauri
 target/
+apps/pdv/src-tauri/icons/64x64.png
+apps/pdv/src-tauri/icons/android/
+apps/pdv/src-tauri/icons/ios/
 **/*.rs.bk
 crates/livraria-domain/Cargo.lock
 crates/livraria-domain-wasm/Cargo.lock

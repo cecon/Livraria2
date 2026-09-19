@@ -18,14 +18,16 @@ export function bookInput(value: unknown, creating: boolean) {
   const cents = input.preco_centavos;
   const category = input.categoria;
   const initial = input.estoqueInicial ?? 0;
+  const active = input.ativo;
   if (!Number.isSafeInteger(cents) || (cents as number) < 0 ||
       !Number.isInteger(category) || (category as number) < 0 || (category as number) > 6 ||
-      !Number.isSafeInteger(initial) || (initial as number) < 0 || (!creating && initial !== 0)) {
+      !Number.isSafeInteger(initial) || (initial as number) < 0 || (!creating && initial !== 0) ||
+      (active !== undefined && typeof active !== "boolean")) {
     throw new BadRequestException("Preco, categoria ou estoque inicial invalido");
   }
   const buscaNorm = `${titulo} ${autor} ${codigo}`.normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "").toLowerCase();
   return { codigo, titulo, autor: autor || null, descricao: descricao || null,
     precoCentavos: BigInt(cents as number), categoria: category as number,
-    buscaNorm, initial: BigInt(initial as number) };
+    buscaNorm, ...(active === undefined ? {} : { ativo: active as boolean }), initial: BigInt(initial as number) };
 }

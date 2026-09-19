@@ -7,6 +7,7 @@ import { relaunch } from "@tauri-apps/plugin-process";
 export async function verificarAtualizacao(
   aoEncontrar: (versao: string, instalar: () => Promise<void>) => void,
 ): Promise<void> {
+  if (import.meta.env.DEV) return;
   try {
     const update = await check();
     if (update) {

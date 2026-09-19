@@ -73,16 +73,30 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
     const firstDevice = (await request("/pdvs", adminToken, { nome: "caixa 1", usuarioUid: operatorUid })).body;
     const secondDevice = (await request("/pdvs", adminToken, { nome: "caixa 2", usuarioUid: operatorUid })).body;
     const shiftUid = randomUUID();
-    await db.$executeRaw`insert into public.turno_operacao
-      (sync_uid,operador_uid,caixa_inicial_centavos,abertura,pdv_uid)
-      values(${shiftUid}::uuid,${operatorUid}::uuid,0,'2026-09-14T09:00:00',${firstDevice.uid}::uuid)`;
-    await assert.rejects(db.$executeRaw`insert into public.turno_operacao
-      (sync_uid,operador_uid,caixa_inicial_centavos,abertura,pdv_uid)
-      values(${randomUUID()}::uuid,${operatorUid}::uuid,0,'2026-09-14T09:00:00',${firstDevice.uid}::uuid)`);
+    const opening = { turnoUid: shiftUid, operadorUid: operatorUid,
+      caixaInicialCentavos: 0, abertura: "2026-09-14T09:00:00" };
+    const opened = await request("/sync/turnos", firstDevice.accessToken, opening);
+    assert.equal(opened.status, 201, JSON.stringify(opened.body));
+    assert.deepEqual(await request("/sync/turnos", firstDevice.accessToken, opening), opened);
+    assert.equal((await request("/sync/turnos", firstDevice.accessToken,
+      { ...opening, turnoUid: randomUUID() })).status, 409);
+    assert.equal((await request("/sync/turnos", secondDevice.accessToken, opening)).status, 409);
     const otherShiftUid = randomUUID();
-    await db.$executeRaw`insert into public.turno_operacao
-      (sync_uid,operador_uid,caixa_inicial_centavos,abertura,pdv_uid)
-      values(${otherShiftUid}::uuid,${operatorUid}::uuid,0,'2026-09-14T09:00:00',${secondDevice.uid}::uuid)`;
+    assert.equal((await request("/sync/turnos", secondDevice.accessToken,
+      { ...opening, turnoUid: otherShiftUid })).status, 201);
+    await t.test("sangria e suprimento pertencem ao turno e toleram reenvio", async () => {
+      const movement = { movimentoUid: randomUUID(), turnoUid: shiftUid, operadorUid: operatorUid,
+        tipo: "suprimento", valorCentavos: 500, motivo: "troco", criadoEm: "2026-09-14T09:10:00" };
+      const received = await request("/sync/caixa-movimentos", firstDevice.accessToken, movement);
+      assert.equal(received.status, 201, JSON.stringify(received.body));
+      assert.deepEqual(await request("/sync/caixa-movimentos", firstDevice.accessToken, movement), received);
+      assert.equal((await request("/sync/caixa-movimentos", secondDevice.accessToken, movement)).status, 409);
+      assert.equal((await request("/sync/caixa-movimentos", firstDevice.accessToken,
+        { ...movement, valorCentavos: 600 })).status, 409);
+      assert.equal((await request("/sync/caixa-movimentos", firstDevice.accessToken,
+        { ...movement, movimentoUid: randomUUID(), tipo: "sangria", valorCentavos: 200,
+          motivo: "cofre", criadoEm: "2026-09-14T09:20:00" })).status, 201);
+    });
     const sale = {
       pedidoUid: randomUUID(), numero: 6535, cliente: "CLIENTE", turno: "teste", data: "2026-09-14T10:00:00",
       totalCentavos: 6200, operadorUid: operatorUid, turnoUid: shiftUid, numeroNoTurno: 1, cancelado: false,
@@ -139,6 +153,38 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
       assert.deepEqual(await request(route, firstDevice.accessToken, {}), response);
       const balance = await db.$queryRaw`select saldo from public.vw_saldo_livro where livro_uid=${bookUid}::uuid`;
       assert.equal(balance[0].saldo, 8n);
+    });
+    await t.test("fechamento e novo turno por maquina", async () => {
+      const before = await fetch(base + "/pdvs", { headers: { authorization: "Bearer " + adminToken } });
+      const current = (await before.json()).find(m => m.uid === firstDevice.uid);
+      assert.equal(current.vendasTurno, 1);
+      assert.equal(current.totalTurnoCentavos, "6200");
+      assert.equal(current.suprimentosCentavos, "500");
+      assert.equal(current.sangriasCentavos, "200");
+      const close = { encerramento: "2026-09-14T18:00:00", esperadoCentavos: 300,
+        conferidoCentavos: 300, diferencaCentavos: 0 };
+      const route = `/sync/turnos/${shiftUid}/encerramento`;
+      assert.equal((await request(route, secondDevice.accessToken, close)).status, 404);
+      const result = await request(route, firstDevice.accessToken, close);
+      assert.equal(result.status, 201, JSON.stringify(result.body));
+      assert.deepEqual(await request(route, firstDevice.accessToken, close), result);
+      assert.equal((await request(route, firstDevice.accessToken,
+        { ...close, conferidoCentavos: 600, diferencaCentavos: 300 })).status, 409);
+      const nextUid = randomUUID();
+      assert.equal((await request("/sync/turnos", firstDevice.accessToken,
+        { ...opening, turnoUid: nextUid, abertura: "2026-09-15T09:00:00" })).status, 201);
+      const listed = await fetch(base + "/pdvs", { headers: { authorization: "Bearer " + adminToken } });
+      const machines = await listed.json();
+      const machine = machines.find(m => m.uid === firstDevice.uid);
+      assert.equal(machine.turnoStatus, "aberto");
+      assert.equal(machine.vendasTurno, 0);
+      assert.equal(machine.caixaInicialCentavos, "0");
+      assert.equal((await request(`/sync/turnos/${nextUid}/encerramento`, firstDevice.accessToken,
+        { encerramento: "2026-09-15T18:00:00", esperadoCentavos: 0,
+          conferidoCentavos: 0, diferencaCentavos: 0 })).status, 201);
+      assert.equal((await request(`/sync/turnos/${otherShiftUid}/encerramento`, secondDevice.accessToken,
+        { encerramento: "2026-09-14T18:00:00", esperadoCentavos: 0,
+          conferidoCentavos: 0, diferencaCentavos: 0 })).status, 201);
     });
     if (process.env.API_NATIVE_E2E === "true") {
       await t.test("adapter Rust conecta ao NestJS e confirma catalogo real", async () => {

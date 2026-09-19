@@ -2,15 +2,16 @@
 
 ## Status
 
-Proposto. A primeira etapa local esta implementada em branch, sem publicacao.
+Em implementacao. Livro-caixa local, sincronizacao API e acompanhamento na nuvem estao
+implementados em branch, sem publicacao. A renomeacao comercial das tabelas segue pendente.
 
 ## Contexto
 
 O PDV armazena produtos em `livro`, vendas em `pedido`, linhas em `item_pedido`
 e recebimentos em `pagamento_pedido`. Esses nomes refletem a origem do sistema,
 mas nao o modelo comercial desejado. `turno_operacao` guarda a abertura e o
-fechamento, sem trilha de sangrias e suprimentos. O protocolo API novo sincroniza
-catalogo e vendas, mas ainda nao transmite movimentos de caixa.
+fechamento. A trilha local de sangrias e suprimentos e o protocolo API para
+turnos e movimentos foram adicionados na etapa atual.
 
 ## Decisao
 
@@ -37,8 +38,8 @@ catalogo e vendas, mas ainda nao transmite movimentos de caixa.
 - A nuvem precisa receber o turno antes de aceitar a venda que o referencia;
   sem esse fluxo a FK rejeita a venda. A migracao de nuvem entra antes do novo
   cliente, e o cliente nao deve ser publicado antes do envio de turnos.
-- Ate a conclusao desse contrato, a etapa `caixa_movimento` e estritamente local
-  e nao deve ser confundida com um dado ja sincronizado.
+- O indicador de pendencias inclui turnos e movimentos ainda nao confirmados;
+  o painel da nuvem mostra somente eventos efetivamente recebidos.
 
 ## Etapas
 

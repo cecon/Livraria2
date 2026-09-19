@@ -1,9 +1,11 @@
-import { Menu, Moon, Search, Sun } from "lucide-react";
+import { Menu, Moon, Search, Sun, UserRound } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import type { Tema } from "@/lib/theme";
 
 interface Props {
   tema: Tema;
+  caixaAberto: boolean;
+  responsavel: string;
   onToggleMenu: () => void;
   onToggleTema: () => void;
 }
@@ -12,11 +14,13 @@ const TITULOS: Record<string, string> = {
   "/": "Inicio",
   "/venda": "Venda",
   "/turnos": "Turno",
+  "/abrir-caixa": "Abrir caixa",
+  "/configuracoes": "Configurações",
   "/pesquisa": "Pesquisa",
   "/relatorios": "Relatorios",
 };
 
-export function DashboardHeader({ tema, onToggleMenu, onToggleTema }: Props) {
+export function DashboardHeader({ tema, caixaAberto, responsavel, onToggleMenu, onToggleTema }: Props) {
   const { pathname } = useLocation();
 
   return (
@@ -41,15 +45,15 @@ export function DashboardHeader({ tema, onToggleMenu, onToggleTema }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Link
+      <div className="flex min-w-0 items-center gap-2">
+        {caixaAberto && <Link
           to="/pesquisa"
           className="flex h-10 items-center gap-2 rounded-md border border-neutral-200 px-3 text-sm text-neutral-600 hover:border-brand-300 hover:text-brand dark:border-slate-600 dark:text-slate-200 dark:hover:border-brand-400"
           title="Pesquisar livros"
         >
           <Search size={18} />
           <span className="hidden md:inline">Pesquisar livros</span>
-        </Link>
+        </Link>}
         <button
           type="button"
           onClick={onToggleTema}
@@ -59,6 +63,17 @@ export function DashboardHeader({ tema, onToggleMenu, onToggleTema }: Props) {
         >
           {tema === "dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
+        {caixaAberto && responsavel && (
+          <div className="flex min-w-0 items-center gap-2 border-l border-neutral-200 pl-2 dark:border-slate-600 sm:pl-3" title={`Responsável pelo caixa: ${responsavel}`}>
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-neutral-100 text-neutral-600 dark:bg-slate-700 dark:text-slate-200">
+              <UserRound size={18} aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <span className="hidden text-xs text-neutral-500 dark:text-slate-400 sm:block">Responsável pelo caixa</span>
+              <span className="block max-w-20 truncate text-sm font-semibold sm:max-w-36 lg:max-w-52">{responsavel}</span>
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );

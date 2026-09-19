@@ -1,7 +1,7 @@
 import { browserApiRequest } from "./browser-client";
 
-export async function shiftsRequest(path: string, method = "GET", body?: unknown) {
+export async function shiftsRequest(path: string) {
   return browserApiRequest<any>(`/api/turnos${path}`, {
-    method, body, fallback: "Turnos indisponíveis",
+    method: "GET", fallback: "Turnos indisponíveis",
   });
 }

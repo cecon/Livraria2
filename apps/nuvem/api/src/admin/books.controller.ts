@@ -10,9 +10,9 @@ export class BooksController {
   constructor(@Inject(BooksService) private readonly books: BooksService) {}
 
   @Get()
-  list(@Req() req: AuthRequest, @Query("after") after?: string) {
+  list(@Req() req: AuthRequest, @Query("after") after?: string, @Query("inativos") inativos?: string) {
     admin(req.principal);
-    return this.books.list(after);
+    return this.books.list(after, inativos === "1");
   }
 
   @Post()

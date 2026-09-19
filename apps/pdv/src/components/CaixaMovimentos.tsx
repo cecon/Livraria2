@@ -1,22 +1,24 @@
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { brl, parseBrlParaCentavos } from "@/lib/format";
+import { Button } from "@livraria/ui/wowdash/button";
+import { Input } from "@livraria/ui/wowdash/input";
+import { Label } from "@livraria/ui/ui/label";
+import { brl } from "@/lib/format";
+import { ValorCentavosInput } from "@/components/ValorCentavosInput";
 import { caixaMovimentoRegistrar, caixaMovimentosListar, type MovimentoCaixa } from "@/lib/ipc";
 
 type Tipo = "sangria" | "suprimento";
 
-export function CaixaMovimentos({ turnoUid, operador, saldo, onRegistrar }: {
+export function CaixaMovimentos({ turnoUid, operador, saldo, tipoInicial, onRegistrar }: {
   turnoUid: string;
   operador: string;
   saldo: number;
+  tipoInicial: Tipo;
   onRegistrar: () => Promise<void>;
 }) {
-  const [tipo, setTipo] = useState<Tipo>("sangria");
-  const [valor, setValor] = useState("");
+  const [tipo, setTipo] = useState<Tipo>(tipoInicial);
+  const [valorCentavos, setValorCentavos] = useState(0);
   const [motivo, setMotivo] = useState("");
   const [movimentos, setMovimentos] = useState<MovimentoCaixa[]>([]);
   const [ocupado, setOcupado] = useState(false);
@@ -25,22 +27,23 @@ export function CaixaMovimentos({ turnoUid, operador, saldo, onRegistrar }: {
     caixaMovimentosListar(turnoUid).then(setMovimentos).catch((e) => toast.error(String(e)));
   }, [turnoUid]);
 
+  useEffect(() => { setTipo(tipoInicial); }, [tipoInicial]);
+
   async function registrar() {
-    const centavos = parseBrlParaCentavos(valor);
-    if (centavos === null || centavos <= 0 || !motivo.trim()) {
+    if (valorCentavos <= 0 || !motivo.trim()) {
       toast.error("Informe valor positivo e motivo");
       return;
     }
-    if (tipo === "sangria" && centavos > saldo) {
+    if (tipo === "sangria" && valorCentavos > saldo) {
       toast.error("Sangria maior que o dinheiro esperado no caixa");
       return;
     }
     setOcupado(true);
     try {
-      await caixaMovimentoRegistrar(turnoUid, operador, tipo, centavos, motivo.trim());
+      await caixaMovimentoRegistrar(turnoUid, operador, tipo, valorCentavos, motivo.trim());
       setMovimentos(await caixaMovimentosListar(turnoUid));
       await onRegistrar();
-      setValor("");
+      setValorCentavos(0);
       setMotivo("");
       toast.success(tipo === "sangria" ? "Sangria registrada" : "Suprimento registrado");
     } catch (e) {
@@ -67,14 +70,13 @@ export function CaixaMovimentos({ turnoUid, operador, saldo, onRegistrar }: {
       </div>
       <div className="grid gap-3 sm:grid-cols-[10rem_1fr_auto] sm:items-end">
         <div className="space-y-1"><Label htmlFor="caixa-valor">Valor</Label>
-          <Input id="caixa-valor" value={valor} onChange={(e) => setValor(e.currentTarget.value)} inputMode="decimal"
-            placeholder="R$ 0,00" className="h-9" />
+          <ValorCentavosInput id="caixa-valor" centavos={valorCentavos} onCentavosChange={setValorCentavos} className="h-9" />
         </div>
         <div className="space-y-1"><Label htmlFor="caixa-motivo">Motivo</Label>
           <Input id="caixa-motivo" value={motivo} onChange={(e) => setMotivo(e.currentTarget.value)} maxLength={200} className="h-9" />
         </div>
         <Button type="button" size="lg" onClick={registrar} disabled={ocupado}>
-          Registrar
+          Registrar {tipo}
         </Button>
       </div>
       {movimentos.length > 0 && (

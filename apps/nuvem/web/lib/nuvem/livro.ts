@@ -11,8 +11,8 @@ export type Livro = {
   ativo: boolean;
 };
 
-export async function listarLivros(): Promise<Livro[]> {
-  return listApiBooks();
+export async function listarLivros(incluirInativos = false): Promise<Livro[]> {
+  return listApiBooks(incluirInativos);
 }
 
 export type EntradaLivro = {
@@ -23,6 +23,7 @@ export type EntradaLivro = {
   preco_centavos: number;
   categoria: number;
   descricao: string;
+  ativo?: boolean;
   estoqueInicial?: number; // só para livro NOVO — vira um movimento `saldo_inicial`.
 };
 

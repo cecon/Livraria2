@@ -116,11 +116,16 @@ pub async fn registrar_venda(
     let turno = turno::turno_aberto(&turnos, &operador)
         .await?
         .ok_or(ErroApp::Dominio(crate::domain::erros::ErroDominio::VendaSemTurno))?;
+    if !operador.eq_ignore_ascii_case(&turno.operador) {
+        return Err(ErroDto { codigo: "OPERADOR_TURNO".into(), mensagem: format!(
+            "O turno aberto pertence a {}. Selecione esse usuario para vender.", turno.operador) });
+    }
     let livros = SeaLivroRepo::new(state.db.clone());
     let pedidos = SeaPedidoRepo::with_turno(state.db.clone(), turno.sync_uid, machine.pdv_uid);
     let formas = SeaFormaPagamentoRepo::new(state.db.clone());
     let pedido =
         venda::registrar_venda(input, &livros, &pedidos, &formas, &RelogioSistema).await?;
+    crate::sync_dispatch::request_now();
 
     Ok(PedidoDto {
         numero: pedido.numero,

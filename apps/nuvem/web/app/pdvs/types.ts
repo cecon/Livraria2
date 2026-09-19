@@ -9,6 +9,18 @@ export type Machine = {
   cursorEntregue: string;
   cursorDisponivel: string;
   confirmadoEm: string | null;
+  turnoStatus: string | null;
+  turnoAbertura: string | null;
+  turnoEncerramento: string | null;
+  turnoOperador: string | null;
+  vendasTurno: number;
+  totalTurnoCentavos: string;
+  caixaInicialCentavos: string;
+  suprimentosCentavos: string;
+  sangriasCentavos: string;
+  esperadoCentavos: string | null;
+  conferidoCentavos: string | null;
+  diferencaCentavos: string | null;
 };
 
 export type MachineUser = {

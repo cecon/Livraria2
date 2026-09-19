@@ -9,6 +9,7 @@ use async_trait::async_trait;
 #[derive(Clone)]
 pub struct TurnoAbertoInfo {
     pub sync_uid: String,
+    pub operador: String,
     pub caixa_inicial_centavos: i64,
     pub abertura: String,
 }

@@ -11,6 +11,7 @@ use serde::Serialize;
 #[serde(rename_all = "camelCase")]
 pub struct TurnoAbertoDto {
     pub sync_uid: String,
+    pub operador: String,
     pub caixa_inicial_centavos: i64,
     pub abertura: String,
 }
@@ -35,16 +36,6 @@ pub struct FechamentoDto {
     pub pendencias_sync: i64,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TurnoHistoricoDto {
-    pub abertura: String,
-    pub encerramento: Option<String>,
-    pub status: String,
-    pub esperado_centavos: Option<i64>,
-    pub conferido_centavos: Option<i64>,
-    pub diferenca_centavos: Option<i64>,
-}
 
 pub async fn pendencias_sync_turno(db: &DatabaseConnection, turno_uid: &str) -> Result<i64, DbErr> {
     let backend = db.get_database_backend();
@@ -57,8 +48,9 @@ pub async fn pendencias_sync_turno(db: &DatabaseConnection, turno_uid: &str) -> 
                (SELECT COUNT(*) FROM item_pedido i JOIN pedido p ON p.numero = i.pedido_numero
                   WHERE p.turno_uid = ? AND i.sincronizado_em IS NULL) +
                (SELECT COUNT(*) FROM pagamento_pedido pp JOIN pedido p ON p.numero = pp.pedido_numero
-                  WHERE p.turno_uid = ? AND pp.sincronizado_em IS NULL) AS n",
-            [turno_uid.into(), turno_uid.into(), turno_uid.into(), turno_uid.into()],
+                  WHERE p.turno_uid = ? AND pp.sincronizado_em IS NULL) +
+               (SELECT COUNT(*) FROM caixa_movimento WHERE turno_uid = ? AND sincronizado_em IS NULL) AS n",
+            [turno_uid.into(), turno_uid.into(), turno_uid.into(), turno_uid.into(), turno_uid.into()],
         ))
         .await?;
     Ok(row.and_then(|r| r.try_get::<i64>("", "n").ok()).unwrap_or(0))
@@ -69,6 +61,7 @@ pub async fn turno_aberto(state: tauri::State<'_, AppState>, operador: String) -
     let repo = repo_maquina(&state)?;
     Ok(turno::turno_aberto(&repo, &operador).await?.map(|t| TurnoAbertoDto {
         sync_uid: t.sync_uid,
+        operador: t.operador,
         caixa_inicial_centavos: t.caixa_inicial_centavos,
         abertura: t.abertura,
     }))
@@ -81,9 +74,17 @@ pub async fn turno_abrir(
     caixa_inicial_centavos: i64,
 ) -> Result<TurnoAbertoDto, ErroDto> {
     let repo = repo_maquina(&state)?;
+    let exists = state.db.query_one(Statement::from_sql_and_values(state.db.get_database_backend(),
+        "SELECT 1 FROM usuario WHERE lower(usuario)=lower(?) AND (excluido_em IS NULL OR excluido_em='') LIMIT 1",
+        [operador.trim().into()])).await.map_err(|e| ErroDto { codigo: "PERSISTENCIA".into(), mensagem: e.to_string() })?;
+    if exists.is_none() || operador.trim().is_empty() {
+        return Err(ErroDto { codigo: "OPERADOR_INVALIDO".into(), mensagem: "Selecione um usuario ativo para abrir o turno".into() });
+    }
     let t = turno::abrir(&repo, &operador, caixa_inicial_centavos).await?;
+    crate::sync_dispatch::request_now();
     Ok(TurnoAbertoDto {
         sync_uid: t.sync_uid,
+        operador: t.operador,
         caixa_inicial_centavos: t.caixa_inicial_centavos,
         abertura: t.abertura,
     })
@@ -128,6 +129,7 @@ pub async fn caixa_movimento_registrar(state: tauri::State<'_, AppState>, turno_
     operador: String, tipo: String, valor_centavos: i64, motivo: String) -> Result<(), ErroDto> {
     let repo = SeaTurnoRepo::new(state.db.clone());
     turno::registrar_movimento(&repo, &turno_uid, &operador, &tipo, valor_centavos, &motivo).await?;
+    crate::sync_dispatch::request_now();
     Ok(())
 }
 
@@ -148,6 +150,7 @@ pub async fn turno_encerrar(
 ) -> Result<FechamentoDto, ErroDto> {
     let repo = SeaTurnoRepo::new(state.db.clone());
     let f = turno::encerrar(&repo, &turno_uid, conferido_centavos).await?;
+    crate::sync_dispatch::request_now();
     let pendencias = pendencias_sync_turno(&state.db, &turno_uid)
         .await
         .map_err(|e| ErroDto { codigo: "PERSISTENCIA".into(), mensagem: e.to_string() })?;
@@ -157,23 +160,6 @@ pub async fn turno_encerrar(
         diferenca_centavos: f.diferenca_centavos,
         pendencias_sync: pendencias,
     })
-}
-
-#[tauri::command]
-pub async fn turno_listar(state: tauri::State<'_, AppState>, operador: String) -> Result<Vec<TurnoHistoricoDto>, ErroDto> {
-    let repo = repo_maquina(&state)?;
-    Ok(turno::listar(&repo, &operador)
-        .await?
-        .into_iter()
-        .map(|t| TurnoHistoricoDto {
-            abertura: t.abertura,
-            encerramento: t.encerramento,
-            status: t.status,
-            esperado_centavos: t.esperado_centavos,
-            conferido_centavos: t.conferido_centavos,
-            diferenca_centavos: t.diferenca_centavos,
-        })
-        .collect())
 }
 
 #[derive(Serialize)]

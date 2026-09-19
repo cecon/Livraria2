@@ -52,6 +52,16 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
     const { execFileSync } = require("node:child_process");
     execFileSync("docker", ["exec", "-i", "livraria-separacao-db", "psql",
       "-U", "postgres", "-d", "livraria_test", "-v", "ON_ERROR_STOP=1"], { input: sql, stdio: ["pipe", "pipe", "pipe"] });
+    await db.$executeRawUnsafe(`create table public.turno_operacao (
+      sync_uid uuid primary key, pdv_uid uuid, operador_uid uuid, status text,
+      abertura text, encerramento text, caixa_inicial_centavos bigint default 0,
+      esperado_centavos bigint, conferido_centavos bigint, diferenca_centavos bigint,
+      excluido_em timestamptz)`);
+    await db.$executeRawUnsafe(`create table public.pedido (
+      sync_uid uuid primary key, turno_uid uuid, total_centavos bigint default 0,
+      cancelado boolean default false, excluido_em timestamptz)`);
+    await db.$executeRawUnsafe(`create table public.caixa_movimento (
+      sync_uid uuid primary key, turno_uid uuid, tipo text, valor_centavos bigint)`);
     child = spawn(process.execPath, [path.resolve(__dirname, "../dist/main.js")], {
       env: { ...process.env, PORT: "3003", API_OPERATIONS_ENABLED: "true", API_JWT_SECRET: randomUUID() + randomUUID() },
       stdio: "ignore",

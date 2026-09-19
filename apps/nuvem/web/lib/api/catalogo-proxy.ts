@@ -23,14 +23,19 @@ export async function catalogProxy(req: NextRequest, id?: string) {
   }
   try {
     const after = req.nextUrl.searchParams.get("after");
-    const query = req.method === "GET" && after ? `?after=${encodeURIComponent(after)}` : "";
+    const params = new URLSearchParams();
+    if (req.method === "GET" && after) params.set("after", after);
+    if (req.method === "GET" && req.nextUrl.searchParams.get("inativos") === "1") params.set("inativos", "1");
+    const query = params.size ? `?${params}` : "";
     const body = ["POST", "PUT"].includes(req.method) ? await req.text() : undefined;
     if (body && body.length > 20000) return NextResponse.json({ erro: "Dados excessivos" }, { status: 413 });
     const response = await apiFetch(`admin/livros${id ? `/${id}` : ""}${query}`, { method: req.method, body });
     const result = await response.json();
     if (!response.ok) {
       const erro = response.status === 401 ? "Sessao expirada. Entre novamente."
-        : response.status === 409 ? "Conflito no cadastro. Confira o codigo e os dados do produto."
+        : response.status === 409 && result.message === "Registre estoque positivo antes de reativar o produto"
+          ? "Registre estoque positivo antes de reativar o produto."
+        : response.status === 409 ? "Produto já existente ou cadastro em conflito. Consulte a lista de inativos antes de cadastrar novamente."
         : response.status === 400 ? "Confira os dados informados."
         : response.status === 403 ? "Sem permissao." : "Operacao de catalogo indisponivel.";
       return NextResponse.json({ erro }, { status: response.status });

@@ -36,10 +36,8 @@ export const NAV_ITENS: ItemNav[] = [
   { to: "/relatorios", rotulo: "Relatórios", Icon: FileBarChart, end: false },
 ];
 
-// PDV = consumidor (feature 012): sem cadastro/lançamento/inventário nem edição de
-// cadastros (fornecedor/forma de pagamento/destinação) — tudo isso vive na nuvem.
-// O Escritório continua usando NAV_ITENS (lista cheia), onde a edição mora.
-export const NAV_ITENS_PDV: ItemNav[] = NAV_ITENS.filter(
+// Produtos no PDV grava pela API da retaguarda, com autorização administrativa.
+export const NAV_ITENS_PDV: ItemNav[] = [...NAV_ITENS.filter(
   (item) =>
     ![
       "/cadastro",
@@ -48,5 +46,6 @@ export const NAV_ITENS_PDV: ItemNav[] = NAV_ITENS.filter(
       "/fornecedores",
       "/formas-pagamento",
       "/destinacoes",
+      "/turnos",
     ].includes(item.to),
-);
+), { to: "/produtos", rotulo: "Produtos", Icon: BookPlus, end: false }];

@@ -12,6 +12,15 @@ pub async fn aplicar(db: &DatabaseConnection, page: &PaginaApi) -> Result<(), Re
     validar_pagina(page, &start)?;
     let now = chrono::Utc::now().to_rfc3339();
     for event in &page.alteracoes {
+        let imported = tx.query_one(Statement::from_sql_and_values(backend,
+            "SELECT versao FROM produto_importacao_pontual WHERE uid=?", [event.produto_uid.clone().into()]))
+            .await.map_err(erro)?;
+        let imported = imported.and_then(|r| r.try_get::<String>("", "versao").ok())
+            .and_then(|v| v.parse::<u64>().ok());
+        if imported.is_some_and(|v| event.sequencia.parse::<u64>().is_ok_and(|s| s <= v)) { continue; }
+        tx.execute(Statement::from_sql_and_values(backend,
+            "INSERT INTO produto_importacao_pontual(uid,versao) VALUES(?,?) ON CONFLICT(uid) DO UPDATE SET versao=excluded.versao",
+            [event.produto_uid.clone().into(), event.sequencia.clone().into()])).await.map_err(erro)?;
         if event.operacao == "delete" {
             tx.execute(Statement::from_sql_and_values(backend,
                 "UPDATE livro SET ativo=0,excluido_em=?,sincronizado_em=? WHERE sync_uid=?",

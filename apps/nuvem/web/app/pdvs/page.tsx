@@ -35,6 +35,15 @@ export default function MachinesPage() {
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    if (view.kind !== "list") return;
+    const id = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      void browserApiRequest<Machine[]>("/api/pdvs", { fallback: "Não foi possível atualizar as máquinas." })
+        .then(setMachines).catch(() => undefined);
+    }, 10000);
+    return () => window.clearInterval(id);
+  }, [view.kind]);
 
   async function save(input: MachineInput) {
     setSaving(true); setError("");
@@ -78,7 +87,7 @@ export default function MachinesPage() {
   return <main className="mx-auto max-w-6xl space-y-5 px-4 py-5 sm:p-6 lg:py-7">
     <PageHeader
       title={view.kind === "new" ? "Nova máquina" : editing ? "Editar máquina" : "Máquinas"}
-      description="Cadastre os computadores de venda e acompanhe a sincronização do catálogo."
+      description="Acompanhe as máquinas, os turnos e as vendas recebidas."
       crumbs={formOpen ? [{ label: "Administração" }, { label: "Máquinas", onClick: () => setView({ kind: "list" }) },
         { label: editing ? "Editar" : "Nova" }] : [{ label: "Administração" }, { label: "Máquinas" }]}
       back={formOpen ? { label: "Voltar para máquinas", onClick: () => setView({ kind: "list" }) } : undefined}

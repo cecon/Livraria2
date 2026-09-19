@@ -45,7 +45,7 @@ impl TurnoRepo for SeaTurnoRepo {
             .db
             .query_one(Statement::from_sql_and_values(
                 backend,
-                format!("SELECT sync_uid, caixa_inicial_centavos, abertura FROM turno_operacao \
+                format!("SELECT sync_uid, operador, caixa_inicial_centavos, abertura FROM turno_operacao \
                  WHERE {where_clause} AND status = 'aberto' AND excluido_em IS NULL \
                  ORDER BY abertura DESC LIMIT 1"),
                 [identity.into()],
@@ -55,6 +55,7 @@ impl TurnoRepo for SeaTurnoRepo {
         Ok(row.and_then(|r| {
             Some(TurnoAbertoInfo {
                 sync_uid: r.try_get("", "sync_uid").ok()?,
+                operador: r.try_get("", "operador").ok()?,
                 caixa_inicial_centavos: r.try_get("", "caixa_inicial_centavos").ok()?,
                 abertura: r.try_get("", "abertura").ok()?,
             })
@@ -94,7 +95,7 @@ impl TurnoRepo for SeaTurnoRepo {
             .await
             .map_err(erro)?;
         tx.commit().await.map_err(erro)?;
-        Ok(TurnoAbertoInfo { sync_uid: uid, caixa_inicial_centavos, abertura: ts })
+        Ok(TurnoAbertoInfo { sync_uid: uid, operador: operador.into(), caixa_inicial_centavos, abertura: ts })
     }
 
     async fn contar_pedidos(&self, turno_uid: &str) -> Result<i64, RepoErro> {
@@ -217,7 +218,7 @@ impl TurnoRepo for SeaTurnoRepo {
             .execute(Statement::from_sql_and_values(
                 backend,
                 "UPDATE turno_operacao SET status = 'encerrado', encerramento = ?, \
-                 esperado_centavos = ?, conferido_centavos = ?, diferenca_centavos = ?, atualizado_em = ? \
+                 esperado_centavos = ?, conferido_centavos = ?, diferenca_centavos = ?, atualizado_em = ?, sincronizado_em = NULL \
                  WHERE sync_uid = ? AND status = 'aberto'",
                 [ts.clone().into(), esperado.into(), conferido.into(), diferenca.into(), ts.into(), turno_uid.into()],
             ))
