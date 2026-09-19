@@ -197,6 +197,7 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
         });
       });
     }
+    await require("./pdv-products.cjs")(t, db, base, adminToken, firstDevice.accessToken);
     await require("./admin-catalog.cjs")(t, db, base, adminToken, firstDevice.accessToken, run);
     await require("./admin-references.cjs")(t, db, base, adminToken, firstDevice.accessToken, run);
     await require("./admin-destinations.cjs")(t, db, base, adminToken, firstDevice.accessToken);

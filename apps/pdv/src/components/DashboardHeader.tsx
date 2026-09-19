@@ -11,6 +11,7 @@ interface Props {
 }
 
 const TITULOS: Record<string, string> = {
+  "/produtos": "Produtos",
   "/": "Inicio",
   "/venda": "Venda",
   "/turnos": "Turno",

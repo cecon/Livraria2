@@ -25,7 +25,8 @@ impl ApiSync {
             uuid::Uuid::parse_str(uid).map_err(erro)?;
             self.client.get(format!("{}/produtos/{uid}", self.base))
         };
-        Self::resposta(request.bearer_auth(&self.token).send().await.map_err(erro)?).await
+        let data = Self::resposta(request.bearer_auth(&self.token).send().await.map_err(erro)?).await?;
+        data.get("produto").cloned().ok_or_else(|| erro("Resposta de produto inválida"))
     }
     pub async fn enviar_movimento(&self, body: &Value) -> Result<Value, RepoErro> {
         let response = self.client.post(format!("{}/caixa-movimentos", self.base))

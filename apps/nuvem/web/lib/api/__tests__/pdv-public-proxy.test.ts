@@ -43,3 +43,29 @@ test("nao transforma o proxy em acesso livre a API", async () => {
   expect((await publicPdvProxy(request("usuarios"), ["usuarios"])).status).toBe(404);
   expect(mocked.fetcher).not.toHaveBeenCalled();
 });
+
+test("produtos autoriza admin e impede cache de token", async () => {
+  mocked.login.mockResolvedValue({ accessToken: "transitorio" });
+  const r = await publicPdvProxy(request("produtos/autorizacao", "POST", {
+    usuario: " ADMIN ", senha: "teste",
+  }), ["produtos", "autorizacao"]);
+  expect(r.status).toBe(200);
+  expect(r.headers.get("cache-control")).toBe("no-store");
+  expect(mocked.login).toHaveBeenCalledWith("admin", "teste");
+  mocked.login.mockRejectedValue(new Error("negado"));
+  expect((await publicPdvProxy(request("produtos/autorizacao", "POST", {
+    usuario: "operador", senha: "teste",
+  }), ["produtos", "autorizacao"])).status).toBe(403);
+});
+
+test("consulta e gravacao de produtos exigem credencial e preservam conflitos", async () => {
+  expect((await publicPdvProxy(request("produtos", "POST", {}), ["produtos"])).status).toBe(401);
+  mocked.fetcher.mockResolvedValueOnce(new Response(JSON.stringify({ produto: null })));
+  const absent = await publicPdvProxy(request("produtos/codigo?codigo=978%2F123", "GET", undefined, "a".repeat(30)), ["produtos", "codigo"]);
+  expect(await absent.json()).toEqual({ produto: null });
+  expect(mocked.fetcher.mock.calls[0][0]).toBe("produtos-pdv/codigo?codigo=978%2F123");
+  mocked.fetcher.mockResolvedValueOnce(new Response(JSON.stringify({ message: "PRODUTO_ALTERADO" }), { status: 409 }));
+  const conflict = await publicPdvProxy(request("produtos", "POST", { acao: "contar" }, "a".repeat(30)), ["produtos"]);
+  expect(conflict.status).toBe(409);
+  expect(await conflict.json()).toEqual({ message: "PRODUTO_ALTERADO" });
+});
