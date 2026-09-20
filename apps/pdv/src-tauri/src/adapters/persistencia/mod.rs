@@ -1,5 +1,6 @@
 //! Adapter de persistência: conexão SQLite (SeaORM) e aplicação das migrations.
 pub mod produto_pontual;
+pub mod integridade;
 
 pub mod destinacao_repasse_sql;
 pub mod destinacao_repo;
@@ -40,8 +41,9 @@ pub async fn conectar(db_url: &str) -> Result<DatabaseConnection, DbErr> {
 /// Após as migrations versionadas (002/003), aplica a **m004** (identidade do
 /// livro, ADR-0012) e a **m006** (cadastro de formas de pagamento, ADR-0013),
 /// idempotentes por estado. Um `Err` aqui DEVE bloquear o boot para operação
-/// (FR-016a): a migração já sofreu rollback e os dados originais estão intactos.
+/// (FR-016a), sem presumir a integridade do arquivo ou rollback global.
 pub async fn inicializar_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
+    integridade::verificar(db).await?;
     Migrator::up(db, None).await?;
     if let Some(rel) = crate::migration::m004::aplicar(db).await? {
         if rel.total_orfaos() > 0 {

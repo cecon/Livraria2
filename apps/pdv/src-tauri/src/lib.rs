@@ -35,6 +35,13 @@ fn db_url(app: &tauri::App) -> Result<String, Box<dyn std::error::Error>> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
@@ -65,7 +72,7 @@ pub fn run() {
                     Ok(db)
                 });
             // FR-016a: falha de migração NÃO derruba o app — ele abre apenas para
-            // exibir o erro (a migração sofreu rollback; nenhum dado foi perdido).
+            // exibir o erro. A integridade deve ser verificada antes da recuperação.
             // O frontend consulta `estado_boot` e bloqueia a operação.
             match resultado {
                 Ok(db) => {

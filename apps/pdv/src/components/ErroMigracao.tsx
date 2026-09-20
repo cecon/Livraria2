@@ -1,5 +1,5 @@
 // Tela de bloqueio quando a migração de dados falha no boot (FR-016a).
-// O rollback preservou os dados; o app abre APENAS para exibir este aviso —
+// O app abre APENAS para exibir este aviso —
 // sem navegação, PDV ou cadastros — até o problema ser resolvido.
 
 import { AlertTriangle } from "lucide-react";
@@ -10,12 +10,11 @@ export function ErroMigracao({ detalhe }: { detalhe?: string }) {
       <div className="max-w-md space-y-4 text-center">
         <AlertTriangle className="mx-auto text-amber-500" size={48} />
         <h1 className="text-xl font-semibold">
-          A atualização dos dados não foi concluída
+          Não foi possível abrir os dados do caixa
         </h1>
         <p className="text-muted-foreground text-sm">
-          Nenhuma venda ou valor foi perdido: o sistema desfez a alteração e os
-          dados originais estão intactos. Para proteger o histórico, o programa
-          não pode ser usado até o problema ser resolvido.
+          O caixa foi bloqueado para proteger o histórico. É necessário verificar
+          o arquivo de dados antes de continuar.
         </p>
         <p className="text-sm font-medium">
           Não registre vendas — procure o suporte e informe a mensagem abaixo.
