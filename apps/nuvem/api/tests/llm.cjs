@@ -65,8 +65,8 @@ test('LLM: cadastro, migration repetida, identidade do turno e provedor isolados
     child.stdout.on('data', data => { logs += data.toString(); });
     child.stderr.on('data', data => { logs += data.toString(); });
     let ready = false;
-    for (let i = 0; i < 100; i++) {
-      try { if ((await fetch(base + '/health')).ok) { ready = true; break; } } catch {}
+    for (let i = 0; i < 300; i++) {
+      try { if ((await fetch(base + '/health', { signal: AbortSignal.timeout(1000) })).ok) { ready = true; break; } } catch {}
       if (child.exitCode !== null) break;
       await new Promise(r => setTimeout(r, 100));
     }
