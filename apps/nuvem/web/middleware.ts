@@ -7,6 +7,7 @@ const ROTAS_PUBLICAS_API = [
   "/api/v1",
   "/api/api",
   "/api/auth",
+  "/api/rest",
   "/api/sync",
   "/api/pdvs",
   "/api/produtos-pdv",
