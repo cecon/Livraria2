@@ -34,5 +34,7 @@ As decisões nascem do `/speckit-plan` (ver `specs/001-sistema-estoque-vendas/re
 | [0027](0027-convencoes-de-interface-no-agentmemory.md) | Convenções de interface persistidas no AgentMemory | Aceito |
 | [0028](0028-web-nuvem-exclusivamente-api-nestjs.md) | Web da nuvem exclusivamente pela API NestJS | Aceito |
 
+| [0031](0031-llm-identidade-turno.md) | Cadastro LLM central e identidade do operador do turno | Aceito |
+
 **Versionamento**: um arquivo por decisão, numeração sequencial. Mudança de decisão → novo ADR que
 "supersedes" o anterior (não reescrever o histórico).

@@ -17,6 +17,23 @@ fn erro(_: impl std::fmt::Display) -> RepoErro {
 }
 
 impl ApiSync {
+    pub async fn llms(&self, turno: &str, testar: Option<&str>) -> Result<Value, RepoErro> {
+        uuid::Uuid::parse_str(turno).map_err(erro)?;
+        let request = if let Some(uid) = testar {
+            uuid::Uuid::parse_str(uid).map_err(erro)?;
+            self.client.post(format!("{}/llms/{uid}/testar", self.base))
+                .json(&json!({ "turnoUid": turno }))
+        } else {
+            self.client.get(format!("{}/llms", self.base)).query(&[("turnoUid", turno)])
+        };
+        let response = request.bearer_auth(&self.token).send().await.map_err(erro)?;
+        if !response.status().is_success() {
+            return Err(RepoErro::Persistencia(format!(
+                "LLM indisponível (HTTP {}). Confira o turno, as permissões e a conexão com a retaguarda.", response.status())));
+        }
+        response.json().await.map_err(erro)
+    }
+
     pub async fn produto(&self, codigo: Option<&str>, uid: Option<&str>) -> Result<Value, RepoErro> {
         let request = if let Some(codigo) = codigo {
             self.client.get(format!("{}/produtos/codigo", self.base)).query(&[("codigo", codigo)])

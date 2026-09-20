@@ -70,6 +70,14 @@ async function upstreamError(response: Response) {
 }
 
 export async function publicPdvProxy(request: NextRequest, path: string[]) {
+  if (request.method === "GET" && path.join("/") === "llms") {
+    const turno = request.nextUrl.searchParams.get("turnoUid") ?? "";
+    if (!UUID.test(turno)) return NextResponse.json({ erro: "Turno inválido." }, { status: 400 });
+    return forward(request, `llms?turnoUid=${encodeURIComponent(turno)}`, true);
+  }
+  if (request.method === "POST" && path.length === 3 && path[0] === "llms" && UUID.test(path[1]) && path[2] === "testar") {
+    return forward(request, `llms/${path[1]}/testar`, true);
+  }
   if (request.method === "POST" && path.join("/") === "produtos/autorizacao") {
     const text = await request.text();
     if (text.length > 1000) return NextResponse.json({ erro: "Dados excessivos." }, { status: 413 });

@@ -11,6 +11,7 @@ import {
   Settings2,
   Sun,
   Users,
+  Bot,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -24,6 +25,7 @@ type NavEntry = ItemNav | {
 };
 
 const extra: NavEntry[] = [
+  { to: "/llms", rotulo: "LLMs", Icon: Bot, end: false },
   { to: "/pdvs", rotulo: "Máquinas", Icon: MonitorCheck, end: false },
   { to: "/usuarios", rotulo: "Usuários", Icon: Users, end: false },
 ];
@@ -32,7 +34,7 @@ const GRUPOS = [
   { titulo: "Operação", rotas: ["/", "/venda", "/turnos"] },
   { titulo: "Catálogo", rotas: ["/cadastro", "/pesquisa", "/lancamentos", "/fornecedores"] },
   { titulo: "Gestão", rotas: ["/formas-pagamento", "/destinacoes", "/inventario", "/relatorios"] },
-  { titulo: "Administração", rotas: ["/pdvs", "/usuarios"] },
+  { titulo: "Administração", rotas: ["/pdvs", "/usuarios", "/llms"] },
 ];
 
 export function AppSidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void }) {

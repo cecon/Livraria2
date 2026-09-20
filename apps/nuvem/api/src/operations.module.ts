@@ -36,6 +36,9 @@ import { AdminSalesService } from "./admin/admin-sales.service";
 import { ReportsController } from "./admin/reports.controller";
 import { ReportsService } from "./admin/reports.service";
 import { ApiThrottlerGuard } from "./auth/api-throttler.guard";
+import { ShiftContextService } from "./auth/shift-context.service";
+import { LlmService } from "./llm/llm.service";
+import { LlmAdminController, LlmUsageController } from "./llm/llm.controller";
 
 @Module({
   imports: [
@@ -57,10 +60,10 @@ import { ApiThrottlerGuard } from "./auth/api-throttler.guard";
   ],
   controllers: [PdvProductsController, AuthController, DevicesController, CatalogController, SalesController, ShiftSyncController, CashSyncController, BooksController,
     FormsController, SuppliersController, UsersController, DestinationsController, StockController,
-    EntriesController, ShiftsController, AdminSalesController, ReportsController],
+    EntriesController, ShiftsController, AdminSalesController, ReportsController, LlmAdminController, LlmUsageController],
   providers: [PdvProductsService, AuthService, AuthGuard, SalesService, ShiftSyncService, CashSyncService, BooksService, FormsService, SuppliersService,
     UsersService, DestinationsService, StockService, EntriesService, ShiftsService, AdminSalesService,
-    ReportsService,
+    ReportsService, LlmService, ShiftContextService,
     { provide: APP_GUARD, useClass: ApiThrottlerGuard }],
 })
 export class OperationsModule {}

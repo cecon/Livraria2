@@ -3,6 +3,7 @@ import { RefreshCw, Settings } from "lucide-react";
 import { Button } from "@livraria/ui/ui/button";
 import type { MachineState } from "@/lib/ipc_machine";
 import { sincronizarAgora } from "@/lib/ipc_sync";
+import { LlmConfiguracoes } from "@/components/LlmConfiguracoes";
 
 export default function Configuracoes({ machine }: { machine: MachineState }) {
   const [ocupado, setOcupado] = useState(false);
@@ -28,5 +29,6 @@ export default function Configuracoes({ machine }: { machine: MachineState }) {
       </Button>
       {resultado ? <p role="status" className="text-sm text-muted-foreground">{resultado}</p> : null}
     </section>
+    <LlmConfiguracoes />
   </div>;
 }
