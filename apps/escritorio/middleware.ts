@@ -17,6 +17,7 @@ const ROTAS_PUBLICAS_API = [
   "/pdvs",
   "/sync",
   "/auth",
+  "/rest",
 ];
 
 function caminhoComecaComSegmento(caminho: string, rota: string) {

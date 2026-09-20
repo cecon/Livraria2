@@ -3,6 +3,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const nuvemApiUrl = process.env.NUVEM_API_URL || "http://api:3001";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://fiqzcnnibwzthhjatxvq.supabase.co";
 
 /** @type {import('next').NextConfig} */
 // output: 'standalone' gera um bundle mínimo p/ a imagem Docker.
@@ -27,6 +28,8 @@ const nextConfig = {
           source: "/.well-known/oauth-protected-resource",
           destination: `${nuvemApiUrl}/api/v1/ia/oauth/protected-resource`,
         },
+        { source: "/auth/v1/:path*", destination: `${supabaseUrl}/auth/v1/:path*` },
+        { source: "/rest/v1/:path*", destination: `${supabaseUrl}/rest/v1/:path*` },
         { source: "/api/v1/:path*", destination: `${nuvemApiUrl}/api/v1/:path*` },
         { source: "/api/api/v1/:path*", destination: `${nuvemApiUrl}/api/v1/:path*` },
         { source: "/api/api/auth/:path*", destination: `${nuvemApiUrl}/api/v1/auth/:path*` },
@@ -50,4 +53,3 @@ const nextConfig = {
 };
 
 export default nextConfig;
-
