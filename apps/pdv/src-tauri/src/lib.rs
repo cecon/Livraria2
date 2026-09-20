@@ -4,6 +4,7 @@ pub mod adapters;
 pub mod application;
 pub mod commands;
 pub mod commands_produtos;
+pub mod commands_llm;
 pub mod commands_destinacao;
 pub mod commands_estoque;
 pub mod commands_formas;
@@ -107,6 +108,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands_formas::estado_boot,
+            commands_llm::llms_listar,
+            commands_llm::llm_testar,
             commands_machine::estado_maquina,
             commands_machine::configurar_maquina,
             commands_formas::listar_formas_ativas,

@@ -23,6 +23,8 @@ jobs:
           DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder
       - run: npm run db:generate -w @livraria/nuvem-api
       - run: npm run build:api
+      - name: Validar cadastro LLM e identidade do turno
+        run: node --test --test-concurrency=1 apps/nuvem/api/tests/llm-provider.cjs apps/nuvem/api/tests/llm.cjs
       - run: npm run test:api -w livraria-escritorio
       - name: PostgreSQL isolado para protocolo
         run: |
