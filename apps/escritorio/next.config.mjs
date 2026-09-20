@@ -2,6 +2,7 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const nuvemApiUrl = process.env.NUVEM_API_URL || "http://api:3001";
 
 /** @type {import('next').NextConfig} */
 // output: 'standalone' gera um bundle mínimo p/ a imagem Docker.
@@ -13,6 +14,40 @@ const nextConfig = {
   outputFileTracingRoot: join(__dirname, "../.."),
   // Transpila os pacotes do workspace (ADR-0022/0020): TS/TSX + WASM.
   transpilePackages: ["@livraria/ui", "@livraria/domain"],
+  async rewrites() {
+    return {
+      beforeFiles: [
+        { source: "/mcp", destination: `${nuvemApiUrl}/api/v1/ia/mcp` },
+        { source: "/mcp/:path*", destination: `${nuvemApiUrl}/api/v1/ia/mcp/:path*` },
+        {
+          source: "/.well-known/oauth-authorization-server",
+          destination: `${nuvemApiUrl}/api/v1/ia/oauth/metadata`,
+        },
+        {
+          source: "/.well-known/oauth-protected-resource",
+          destination: `${nuvemApiUrl}/api/v1/ia/oauth/protected-resource`,
+        },
+        { source: "/api/v1/:path*", destination: `${nuvemApiUrl}/api/v1/:path*` },
+        { source: "/api/api/v1/:path*", destination: `${nuvemApiUrl}/api/v1/:path*` },
+        { source: "/api/api/auth/:path*", destination: `${nuvemApiUrl}/api/v1/auth/:path*` },
+        { source: "/api/api/sync/:path*", destination: `${nuvemApiUrl}/api/v1/sync/:path*` },
+        { source: "/api/auth/:path*", destination: `${nuvemApiUrl}/api/v1/auth/:path*` },
+        { source: "/api/sync/:path*", destination: `${nuvemApiUrl}/api/v1/sync/:path*` },
+        { source: "/api/pdvs/:path*", destination: `${nuvemApiUrl}/api/v1/pdvs/:path*` },
+        { source: "/api/produtos-pdv/:path*", destination: `${nuvemApiUrl}/api/v1/produtos-pdv/:path*` },
+        { source: "/api/ia/:path*", destination: `${nuvemApiUrl}/api/v1/ia/:path*` },
+        { source: "/api/capas/:path*", destination: `${nuvemApiUrl}/api/v1/capas/:path*` },
+      ],
+      afterFiles: [
+        { source: "/api/:path*", destination: `${nuvemApiUrl}/api/v1/:path*` },
+        { source: "/auth/:path*", destination: `${nuvemApiUrl}/api/v1/auth/:path*` },
+        { source: "/sync/:path*", destination: `${nuvemApiUrl}/api/v1/sync/:path*` },
+        { source: "/pdvs/:path*", destination: `${nuvemApiUrl}/api/v1/pdvs/:path*` },
+        { source: "/produtos-pdv/:path*", destination: `${nuvemApiUrl}/api/v1/produtos-pdv/:path*` },
+      ],
+    };
+  },
 };
 
 export default nextConfig;
+
