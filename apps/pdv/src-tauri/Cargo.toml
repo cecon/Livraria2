@@ -1,6 +1,6 @@
 [package]
 name = "livraria-2"
-version = "0.1.0"
+version = "26.9.18"
 description = "Livraria 2 — Sistema de estoque & vendas (Espaço do Livro)"
 authors = ["you"]
 edition = "2021"
@@ -45,4 +45,3 @@ uuid = { version = "1", features = ["v4"] }
 tokio = { version = "1", features = ["time", "sync"] }
 # Credencial duradoura da maquina no cofre nativo do sistema operacional.
 keyring = { version = "4.2", default-features = false, features = ["v1"] }
-
