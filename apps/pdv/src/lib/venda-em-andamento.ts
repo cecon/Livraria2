@@ -9,3 +9,7 @@ export function guardarVenda(rascunho: Rascunho) {
   atual = rascunho;
   localStorage.setItem(RASCUNHO_KEY, JSON.stringify(rascunho));
 }
+
+export function substituirVenda(rascunho: Rascunho) {
+  guardarVenda(rascunho);
+}

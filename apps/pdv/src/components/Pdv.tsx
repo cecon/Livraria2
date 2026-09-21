@@ -85,7 +85,9 @@ export function Pdv() {
   const totalItens = itens.reduce((s, i) => s + i.qtd, 0);
 
   function focarCodigo() {
-    setTimeout(() => codigoRef.current?.focus(), 0);
+    const foco = () => codigoRef.current?.focus();
+    setTimeout(foco, 0);
+    setTimeout(foco, 80);
   }
 
   function alterarCodigo(valor: string) {

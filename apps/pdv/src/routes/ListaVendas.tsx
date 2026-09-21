@@ -9,7 +9,8 @@ import { Input } from "@livraria/ui/wowdash/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@livraria/ui/wowdash/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@livraria/ui/wowdash/table";
 import { brl } from "@/lib/format";
-import { PAG_VAZIO, RASCUNHO_KEY } from "@/lib/venda";
+import { PAG_VAZIO } from "@/lib/venda";
+import { substituirVenda } from "@/lib/venda-em-andamento";
 import { excluirPedido, relatorioVendas, type ErroIpc, type PedidoRelatorio, type RelatorioVendas } from "@/lib/ipc";
 
 type Filtro = "todos" | "concluidas" | "divergentes" | "canceladas";
@@ -51,14 +52,14 @@ export function ListaVendas({ onClonar }: { onClonar?: () => void } = {}) {
     if (!window.confirm(`Reabrir a venda Nº ${p.numero}? Ela será cancelada (estoque devolvido) e reaberta no PDV para edição.`)) return;
     try {
       await excluirPedido(p.numero);
-      localStorage.setItem(RASCUNHO_KEY, JSON.stringify({
+      substituirVenda({
         cliente: p.cliente,
         itens: p.itens.map((item) => ({
           codigo: item.codigo, titulo: item.titulo,
           precoCentavos: Math.round(item.valorCentavos / item.qtd), qtd: item.qtd,
         })),
         pag: PAG_VAZIO,
-      }));
+      });
       toast.success(`Venda Nº ${p.numero} cancelada e reaberta para edição`);
       onClonar?.();
     } catch (error) { toast.error((error as ErroIpc).mensagem ?? "Erro ao reabrir a venda"); }

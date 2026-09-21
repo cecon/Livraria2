@@ -23,7 +23,8 @@ export default function Turnos({ turno, onClosed }: { turno: TurnoAberto; onClos
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(false);
   const [encerrando, setEncerrando] = useState(() => new URLSearchParams(search).get("encerrar") === "1");
-  const [conferidoCentavos, setConferidoCentavos] = useState(0);
+  const [gavetaCentavos, setGavetaCentavos] = useState(0);
+  const [maloteCentavos, setMaloteCentavos] = useState(0);
   const [conferenciaIniciada, setConferenciaIniciada] = useState(false);
   const [ocupado, setOcupado] = useState(false);
 
@@ -58,7 +59,7 @@ export default function Turnos({ turno, onClosed }: { turno: TurnoAberto; onClos
     if (!conferenciaIniciada || !resumo || carregando || erro) return toast.error("Atualize e confira o dinheiro antes de fechar o caixa.");
     setOcupado(true);
     try {
-      const fechamento = await turnoEncerrar(turno.syncUid, conferidoCentavos);
+      const fechamento = await turnoEncerrar(turno.syncUid, totalConferidoCentavos);
       toast.success(fechamento.diferencaCentavos === 0 ? "Caixa confere" :
         `Diferença de ${brl(Math.abs(fechamento.diferencaCentavos))}`);
       onClosed();
@@ -68,7 +69,8 @@ export default function Turnos({ turno, onClosed }: { turno: TurnoAberto; onClos
 
   const esperado = resumo?.esperadoDinheiroCentavos ?? turno.caixaInicialCentavos;
   const dinheiroVendas = resumo?.porForma.find(([id]) => id === dinheiroFormaId)?.[1] ?? 0;
-  const diferenca = conferidoCentavos - esperado;
+  const totalConferidoCentavos = gavetaCentavos + maloteCentavos;
+  const diferenca = totalConferidoCentavos - esperado;
 
   return <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -120,11 +122,20 @@ export default function Turnos({ turno, onClosed }: { turno: TurnoAberto; onClos
           <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4 text-sm font-semibold">
             <span>Esperado na gaveta</span><span className="tabular-nums">{resumo ? brl(esperado) : "—"}</span>
           </div>
-          <div className="max-w-sm"><Label htmlFor="conferido" className="mb-2">Dinheiro na gaveta (conferido)</Label>
-            <ValorCentavosInput id="conferido" autoFocus className="h-12 px-4" centavos={conferidoCentavos}
-              onCentavosChange={(centavos) => { setConferidoCentavos(centavos); setConferenciaIniciada(true); }} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div><Label htmlFor="gaveta" className="mb-2">Gaveta</Label>
+              <ValorCentavosInput id="gaveta" autoFocus className="h-12 px-4" centavos={gavetaCentavos}
+                onCentavosChange={(centavos) => { setGavetaCentavos(centavos); setConferenciaIniciada(true); }} />
+            </div>
+            <div><Label htmlFor="malote" className="mb-2">Malote</Label>
+              <ValorCentavosInput id="malote" className="h-12 px-4" centavos={maloteCentavos}
+                onCentavosChange={(centavos) => { setMaloteCentavos(centavos); setConferenciaIniciada(true); }} />
+            </div>
           </div>
-          {conferenciaIniciada ? <p className="text-sm">{diferenca === 0 ? "Confere" : diferenca > 0 ? "Sobra" : "Falta"}: {brl(Math.abs(diferenca))}</p> : null}
+          {conferenciaIniciada ? <div className="space-y-1 text-sm">
+            <p>Total conferido: {brl(totalConferidoCentavos)}</p>
+            <p>{diferenca === 0 ? "Confere" : diferenca > 0 ? "Sobra" : "Falta"}: {brl(Math.abs(diferenca))}</p>
+          </div> : null}
           <div className="flex flex-wrap gap-2">
             <Button type="button" className="h-10 bg-brand text-white hover:bg-brand-600" onClick={() => void encerrar()}
               disabled={ocupado || !conferenciaIniciada || !resumo || carregando || erro}>Confirmar fechamento</Button>
