@@ -27,8 +27,13 @@ pub async fn sincronizar_agora(state: tauri::State<'_, AppState>) -> Result<Resu
         state.config_sync_path.as_deref(),
         state.machine_config_path.as_deref(),
     )
-        .await.map_err(|e| e.to_string())?;
-    Ok(ResumoSyncDto { enviados: r.enviados, recebidos: r.recebidos, orfas: r.orfas })
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(ResumoSyncDto {
+        enviados: r.enviados,
+        recebidos: r.recebidos,
+        orfas: r.orfas,
+    })
 }
 
 #[derive(Serialize)]
@@ -41,7 +46,9 @@ pub struct OperadorDto {
 /// Lista os operadores (usuários do PDV) para o caixa escolher quem está operando
 /// (FR-023). Não expõe senha.
 #[tauri::command]
-pub async fn listar_operadores(state: tauri::State<'_, AppState>) -> Result<Vec<OperadorDto>, String> {
+pub async fn listar_operadores(
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<OperadorDto>, String> {
     let rows = state
         .db
         .query_all(Statement::from_string(
@@ -67,7 +74,9 @@ pub async fn seed_inicial(state: tauri::State<'_, AppState>) -> Result<usize, St
     if crate::machine_config::is_configured(state.machine_config_path.as_deref()) {
         return Err("Seed legado bloqueado no modo API".into());
     }
-    let nuvem = SupabaseSync::conectar(state.config_sync_path.as_deref()).await.map_err(|e| e.to_string())?;
+    let nuvem = SupabaseSync::conectar(state.config_sync_path.as_deref())
+        .await
+        .map_err(|e| e.to_string())?;
     let local = SeaReplicaSync::new(state.db.clone());
     semear(&nuvem, &local).await.map_err(|e| e.to_string())
 }
@@ -81,9 +90,13 @@ pub struct StatusSyncDto {
 
 /// Estado de sincronização para o indicador da UI (não usa rede).
 #[tauri::command]
-pub async fn status_sincronizacao(state: tauri::State<'_, AppState>) -> Result<StatusSyncDto, String> {
+pub async fn status_sincronizacao(
+    state: tauri::State<'_, AppState>,
+) -> Result<StatusSyncDto, String> {
     let api_mode = crate::machine_config::is_configured(state.machine_config_path.as_deref());
-    Ok(StatusSyncDto { pendentes: contar_pendentes(&state.db, api_mode).await? })
+    Ok(StatusSyncDto {
+        pendentes: contar_pendentes(&state.db, api_mode).await?,
+    })
 }
 
 async fn contar_pendentes(db: &DatabaseConnection, api_mode: bool) -> Result<i64, String> {
@@ -91,15 +104,33 @@ async fn contar_pendentes(db: &DatabaseConnection, api_mode: bool) -> Result<i64
     if api_mode {
         // A API publica o catalogo e recebe vendas. Baselines locais de estoque nao
         // sao envios pendentes; a mesma venda pode estar no pedido e no outbox.
-        let row = db.query_one(Statement::from_string(backend,
-            "SELECT COUNT(DISTINCT uid) AS n FROM (
-               SELECT COALESCE(sync_uid, 'pedido:' || numero) AS uid FROM pedido
-               WHERE sincronizado_em IS NULL
-               UNION ALL
-               SELECT pedido_uid AS uid FROM nuvem_api_outbox WHERE enviada=0
-             )".to_string(),
-        )).await.map_err(|e| e.to_string())?;
-        return Ok(row.and_then(|r| r.try_get::<i64>("", "n").ok()).unwrap_or(0));
+        let mut fontes = vec![
+            "SELECT COALESCE(sync_uid, 'pedido:' || numero) AS uid FROM pedido WHERE sincronizado_em IS NULL".to_string(),
+            "SELECT pedido_uid AS uid FROM nuvem_api_outbox WHERE enviada=0".to_string(),
+        ];
+        if tabela_existe(db, "turno_operacao").await? {
+            fontes.push(
+                "SELECT sync_uid AS uid FROM turno_operacao WHERE sincronizado_em IS NULL"
+                    .to_string(),
+            );
+        }
+        if tabela_existe(db, "caixa_movimento").await? {
+            fontes.push(
+                "SELECT sync_uid AS uid FROM caixa_movimento WHERE sincronizado_em IS NULL"
+                    .to_string(),
+            );
+        }
+        let sql = format!(
+            "SELECT COUNT(DISTINCT uid) AS n FROM ({})",
+            fontes.join(" UNION ALL ")
+        );
+        let row = db
+            .query_one(Statement::from_string(backend, sql))
+            .await
+            .map_err(|e| e.to_string())?;
+        return Ok(row
+            .and_then(|r| r.try_get::<i64>("", "n").ok())
+            .unwrap_or(0));
     }
     let mut pendentes = 0i64;
     for recurso in ORDEM_DEPENDENCIA {
@@ -115,9 +146,24 @@ async fn contar_pendentes(db: &DatabaseConnection, api_mode: bool) -> Result<i64
             ))
             .await
             .map_err(|e| e.to_string())?;
-        pendentes += rows.first().and_then(|r| r.try_get::<i64>("", "n").ok()).unwrap_or(0);
+        pendentes += rows
+            .first()
+            .and_then(|r| r.try_get::<i64>("", "n").ok())
+            .unwrap_or(0);
     }
     Ok(pendentes)
+}
+
+async fn tabela_existe(db: &DatabaseConnection, tabela: &str) -> Result<bool, String> {
+    let row = db
+        .query_one(Statement::from_sql_and_values(
+            db.get_database_backend(),
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+            [tabela.into()],
+        ))
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(row.is_some())
 }
 
 #[cfg(test)]
@@ -140,16 +186,26 @@ mod tests {
             "INSERT INTO pedido VALUES (3, 'venda-3', '2026-09-16')",
             "INSERT INTO nuvem_api_outbox VALUES ('venda-3', 1)",
         ] {
-            db.execute(Statement::from_string(db.get_database_backend(), sql.to_string()))
-                .await.unwrap();
+            db.execute(Statement::from_string(
+                db.get_database_backend(),
+                sql.to_string(),
+            ))
+            .await
+            .unwrap();
         }
         assert_eq!(contar_pendentes(&db, true).await.unwrap(), 2);
-        db.execute(Statement::from_string(db.get_database_backend(),
+        db.execute(Statement::from_string(
+            db.get_database_backend(),
             "UPDATE pedido SET sincronizado_em='2026-09-16' WHERE numero=1".to_string(),
-        )).await.unwrap();
-        db.execute(Statement::from_string(db.get_database_backend(),
+        ))
+        .await
+        .unwrap();
+        db.execute(Statement::from_string(
+            db.get_database_backend(),
             "UPDATE nuvem_api_outbox SET enviada=1".to_string(),
-        )).await.unwrap();
+        ))
+        .await
+        .unwrap();
         assert_eq!(contar_pendentes(&db, true).await.unwrap(), 0);
     }
 }

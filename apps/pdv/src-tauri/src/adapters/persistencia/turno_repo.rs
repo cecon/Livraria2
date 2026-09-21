@@ -2,7 +2,9 @@
 //! `turno_operacao` (m009), que sincroniza com a nuvem por `sync_uid`.
 
 use crate::application::ports::RepoErro;
-use crate::application::ports_turno::{DadosFechamento, TurnoAbertoInfo, TurnoHistorico, TurnoRepo};
+use crate::application::ports_turno::{
+    DadosFechamento, TurnoAbertoInfo, TurnoHistorico, TurnoRepo,
+};
 use crate::domain::dinheiro::Dinheiro;
 use crate::domain::pedido::Recebimento;
 use async_trait::async_trait;
@@ -51,7 +53,11 @@ impl TurnoRepo for SeaTurnoRepo {
         }))
     }
 
-    async fn abrir(&self, operador: &str, caixa_inicial_centavos: i64) -> Result<TurnoAbertoInfo, RepoErro> {
+    async fn abrir(
+        &self,
+        operador: &str,
+        caixa_inicial_centavos: i64,
+    ) -> Result<TurnoAbertoInfo, RepoErro> {
         let backend = self.db.get_database_backend();
         // UUID v4 gerado em SQL (mesmo gerador da réplica — m008), lido de volta.
         let uid: String = self
@@ -75,7 +81,11 @@ impl TurnoRepo for SeaTurnoRepo {
             ))
             .await
             .map_err(erro)?;
-        Ok(TurnoAbertoInfo { sync_uid: uid, caixa_inicial_centavos, abertura: ts })
+        Ok(TurnoAbertoInfo {
+            sync_uid: uid,
+            caixa_inicial_centavos,
+            abertura: ts,
+        })
     }
 
     async fn contar_pedidos(&self, turno_uid: &str) -> Result<i64, RepoErro> {
@@ -89,7 +99,9 @@ impl TurnoRepo for SeaTurnoRepo {
             ))
             .await
             .map_err(erro)?;
-        Ok(row.and_then(|r| r.try_get::<i64>("", "n").ok()).unwrap_or(0))
+        Ok(row
+            .and_then(|r| r.try_get::<i64>("", "n").ok())
+            .unwrap_or(0))
     }
 
     async fn dados_fechamento(&self, turno_uid: &str) -> Result<DadosFechamento, RepoErro> {
@@ -126,7 +138,11 @@ impl TurnoRepo for SeaTurnoRepo {
                 })
             })
             .collect();
-        Ok(DadosFechamento { caixa_inicial_centavos: caixa, pagamentos, qtd_vendas: vendas })
+        Ok(DadosFechamento {
+            caixa_inicial_centavos: caixa,
+            pagamentos,
+            qtd_vendas: vendas,
+        })
     }
 
     async fn dinheiro_forma_id(&self) -> Result<i64, RepoErro> {
@@ -139,19 +155,35 @@ impl TurnoRepo for SeaTurnoRepo {
             ))
             .await
             .map_err(erro)?;
-        Ok(row.and_then(|r| r.try_get::<i64>("", "id").ok()).unwrap_or(-1))
+        Ok(row
+            .and_then(|r| r.try_get::<i64>("", "id").ok())
+            .unwrap_or(-1))
     }
 
-    async fn encerrar(&self, turno_uid: &str, esperado: i64, conferido: i64, diferenca: i64) -> Result<(), RepoErro> {
+    async fn encerrar(
+        &self,
+        turno_uid: &str,
+        esperado: i64,
+        conferido: i64,
+        diferenca: i64,
+    ) -> Result<(), RepoErro> {
         let backend = self.db.get_database_backend();
         let ts = agora();
         self.db
             .execute(Statement::from_sql_and_values(
                 backend,
                 "UPDATE turno_operacao SET status = 'encerrado', encerramento = ?, \
-                 esperado_centavos = ?, conferido_centavos = ?, diferenca_centavos = ?, atualizado_em = ? \
+                 esperado_centavos = ?, conferido_centavos = ?, diferenca_centavos = ?, \
+                 atualizado_em = ?, sincronizado_em = NULL \
                  WHERE sync_uid = ?",
-                [ts.clone().into(), esperado.into(), conferido.into(), diferenca.into(), ts.into(), turno_uid.into()],
+                [
+                    ts.clone().into(),
+                    esperado.into(),
+                    conferido.into(),
+                    diferenca.into(),
+                    ts.into(),
+                    turno_uid.into(),
+                ],
             ))
             .await
             .map_err(erro)?;

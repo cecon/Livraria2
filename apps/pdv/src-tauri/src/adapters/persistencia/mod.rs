@@ -21,6 +21,7 @@ pub mod replica_mapa;
 pub mod replica_sync;
 pub mod api_replica;
 pub(crate) mod api_outbox;
+pub(crate) mod api_outbox_operacional;
 pub(crate) mod api_catalogo;
 
 use crate::migration::Migrator;
