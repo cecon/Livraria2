@@ -9,6 +9,7 @@ const ROTAS_PUBLICAS_API = [
   "/api/auth",
   "/api/rest",
   "/api/sync",
+  "/api/pdv",
   "/api/pdvs",
   "/api/produtos-pdv",
   "/api/ia",
@@ -37,3 +38,4 @@ export const config = {
   // Roda em tudo menos assets estáticos.
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
+
