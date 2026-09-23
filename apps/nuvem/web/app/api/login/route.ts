@@ -12,10 +12,12 @@ export async function POST(request: NextRequest) {
   try {
     const session = await apiLogin(login, String(senha));
     const store = await cookies();
-    store.set("app_user", session.user.usuario, { httpOnly: true, sameSite: "lax", path: "/" });
+    const secure = requestUsesHttps(request);
+    store.set("app_user", session.user.usuario, {
+      httpOnly: true, sameSite: "lax", path: "/", maxAge: session.expiresIn, secure,
+    });
     store.set(API_COOKIE, session.accessToken, {
-      httpOnly: true, sameSite: "strict", path: "/", maxAge: session.expiresIn,
-      secure: requestUsesHttps(request),
+      httpOnly: true, sameSite: "lax", path: "/", maxAge: session.expiresIn, secure,
     });
     return NextResponse.json({ ok: true });
   } catch {

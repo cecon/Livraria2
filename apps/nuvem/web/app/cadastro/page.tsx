@@ -13,6 +13,7 @@ import { StockBadge } from "@/components/StockBadge";
 import { CATEGORIAS } from "@/lib/catalogo";
 import { listarLivros, salvarLivro, excluirLivro, type Livro } from "@/lib/nuvem/livro";
 import { listarSaldos } from "@/lib/nuvem/estoque";
+import { BrowserApiError } from "@/lib/api/browser-client";
 import { centavos, reais } from "@/utils/texto";
 import { PageHeader } from "@/components/PageHeader";
 import { ContentPanel } from "@/components/ContentPanel";
@@ -36,6 +37,7 @@ export default function CadastroPage() {
       setLivros(ls);
       setSaldos(ss);
     } catch (error) {
+      if (error instanceof BrowserApiError && error.status === 401) return;
       toast.error(error instanceof Error ? error.message : "Catalogo indisponivel");
     }
   }

@@ -13,6 +13,7 @@ import { ItensNotaTabela } from "@/components/ItensNotaTabela";
 import { listarFornecedores, type Fornecedor } from "@/lib/nuvem/fornecedor";
 import { listarLivros } from "@/lib/nuvem/livro";
 import { listarSaldos } from "@/lib/nuvem/estoque";
+import { BrowserApiError } from "@/lib/api/browser-client";
 import {
   lancamentosListar,
   lancamentoCriar,
@@ -127,7 +128,10 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
       const [fs, ls, ss] = await Promise.all([listarFornecedores(), listarLivros(true), listarSaldos()]);
       setFornecedores(fs);
       setLivros(ls.map((l) => ({ sync_uid: l.sync_uid, codigo: l.codigo, titulo: l.titulo, autor: l.autor, preco_centavos: l.preco_centavos, estoque: ss.get(l.sync_uid) ?? 0 })));
-    })().catch(() => toast.error("Catalogo indisponivel. Confira sua sessao."));
+    })().catch((error) => {
+      if (error instanceof BrowserApiError && error.status === 401) return;
+      toast.error("Catalogo indisponivel. Confira sua sessao.");
+    });
   }, [uid]);
 
   const mapaCodigo = useMemo(() => new Map(livros.map((l) => [l.codigo, l])), [livros]);

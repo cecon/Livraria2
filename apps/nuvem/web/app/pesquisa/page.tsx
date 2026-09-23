@@ -13,6 +13,7 @@ import { ExtratoMovimentos } from "@/components/ExtratoMovimentos";
 import { CATEGORIAS } from "@/lib/catalogo";
 import { listarLivros, type Livro } from "@/lib/nuvem/livro";
 import { listarSaldos } from "@/lib/nuvem/estoque";
+import { BrowserApiError } from "@/lib/api/browser-client";
 import { reais } from "@/utils/texto";
 
 // Pesquisa + Detalhes (US2) — paridade com o PDV: busca por código OU texto,
@@ -33,7 +34,10 @@ export default function PesquisaPage() {
     return ss;
   }
   useEffect(() => {
-    carregarBase().catch(() => toast.error("Catalogo indisponivel. Confira sua sessao."));
+    carregarBase().catch((error) => {
+      if (error instanceof BrowserApiError && error.status === 401) return;
+      toast.error("Catalogo indisponivel. Confira sua sessao.");
+    });
   }, []);
 
   const est = (l: Livro) => saldos.get(l.sync_uid) ?? 0;

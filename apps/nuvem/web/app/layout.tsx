@@ -12,7 +12,8 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const usuario = (await cookies()).get("app_user")?.value ?? null;
+  const store = await cookies();
+  const usuario = store.get("nuvem_usuario")?.value ? store.get("app_user")?.value ?? null : null;
   // suppressHydrationWarning: o next-themes ajusta a classe do <html> antes da hidratação.
   return (
     <html lang="pt-BR" suppressHydrationWarning>
