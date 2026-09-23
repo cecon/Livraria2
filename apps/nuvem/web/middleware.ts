@@ -5,7 +5,6 @@ const ROTAS_PUBLICAS_API = [
   "/mcp",
   "/.well-known",
   "/api/v1",
-  "/api/api",
   "/api/auth",
   "/api/rest",
   "/api/sync",
