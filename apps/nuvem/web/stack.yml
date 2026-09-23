@@ -58,6 +58,7 @@ services:
     ports:
       - "${ESCRITORIO_PORT:-47612}:3000"
     environment:
+      HOSTNAME: 0.0.0.0
       NUVEM_API_URL: http://api:3001
       NODE_ENV: production
     depends_on:
