@@ -25,12 +25,13 @@ pub fn api_url() -> String {
     std::env::var("NUVEM_API_URL").unwrap_or_else(|_| DEFAULT_API_URL.into())
 }
 
-pub fn validate_api_url(value: &str) -> Result<String, String> {
+fn normalized_api_url(value: &str, allow_legacy_api_path: bool) -> Result<String, String> {
     let parsed = Url::parse(value).map_err(|_| "Endereco da API invalido".to_string())?;
     let loopback = matches!(parsed.host_str(), Some("127.0.0.1" | "localhost" | "[::1]"));
     let secure = parsed.scheme() == "https" || (parsed.scheme() == "http" && loopback);
+    let legacy_api_path = allow_legacy_api_path && parsed.path() == "/api";
     if !secure
-        || parsed.path() != "/"
+        || (parsed.path() != "/" && !legacy_api_path)
         || parsed.query().is_some()
         || parsed.fragment().is_some()
         || !parsed.username().is_empty()
@@ -38,7 +39,17 @@ pub fn validate_api_url(value: &str) -> Result<String, String> {
     {
         return Err("Endereco da API exige HTTPS ou localhost, sem caminho".into());
     }
-    Ok(value.trim_end_matches('/').to_string())
+    let mut normalized = parsed;
+    normalized.set_path("");
+    Ok(normalized.as_str().trim_end_matches('/').to_string())
+}
+
+pub fn validate_api_url(value: &str) -> Result<String, String> {
+    normalized_api_url(value, false)
+}
+
+fn load_api_url(value: &str) -> Result<String, String> {
+    normalized_api_url(value, true)
 }
 
 pub fn load(path: Option<&Path>) -> Result<MachineCredentials, String> {
@@ -48,7 +59,7 @@ pub fn load(path: Option<&Path>) -> Result<MachineCredentials, String> {
         std::env::var("NUVEM_PDV_REFRESH_TOKEN"),
     ) {
         return Ok(MachineCredentials {
-            api_url,
+            api_url: load_api_url(&api_url)?,
             pdv_uid,
             refresh_token,
         });
@@ -59,7 +70,7 @@ pub fn load(path: Option<&Path>) -> Result<MachineCredentials, String> {
         .get_password()
         .map_err(|_| "Credencial da maquina nao encontrada".to_string())?;
     Ok(MachineCredentials {
-        api_url: config.api_url,
+        api_url: load_api_url(&config.api_url)?,
         pdv_uid: config.pdv_uid,
         refresh_token,
     })
@@ -74,15 +85,18 @@ pub fn read(path: Option<&Path>) -> Result<MachineConfig, String> {
 
 pub fn identity(path: Option<&Path>) -> Result<MachineConfig, String> {
     let config = if let (Ok(api_url), Ok(pdv_uid)) = (
-        std::env::var("NUVEM_API_URL"), std::env::var("NUVEM_PDV_UID"),
+        std::env::var("NUVEM_API_URL"),
+        std::env::var("NUVEM_PDV_UID"),
     ) {
         MachineConfig {
-            api_url,
+            api_url: load_api_url(&api_url)?,
             pdv_uid,
             nome: std::env::var("COMPUTERNAME").unwrap_or_else(|_| "PDV".into()),
         }
     } else {
-        read(path)?
+        let mut config = read(path)?;
+        config.api_url = load_api_url(&config.api_url)?;
+        config
     };
     uuid::Uuid::parse_str(&config.pdv_uid).map_err(|_| "ID da maquina invalido".to_string())?;
     if config.nome.trim().is_empty() {
@@ -132,5 +146,13 @@ mod tests {
     fn rejeita_url_insegura_ou_com_caminho() {
         assert!(validate_api_url("http://livraria.c3bot.com").is_err());
         assert!(validate_api_url("https://livraria.c3bot.com/api").is_err());
+    }
+
+    #[test]
+    fn normaliza_config_antiga_com_api() {
+        assert_eq!(
+            load_api_url("https://livraria.c3bot.com/api").unwrap(),
+            "https://livraria.c3bot.com"
+        );
     }
 }
