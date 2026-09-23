@@ -29,7 +29,7 @@ services:
       HOST: 0.0.0.0
       PORT: 3001
       API_OPERATIONS_ENABLED: "true"
-      DATABASE_URL: postgresql://livraria:${POSTGRES_PASSWORD}@db:5432/livraria?schema=public
+      DATABASE_URL: postgresql://livraria:${POSTGRES_PASSWORD}@db:5432/livraria
       API_JWT_SECRET: ${API_JWT_SECRET}
       LLM_ENCRYPTION_KEY: ${LLM_ENCRYPTION_KEY:-}
       LLM_ALLOWED_BASE_URLS: ${LLM_ALLOWED_BASE_URLS:-}
@@ -44,7 +44,7 @@ services:
     container_name: livraria-migrator
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://livraria:${POSTGRES_PASSWORD}@db:5432/livraria?schema=public
+      DATABASE_URL: postgresql://livraria:${POSTGRES_PASSWORD}@db:5432/livraria
     depends_on:
       db:
         condition: service_healthy
