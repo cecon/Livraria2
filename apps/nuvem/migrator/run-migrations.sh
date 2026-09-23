@@ -28,6 +28,11 @@ sql_escape() {
   printf "%s" "$1" | sed "s/'/''/g"
 }
 
+run_sql "create schema if not exists extensions;"
+run_sql "create extension if not exists pgcrypto with schema extensions;"
+run_sql "alter extension pgcrypto set schema extensions;"
+run_sql "create extension if not exists unaccent with schema extensions;"
+run_sql "alter extension unaccent set schema extensions;"
 run_sql "do \$\$ begin
   if not exists (select 1 from pg_roles where rolname='anon') then
     create role anon nologin;
