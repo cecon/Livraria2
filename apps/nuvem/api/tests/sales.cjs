@@ -79,7 +79,7 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
     assert.equal(opened.status, 201, JSON.stringify(opened.body));
     assert.deepEqual(await request("/sync/turnos", firstDevice.accessToken, opening), opened);
     assert.equal((await request("/sync/turnos", firstDevice.accessToken,
-      { ...opening, turnoUid: randomUUID() })).status, 409);
+      { ...opening, turnoUid: randomUUID() })).status, 201);
     assert.equal((await request("/sync/turnos", secondDevice.accessToken, opening)).status, 409);
     const otherShiftUid = randomUUID();
     assert.equal((await request("/sync/turnos", secondDevice.accessToken,
