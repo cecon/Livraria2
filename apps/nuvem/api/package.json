@@ -10,7 +10,8 @@
     "db:generate": "prisma generate",
     "db:introspect": "prisma db pull",
     "db:baseline:check": "node scripts/check-baseline.cjs",
-    "test:integration": "node --test --test-concurrency=1 tests/protocol.cjs tests/sales.cjs"
+    "test:integration": "node --test --test-concurrency=1 tests/mcp-registration.cjs tests/protocol.cjs tests/sales.cjs",
+    "test:mcp-registration": "node --test tests/mcp-registration.cjs"
   },
   "dependencies": {
     "@livraria/contratos": "^1.0.0",
