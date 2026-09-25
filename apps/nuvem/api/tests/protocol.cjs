@@ -114,8 +114,17 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
       assert.notEqual(rotated.body.refreshToken, configured.body.refreshToken);
       assert.equal((await request("/pdv/renovar", null,
         { pdvUid: configured.body.uid, refreshToken: configured.body.refreshToken })).status, 401);
-      assert.equal((await request("/pdv/renovar", null,
-        { pdvUid: configured.body.uid, refreshToken: rotated.body.refreshToken })).status, 201);
+      const legacyRenewed = await fetch("http://127.0.0.1:3003/api/pdv/renovar", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pdvUid: configured.body.uid, refreshToken: rotated.body.refreshToken }),
+      });
+      assert.equal(legacyRenewed.status, 201);
+      const legacyToken = (await legacyRenewed.json()).accessToken;
+      const legacyCatalog = await fetch("http://127.0.0.1:3003/api/pdv/catalogo?limite=1", {
+        headers: { authorization: "Bearer " + legacyToken },
+      });
+      assert.equal(legacyCatalog.status, 200);
       assert.equal((await request("/pdv/configurar", null,
         { nome: "PDV OPERADOR " + randomUUID(), usuario: "operador", senha: password })).status, 401);
     });
@@ -274,3 +283,4 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
     await db.$disconnect();
   }
 });
+

@@ -17,8 +17,33 @@ class HealthController {
 })
 class AppModule {}
 
+function installLegacyPdvRoutes(app: { use: (fn: (req: { url?: string }, res: unknown, next: () => void) => void) => void }) {
+  const rewrites: Array<[RegExp, string]> = [
+    [/^\/api\/pdv\/catalogo(\/confirmacao)?(?=\?|$)/, "/api/v1/sync/catalogo$1"],
+    [/^\/api\/pdv\/vendas(\/[0-9a-f-]+\/cancelamento)?(?=\?|$)/i, "/api/v1/sync/vendas$1"],
+    [/^\/api\/pdv\/turnos(\/[0-9a-f-]+\/encerramento)?(?=\?|$)/i, "/api/v1/sync/turnos$1"],
+    [/^\/api\/pdv\/caixa-movimentos(?=\?|$)/, "/api/v1/sync/caixa-movimentos"],
+    [/^\/api\/pdv\/produtos\/codigo(?=\?|$)/, "/api/v1/produtos-pdv/codigo"],
+    [/^\/api\/pdv\/produtos\/([0-9a-f-]+)(?=\?|$)/i, "/api/v1/produtos-pdv/$1"],
+    [/^\/api\/pdv\/produtos(?=\?|$)/, "/api/v1/produtos-pdv"],
+    [/^\/api\/pdv\/llms(\/[0-9a-f-]+\/testar)?(?=\?|$)/i, "/api/v1/llms$1"],
+    [/^\/api\/pdv\/(configurar|renovar|produtos\/autorizacao)(?=\?|$)/, "/api/v1/pdv/$1"],
+  ];
+  app.use((req, _res, next) => {
+    const url = req.url ?? "";
+    for (const [from, to] of rewrites) {
+      if (from.test(url)) {
+        req.url = url.replace(from, to);
+        break;
+      }
+    }
+    next();
+  });
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  installLegacyPdvRoutes(app);
   app.setGlobalPrefix("api/v1");
   app.enableShutdownHooks();
   const port = Number(process.env.PORT ?? 3001);
@@ -29,3 +54,4 @@ async function bootstrap() {
 }
 
 void bootstrap();
+

@@ -19,6 +19,21 @@ export class PdvPublicController {
     return this.auth.renewDevice(body?.pdvUid, body?.refreshToken);
   }
 
+  @Post("produtos/autorizacao")
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  async productAuthorization(@Body() body: { usuario?: unknown; senha?: unknown }) {
+    const user = typeof body?.usuario === "string" ? body.usuario.trim().toLowerCase() : "";
+    const password = typeof body?.senha === "string" ? body.senha : "";
+    if (!user || user.length > 100 || !password || password.length > 200) {
+      throw new BadRequestException("Dados invalidos");
+    }
+    const session = await this.auth.login(user, password);
+    const rows = await this.db.$queryRaw<{ perfil: string }[]>`
+      select perfil from public.usuario where usuario=${user}
+        and ativo and excluido_em is null`;
+    if (rows[0]?.perfil !== "admin") throw new UnauthorizedException("Informe um administrador ativo");
+    return { accessToken: session.accessToken };
+  }
   @Post("configurar")
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   async configure(@Body() body: { nome?: unknown; usuario?: unknown; senha?: unknown }) {
@@ -59,3 +74,5 @@ export class PdvPublicController {
       returning versao_token as versao`;
   }
 }
+
+
