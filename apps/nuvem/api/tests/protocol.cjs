@@ -92,6 +92,33 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
         where sync_uid=${legacyUid}::uuid`;
       assert.equal(upgraded[0].prefixo, "$2");
     });
+    await t.test("cadastro publico do pdv configura e renova credencial", async () => {
+      const nome = "PDV TESTE PUBLICO " + randomUUID();
+      const configured = await request("/pdv/configurar", null, { nome, usuario: "admin", senha: password });
+      assert.equal(configured.status, 201);
+      assert.match(configured.body.uid, /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+      assert.equal(configured.body.expiresIn, 900);
+      assert.ok(configured.body.accessToken);
+      assert.ok(configured.body.refreshToken);
+      const saved = await db.$queryRaw`select uid::text as uid, nome, usuario_uid::text as usuario_uid
+        from public.nuvem_pdv where uid=${configured.body.uid}::uuid`;
+      assert.equal(saved[0].nome, nome);
+      assert.equal(saved[0].usuario_uid, adminUid);
+      const renewed = await request("/pdv/renovar", null,
+        { pdvUid: configured.body.uid, refreshToken: configured.body.refreshToken });
+      assert.equal(renewed.status, 201);
+      assert.ok(renewed.body.accessToken);
+      const rotated = await request("/pdv/configurar", null, { nome: "  " + nome.toLowerCase() + "  ", usuario: "ADMIN", senha: password });
+      assert.equal(rotated.status, 201);
+      assert.equal(rotated.body.uid, configured.body.uid);
+      assert.notEqual(rotated.body.refreshToken, configured.body.refreshToken);
+      assert.equal((await request("/pdv/renovar", null,
+        { pdvUid: configured.body.uid, refreshToken: configured.body.refreshToken })).status, 401);
+      assert.equal((await request("/pdv/renovar", null,
+        { pdvUid: configured.body.uid, refreshToken: rotated.body.refreshToken })).status, 201);
+      assert.equal((await request("/pdv/configurar", null,
+        { nome: "PDV OPERADOR " + randomUUID(), usuario: "operador", senha: password })).status, 401);
+    });
     await t.test("usuario autenticado troca a propria senha", async () => {
       const novaSenha = randomUUID();
       const response = await fetch(base + "/auth/senha", {
@@ -116,10 +143,11 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
     let token = enrolled.body.accessToken;
     const devices = await request("/pdvs", adminToken);
     assert.equal(devices.status, 200);
-    assert.equal(devices.body[0].uid, deviceUid);
-    assert.equal(devices.body[0].cursorAplicado, "0");
-    assert.equal(devices.body[0].usuarioUid, operatorUid);
-    assert.equal(devices.body[0].usuario, "operador");
+    const listedDevice = devices.body.find(device => device.uid === deviceUid);
+    assert.ok(listedDevice);
+    assert.equal(listedDevice.cursorAplicado, "0");
+    assert.equal(listedDevice.usuarioUid, operatorUid);
+    assert.equal(listedDevice.usuario, "operador");
     const renamed = await request("/pdvs/" + deviceUid, adminToken,
       { nome: "maquina teste", usuarioUid: operatorUid }, "PUT");
     assert.equal(renamed.status, 200);
