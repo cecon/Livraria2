@@ -19,15 +19,15 @@ class AppModule {}
 
 function installLegacyPdvRoutes(app: { use: (fn: (req: { url?: string }, res: unknown, next: () => void) => void) => void }) {
   const rewrites: Array<[RegExp, string]> = [
-    [/^\/api\/pdv\/catalogo(\/confirmacao)?(?=\?|$)/, "/api/v1/sync/catalogo$1"],
-    [/^\/api\/pdv\/vendas(\/[0-9a-f-]+\/cancelamento)?(?=\?|$)/i, "/api/v1/sync/vendas$1"],
-    [/^\/api\/pdv\/turnos(\/[0-9a-f-]+\/encerramento)?(?=\?|$)/i, "/api/v1/sync/turnos$1"],
-    [/^\/api\/pdv\/caixa-movimentos(?=\?|$)/, "/api/v1/sync/caixa-movimentos"],
-    [/^\/api\/pdv\/produtos\/codigo(?=\?|$)/, "/api/v1/produtos-pdv/codigo"],
-    [/^\/api\/pdv\/produtos\/([0-9a-f-]+)(?=\?|$)/i, "/api/v1/produtos-pdv/$1"],
-    [/^\/api\/pdv\/produtos(?=\?|$)/, "/api/v1/produtos-pdv"],
-    [/^\/api\/pdv\/llms(\/[0-9a-f-]+\/testar)?(?=\?|$)/i, "/api/v1/llms$1"],
-    [/^\/api\/pdv\/(configurar|renovar|produtos\/autorizacao)(?=\?|$)/, "/api/v1/pdv/$1"],
+    [/^\/api\/(?:v1\/)?pdv\/catalogo(\/confirmacao)?(?=\?|$)/, "/api/v1/sync/catalogo$1"],
+    [/^\/api\/(?:v1\/)?pdv\/vendas(\/[0-9a-f-]+\/cancelamento)?(?=\?|$)/i, "/api/v1/sync/vendas$1"],
+    [/^\/api\/(?:v1\/)?pdv\/turnos(\/[0-9a-f-]+\/encerramento)?(?=\?|$)/i, "/api/v1/sync/turnos$1"],
+    [/^\/api\/(?:v1\/)?pdv\/caixa-movimentos(?=\?|$)/, "/api/v1/sync/caixa-movimentos"],
+    [/^\/api\/(?:v1\/)?pdv\/produtos\/codigo(?=\?|$)/, "/api/v1/produtos-pdv/codigo"],
+    [/^\/api\/(?:v1\/)?pdv\/produtos\/([0-9a-f-]+)(?=\?|$)/i, "/api/v1/produtos-pdv/$1"],
+    [/^\/api\/(?:v1\/)?pdv\/produtos(?=\?|$)/, "/api/v1/produtos-pdv"],
+    [/^\/api\/(?:v1\/)?pdv\/llms(\/[0-9a-f-]+\/testar)?(?=\?|$)/i, "/api/v1/llms$1"],
+    [/^\/api\/(?:v1\/)?pdv\/(configurar|renovar|produtos\/autorizacao)(?=\?|$)/, "/api/v1/pdv/$1"],
   ];
   app.use((req, _res, next) => {
     const url = req.url ?? "";
@@ -54,4 +54,5 @@ async function bootstrap() {
 }
 
 void bootstrap();
+
 

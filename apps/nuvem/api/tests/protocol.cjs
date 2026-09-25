@@ -125,6 +125,10 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
         headers: { authorization: "Bearer " + legacyToken },
       });
       assert.equal(legacyCatalog.status, 200);
+      const prefixedCatalog = await fetch("http://127.0.0.1:3003/api/v1/pdv/catalogo?limite=1", {
+        headers: { authorization: "Bearer " + legacyToken },
+      });
+      assert.equal(prefixedCatalog.status, 200);
       assert.equal((await request("/pdv/configurar", null,
         { nome: "PDV OPERADOR " + randomUUID(), usuario: "operador", senha: password })).status, 401);
     });
@@ -283,4 +287,5 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
     await db.$disconnect();
   }
 });
+
 
