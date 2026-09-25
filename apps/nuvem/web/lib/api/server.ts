@@ -4,10 +4,10 @@ import { apiOrigin } from "./config";
 
 export const API_COOKIE = "nuvem_usuario";
 
-export async function apiFetch(path: string, init: RequestInit = {}, token?: string) {
+export async function apiFetch(path: string, init: RequestInit = {}, token?: string, timeoutMs = 5000) {
   const credential = token ?? (await cookies()).get(API_COOKIE)?.value;
   return fetch(`${apiOrigin()}/api/v1/${path}`, {
-    ...init, redirect: "error", cache: "no-store", signal: AbortSignal.timeout(5000),
+    ...init, redirect: "error", cache: "no-store", signal: AbortSignal.timeout(timeoutMs),
     headers: { "content-type": "application/json", ...(credential && { authorization: `Bearer ${credential}` }) },
   });
 }
@@ -28,3 +28,4 @@ export async function apiLogin(usuario: string, senha: string) {
     perfil: user.perfil as "admin", tipo: "usuario" as const,
   }, expiresIn: body.expiresIn as number };
 }
+

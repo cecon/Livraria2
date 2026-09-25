@@ -40,6 +40,13 @@ import { ApiThrottlerGuard } from "./auth/api-throttler.guard";
 import { ShiftContextService } from "./auth/shift-context.service";
 import { LlmService } from "./llm/llm.service";
 import { LlmAdminController, LlmUsageController } from "./llm/llm.controller";
+import { IaController } from "./external-ai/controllers";
+import { IaMcpController } from "./external-ai/mcp.controller";
+import { IaOAuthController } from "./external-ai/oauth.controller";
+import { IaAccessService } from "./external-ai/access.service";
+import { IaCatalog } from "./external-ai/catalog.service";
+import { IaGateway } from "./external-ai/gateway.service";
+
 
 @Module({
   imports: [
@@ -61,10 +68,12 @@ import { LlmAdminController, LlmUsageController } from "./llm/llm.controller";
   ],
   controllers: [PdvProductsController, AuthController, DevicesController, PdvPublicController, CatalogController, SalesController, ShiftSyncController, CashSyncController, BooksController,
     FormsController, SuppliersController, UsersController, DestinationsController, StockController,
-    EntriesController, ShiftsController, AdminSalesController, ReportsController, LlmAdminController, LlmUsageController],
+    EntriesController, ShiftsController, AdminSalesController, ReportsController, LlmAdminController, LlmUsageController, IaController, IaMcpController, IaOAuthController],
   providers: [PdvProductsService, AuthService, AuthGuard, SalesService, ShiftSyncService, CashSyncService, BooksService, FormsService, SuppliersService,
     UsersService, DestinationsService, StockService, EntriesService, ShiftsService, AdminSalesService,
-    ReportsService, LlmService, ShiftContextService,
+    ReportsService, LlmService, ShiftContextService, IaAccessService, IaCatalog, IaGateway,
     { provide: APP_GUARD, useClass: ApiThrottlerGuard }],
 })
 export class OperationsModule {}
+
+
