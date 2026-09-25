@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { Controller, Get, Module } from "@nestjs/common";
+import { ArgumentsHost, Catch, Controller, ExceptionFilter, Get, HttpException, Logger, Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { OperationsModule } from "./operations.module";
 
@@ -16,6 +16,25 @@ class HealthController {
   imports: process.env.API_OPERATIONS_ENABLED === "true" ? [OperationsModule] : [],
 })
 class AppModule {}
+
+@Catch(HttpException)
+class HttpErrorLogFilter implements ExceptionFilter {
+  private readonly logger = new Logger("HttpError");
+
+  catch(exception: HttpException, host: ArgumentsHost) {
+    const context = host.switchToHttp();
+    const request = context.getRequest<{ method?: string; url?: string }>();
+    const response = context.getResponse<{ status: (status: number) => { json: (body: unknown) => void } }>();
+    const status = exception.getStatus();
+    const body = exception.getResponse();
+    if (status >= 400) {
+      const message = typeof body === "object" && body !== null && "message" in body
+        ? JSON.stringify((body as { message?: unknown }).message) : exception.message;
+      this.logger.warn(`${request.method ?? "?"} ${request.url ?? "?"} -> ${status} ${message}`);
+    }
+    response.status(status).json(body);
+  }
+}
 
 function installLegacyPdvRoutes(app: { use: (fn: (req: { url?: string }, res: unknown, next: () => void) => void) => void }) {
   const rewrites: Array<[RegExp, string]> = [
@@ -44,6 +63,7 @@ function installLegacyPdvRoutes(app: { use: (fn: (req: { url?: string }, res: un
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   installLegacyPdvRoutes(app);
+  app.useGlobalFilters(new HttpErrorLogFilter());
   app.setGlobalPrefix("api/v1");
   app.enableShutdownHooks();
   const port = Number(process.env.PORT ?? 3001);
@@ -54,5 +74,6 @@ async function bootstrap() {
 }
 
 void bootstrap();
+
 
 
