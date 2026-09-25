@@ -36,7 +36,7 @@ export class PdvPublicController {
     if (!owner || owner.perfil !== "admin" || !UUID.test(owner.uid)) throw new UnauthorizedException();
     const existing = await this.db.$queryRaw<{ uid: string }[]>`
       select uid::text from public.nuvem_pdv
-      where ativo and lower(nome)=lower(${name}) order by criado_em desc limit 1`;
+      where ativo and lower(nome)=lower(${name}) order by uid desc limit 1`;
     const credential = newRefreshCredential();
     const uid = existing[0]?.uid ?? randomUUID();
     const rows = existing[0]
