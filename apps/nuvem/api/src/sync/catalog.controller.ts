@@ -64,12 +64,15 @@ export class CatalogController {
         select cursor_aplicado as aplicado, cursor_entregue as entregue
         from public.nuvem_pdv where uid = ${uid}::uuid and ativo for update`;
       const row = rows[0];
-      if (!row || applied < row.aplicado ||
-        (applied !== row.aplicado && applied !== row.entregue)) {
-        throw new ConflictException("Cursor nao entregue");
+      if (!row || applied < row.aplicado) throw new ConflictException("Cursor nao entregue");
+      if (applied > row.entregue) {
+        const maxRows = await tx.$queryRaw<{ maximo: bigint }[]>`
+          select coalesce(max(sequencia), 0)::bigint as maximo from public.nuvem_catalogo_evento`;
+        if (applied > maxRows[0].maximo) throw new ConflictException("Cursor nao entregue");
       }
       await tx.$executeRaw`
-        update public.nuvem_pdv set cursor_aplicado = ${applied}, confirmado_em = now()
+        update public.nuvem_pdv set cursor_aplicado = ${applied},
+          cursor_entregue = greatest(cursor_entregue, ${applied}), confirmado_em = now()
         where uid = ${uid}::uuid`;
       return { pdvUid: uid, cursorAplicado: applied.toString() };
     });
