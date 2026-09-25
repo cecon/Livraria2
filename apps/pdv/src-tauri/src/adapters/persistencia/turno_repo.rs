@@ -276,6 +276,7 @@ mod testes {
         crate::adapters::persistencia::inicializar_schema(&db).await.unwrap();
         let machine = |uid: &str| MachineConfig {
             api_url: "https://example.test".into(), pdv_uid: uid.into(), nome: "Caixa".into(),
+            refresh_token: None,
         };
         let caixa1 = SeaTurnoRepo::with_machine(db.clone(), machine("m1"));
         let aberto = turno::abrir(&caixa1, "operador-a", 1_000).await.unwrap();

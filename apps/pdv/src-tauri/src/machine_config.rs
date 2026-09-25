@@ -12,6 +12,8 @@ pub struct MachineConfig {
     pub api_url: String,
     pub pdv_uid: String,
     pub nome: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh_token: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -65,10 +67,13 @@ pub fn load(path: Option<&Path>) -> Result<MachineCredentials, String> {
         });
     }
     let config = read(path)?;
-    let refresh_token = keyring::Entry::new(KEYRING_SERVICE, KEYRING_ACCOUNT)
-        .map_err(|_| "Cofre de credenciais indisponivel".to_string())?
-        .get_password()
-        .map_err(|_| "Credencial da maquina nao encontrada".to_string())?;
+    let refresh_token = match config.refresh_token.clone().filter(|v| !v.trim().is_empty()) {
+        Some(value) => value,
+        None => keyring::Entry::new(KEYRING_SERVICE, KEYRING_ACCOUNT)
+            .map_err(|_| "Credencial da maquina nao encontrada".to_string())?
+            .get_password()
+            .map_err(|_| "Credencial da maquina nao encontrada".to_string())?,
+    };
     Ok(MachineCredentials {
         api_url: load_api_url(&config.api_url)?,
         pdv_uid: config.pdv_uid,
@@ -92,6 +97,7 @@ pub fn identity(path: Option<&Path>) -> Result<MachineConfig, String> {
             api_url: load_api_url(&api_url)?,
             pdv_uid,
             nome: std::env::var("COMPUTERNAME").unwrap_or_else(|_| "PDV".into()),
+            refresh_token: None,
         }
     } else {
         let mut config = read(path)?;
@@ -106,26 +112,17 @@ pub fn identity(path: Option<&Path>) -> Result<MachineConfig, String> {
 }
 
 pub fn save(path: &Path, config: &MachineConfig, refresh_token: &str) -> Result<(), String> {
-    let entry = keyring::Entry::new(KEYRING_SERVICE, KEYRING_ACCOUNT)
-        .map_err(|_| "Cofre de credenciais indisponivel".to_string())?;
-    entry
-        .set_password(refresh_token)
-        .map_err(|_| "Nao foi possivel proteger a credencial da maquina".to_string())?;
-    let result = (|| {
-        let parent = path
-            .parent()
-            .ok_or_else(|| "Caminho de configuracao invalido".to_string())?;
-        std::fs::create_dir_all(parent)
-            .map_err(|_| "Nao foi possivel criar a configuracao".to_string())?;
-        let text = serde_json::to_string_pretty(config)
-            .map_err(|_| "Nao foi possivel preparar a configuracao".to_string())?;
-        std::fs::write(path, format!("{text}\n"))
-            .map_err(|_| "Nao foi possivel salvar a configuracao".to_string())
-    })();
-    if result.is_err() {
-        let _ = entry.delete_credential();
-    }
-    result
+    let parent = path
+        .parent()
+        .ok_or_else(|| "Caminho de configuracao invalido".to_string())?;
+    std::fs::create_dir_all(parent)
+        .map_err(|_| "Nao foi possivel criar a configuracao".to_string())?;
+    let mut config = config.clone();
+    config.refresh_token = Some(refresh_token.to_string());
+    let text = serde_json::to_string_pretty(&config)
+        .map_err(|_| "Nao foi possivel preparar a configuracao".to_string())?;
+    std::fs::write(path, format!("{text}\n"))
+        .map_err(|_| "Nao foi possivel salvar a configuracao".to_string())
 }
 
 pub fn is_configured(path: Option<&Path>) -> bool {
@@ -154,5 +151,45 @@ mod tests {
             load_api_url("https://livraria.c3bot.com/api").unwrap(),
             "https://livraria.c3bot.com"
         );
+    }
+
+    #[test]
+    fn carrega_refresh_token_do_arquivo() {
+        let path = std::env::temp_dir().join(format!(
+            "livraria-pdv-load-token-{}.json",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::write(
+            &path,
+            r#"{
+  "apiUrl": "https://livraria.c3bot.com",
+  "pdvUid": "ec2e72ba-1b0f-4b2a-bba8-c47f04df3e29",
+  "nome": "PDV",
+  "refreshToken": "refresh-direto-no-json"
+}"#,
+        )
+        .unwrap();
+        let config = load(Some(&path)).unwrap();
+        assert_eq!(config.refresh_token, "refresh-direto-no-json");
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn salva_refresh_token_no_arquivo() {
+        let path = std::env::temp_dir().join(format!(
+            "livraria-pdv-save-token-{}.json",
+            uuid::Uuid::new_v4()
+        ));
+        let config = MachineConfig {
+            api_url: "https://livraria.c3bot.com".into(),
+            pdv_uid: "ec2e72ba-1b0f-4b2a-bba8-c47f04df3e29".into(),
+            nome: "PDV".into(),
+            refresh_token: None,
+        };
+        save(&path, &config, "refresh-gravado").unwrap();
+        let saved: MachineConfig =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(saved.refresh_token.as_deref(), Some("refresh-gravado"));
+        let _ = std::fs::remove_file(path);
     }
 }

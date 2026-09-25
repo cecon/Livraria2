@@ -75,6 +75,7 @@ pub async fn configurar_maquina(
             api_url,
             pdv_uid,
             nome: name.to_string(),
+            refresh_token: None,
         },
         &credential,
     )?;
