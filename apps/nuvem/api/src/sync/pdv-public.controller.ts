@@ -5,7 +5,7 @@ import { AuthService } from "../auth/auth.service";
 import { newRefreshCredential } from "../auth/device-credentials";
 import { PrismaService } from "../database/prisma.service";
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Controller("pdv")
 export class PdvPublicController {
