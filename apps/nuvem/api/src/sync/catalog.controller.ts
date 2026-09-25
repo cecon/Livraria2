@@ -66,9 +66,11 @@ export class CatalogController {
       const row = rows[0];
       if (!row || applied < row.aplicado) throw new ConflictException("Cursor nao entregue");
       if (applied > row.entregue) {
-        const maxRows = await tx.$queryRaw<{ maximo: bigint }[]>`
-          select coalesce(max(sequencia), 0)::bigint as maximo from public.nuvem_catalogo_evento`;
-        if (applied > maxRows[0].maximo) throw new ConflictException("Cursor nao entregue");
+        const counters = await tx.$queryRaw<{ sequencia: bigint }[]>`
+          select sequencia from public.nuvem_sync_contador where id = 1 for update`;
+        if (!counters[0] || applied > counters[0].sequencia) {
+          throw new ConflictException("Cursor nao entregue");
+        }
       }
       await tx.$executeRaw`
         update public.nuvem_pdv set cursor_aplicado = ${applied},
@@ -78,3 +80,5 @@ export class CatalogController {
     });
   }
 }
+
+
