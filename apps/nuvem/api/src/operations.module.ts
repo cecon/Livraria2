@@ -7,6 +7,7 @@ import { AuthService } from "./auth/auth.service";
 import { AuthGuard } from "./auth/auth.guard";
 import { DatabaseModule } from "./database/database.module";
 import { DevicesController } from "./sync/devices.controller";
+import { PdvPublicController } from "./sync/pdv-public.controller";
 import { CatalogController } from "./sync/catalog.controller";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { APP_GUARD } from "@nestjs/core";
@@ -58,7 +59,7 @@ import { LlmAdminController, LlmUsageController } from "./llm/llm.controller";
       },
     }),
   ],
-  controllers: [PdvProductsController, AuthController, DevicesController, CatalogController, SalesController, ShiftSyncController, CashSyncController, BooksController,
+  controllers: [PdvProductsController, AuthController, DevicesController, PdvPublicController, CatalogController, SalesController, ShiftSyncController, CashSyncController, BooksController,
     FormsController, SuppliersController, UsersController, DestinationsController, StockController,
     EntriesController, ShiftsController, AdminSalesController, ReportsController, LlmAdminController, LlmUsageController],
   providers: [PdvProductsService, AuthService, AuthGuard, SalesService, ShiftSyncService, CashSyncService, BooksService, FormsService, SuppliersService,
