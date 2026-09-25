@@ -1,9 +1,9 @@
 "use client";
 import { useState, type FormEvent } from "react";
-import { Button } from "@livraria/ui/ui/button";
-import { Input } from "@livraria/ui/ui/input";
-import { Label } from "@livraria/ui/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@livraria/ui/ui/dialog";
+import { Button } from "@/interface/ui/button";
+import { Input } from "@/interface/ui/input";
+import { Label } from "@/interface/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/interface/ui/dialog";
 import { addresses, request, type Llm } from "./types";
 
 export function LlmForm({ initial, onClose, onSaved }: { initial: Llm | null; onClose: () => void; onSaved: () => void }) {

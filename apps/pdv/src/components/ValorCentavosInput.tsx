@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { Input } from "@livraria/ui/wowdash/input";
+import { Input } from "@/interface/wowdash/input";
 import { brl } from "@/lib/format";
 
 type Props = Omit<ComponentProps<typeof Input>, "value" | "onChange" | "type"> & {

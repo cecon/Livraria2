@@ -1,4 +1,4 @@
-import { cn } from "@livraria/ui/utils";
+import { cn } from "@/interface/utils";
 import type { ReactNode } from "react";
 
 export function ContentPanel({ title, description, toolbar, children, footer, flush = false, className }: {

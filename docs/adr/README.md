@@ -36,5 +36,7 @@ As decisões nascem do `/speckit-plan` (ver `specs/001-sistema-estoque-vendas/re
 
 | [0031](0031-llm-identidade-turno.md) | Cadastro LLM central e identidade do operador do turno | Aceito |
 
+| [0032](0032-interfaces-independentes-api-unica.md) | Interfaces independentes e API unica | Aceito |
+
 **Versionamento**: um arquivo por decisão, numeração sequencial. Mudança de decisão → novo ADR que
 "supersedes" o anterior (não reescrever o histórico).

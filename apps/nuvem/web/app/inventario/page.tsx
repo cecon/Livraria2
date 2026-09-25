@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ClipboardList } from "lucide-react";
-import { Button } from "@livraria/ui/ui/button";
+import { Button } from "@/interface/ui/button";
 import { ContagemInventario, type ItemContado } from "@/components/ContagemInventario";
 import { RevisaoContagem } from "@/components/RevisaoContagem";
 import { LoadFailure } from "@/components/LoadFailure";

@@ -1,7 +1,7 @@
 "use client";
 
 import { KeyRound, Pencil, PowerOff } from "lucide-react";
-import { Button } from "@livraria/ui/ui/button";
+import { Button } from "@/interface/ui/button";
 import type { Machine } from "./types";
 
 function money(value: string): string {

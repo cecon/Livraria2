@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { ErroMigracao } from "@/components/ErroMigracao";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "@/interface/ui/sonner";
 import { estadoBoot, listarOperadores, turnoAberto, type EstadoBoot, type TurnoAberto } from "@/lib/ipc";
 import { setOperadorAtual } from "@/lib/operador";
 import { estadoMaquina, type MachineState } from "@/lib/ipc_machine";

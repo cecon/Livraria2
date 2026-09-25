@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cn } from "@livraria/ui/utils";
+import { cn } from "@/interface/utils";
 
 export function PageLayout({ children, className, size = "md" }: {
   children: ReactNode; className?: string; size?: "sm" | "md" | "lg";

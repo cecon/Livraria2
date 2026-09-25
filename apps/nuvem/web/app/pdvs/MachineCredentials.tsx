@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, Copy, KeyRound } from "lucide-react";
-import { Button } from "@livraria/ui/ui/button";
+import { Button } from "@/interface/ui/button";
 import { ContentPanel } from "@/components/ContentPanel";
 import type { MachineCredential } from "./types";
 

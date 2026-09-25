@@ -3,8 +3,8 @@
 
 import type { LucideIcon } from "lucide-react";
 import { brl, digitosParaCentavos, valorPos } from "@/lib/format";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/interface/ui/input";
+import { Button } from "@/interface/ui/button";
 
 interface Props {
   rotulo: string;

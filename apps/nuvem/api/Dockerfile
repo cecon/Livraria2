@@ -1,7 +1,6 @@
 FROM node:22-alpine AS builder
 WORKDIR /repo
 COPY package.json package-lock.json ./
-COPY packages/ui/package.json packages/ui/package.json
 COPY packages/domain/package.json packages/domain/package.json
 COPY packages/contratos/package.json packages/contratos/package.json
 COPY apps/pdv/package.json apps/pdv/package.json

@@ -7,7 +7,7 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/interface/ui/button";
 import { PaymentRow } from "./PaymentRow";
 import { brl } from "@/lib/format";
 import { paraCentavos, type Pagamentos } from "@/lib/venda";

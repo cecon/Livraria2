@@ -4,7 +4,7 @@
 // bip por código/título (reusa EntradaProduto), com lista contada (+1/−1/remover).
 import type { RefObject } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
-import { Button } from "@livraria/ui/ui/button";
+import { Button } from "@/interface/ui/button";
 import { EntradaProduto, type LivroBusca } from "@/components/EntradaProduto";
 import type { ModoInventario } from "@/lib/nuvem/inventario";
 

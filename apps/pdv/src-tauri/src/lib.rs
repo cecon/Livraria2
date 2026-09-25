@@ -77,24 +77,18 @@ pub fn run() {
             // O frontend consulta `estado_boot` e bloqueia a operação.
             match resultado {
                 Ok(db) => {
-                    // Feature 007: config da nuvem em <app_config_dir>/sync.json (ou env vars).
-                    let config_sync_path = tauri::Manager::path(app)
-                        .app_config_dir()
-                        .ok()
-                        .map(|d| d.join("sync.json"));
                     let machine_config_path = tauri::Manager::path(app)
                         .app_config_dir()
                         .ok()
                         .map(|d| d.join("machine.json"));
                     app.manage(AppState {
                         db: db.clone(),
-                        config_sync_path: config_sync_path.clone(),
                         machine_config_path: machine_config_path.clone(),
                     });
                     app.manage(BootState { erro_migracao: None });
                     // Sincronização em background (oportunista, não bloqueia a venda).
                     tauri::async_runtime::spawn(sincronizacao_periodica(
-                        db, config_sync_path, machine_config_path,
+                        db, machine_config_path,
                     ));
                 }
                 Err(e) => {
@@ -135,7 +129,6 @@ pub fn run() {
             commands_estoque::extrato_livro,
             commands_sync::sincronizar_agora,
             commands_sync::status_sincronizacao,
-            commands_sync::seed_inicial,
             commands_sync::listar_operadores,
             commands_destinacao::relatorio_destinacoes,
         ])
@@ -147,15 +140,14 @@ pub fn run() {
 /// config/rede, apenas dorme e tenta de novo; nunca bloqueia a operação do PDV.
 async fn sincronizacao_periodica(
     db: DatabaseConnection,
-    config_path: Option<std::path::PathBuf>,
     machine_config_path: Option<std::path::PathBuf>,
 ) {
-    // Espera o app assentar antes da 1ª tentativa.
+    // Espera o app assentar antes da primeira tentativa.
     tokio::time::sleep(std::time::Duration::from_secs(15)).await;
     loop {
         {
             match sync_dispatch::executar(
-                &db, config_path.as_deref(), machine_config_path.as_deref(),
+                &db, machine_config_path.as_deref(),
             ).await {
                 Ok(r) if r.enviados + r.recebidos > 0 => {
                     eprintln!("sync: enviados={} recebidos={} orfas={}", r.enviados, r.recebidos, r.orfas);

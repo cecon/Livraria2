@@ -1,6 +1,6 @@
 import { LockKeyhole, Play, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Button } from "@livraria/ui/ui/button";
+import { Button } from "@/interface/ui/button";
 
 export default function CaixaFechado({ carregando = false, erro = false, onRetry }: {
   carregando?: boolean;

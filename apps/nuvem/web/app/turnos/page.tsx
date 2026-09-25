@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Clock3, RefreshCw } from "lucide-react";
-import { Button } from "@livraria/ui/wowdash/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@livraria/ui/wowdash/table";
+import { Button } from "@/interface/wowdash/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/interface/wowdash/table";
 import { LoadFailure } from "@/components/LoadFailure";
 import { listarTurnos, type TurnoPdv } from "@/lib/nuvem/turno";
 

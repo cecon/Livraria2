@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { BookOpen, Eye, EyeOff, LoaderCircle, MonitorCog, Moon, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/interface/ui/button";
+import { Input } from "@/interface/ui/input";
+import { Label } from "@/interface/ui/label";
 import { configurarMaquina } from "@/lib/ipc_machine";
 import { sincronizarAgora } from "@/lib/ipc_sync";
 import type { Tema } from "@/lib/theme";

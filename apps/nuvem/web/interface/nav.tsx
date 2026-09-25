@@ -1,5 +1,3 @@
-// Itens de navegação — FONTE ÚNICA (ADR-0020). Consumidos pelo PDV (react-router)
-// e pelo Escritório (next/link), garantindo a MESMA barra lateral (SC-001).
 import {
   BookPlus,
   ClipboardList,
@@ -35,17 +33,3 @@ export const NAV_ITENS: ItemNav[] = [
   { to: "/inventario", rotulo: "Inventário", Icon: ClipboardList, end: false },
   { to: "/relatorios", rotulo: "Relatórios", Icon: FileBarChart, end: false },
 ];
-
-// Produtos no PDV grava pela API da retaguarda, com autorização administrativa.
-export const NAV_ITENS_PDV: ItemNav[] = [...NAV_ITENS.filter(
-  (item) =>
-    ![
-      "/cadastro",
-      "/lancamentos",
-      "/inventario",
-      "/fornecedores",
-      "/formas-pagamento",
-      "/destinacoes",
-      "/turnos",
-    ].includes(item.to),
-), { to: "/produtos", rotulo: "Produtos", Icon: BookPlus, end: false }];

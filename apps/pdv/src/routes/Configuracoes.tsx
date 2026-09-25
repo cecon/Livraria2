@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { RefreshCw, Settings } from "lucide-react";
-import { Button } from "@livraria/ui/ui/button";
+import { Button } from "@/interface/ui/button";
 import type { MachineState } from "@/lib/ipc_machine";
 import { sincronizarAgora } from "@/lib/ipc_sync";
 import { LlmConfiguracoes } from "@/components/LlmConfiguracoes";

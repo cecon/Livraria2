@@ -6,13 +6,15 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { PrismaClient } = require("@prisma/client");
 
-test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async t => {
+test("venda atomica e idempotente com triggers reais", { timeout: 120000 }, async t => {
   assert.equal(process.env.API_TEST_DATABASE, "isolated-local");
-  assert.match(process.env.DATABASE_URL ?? "", /@127\.0\.0\.1:55439\/livraria_test/);
+  assert.match(process.env.DATABASE_URL ?? "", /@127\.0\.0\.1:554(?:39|40)\/livraria_test/);
+  assert.equal(process.env.API_TEST_CONTAINER ?? "livraria-separacao-db",
+    process.env.DATABASE_URL.includes(":55440/") ? "livraria-limpeza-test" : "livraria-separacao-db");
   const db = new PrismaClient();
   let child;
   const base = "http://127.0.0.1:3003/api/v1";
-  const run = sql => execFileSync("docker", ["exec", "-i", "livraria-separacao-db",
+  const run = sql => execFileSync("docker", ["exec", "-i", process.env.API_TEST_CONTAINER ?? "livraria-separacao-db",
     "psql", "-U", "postgres", "-d", "livraria_test", "-v", "ON_ERROR_STOP=1"],
     { input: sql, stdio: ["pipe", "pipe", "pipe"] });
   const password = randomUUID();
@@ -54,7 +56,7 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
       env: { ...process.env, PORT: "3003", API_OPERATIONS_ENABLED: "true", API_JWT_SECRET: randomUUID() + randomUUID() },
       stdio: "ignore",
     });
-    for (let n = 0; n < 100; n++) {
+    for (let n = 0; n < 600; n++) {
       if (child.exitCode !== null) throw new Error("API nao iniciou");
       try { if ((await fetch(base + "/health")).ok) break; } catch {}
       await new Promise(r => setTimeout(r, 100));

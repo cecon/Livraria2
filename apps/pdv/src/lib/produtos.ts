@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { Livro } from "./types";
-import type { CredencialAdmin } from "@livraria/ui/ui/autorizacao-admin";
+import type { CredencialAdmin } from "@/interface/ui/autorizacao-admin";
 export type Produto = {
   uid: string; codigo: string; titulo: string; autor: string | null; precoCentavos: number;
   categoria: number; descricao: string | null; saldoPublicado: number;

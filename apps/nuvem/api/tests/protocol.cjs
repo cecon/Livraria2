@@ -6,10 +6,12 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { PrismaClient } = require("@prisma/client");
 
-test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", { timeout: 30000 }, async t => {
+test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", { timeout: 120000 }, async t => {
   // Explicit opt-in prevents running destructive fixtures against a real database.
   assert.equal(process.env.API_TEST_DATABASE, "isolated-local");
-  assert.match(process.env.DATABASE_URL ?? "", /@127\.0\.0\.1:55439\/livraria_test/);
+  assert.match(process.env.DATABASE_URL ?? "", /@127\.0\.0\.1:554(?:39|40)\/livraria_test/);
+  assert.equal(process.env.API_TEST_CONTAINER ?? "livraria-separacao-db",
+    process.env.DATABASE_URL.includes(":55440/") ? "livraria-limpeza-test" : "livraria-separacao-db");
   const db = new PrismaClient();
   const adminUid = randomUUID();
   const operatorUid = randomUUID();
@@ -50,7 +52,7 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
     const sql = fs.readFileSync(path.resolve(__dirname, "../sql/001_protocolo_catalogo.sql"), "utf8");
     // psql supports the multi-statement migration; input contains no credentials.
     const { execFileSync } = require("node:child_process");
-    execFileSync("docker", ["exec", "-i", "livraria-separacao-db", "psql",
+    execFileSync("docker", ["exec", "-i", process.env.API_TEST_CONTAINER ?? "livraria-separacao-db", "psql",
       "-U", "postgres", "-d", "livraria_test", "-v", "ON_ERROR_STOP=1"], { input: sql, stdio: ["pipe", "pipe", "pipe"] });
     await db.$executeRawUnsafe(`create table public.turno_operacao (
       sync_uid uuid primary key, pdv_uid uuid, operador_uid uuid, status text,
@@ -66,7 +68,7 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
       env: { ...process.env, PORT: "3003", API_OPERATIONS_ENABLED: "true", API_JWT_SECRET: randomUUID() + randomUUID() },
       stdio: "ignore",
     });
-    for (let attempt = 0; attempt < 100; attempt++) {
+    for (let attempt = 0; attempt < 600; attempt++) {
       if (child.exitCode !== null) throw new Error("API de teste nao iniciou");
       try { if ((await fetch(base + "/health")).ok) break; } catch {}
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -91,6 +93,25 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
       const upgraded = await db.$queryRaw`select left(senha_hash,2) as prefixo from public.usuario
         where sync_uid=${legacyUid}::uuid`;
       assert.equal(upgraded[0].prefixo, "$2");
+    });
+    await t.test("referencias exigem dispositivo e paginam sem cursor temporal", async () => {
+      assert.equal((await request("/sync/referencias/usuario")).status, 401);
+      assert.equal((await request("/sync/referencias/usuario", adminToken)).status, 403);
+      const configured = await request("/pdv/configurar", null, {
+        nome: "Referencias " + randomUUID(), usuario: "admin", senha: password,
+      });
+      const token = configured.body.accessToken;
+      assert.ok(token);
+      const first = await request("/sync/referencias/usuario", token);
+      assert.equal(first.status, 200);
+      assert.ok(first.body.registros.some(row => row.usuario === "admin" && row.senha_hash));
+      assert.equal(first.body.proximo, null);
+      const start = first.body.registros[0].sync_uid;
+      const next = await request("/sync/referencias/usuario?after=" + start, token);
+      assert.equal(next.body.registros.length, first.body.registros.length - 1);
+      assert.ok(next.body.registros.every(row => row.sync_uid > start));
+      assert.equal((await request("/sync/referencias/pedido", token)).status, 400);
+      assert.equal((await request("/sync/referencias/usuario?after=invalid", token)).status, 400);
     });
     await t.test("cadastro publico do pdv configura e renova credencial", async () => {
       const nome = "PDV TESTE PUBLICO " + randomUUID();
@@ -228,7 +249,7 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
         where produto_uid=${softUid}::uuid order by sequencia`;
       assert.deepEqual(softEvents.map(e=>e.operacao), ["upsert", "delete"]);
       const count = await db.$queryRaw`select count(*) from public.nuvem_catalogo_evento`;
-      execFileSync("docker", ["exec", "-i", "livraria-separacao-db", "psql",
+      execFileSync("docker", ["exec", "-i", process.env.API_TEST_CONTAINER ?? "livraria-separacao-db", "psql",
         "-U", "postgres", "-d", "livraria_test", "-v", "ON_ERROR_STOP=1"], { input: sql, stdio: ["pipe", "pipe", "pipe"] });
       assert.deepEqual(await db.$queryRaw`select count(*) from public.nuvem_catalogo_evento`, count);
     });

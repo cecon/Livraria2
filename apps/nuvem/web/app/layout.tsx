@@ -4,7 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Shell } from "@/components/Shell";
 import { ConexaoBanner } from "@/components/ConexaoBanner";
-import { Toaster } from "@livraria/ui/ui/sonner";
+import { Toaster } from "@/interface/ui/sonner";
 
 export const metadata: Metadata = {
   title: "Escritório — Livraria",

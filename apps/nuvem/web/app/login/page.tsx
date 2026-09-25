@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@livraria/ui/ui/button";
-import { Input } from "@livraria/ui/ui/input";
-import { Label } from "@livraria/ui/ui/label";
+import { Button } from "@/interface/ui/button";
+import { Input } from "@/interface/ui/input";
+import { Label } from "@/interface/ui/label";
 import { LogIn, UserRound } from "lucide-react";
 import { AuthLayout } from "@/components/AuthLayout";
 
 // Login por **usuário** (tabela `usuario`, ADR-0019) — mesma identidade do PDV.
-// Validação/sessão server-side em /api/login. UI no design system (@livraria/ui).
+// Validação/sessão server-side em /api/login. Interface propria da retaguarda.
 export default function LoginPage() {
   const router = useRouter();
   const [usuario, setUsuario] = useState("");

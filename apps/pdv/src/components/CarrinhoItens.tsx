@@ -1,7 +1,7 @@
 import { Minus, Plus, ScanBarcode, Trash2 } from "lucide-react";
-import { Button } from "@livraria/ui/wowdash/button";
-import { Card, CardContent } from "@livraria/ui/wowdash/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@livraria/ui/wowdash/table";
+import { Button } from "@/interface/wowdash/button";
+import { Card, CardContent } from "@/interface/wowdash/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/interface/wowdash/table";
 import { brl } from "@/lib/format";
 
 export interface ItemCarrinho {

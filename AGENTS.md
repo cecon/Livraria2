@@ -28,7 +28,7 @@ Toda criacao, alteracao ou revisao de interface do PDV ou da nuvem DEVE seguir
 `docs/references/theme` e sua documentacao em
 `docs/references/theme/documentation`. Antes de editar UI, leia
 `docs/ui-theme-policy.md`, consulte a documentacao do tema e procure no tema uma pagina ou
-componente equivalente. Reutilize primeiro `packages/ui` e os padroes ja adaptados no projeto.
+componente equivalente. Reutilize os componentes da propria aplicacao: `apps/pdv/src/interface` no PDV e `apps/nuvem/web/interface` na retaguarda. As interfaces sao independentes (ADR-0032).
 Nao crie linguagem visual paralela nem copie regras de negocio, autenticacao ou dados de exemplo
 do tema. Preserve responsividade, acessibilidade e os modos claro/escuro.
 

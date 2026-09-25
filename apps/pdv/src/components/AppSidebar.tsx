@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import { BookOpen, Moon, Settings, Sun, X } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { NAV_ITENS_PDV as ITENS } from "@livraria/ui/nav";
+import { NAV_ITENS_PDV as ITENS } from "@/interface/nav";
 import { SyncStatus } from "./SyncStatus";
 import type { Tema } from "@/lib/theme";
 

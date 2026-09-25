@@ -14,16 +14,17 @@ Configuracao, MCP e limites: [docs/agent-memory.md](docs/agent-memory.md).
 Marco da reorganizacao: `marco-pre-separacao-2026-09-14`.
 Plano: [separacao PDV/nuvem](specs/013-separacao-pdv-nuvem/plan.md).
 
-- `apps/pdv`: Tauri e layout React, com banco local.
-- `apps/nuvem/web`: administrativo Next.js.
-- `apps/nuvem/api`: API NestJS com Prisma/PostgreSQL.
+- `apps/pdv`: PDV offline, com interface propria em `src/interface` e banco local SQLite.
+- `apps/nuvem/web`: retaguarda, com interface propria em `interface`.
+- `apps/nuvem/api`: servidor que autentica usuarios, verifica permissoes e guarda o estoque oficial no PostgreSQL.
 - `packages/contratos`: comunicacao versionada entre sistemas.
 
 Na raiz: `npm run dev` (PDV), `npm run dev:web` (administrativo),
 `npm run dev:api` (API). Builds: `npm run build`, `npm run build:web`,
 `npm run build:api`. API health: `/api/v1/health`.
 O administrativo acessa os dados exclusivamente pela API NestJS; o navegador nao se conecta
-diretamente ao banco.
+diretamente ao banco. O PDV tambem usa somente essa API para sincronizar.
+As interfaces sao independentes; veja [ADR-0032](docs/adr/0032-interfaces-independentes-api-unica.md).
 
 - **Tauri 2** (shell desktop) · **Rust** (núcleo de domínio)
 - **React + TypeScript + Vite** · **shadcn/ui + Tailwind**
@@ -72,7 +73,7 @@ quiser durante a transição. Relatórios usam o gate padrão **adm / adm**.
 ## Testes & guardrails
 
 ```bash
-cargo test --manifest-path src-tauri/Cargo.toml   # domínio/aplicação (sem UI/banco) + integração
+cargo test --manifest-path apps/pdv/src-tauri/Cargo.toml   # domínio/aplicação (sem UI/banco) + integração
 npm run build                                     # typecheck + build do front
 scripts/check-file-size.sh                        # limite de 300 linhas
 scripts/check-domain-purity.sh                    # domínio sem dependência de infraestrutura

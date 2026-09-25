@@ -2,9 +2,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
-@import "@livraria/ui/theme.css";
+@import "../interface/theme.css";
 
-@source "../../../../packages/ui/src";
+@source "../interface";
 
 :root {
   --background: #f5f6fa;

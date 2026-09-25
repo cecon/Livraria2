@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Search } from "lucide-react";
-import { Button } from "@livraria/ui/wowdash/button";
-import { Input } from "@livraria/ui/wowdash/input";
-import { Card, CardHeader, CardContent, CardFooter } from "@livraria/ui/wowdash/card";
+import { Button } from "@/interface/wowdash/button";
+import { Input } from "@/interface/wowdash/input";
+import { Card, CardHeader, CardContent, CardFooter } from "@/interface/wowdash/card";
 import { ProdutoModal } from "@/components/produtos/ProdutoModal";
 import { listarProdutos, consultarProduto, erroProduto, type Produto } from "@/lib/produtos";
 import { brl } from "@/lib/format";

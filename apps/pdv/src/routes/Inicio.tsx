@@ -16,7 +16,7 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { brl } from "@/lib/format";
-import { Button } from "@livraria/ui/wowdash/button";
+import { Button } from "@/interface/wowdash/button";
 import { listarOperadores, type TurnoAberto } from "@/lib/ipc";
 import { vendasDoTurno, type VendaTurno } from "@/lib/ipc-turno";
 

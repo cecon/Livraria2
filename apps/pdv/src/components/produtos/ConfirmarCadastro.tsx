@@ -1,11 +1,11 @@
 import { useRef } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/interface/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
   DialogDescription,
-} from "@livraria/ui/ui/dialog";
+} from "@/interface/ui/dialog";
 export function ConfirmarCadastro({
   codigo,
   onConfirmar,

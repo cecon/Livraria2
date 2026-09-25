@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Plus, RefreshCw } from "lucide-react";
-import { Button } from "@livraria/ui/ui/button";
+import { Button } from "@/interface/ui/button";
 import { browserApiRequest } from "@/lib/api/browser-client";
 import { ContentPanel } from "@/components/ContentPanel";
 import { PageHeader } from "@/components/PageHeader";

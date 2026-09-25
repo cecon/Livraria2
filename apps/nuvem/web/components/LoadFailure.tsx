@@ -2,7 +2,7 @@
 
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Button } from "@livraria/ui/ui/button";
+import { Button } from "@/interface/ui/button";
 
 const RETRY_AFTER_SECONDS = 5;
 

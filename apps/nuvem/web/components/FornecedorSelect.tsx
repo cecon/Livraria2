@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Input } from "@livraria/ui/ui/input";
+import { Input } from "@/interface/ui/input";
 import type { Fornecedor } from "@/lib/nuvem/fornecedor";
 
 export function FornecedorSelect({ fornecedores, selecionadoNome, onSelect }: { fornecedores: Fornecedor[]; selecionadoNome?: string | null; onSelect: (f: Fornecedor) => void }) {

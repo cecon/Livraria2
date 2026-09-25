@@ -41,7 +41,7 @@ csv = "1"
 sha2 = "0.10"
 # Hash de senha forte (salgado/lento), compatível com pgcrypto bcrypt na nuvem — ADR-0019
 bcrypt = "0.15"
-# Feature 007: sincronização com a nuvem (adapter Supabase/PostgREST) — ADR-0015
+# Cliente HTTP autenticado da API da nuvem
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 uuid = { version = "1", features = ["v4"] }
 tokio = { version = "1", features = ["time", "sync"] }

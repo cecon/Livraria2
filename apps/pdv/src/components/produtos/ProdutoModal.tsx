@@ -1,10 +1,10 @@
 import { useRef, useState } from "react";
-import { Button } from "@livraria/ui/wowdash/button";
-import { Input } from "@livraria/ui/wowdash/input";
-import { Label } from "@livraria/ui/ui/label";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@livraria/ui/ui/dialog";
-import { AutorizacaoAdmin } from "@livraria/ui/ui/autorizacao-admin";
-import { ProdutoCampos, novoFormProduto, validarProduto, lerInteiro, type FormProduto } from "@livraria/ui/ui/produto-campos";
+import { Button } from "@/interface/wowdash/button";
+import { Input } from "@/interface/wowdash/input";
+import { Label } from "@/interface/ui/label";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/interface/ui/dialog";
+import { AutorizacaoAdmin } from "@/interface/ui/autorizacao-admin";
+import { ProdutoCampos, novoFormProduto, validarProduto, lerInteiro, type FormProduto } from "@/interface/ui/produto-campos";
 import { consultarProduto, salvarProduto, erroProduto, type Produto, type PedidoProduto, type ProdutoResposta } from "@/lib/produtos";
 import { toast } from "sonner";
 

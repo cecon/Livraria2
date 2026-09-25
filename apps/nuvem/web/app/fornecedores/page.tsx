@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { Button } from "@livraria/ui/ui/button";
-import { Input } from "@livraria/ui/ui/input";
-import { Label } from "@livraria/ui/ui/label";
-import { Textarea } from "@livraria/ui/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@livraria/ui/ui/table";
+import { Button } from "@/interface/ui/button";
+import { Input } from "@/interface/ui/input";
+import { Label } from "@/interface/ui/label";
+import { Textarea } from "@/interface/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/interface/ui/table";
 import { listarFornecedores, salvarFornecedor, inativarFornecedor, type Fornecedor } from "@/lib/nuvem/fornecedor";
 import { PageHeader } from "@/components/PageHeader";
 import { ContentPanel } from "@/components/ContentPanel";

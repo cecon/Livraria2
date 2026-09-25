@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@livraria/ui/ui/button";
-import { Input } from "@livraria/ui/ui/input";
-import { Label } from "@livraria/ui/ui/label";
+import { Button } from "@/interface/ui/button";
+import { Input } from "@/interface/ui/input";
+import { Label } from "@/interface/ui/label";
 import { KeyRound } from "lucide-react";
 import { AuthLayout } from "@/components/AuthLayout";
 

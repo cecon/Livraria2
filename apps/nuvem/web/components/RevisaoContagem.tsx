@@ -2,7 +2,7 @@
 
 // Revisão da contagem (feature 009, US3) — divergências (saldo × contado) antes de
 // aplicar os ajustes. Reconciliação já calculada pelo domínio (WASM).
-import { Button } from "@livraria/ui/ui/button";
+import { Button } from "@/interface/ui/button";
 import type { Divergencia } from "@/lib/nuvem/inventario";
 
 export function RevisaoContagem({

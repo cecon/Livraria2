@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Button } from "@livraria/ui/ui/button";
-import { Card, CardHeader, CardContent } from "@livraria/ui/wowdash/card";
+import { Button } from "@/interface/ui/button";
+import { Card, CardHeader, CardContent } from "@/interface/wowdash/card";
 
 type Llm = { uid: string; nome: string; modelo: string; provedor: string };
 function message(error: unknown): string {

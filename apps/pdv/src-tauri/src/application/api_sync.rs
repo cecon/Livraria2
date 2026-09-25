@@ -1,5 +1,10 @@
 use crate::application::ports::RepoErro;
-use crate::application::sincronizacao::ResumoSync;
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ResumoSync {
+    pub enviados: usize,
+    pub recebidos: usize,
+    pub orfas: usize,
+}
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

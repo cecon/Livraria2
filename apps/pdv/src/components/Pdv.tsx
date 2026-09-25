@@ -7,9 +7,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@livraria/ui/wowdash/card";
+import { Button } from "@/interface/ui/button";
+import { Input } from "@/interface/ui/input";
+import { Card, CardContent, CardHeader } from "@/interface/wowdash/card";
 import { ResumoPedido } from "./ResumoPedido";
 import { EntradaProduto } from "@/components/EntradaProduto";
 import { CarrinhoItens, type ItemCarrinho } from "@/components/CarrinhoItens";

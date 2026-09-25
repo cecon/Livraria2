@@ -8,8 +8,7 @@ module.exports = async function webCatalog(t, db, apiBase, adminToken, deviceTok
   const child = spawn(process.execPath, [require.resolve("next/dist/bin/next"), "start", "-p", "3004", "-H", "127.0.0.1"], {
     cwd: path.resolve(__dirname, "../../web"), stdio: "ignore",
     env: { ...process.env, API_CATALOGO_ENABLED: "true", API_REFERENCIAS_ENABLED: "true",
-      NUVEM_API_URL: new URL(apiBase).origin,
-      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "placeholder-build-only" },
+      NUVEM_API_URL: new URL(apiBase).origin },
   });
   const call = async (method, route, body, token = adminToken, origin = base) => {
     const response = await fetch(base + "/api/catalogo" + route, {

@@ -1,10 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ChevronRight, House, Play, RefreshCw } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@livraria/ui/wowdash/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@livraria/ui/wowdash/card";
-import { Label } from "@livraria/ui/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@livraria/ui/wowdash/select";
+import { Button } from "@/interface/wowdash/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/interface/wowdash/card";
+import { Label } from "@/interface/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/interface/wowdash/select";
 import { ValorCentavosInput } from "@/components/ValorCentavosInput";
 import { listarOperadores, turnoAbrir, type OperadorDto, type TurnoAberto } from "@/lib/ipc";
 

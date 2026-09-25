@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@livraria/ui/wowdash/button";
-import { Input } from "@livraria/ui/wowdash/input";
-import { Label } from "@livraria/ui/ui/label";
+import { Button } from "@/interface/wowdash/button";
+import { Input } from "@/interface/wowdash/input";
+import { Label } from "@/interface/ui/label";
 import { brl } from "@/lib/format";
 import { ValorCentavosInput } from "@/components/ValorCentavosInput";
 import { caixaMovimentoRegistrar, caixaMovimentosListar, type MovimentoCaixa } from "@/lib/ipc";

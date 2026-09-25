@@ -2,7 +2,7 @@
 // Enter: dígitos → busca exata por código (leitor); texto → 1º resultado.
 
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/interface/ui/input";
 import { StockBadge } from "@/components/StockBadge";
 import { Cover } from "@/components/Cover";
 import { brl } from "@/lib/format";

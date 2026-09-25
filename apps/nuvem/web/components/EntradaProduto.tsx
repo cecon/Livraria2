@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type RefObject } from "react";
-import { Input } from "@livraria/ui/ui/input";
+import { Input } from "@/interface/ui/input";
 import { StockBadge } from "@/components/StockBadge";
 import { Cover } from "@/components/Cover";
 import { reais } from "@/utils/texto";

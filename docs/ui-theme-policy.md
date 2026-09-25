@@ -19,7 +19,7 @@ que o material seja restaurado; nao e permitido substituir a referencia por supo
 2. Leia a secao aplicavel em `docs/references/theme/documentation/index.html`.
 3. Procure uma pagina equivalente em `docs/references/theme/app`.
 4. Procure componentes equivalentes em `docs/references/theme/components`.
-5. Verifique primeiro o que ja existe em `packages/ui` e nos layouts compartilhados.
+5. Verifique primeiro o que ja existe na pasta `interface` da propria aplicacao e nos layouts dessa aplicacao.
 6. Implemente a adaptacao e valide em desktop e smartphone, nos modos claro e escuro.
 7. Copie `docs/theme-reviews/TEMPLATE.md` para um novo arquivo nessa pasta, preencha as
    referencias e marque as validacoes antes de publicar a branch.
@@ -30,7 +30,7 @@ Execute `npm run hooks:install` uma vez por clone. O `pre-commit` verifica se o 
 disponivel quando houver arquivos de UI no commit. O `pre-push` compara a branch com
 `origin/main` e exige um relatorio de tema novo e completo antes de permitir a publicacao.
 
-O verificador considera UI em `apps/pdv`, `apps/nuvem/web` e `packages/ui`. Testes e mudancas
+O verificador considera UI em `apps/pdv`, `apps/nuvem/web` e a pasta `interface` da propria aplicacao. Testes e mudancas
 apenas de backend/documentacao nao exigem relatorio.
 Execute manualmente com `npm run theme:check`; os testes do guardrail usam `npm run theme:test`.
 
@@ -38,7 +38,7 @@ Execute manualmente com `npm run theme:check`; os testes do guardrail usam `npm 
 
 - Preserve a hierarquia, densidade, espacamento, tipografia, cores, estados e comportamento
   responsivo demonstrados pelo tema.
-- Use `packages/ui` como fonte dos componentes compartilhados entre PDV e nuvem.
+- Use a pasta `interface` da propria aplicacao para componentes locais; PDV e nuvem possuem interfaces independentes.
 - Use Lucide para icones e os tokens existentes do projeto.
 - Adapte textos, rotas, permissoes, dados e interacoes ao dominio da Livraria.
 - Mantenha estados de carregamento, vazio, erro, sucesso, foco e desabilitado.
@@ -47,7 +47,7 @@ Execute manualmente com `npm run theme:check`; os testes do guardrail usam `npm 
 ## O Que Nao Copiar
 
 - Regras de negocio, autenticacao, chamadas de API ou dados ficticios do tema.
-- Dependencias ou componentes duplicados quando ja houver equivalente em `packages/ui`.
+- Dependencias ou componentes duplicados quando ja houver equivalente na pasta `interface` da propria aplicacao.
 - Paginas inteiras sem adequacao ao fluxo real e aos requisitos de acessibilidade.
 - Segredos, licencas, arquivos completos ou assets do tema para o AgentMemory.
 

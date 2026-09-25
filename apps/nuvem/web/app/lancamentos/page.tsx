@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
-import { Button } from "@livraria/ui/ui/button";
-import { Input } from "@livraria/ui/ui/input";
-import { Label } from "@livraria/ui/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@livraria/ui/ui/table";
+import { Button } from "@/interface/ui/button";
+import { Input } from "@/interface/ui/input";
+import { Label } from "@/interface/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/interface/ui/table";
 import { FornecedorSelect } from "@/components/FornecedorSelect";
 import { EntradaProduto, type LivroBusca } from "@/components/EntradaProduto";
 import { ItensNotaTabela } from "@/components/ItensNotaTabela";

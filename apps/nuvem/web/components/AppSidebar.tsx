@@ -15,7 +15,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { NAV_ITENS, type ItemNav } from "@livraria/ui/nav";
+import { NAV_ITENS, type ItemNav } from "@/interface/nav";
 
 type NavEntry = ItemNav | {
   to: string;

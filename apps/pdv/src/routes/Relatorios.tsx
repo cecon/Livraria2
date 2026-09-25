@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { FileSpreadsheet, FileText, Printer } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/interface/ui/button";
 import {
   exportarEstoqueExcel,
   exportarVendasExcel,
@@ -11,8 +11,8 @@ import {
   whatsappEstoque,
   whatsappVendas,
 } from "@/lib/exportar";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/interface/ui/input";
+import { Label } from "@/interface/ui/label";
 import { DestinacoesView, EstoqueView, VendasView } from "@/components/RelatoriosViews";
 import {
   autenticar,

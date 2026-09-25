@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, FileDown, FileSpreadsheet, MessageCircle } from "lucide-react";
-import { Button } from "@livraria/ui/ui/button";
-import { Input } from "@livraria/ui/ui/input";
-import { Label } from "@livraria/ui/ui/label";
+import { Button } from "@/interface/ui/button";
+import { Input } from "@/interface/ui/input";
+import { Label } from "@/interface/ui/label";
 import { reais } from "@/utils/texto";
 import { StockReportView } from "@/components/StockReportView";
 import { downloadStockFile, fetchStockFile, shareStockPdf, type StockFormat } from "@/lib/nuvem/stock-export";

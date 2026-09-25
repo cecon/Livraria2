@@ -38,6 +38,8 @@ dist-ssr
 *.sqlite
 *.sqlite3
 
+*.tsbuildinfo
+
 # Rust / Tauri
 target/
 apps/pdv/src-tauri/icons/64x64.png
