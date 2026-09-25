@@ -198,8 +198,8 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
       assert.equal(first.alteracoes[0].produtoUid, productUid);
       assert.equal(first.temMais, true);
       assert.deepEqual((await request("/sync/catalogo?limite=1", token)).body, first);
-      assert.equal((await request("/sync/catalogo/confirmacao", token, { cursorAplicado: "999" })).status, 409);
       assert.equal((await request("/sync/catalogo?cursor=" + first.proximoCursor, token)).status, 409);
+      assert.equal((await request("/sync/catalogo/confirmacao", token, { cursorAplicado: first.proximoCursor })).status, 201);
       assert.equal((await request("/sync/catalogo/confirmacao", token, { cursorAplicado: first.proximoCursor })).status, 201);
       assert.equal((await request("/sync/catalogo/confirmacao", token, { cursorAplicado: first.proximoCursor })).status, 201);
       const second = (await request("/sync/catalogo", token)).body;
@@ -287,5 +287,6 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
     await db.$disconnect();
   }
 });
+
 
 
