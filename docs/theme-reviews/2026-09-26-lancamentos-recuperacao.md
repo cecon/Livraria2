@@ -29,3 +29,14 @@ sobre a base ja publicada (7187eaa), incluindo apenas os ajustes de rota e carre
 Imagem: livraria-escritorio:fix-routes-20260926. Atualizacao concluida em 26/09/2026 16:48 UTC.
 A consulta publica sem sessao ao detalhe voltou a retornar 401 com mensagem do proxy,
 em vez de 404 por rota ausente. Nenhuma nota foi criada ou finalizada para testar.
+
+## Confirmacao de titulo inativo
+
+Ao adicionar um titulo inativo, confirmacao nativa pergunta se deve ativa-lo e inclui-lo.
+Cancelar nao envia a inclusao; confirmar envia `reativar: true`. Erros preservam os campos
+e sao apresentados via toast. Usa o mesmo mecanismo de confirmacao ja adotado para excluir
+e cancelar notas. Chromium validou cancelar/confirmar nos quatro cenarios de tela/tema.
+53 testes web e 43 testes com PostgreSQL isolado passaram, incluindo permissao administrativa,
+recusa sem consentimento, rollback da ativacao se a inclusao falha e entrada idempotente.
+A ativacao explicita no lancamento pode ocorrer antes de haver estoque positivo; isso permite
+preparar o rascunho de entrada conforme a solicitacao do usuario. Finalizacao continua explicita.

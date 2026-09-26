@@ -12,6 +12,9 @@ export function entryHeader(value: unknown) {
 
 export function entryItem(value: unknown) {
   const input = objectInput(value);
+  if (input.reativar !== undefined && typeof input.reativar !== "boolean") {
+    throw new BadRequestException("Confirmacao de ativacao invalida");
+  }
   if (!Number.isSafeInteger(input.qtd) || (input.qtd as number) <= 0) {
     throw new BadRequestException("Quantidade invalida");
   }
@@ -23,5 +26,6 @@ export function entryItem(value: unknown) {
     bookUid: uuid(input.livro_uid),
     quantity: BigInt(input.qtd as number),
     unitCost: BigInt(input.custo_unit_centavos as number),
+    reactivate: input.reativar === true,
   };
 }

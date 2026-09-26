@@ -41,9 +41,17 @@ export async function entriesProxy(req: NextRequest, path: string[]) {
     const response = await apiFetch(`admin/lancamentos${suffix}`, { method: req.method, body });
     const result = await response.json();
     if (!response.ok) {
+      const notFound: Record<string, string> = {
+        "Produto indisponivel": "Título inativo ou indisponível. Confira o cadastro antes de adicionar.",
+        "Fornecedor indisponivel": "Fornecedor inativo ou indisponível. Confira o cadastro.",
+        "Lancamento nao encontrado": "Lançamento não encontrado. Volte para a lista e confira o rascunho.",
+        "Item nao encontrado": "Item não encontrado. Recarregue o lançamento.",
+      };
       const error = response.status === 401 ? "Sessao expirada. Entre novamente."
         : response.status === 403 ? "Esta operacao nao e permitida."
-        : response.status === 404 ? "Lancamento, produto ou fornecedor nao localizado."
+        : response.status === 404 ? (Object.hasOwn(notFound, result?.message) ? notFound[result.message] : "Lancamento, produto ou fornecedor nao localizado.")
+        : response.status === 409 && result.message === "Titulo inativo. Confirme a ativacao"
+          ? "Título inativo. Confirme a ativação ao adicionar novamente."
         : response.status === 409 ? "Este lancamento mudou. Recarregue e confira o status."
         : response.status === 400 ? "Confira os dados informados." : "Lancamentos indisponiveis.";
       return NextResponse.json({ erro: error }, { status: response.status });

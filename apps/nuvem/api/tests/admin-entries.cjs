@@ -42,6 +42,31 @@ module.exports = async function adminEntries(t, db, base, adminToken, deviceToke
     assert.equal(detail.body.itens.length, 2);
   });
 
+  await t.test("titulo inativo e recusado e pode receber 30 unidades apos reativacao", async () => {
+    const book = randomUUID(), entry = randomUUID(), item = randomUUID();
+    await db.livro.create({ data: { syncUid: book, codigo: "ENTRY-INATIVO", titulo: "Titulo inativo", ativo: false } });
+    assert.equal((await call("POST", "", { sync_uid: entry })).status, 201);
+    const input = { sync_uid: item, livro_uid: book, qtd: 30, custo_unit_centavos: 1000 };
+    const rejected = await call("POST", `/${entry}/itens`, input);
+    assert.equal(rejected.status, 409);
+    assert.equal(rejected.body.message, "Titulo inativo. Confirme a ativacao");
+    assert.equal(await db.item_lancamento.count({ where: { lancamento_uid: entry } }), 0);
+    assert.equal((await db.livro.findUnique({ where: { syncUid: book } })).ativo, false);
+    assert.equal((await call("POST", `/${entry}/itens`, { ...input, reativar: "true" })).status, 400);
+    assert.equal((await call("POST", `/${entry}/itens`, { ...input, reativar: true }, deviceToken)).status, 403);
+    assert.equal((await call("POST", `/${entry}/itens`, { ...input, reativar: true })).status, 201);
+    assert.equal((await db.livro.findUnique({ where: { syncUid: book } })).ativo, true);
+    await db.livro.update({ where: { syncUid: book }, data: { ativo: false } });
+    assert.equal((await call("POST", `/${entry}/itens`, { ...input, reativar: true })).status, 409);
+    assert.equal((await db.livro.findUnique({ where: { syncUid: book } })).ativo, false);
+    assert.equal((await call("GET", `/${entry}`)).body.totalCentavos, 30000);
+    assert.equal((await call("POST", `/${entry}/finalizacao`, {})).status, 201);
+    assert.equal((await call("POST", `/${entry}/finalizacao`, {})).status, 201);
+    const movements = await db.movimento_estoque.findMany({ where: { referencia: { startsWith: `lancamento:${entry}:entrada:` } } });
+    assert.equal(movements.length, 1);
+    assert.equal(movements[0].qtd, 30n);
+  });
+
   await t.test("falha ao finalizar desfaz todos os movimentos", async () => {
     run(`create function public.test_reject_entry() returns trigger language plpgsql as $$
       begin if NEW.livro_uid='${secondBook}'::uuid and NEW.tipo='entrada' then

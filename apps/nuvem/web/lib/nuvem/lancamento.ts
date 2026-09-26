@@ -56,12 +56,14 @@ export async function lancamentoAdicionarItem(
   livroUid: string,
   qtd: number,
   custoUnitCentavos: number,
+  reativar = false,
 ): Promise<void> {
   await entriesRequest(`/${uid}/itens`, "POST", {
     sync_uid: crypto.randomUUID(),
     livro_uid: livroUid,
     qtd,
     custo_unit_centavos: custoUnitCentavos,
+    ...(reativar ? { reativar: true } : {}),
   });
 }
 

@@ -122,6 +122,7 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
   const [qtd, setQtd] = useState("1");
   const [modoCusto, setModoCusto] = useState<"unit" | "total">("unit");
   const [custo, setCusto] = useState("");
+  const adicionando = useRef(false);
   const codigoRef = useRef<HTMLInputElement>(null);
   const custoRef = useRef<HTMLInputElement>(null);
 
@@ -139,7 +140,7 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
     (async () => {
       const [fs, ls, ss] = await Promise.all([listarFornecedores(), listarLivros(true), listarSaldos()]);
       setFornecedores(fs);
-      setLivros(ls.map((l) => ({ sync_uid: l.sync_uid, codigo: l.codigo, titulo: l.titulo, autor: l.autor, preco_centavos: l.preco_centavos, estoque: ss.get(l.sync_uid) ?? 0 })));
+      setLivros(ls.map((l) => ({ sync_uid: l.sync_uid, codigo: l.codigo, titulo: l.titulo, autor: l.autor, preco_centavos: l.preco_centavos, estoque: ss.get(l.sync_uid) ?? 0, ativo: l.ativo })));
     })().catch((error) => {
       if (error instanceof BrowserApiError && error.status === 401) return;
       toast.error("Catalogo indisponivel. Confira sua sessao.");
@@ -162,18 +163,29 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
   }
 
   async function adicionar() {
-    if (!pendente) return;
+    if (!pendente || adicionando.current) return;
     const q = parseInt(qtd, 10);
     if (!q || q <= 0) return toast.error("Quantidade inválida");
     const c = centavos(custo);
     if (c <= 0) return toast.error("Informe o custo (total ou unitário)");
     const custoUnit = modoCusto === "total" ? Math.round(c / q) : c;
-    await lancamentoAdicionarItem(uid, pendente.sync_uid, q, custoUnit);
-    setPendente(null);
-    setCusto("");
-    setQtd("1");
-    codigoRef.current?.focus();
-    recarregar();
+    const reativar = pendente.ativo === false;
+    if (reativar && !window.confirm(`O título “${pendente.titulo}” está inativo. Ativar título e adicionar ao lançamento? Ele voltará ao catálogo ativo.`)) return;
+    adicionando.current = true;
+    try {
+      await lancamentoAdicionarItem(uid, pendente.sync_uid, q, custoUnit, reativar);
+      if (reativar) setLivros((lista) => lista.map((l) => l.sync_uid === pendente.sync_uid ? { ...l, ativo: true } : l));
+      setPendente(null);
+      setCusto("");
+      setQtd("1");
+      codigoRef.current?.focus();
+      await recarregar();
+    } catch (error) {
+      if (error instanceof Error && error.message === "Título inativo. Confirme a ativação ao adicionar novamente.") {
+        setPendente((l) => l ? { ...l, ativo: false } : l);
+      }
+      toast.error(error instanceof Error ? error.message : "Não foi possível adicionar o título.");
+    } finally { adicionando.current = false; }
   }
 
   async function escolherFornecedor(f: Fornecedor) {
