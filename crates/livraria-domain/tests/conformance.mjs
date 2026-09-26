@@ -1,4 +1,4 @@
-// Lado WASM do teste de conformidade (ADR-0019). Carrega @livraria/domain
+// Lado WASM do teste de conformidade (ADR-0022). Carrega @livraria/domain
 // (packages/domain, gerado pelo CI) e roda os MESMOS vetores que o teste nativo
 // (crates/livraria-domain/tests/conformance.rs). Node: `node conformance.mjs`.
 import { readFileSync } from "node:fs";
@@ -37,7 +37,11 @@ for (const c of vetores.troco_venda) {
   const pagamentos = c.pagamentos.map(([formaId, valorCentavos]) => ({ formaId, valorCentavos }));
   eq("troco_venda", dom.troco_venda(itens, pagamentos), c.out);
 }
-for (const c of vetores.contagem_efetiva) eq("contagem_efetiva", dom.contagem_efetiva(c.in[0], c.in[1], c.in[2]), c.out);
+// serde-wasm-bindgen representa Option::None como undefined; JSON usa null.
+for (const c of vetores.contagem_efetiva) {
+  const result = dom.contagem_efetiva(c.in[0], c.in[1], c.in[2]);
+  eq("contagem_efetiva", result === undefined ? null : result, c.out);
+}
 for (const c of vetores.resumir_inventario) eq("resumir_inventario", dom.resumir(c.in), c.out);
 
 if (falhas > 0) {

@@ -19,12 +19,12 @@ As decisões nascem do `/speckit-plan` (ver `specs/001-sistema-estoque-vendas/re
 | [0012](0012-identidade-livro-id.md) | Identidade do livro: `id` numérico e `codigo` (barcode) único | Aceito |
 | [0013](0013-cadastro-formas-pagamento.md) | Cadastro de formas de pagamento: registro + junção e migração m006 | Aceito |
 | [0014](0014-destinacao-doacoes.md) | Destinação de doações: Loja como resíduo, carimbos com prioridade de venda | Aceito |
-| [0015](0015-sincronizacao-nuvem.md) | Sincronização com a nuvem: hub Supabase, PDV réplica offline, escritório web | Aceito |
+| [0015](0015-sincronizacao-nuvem.md) | Sincronizacao anterior | Substituido pela ADR-0032 |
 | [0016](0016-sync-identidade-convergencia.md) | Sincronização: identidade estável, deduplicação e convergência idempotente | Aceito |
 | [0017](0017-saldo-inicial-obrigatorio-ledger-completo.md) | Estoque: `saldo_inicial` obrigatório e reparo do ledger incompleto | Aceito |
 | [0018](0018-baixa-venda-limitada-ao-estoque-cacheado.md) | Baixa de venda limitada ao estoque cacheado: drift silencioso quando o cache diverge | Aceito |
 | [0019](0019-identidade-unificada-usuario-senha-sincronizada.md) | Identidade unificada na tabela `usuario` + login usuário/senha na retaguarda (PR #15) | Aceito |
-| [0020](0020-ui-compartilhada-workspace.md) | UI compartilhada via `packages/ui` + workspace | Aceito |
+| [0020](0020-ui-compartilhada-workspace.md) | Interface compartilhada anterior | Substituido pela ADR-0032 |
 | [0021](0021-turno-de-operacao.md) | Turno de operação: entidade de domínio, Pedido Nº por turno, abrir/encerrar | Aceito |
 | [0022](0022-escritorio-reusa-dominio-wasm.md) | Escritório reusa o domínio (Rust) via WebAssembly (renumerado de 0019, colisão 008 × #15) | Aceito |
 | [0023](0023-estoque-oficial-nuvem-venda-pronta.md) | Estoque oficial na nuvem por venda pronta | Aceito |
@@ -37,6 +37,8 @@ As decisões nascem do `/speckit-plan` (ver `specs/001-sistema-estoque-vendas/re
 | [0031](0031-llm-identidade-turno.md) | Cadastro LLM central e identidade do operador do turno | Aceito |
 
 | [0032](0032-interfaces-independentes-api-unica.md) | Interfaces independentes e API unica | Aceito |
+
+| [0033](0033-binding-wasm-gerado.md) | Excecao explicita para binding WASM gerado | Aceito |
 
 **Versionamento**: um arquivo por decisão, numeração sequencial. Mudança de decisão → novo ADR que
 "supersedes" o anterior (não reescrever o histórico).

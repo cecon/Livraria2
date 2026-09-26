@@ -1,22 +1,10 @@
-# Migrator da nuvem
+# Migrador do Cloud
 
-Container de migrations para o ambiente web local/prod-local. Ele aplica arquivos
-`apps/nuvem/migrations/*.sql` no Supabase vinculado e registra hash em
-`public.livraria_schema_migrations`.
+Aplica `apps/nuvem/migrations/*.sql` no PostgreSQL indicado por `DATABASE_URL`.
+Registra versao e SHA-256 em `public.livraria_schema_migrations`; recusa alteracao
+em arquivo ja aplicado. Arquivos SQL existentes nao devem ser editados ou apagados.
 
-No primeiro deploy contra o prod atual, usar:
-
-```text
-MIGRATION_BASELINE_UP_TO=0011_estoque_oficial_venda
-```
-
-Assim o migrator marca `0001..0011` como baseline, porque esses arquivos ja foram
-aplicados manualmente. Migrations futuras, como `0012_*.sql`, serao aplicadas
-automaticamente quando a imagem nova for puxada pelo Watchtower.
-
-Segredos exigidos no runtime:
-
-- `SUPABASE_ACCESS_TOKEN`
-- `SUPABASE_DB_PASSWORD`
-
-Eles ficam na memoria operacional/Portainer, nunca no repositorio.
+A imagem usa o cliente PostgreSQL. Nenhum token de fornecedor externo e necessario.
+Credenciais ficam no ambiente seguro. O Compose usa o servico `db`.
+As migrations da API em `apps/nuvem/api/sql` possuem fluxo separado; este migrador
+nao as aplica. Atualizacoes do servidor devem preceder a distribuicao dos PDVs.

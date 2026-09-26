@@ -21,7 +21,7 @@ Contratos nao dependem de tabelas ORM. Codigo/ISBN nao representa identidade.
 
 Introducao de backend HTTP e ORM e justificada pela necessidade concreta de
 coordenacao e observabilidade de sincronizacao. Evitar servicos adicionais.
-Supabase direto e mantido temporariamente; nao considerar a separacao operacional
+provedor descontinuado direto e mantido temporariamente; nao considerar a separacao operacional
 concluida ate migrar todos os fluxos e testar reconexao/rollback.
 
 Migrations SQL atuais continuam funcionando. Adocao Prisma exige introspeccao

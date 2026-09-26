@@ -14,7 +14,7 @@ Validacao consolidada em 2026-09-15.
 - A API cobre autenticacao, catalogo, referencias, usuarios, PDVs, estoque, entradas, turnos,
   vendas e relatorios.
 - O web administrativo usa exclusivamente a API NestJS.
-- O navegador nao possui cliente Supabase, credenciais publicas ou fallback direto ao banco.
+- O navegador nao possui cliente direto do banco, credenciais publicas ou fallback direto ao banco.
 - O PDV publica e recebe alteracoes pela API com UUIDs, cursores, confirmacao e reenvio
   idempotente.
 - Valores monetarios permanecem inteiros em centavos.

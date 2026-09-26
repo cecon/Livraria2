@@ -16,7 +16,7 @@ major separadamente, com seus adapters/configuracao correspondentes.
 
 PDV possui venda, caixa, pagamentos e armazenamento offline. Nuvem possui catalogo,
 preco e administracao. Contratos compartilham dados de fronteira, nunca entidades ORM.
-API futura valida JWT, perfil e identidade do dispositivo em cada operacao.
+A API valida JWT, perfil e identidade do dispositivo em cada operacao.
 
 ## Migracao
 
@@ -28,7 +28,7 @@ API futura valida JWT, perfil e identidade do dispositivo em cada operacao.
 5. Implementar autenticacao, diario transacional de eventos, pagina e confirmacao.
    Sequencia deve respeitar ordem de commit: serializar publicadores em transacao;
    BIGSERIAL sozinho nao garante ausencia de eventos perdidos entre commits.
-6. Migrar adapter do PDV com ativacao por dispositivo e rollback para caminho legado.
+6. Migrar adapter do PDV com credencial por dispositivo e reenvio idempotente.
 7. Migrar administrativo para API e remover acesso direto somente apos validacao.
 
 ## Validacao

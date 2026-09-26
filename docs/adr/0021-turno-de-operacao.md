@@ -13,7 +13,7 @@ operação** (sessão com abrir/encerrar) e conter a numeração dentro dele.
 > existente no domínio (turno por **horário** — Manhã/Tarde, `pagamento.rs`). O novo tipo é
 > **`TurnoOperacao`** em `crates/livraria-domain/src/turno_operacao.rs` — nunca reusar o nome `Turno`.
 
-## Decisão (specs/008-escritorio-espelho-pdv/research.md D10–D13; clarify 2026-07-22)
+## Decisao de turno de operacao
 - **Entidade pura no domínio** `TurnoOperacao` (crate `livraria-domain`, também via WASM — ADR-0022), com
   funções puras: `abrir(operador, caixa_inicial?)`, `pode_registrar_venda(status)`,
   `proximo_numero(qtd_no_turno) -> n`, `resumir_fechamento(pagamentos_do_turno) -> resumo`,

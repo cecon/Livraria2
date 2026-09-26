@@ -29,7 +29,7 @@ Templates de dependência:
 Propagação (feature 012):
   - CLAUDE.md .................................. ⚠️ atualizar referência "(v1.1.0)" → "(v2.0.0)"
   - docs/adr/0023, docs/adr/0024 ............... ✅ registram estoque oficial na nuvem + PDV consumidor
-  - specs/012-pdv-nuvem-manda/plan.md .......... ✅ Constitution Check alinhado ao invariante redefinido
+  - specs/013-separacao-pdv-nuvem/plan.md .......... ✅ Constitution Check alinhado ao invariante redefinido
 
 Follow-up TODOs: nenhum.
 -->

@@ -28,9 +28,10 @@ tres imagens no GHCR:
 - `ghcr.io/cecon/livraria2-migrator:latest`
 
 O arquivo `apps/nuvem/web/stack.yml` e um Docker Compose para Docker Desktop e
-sobe quatro containers:
+sobe cinco containers:
 
-- `migrator`: aplica migrations do Supabase e registra hash em
+- `db`: PostgreSQL com volume persistente.
+- `migrator`: aplica migrations PostgreSQL e registra hash em
   `public.livraria_schema_migrations`.
 - `api`: backend NestJS da nuvem.
 - `escritorio`: app Next.js standalone.
@@ -41,14 +42,9 @@ Variaveis exigidas no ambiente do Docker Desktop/Compose:
 
 ```text
 ESCRITORIO_PORT=47612
-NUVEM_DATABASE_URL=...
+POSTGRES_PASSWORD=...
 API_JWT_SECRET=...
-SUPABASE_DB_PASSWORD=...
-MIGRATION_BASELINE_UP_TO=0011_estoque_oficial_venda
 ```
-
-Depois que a tabela de controle existir, `MIGRATION_BASELINE_UP_TO` pode ser
-mantida; novas migrations `0012_*`, `0013_*` etc. serao aplicadas normalmente.
 
 Subir/atualizar no Docker Desktop:
 

@@ -1,56 +1,25 @@
-# API da nuvem
+# API do Cloud
 
-Na raiz: npm run dev:api. Health: http://127.0.0.1:3001/api/v1/health.
+Servidor NestJS com PostgreSQL, autenticacao de usuarios e dispositivos, permissoes,
+catalogo, estoque oficial, vendas, turnos e relatorios. A web e o PDV usam esta API.
 
-DATABASE_URL deve vir do ambiente seguro. Nunca versionar credenciais.
-db:validate e db:generate nao modificam banco. db:introspect le o schema existente.
-O schema foi introspectado do banco real, sem copiar dados. O ledger SQL historico
-continua como autoridade. db:baseline:check confere seus hashes sem alterar banco.
-Nao executar db push/reset ou Prisma Migrate sobre este schema.
+Na raiz: `npm run dev:api` e `npm run build:api`. Saude: `/api/v1/health`.
+Operacoes exigem `API_OPERATIONS_ENABLED=true`, `DATABASE_URL` e `API_JWT_SECRET`
+com pelo menos 32 bytes. Credenciais somente no ambiente seguro.
 
-Ainda nao substitui a sincronizacao Supabase. Plano e tarefas:
-specs/013-separacao-pdv-nuvem.
+Usuarios recebem JWT individual. Dispositivos recebem credencial propria, revogavel.
+A API valida identidade e perfil; ter acesso ao PDV nao concede administracao.
 
-## Protocolo experimental
+Catalogo usa paginas com sequencia e confirmacao apos commit local. Vendas chegam
+com itens e pagamentos completos e sao aplicadas em transacao, com recibo idempotente.
+`GET /api/v1/sync/referencias/:resource` entrega operadores, formas e destinacoes
+somente a dispositivos autenticados. Hashes para verificacao offline nao sao publicos.
 
-API_OPERATIONS_ENABLED=true habilita as rotas. Exige DATABASE_URL e
-API_JWT_SECRET com pelo menos 32 bytes, vindos do ambiente seguro.
-sql/001_protocolo_catalogo.sql e aplicado explicitamente somente ao banco de ensaio.
-Nao e distribuido pelo migrator legado e ainda nao foi aplicado em producao.
+SQL existente e preservado por checksum. `db:validate`, `db:generate` e
+`db:baseline:check` nao alteram dados. Nao executar reset/db push sobre o banco oficial.
 
-- POST /api/v1/auth/login: usuario/senha existentes, JWT individual de 15 minutos.
-- GET /api/v1/auth/me: identidade e perfil atuais; usuarios desativados sao negados.
-- POST /api/v1/pdvs: admin registra dispositivo ligado a usuario ativo.
-- POST /api/v1/pdvs/:uid/token: admin troca credenciais e revoga as anteriores.
-- POST /api/v1/pdvs/:uid/desativar: admin revoga o dispositivo.
-- POST /api/v1/auth/pdv/renovar: pdvUid/refreshToken renova JWT sem senha humana.
-- GET /api/v1/pdvs: admin consulta cursores entregue, aplicado e disponivel.
-- GET /api/v1/sync/catalogo: dispositivo recebe pagina a partir de cursor confirmado.
-- POST /api/v1/sync/catalogo/confirmacao: confirma cursorAplicado apos commit local.
-- POST /api/v1/sync/vendas: pedido/itens/pagamentos completos, conforme contrato SaleV1.
-- POST /api/v1/sync/vendas/:uid/cancelamento: cancelamento idempotente do mesmo PDV.
-
-RefreshToken expira em 90 dias; somente seu SHA-256 fica no banco. A renovacao
-preserva a credencial para permitir repeticao apos perda de resposta. Rotacao ou
-desativacao invalida refresh e JWT anteriores. Credencial deve ser guardada
-no armazenamento seguro do dispositivo na integracao futura.
-
-Paginas nao confirmadas sao reenviadas. UUID e imutavel; codigo pode mudar.
-Exclusoes logicas/fisicas geram tombstones. Precos respeitam inteiro seguro de
-centavos no contrato JSON. Contador transacional serializa publicadores.
-Nao remover eventos sem definir retencao e ressnapshot por dispositivo.
-
-test:integration exige API_TEST_DATABASE=isolated-local e PostgreSQL descartavel
-em 127.0.0.1:55439/livraria_test, container livraria-separacao-db.
-Esse teste apaga apenas o schema do banco isolado e rejeita URLs diferentes.
-Tambem aplica todas as migrations historicas para validar os gatilhos reais.
-API_NATIVE_E2E=true inclui o adapter Rust HTTP, com Cargo instalado e target pronto.
-Ensaio/provisionamento: specs/013-separacao-pdv-nuvem/pdv-rollout.md.
-
-## Catalogo Administrativo Experimental
-
-GET/POST `admin/livros`, PUT/DELETE `admin/livros/:uid`: admin individual apenas.
-Criacao e saldo inicial atomicos; atualizacao preserva UUID; exclusao publica tombstone.
-Precos em centavos inteiros, conflito de codigo retorna 409, listagem paginada por UUID.
-Web opt-in com `API_CATALOGO_ENABLED=true` e `NUVEM_API_URL` apenas no servidor.
-Detalhes: `specs/013-separacao-pdv-nuvem/catalogo-web-rollout.md` na raiz.
+`test:integration` exige `API_TEST_DATABASE=isolated-local` e um PostgreSQL descartavel:
+porta 55439/container `livraria-separacao-db` ou porta 55440/container
+`livraria-limpeza-test`, sempre em 127.0.0.1, banco `livraria_test`.
+Para o segundo, definir `API_TEST_CONTAINER=livraria-limpeza-test`.
+Os testes recriam o schema desse banco isolado.
