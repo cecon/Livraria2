@@ -1,0 +1,31 @@
+# Theme Review: carregamento de lancamentos
+
+- Theme reference: `docs/references/theme/app/(dashboard)/input-forms/page.tsx`
+- Documentation: `docs/references/theme/documentation/index.html`
+- AgentMemory query: `tema visual WowDash lancamentos erro carregamento rotas Next` (servico disabled)
+
+## Validacoes
+
+- [x] AgentMemory recall (consultado; indisponivel)
+- [x] Desktop (1280px, Chromium)
+- [x] Smartphone (390px, Chromium)
+- [x] Light mode
+- [x] Dark mode
+- [x] Accessibility (alert/status, botoes nomeados, navegacao de retorno)
+
+## Adaptacao
+
+A referencia versionada contem apenas placeholders. Foram preservados os componentes
+PageHeader, ContentPanel e Button da aplicacao e o padrao existente de erro da tela LLM.
+O editor agora apresenta carregamento, erro e tentativa novamente, em vez de retornar null.
+Teste de navegador com respostas simuladas verificou 404, mensagem acessivel, nova tentativa
+e abertura do rascunho nos quatro cenarios, sem excecoes e sem overflow horizontal.
+
+## Roteamento e publicacao
+
+O encaminhamento generico passou de afterFiles para fallback para preservar os handlers
+dinamicos autenticados. 52 testes passaram. A versao de producao foi compilada na VM
+sobre a base ja publicada (7187eaa), incluindo apenas os ajustes de rota e carregamento.
+Imagem: livraria-escritorio:fix-routes-20260926. Atualizacao concluida em 26/09/2026 16:48 UTC.
+A consulta publica sem sessao ao detalhe voltou a retornar 401 com mensagem do proxy,
+em vez de 404 por rota ausente. Nenhuma nota foi criada ou finalizada para testar.

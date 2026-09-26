@@ -36,16 +36,20 @@ const dataBr = (iso: string) => (iso ? iso.slice(0, 10).split("-").reverse().joi
 export default function LancamentosPage() {
   const [editorUid, setEditorUid] = useState<string | null>(null);
   const [itens, setItens] = useState<NotaResumo[] | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
 
   async function carregar() {
-    setItens(await lancamentosListar());
+    setErro(null);
+    try { setItens(await lancamentosListar()); }
+    catch (error) { setErro(error instanceof Error ? error.message : "Não foi possível carregar os lançamentos."); }
   }
   useEffect(() => {
     if (editorUid === null) carregar();
   }, [editorUid]);
 
   async function novo() {
-    setEditorUid(await lancamentoCriar());
+    try { setEditorUid(await lancamentoCriar()); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível criar o lançamento."); }
   }
 
   if (editorUid !== null) {
@@ -65,9 +69,10 @@ export default function LancamentosPage() {
 
       <ContentPanel
         title="Notas de entrada"
-        description={itens === null ? "Carregando lançamentos..." : `${itens.length} lançamento(s)`}
+        description={erro ? "Falha ao carregar lançamentos." : itens === null ? "Carregando lançamentos..." : `${itens.length} lançamento(s)`}
         flush
       >
+        {erro && <div role="alert" className="space-y-3 p-5"><p>{erro}</p><Button variant="outline" onClick={() => void carregar()}>Tentar novamente</Button></div>}
         <Table className="table-fixed">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -109,6 +114,7 @@ export default function LancamentosPage() {
 
 function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
   const [nota, setNota] = useState<NotaDetalhe | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [livros, setLivros] = useState<LivroBusca[]>([]);
   const [busca, setBusca] = useState("");
@@ -120,7 +126,13 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
   const custoRef = useRef<HTMLInputElement>(null);
 
   async function recarregar() {
-    setNota(await lancamentoObter(uid));
+    setErro(null);
+    try {
+      const detalhe = await lancamentoObter(uid);
+      if (!detalhe) throw new Error("Lançamento não encontrado.");
+      setNota(detalhe);
+    }
+    catch (error) { setErro(error instanceof Error ? error.message : "Não foi possível carregar o lançamento."); }
   }
   useEffect(() => {
     recarregar();
@@ -196,7 +208,15 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
     onFechar();
   }
 
-  if (!nota) return null;
+  if (!nota || erro) return (
+    <div className="mx-auto max-w-4xl space-y-5 px-4 py-5 sm:p-6 lg:py-7">
+      <PageHeader title="Lançamento" crumbs={[{ label: "Lançamentos", onClick: onFechar }]} back={{ label: "Voltar para lançamentos", onClick: onFechar }} />
+      <ContentPanel title="Dados da nota">
+        {erro ? <div role="alert" className="space-y-3"><p>{erro}</p><Button variant="outline" onClick={() => void recarregar()}>Tentar novamente</Button></div>
+          : <p role="status">Carregando lançamento...</p>}
+      </ContentPanel>
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-4xl space-y-5 px-4 py-5 sm:p-6 lg:py-7">
