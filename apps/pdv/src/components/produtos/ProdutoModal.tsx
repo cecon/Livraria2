@@ -37,6 +37,7 @@ export function ProdutoModal({ inicial = null, codigo = "", venda = false, onSal
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState("");
   const trava = useRef(false);
+  const exigeAdmin = (pending?.pedido.acao ?? (contando ? "contar" : produto ? "editar" : "criar")) !== "criar";
   function guardar(value: Pendente | null) {
     if (value) localStorage.setItem(key, JSON.stringify(value)); else localStorage.removeItem(key);
     setPending(value);
@@ -72,7 +73,7 @@ export function ProdutoModal({ inicial = null, codigo = "", venda = false, onSal
         tentativa = { pedido }; guardar(tentativa);
       }
       const r = tentativa.confirmado ? await consultarProduto(undefined, tentativa.pedido.uid)
-        : await salvarProduto(tentativa.pedido, auth);
+        : await salvarProduto(tentativa.pedido, tentativa.pedido.acao === "criar" ? undefined : auth);
       if (!r) throw new Error("Não foi possível recuperar o produto.");
       if (r.pendenteLocal) {
         guardar({ ...tentativa, confirmado: true });
@@ -119,7 +120,7 @@ export function ProdutoModal({ inicial = null, codigo = "", venda = false, onSal
           </div>}
           {!produto && <p className="text-xs text-muted-foreground">Informe estoque inicial positivo para disponibilizar o produto para venda.</p>}
         </>}
-        {!pending?.confirmado && <AutorizacaoAdmin value={auth} onChange={setAuth} disabled={ocupado} />}
+        {exigeAdmin && !pending?.confirmado && <AutorizacaoAdmin value={auth} onChange={setAuth} disabled={ocupado} />}
         {erro && <p role="alert" className="text-sm text-destructive">{erro}</p>}
         {pending && !pending.confirmado && <p className="text-xs text-muted-foreground">Tentativa pendente. Reenvie os mesmos dados para conferir o resultado.</p>}
         <div className="flex flex-wrap justify-end gap-2">
