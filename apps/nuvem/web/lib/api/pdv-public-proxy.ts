@@ -71,6 +71,11 @@ async function upstreamError(response: Response) {
 }
 
 export async function publicPdvProxy(request: NextRequest, path: string[]) {
+  if (request.method === "GET" && path[0] === "referencias" && path.length === 2 && ["usuario", "forma_pagamento", "destinacao"].includes(path[1])) {
+    const after = request.nextUrl.searchParams.get("after") ?? "";
+    if (after && !UUID.test(after)) return NextResponse.json({ erro: "Cursor inválido." }, { status: 400 });
+    return forward(request, `sync/referencias/${path[1]}?after=${encodeURIComponent(after)}`, true);
+  }
   if (request.method === "POST" && path.join("/") === "capas") {
     const token = bearer(request);
     if (!token) return NextResponse.json({ erro: "Credencial ausente." }, { status: 401 });

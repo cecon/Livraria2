@@ -9,6 +9,7 @@ import { AuthService } from "./auth/auth.service";
 import { AuthGuard } from "./auth/auth.guard";
 import { DatabaseModule } from "./database/database.module";
 import { DevicesController } from "./sync/devices.controller";
+import { ReferencesController } from "./sync/references.controller";
 import { PdvPublicController } from "./sync/pdv-public.controller";
 import { CatalogController } from "./sync/catalog.controller";
 import { ThrottlerModule } from "@nestjs/throttler";
@@ -68,7 +69,7 @@ import { IaGateway } from "./external-ai/gateway.service";
       },
     }),
   ],
-  controllers: [ImagesController, PdvProductsController, AuthController, DevicesController, PdvPublicController, CatalogController, SalesController, ShiftSyncController, CashSyncController, BooksController,
+  controllers: [ReferencesController, ImagesController, PdvProductsController, AuthController, DevicesController, PdvPublicController, CatalogController, SalesController, ShiftSyncController, CashSyncController, BooksController,
     FormsController, SuppliersController, UsersController, DestinationsController, StockController,
     EntriesController, ShiftsController, AdminSalesController, ReportsController, LlmAdminController, LlmUsageController, IaController, IaMcpController, IaOAuthController],
   providers: [ImagesService, PdvProductsService, AuthService, AuthGuard, SalesService, ShiftSyncService, CashSyncService, BooksService, FormsService, SuppliersService,
