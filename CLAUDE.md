@@ -8,6 +8,9 @@ PostgreSQL oficial. Bibliotecas internas nao sao outro produto. Supabase esta
 descontinuado por decisao; pendencias de remocao em main estao na ADR-0032.
 Planos de features anteriores sao historicos e nao substituem a governanca atual.
 Nao confundir alteracao local, imagem oficial e versao executando na VM.
+Deploy Cloud: `docs/adr/0035-deploy-cloud-dokploy.md`, `docs/deploy-dokploy.md` e
+`.claude/skills/deploy-nuvem-livraria/SKILL.md`. GitHub constroi imagens e solicita
+ao Dokploy a publicacao; verificar a conclusao e preservar o banco existente.
 <!-- SPECKIT END -->
 
 ## Memória do projeto (segredos & longa duração)

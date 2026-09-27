@@ -3,6 +3,9 @@
 Data: 2026-09-27. Status: aceita pela revisão solicitada pelo responsável.
 Complementa ADR-0032 e fundamenta a Constituição 3.0.0.
 
+Complemento em 27/09/2026: a [ADR-0035](0035-deploy-cloud-dokploy.md) define a
+publicação da nuvem pelo Dokploy e o gatilho após as imagens no GitHub.
+
 ## Contexto
 
 A Constituição 2.0.0 chamava a nuvem de espelho opcional apesar de centralizar o
