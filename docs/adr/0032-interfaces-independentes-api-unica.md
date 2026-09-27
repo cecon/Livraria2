@@ -6,7 +6,7 @@ Substitui ADR-0020 e a integração direta descrita na ADR-0015.
 
 ## Contexto
 
-O responsável definiu apenas PDV e Cloud, descontinuou Supabase e rejeitou a
+O responsável definiu apenas PDV e Cloud, descontinuou provedor legado e rejeitou a
 obrigação de compartilhar componentes de interface. A estrutura técnica interna
 não deve ser apresentada como vários produtos ou como dependência entre suas telas.
 
@@ -20,7 +20,7 @@ não deve ser apresentada como vários produtos ou como dependência entre suas 
 - `crates` e `packages` podem conter contratos e cálculos puros justificados;
   não formam terceiro produto nem obrigam compartilhar UI ou persistência.
 - Comunicação administrativa e sincronização usam API autenticada. Não existe
-  fallback autorizado para Supabase nem acesso direto do navegador ao PostgreSQL.
+  fallback autorizado para provedor legado nem acesso direto do navegador ao PostgreSQL.
 - Cadastros/ajustes iniciados no PDV gravam na nuvem e exigem conexão/autorização.
 
 ## Consequências e implantação
@@ -35,3 +35,6 @@ Migrações históricas com checksum permanecem imutáveis.
 
 Auditar a conclusão por dependências, imports, configuração, chamadas de rede e
 teste dos dois produtos; não inferir remoção apenas pela ausência de uma tela.
+
+A ADR-0039 implementa a remocao do transporte descontinuado, incluindo referencias
+pela API. A separacao restante de componentes de UI nao faz parte dessa remocao.

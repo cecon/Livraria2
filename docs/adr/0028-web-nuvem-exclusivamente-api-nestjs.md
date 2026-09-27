@@ -12,7 +12,7 @@ ADRs 0015 e 0019.
 ## Contexto
 
 Durante a migracao para a arquitetura separada, cada modulo do web podia alternar entre a API
-NestJS e consultas diretas ao Supabase. Essa duplicidade cumpriu a janela de homologacao, mas
+NestJS e consultas diretas ao provedor legado. Essa duplicidade cumpriu a janela de homologacao, mas
 mantinha duas autenticacoes, dois caminhos de regra de negocio e configuracoes que podiam colocar
 uma tela em uma versao diferente das demais.
 
@@ -24,8 +24,8 @@ nova imagem restaurar acidentalmente problemas ja corrigidos.
 O web em `apps/nuvem/web` usa exclusivamente a API NestJS em `apps/nuvem/api` para autenticacao e
 dados administrativos. Sao removidos:
 
-- clientes Supabase do frontend e suas dependencias;
-- credenciais Supabase e conta compartilhada no ambiente do web;
+- clientes provedor legado do frontend e suas dependencias;
+- credenciais provedor legado e conta compartilhada no ambiente do web;
 - chaves por modulo e endpoints que informavam se a API estava habilitada;
 - implementacoes alternativas nos modulos de catalogo, referencias, usuarios, estoque, entradas,
   turnos, vendas e relatorios;
@@ -44,7 +44,7 @@ ressuscitar o caminho removido.
 - Todas as telas observam a mesma autenticacao, autorizacao e regra de negocio.
 - A limitacao da API identifica sessoes autenticadas separadamente, sem agregar todos os usuarios
   no IP interno do container web.
-- O bundle do navegador deixa de conter SDK e configuracao do Supabase.
+- O bundle do navegador deixa de conter SDK e configuracao do provedor legado.
 - O deploy do web exige apenas `NUVEM_API_URL`; API e migrator mantem suas configuracoes proprias.
 - A disponibilidade do administrativo passa a depender explicitamente da API.
 - Novas funcionalidades devem nascer no contrato da API, sem consultas diretas no web.

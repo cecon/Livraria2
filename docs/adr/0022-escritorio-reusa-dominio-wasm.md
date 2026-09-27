@@ -11,7 +11,7 @@
 > **0022** no saneamento da 009. Referências antigas a "ADR-0019 (WASM)" apontam para este arquivo.
 
 ## Contexto
-A feature 008 (specs/008-escritorio-espelho-pdv) exige que o app **Escritório** (Next.js, nuvem) execute
+A feature 008 (plano historico 008 (preservado no Git)) exige que o app **Escritório** (Next.js, nuvem) execute
 **as mesmas funções de negócio** do **PDV** (venda, estoque, custo médio, alocação, inventário,
 convergência) — não só a mesma aparência. Duas restrições da Constituição colidem com as soluções
 óbvias:
@@ -24,13 +24,13 @@ convergência) — não só a mesma aparência. Duas restrições da Constituiç
 O domínio (`src-tauri/src/domain/`) já é **puro** (só `serde`+`thiserror`+`std`, sem I/O, sem relógio —
 tempo entra como dado), portanto compilável para `wasm32-unknown-unknown` **sem mudar código**.
 
-## Decisão (specs/008-escritorio-espelho-pdv/research.md D1, D2, D4)
+## Decisão (plano historico 008 (preservado no Git) D1, D2, D4)
 - **Extrair o domínio puro** para um crate próprio `crates/livraria-domain` (hoje o crate `src-tauri`
   puxa tauri/sea-orm/reqwest/tokio, incompatíveis com wasm). O PDV passa a depender desse crate **sem
   mudança de comportamento** (coberto por `cargo test`).
 - **Compilar o domínio para WASM** (`crates/livraria-domain-wasm`, `wasm-bindgen`+`serde-wasm-bindgen`)
   e consumi-lo no Escritório via o pacote TS `@livraria/domain`. O Escritório é **mais um conjunto de
-  adapters** (Supabase/PostgREST + UI) dirigindo **o mesmo domínio** — Hexagonal preservado, dependência
+  adapters** (provedor legado/PostgREST + UI) dirigindo **o mesmo domínio** — Hexagonal preservado, dependência
   aponta para dentro (Princípio I).
 - **Derivados na nuvem**: `saldo` vem de `vw_saldo_livro` (soma dos movimentos); `custo_medio` é
   calculado pelo **mesmo fold do domínio via WASM** (`recompor_ledger`), **sem** criar `vw_custo_medio`

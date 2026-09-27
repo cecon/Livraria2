@@ -18,7 +18,7 @@ Hoje os dois apps não compartilham **nada** visual:
 O repositório **não é um monorepo** (sem `workspaces` na raiz). Copiar tokens/componentes para o
 Escritório garantiria **drift** a cada ajuste do PDV — contrário ao objetivo de paridade (SC-004).
 
-## Decisão (specs/008-escritorio-espelho-pdv/research.md D5, D6)
+## Decisão (plano historico 008 (preservado no Git) D5, D6)
 - **Tornar o repo um workspace** (npm workspaces para JS; Cargo workspace para o crate de domínio —
   ADR-0022). Raiz: `workspaces: ["packages/*","apps/*"]`; Next usa `transpilePackages`.
 - **Extrair `packages/ui` (`@livraria/ui`)** como fonte visual única: os tokens `@theme`/`:root`/`.dark`

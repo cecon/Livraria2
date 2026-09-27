@@ -1,7 +1,8 @@
 # Contexto de implementacao
 
-Governanca atual: Constituicao 3.1.0 e docs/adr/0034-governanca-pdv-cloud.md.
+Governanca atual: Constituicao 3.1.1 e docs/adr/0034-governanca-pdv-cloud.md.
 Cadastro pelo canal PDV com adm tecnico: docs/adr/0037-cadastro-pdv-adm-tecnico.md.
+Sincronizacao exclusiva pela API: docs/adr/0039-sincronizacao-exclusiva-api.md.
 Plano de transicao historico: specs/013-separacao-pdv-nuvem/plan.md.
 Requisitos e tarefas na mesma pasta. Guardrails: .specify/memory/constitution.md.
 Decisao vigente: docs/adr/0032-interfaces-independentes-api-unica.md.

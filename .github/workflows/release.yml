@@ -65,7 +65,7 @@ jobs:
         run: npm test
 
       - name: Validar migracoes e integridade antes de publicar
-        run: cargo test --manifest-path apps/pdv/src-tauri/Cargo.toml --lib --test migration --test migration_upgrade_copy --test produto_pontual --test api_sync_v1
+        run: cargo test --manifest-path apps/pdv/src-tauri/Cargo.toml --lib --test migration --test migration_upgrade_copy --test produto_pontual --test api_sync_v1 --test api_referencias
 
       - name: Build + release (assinado) com tauri-action
         uses: tauri-apps/tauri-action@v0
