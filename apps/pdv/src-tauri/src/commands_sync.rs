@@ -77,13 +77,17 @@ pub async fn seed_inicial(state: tauri::State<'_, AppState>) -> Result<usize, St
 pub struct StatusSyncDto {
     /// Total de registros locais ainda não sincronizados (FR-014).
     pub pendentes: i64,
+    pub imagens_pendentes: i64,
 }
 
 /// Estado de sincronização para o indicador da UI (não usa rede).
 #[tauri::command]
 pub async fn status_sincronizacao(state: tauri::State<'_, AppState>) -> Result<StatusSyncDto, String> {
     let api_mode = crate::machine_config::is_configured(state.machine_config_path.as_deref());
-    Ok(StatusSyncDto { pendentes: contar_pendentes(&state.db, api_mode).await? })
+    let pending = state.db.query_one(Statement::from_string(state.db.get_database_backend(),
+        "SELECT count(DISTINCT c.capa_uid) as n FROM produto_capa c LEFT JOIN capa_cache i ON i.uid=c.capa_uid WHERE c.capa_uid IS NOT NULL AND i.uid IS NULL"))
+        .await.map_err(|e| e.to_string())?.and_then(|r| r.try_get::<i64>("", "n").ok()).unwrap_or(0);
+    Ok(StatusSyncDto { pendentes: contar_pendentes(&state.db, api_mode).await?, imagens_pendentes: pending })
 }
 
 async fn contar_pendentes(db: &DatabaseConnection, api_mode: bool) -> Result<i64, String> {

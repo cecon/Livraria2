@@ -9,7 +9,7 @@ async fn value(db: &DatabaseConnection, sql: &str) -> String {
         .unwrap().try_get("", "valor").unwrap()
 }
 fn produto(versao: &str, titulo: &str) -> Produto {
-    Produto { uid: "a039ec41-22d9-40f8-ac38-d036d0203a85".into(), codigo: "123".into(),
+    Produto { capa_uid: None, uid: "a039ec41-22d9-40f8-ac38-d036d0203a85".into(), codigo: "123".into(),
         titulo: titulo.into(), autor: None, descricao: None, categoria: 0, preco_centavos: 1500,
         saldo_publicado: 8, ativo: true, excluido: false, versao: versao.into() }
 }
@@ -41,4 +41,33 @@ async fn colisao_de_codigo_nao_substitui_identidade_local() {
         "INSERT INTO livro(codigo,titulo,sync_uid) VALUES('123','Local','outro')".to_string())).await.unwrap();
     assert!(produto_pontual::importar(&db, &produto("1", "Remoto")).await.is_err());
     assert_eq!(value(&db, "SELECT sync_uid valor FROM livro WHERE codigo='123'").await, "outro");
+}
+
+#[tokio::test]
+async fn imagem_bootstrap_troca_remocao_e_evento_antigo_preservam_cursor() {
+    use livraria_2_lib::image_bootstrap::{apply, ImagePage, ImageRef};
+    let db = Database::connect("sqlite::memory:").await.unwrap();
+    inicializar_schema(&db).await.unwrap();
+    let p = produto("10", "Imagem");
+    produto_pontual::importar(&db, &p).await.unwrap();
+    let first = uuid::Uuid::new_v4().to_string();
+    let second = uuid::Uuid::new_v4().to_string();
+    let snapshot = |seq: &str, image: Option<String>| ImagePage { next: None, items: vec![ImageRef {
+        uid: p.uid.clone(), capa_uid: image, versao: seq.into() }] };
+    apply(&db, snapshot("20", Some(first.clone()))).await.unwrap();
+    assert_eq!(value(&db, "SELECT capa_uid valor FROM produto_capa").await, first);
+    // Bootstrap não toca no cursor ou nos dados financeiros do catálogo.
+    assert_eq!(value(&db, "SELECT CAST(count(*) AS TEXT) valor FROM sync_cursor WHERE recurso='api_catalogo_v1'").await, "0");
+    SeaApiReplica { db: db.clone() }.aplicar_pagina(&page(15)).await.unwrap();
+    assert_eq!(value(&db, "SELECT capa_uid valor FROM produto_capa").await, first);
+    let mut changed = produto("21", "Imagem nova"); changed.capa_uid = Some(second.clone());
+    produto_pontual::importar(&db, &changed).await.unwrap();
+    apply(&db, snapshot("20", Some(first))).await.unwrap();
+    assert_eq!(value(&db, "SELECT capa_uid valor FROM produto_capa").await, second);
+    changed.versao = "22".into(); changed.capa_uid = None;
+    produto_pontual::importar(&db, &changed).await.unwrap();
+    apply(&db, snapshot("21", Some(second))).await.unwrap();
+    assert_eq!(value(&db, "SELECT coalesce(capa_uid,'sem imagem') valor FROM produto_capa").await, "sem imagem");
+    inicializar_schema(&db).await.unwrap();
+    assert_eq!(value(&db, "SELECT last_cursor valor FROM sync_cursor WHERE recurso='api_catalogo_v1'").await, "15");
 }

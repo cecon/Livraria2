@@ -112,7 +112,7 @@ export function EntradaProduto({
                 idx === ativo ? "bg-muted" : "hover:bg-muted/60"
               }`}
             >
-              <Cover titulo={l.titulo} tamanho="sm" />
+              <Cover titulo={l.titulo} codigo={l.codigo} tamanho="sm" />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm">{l.titulo}</div>
                 <div className="text-muted-foreground truncate text-[11px]">

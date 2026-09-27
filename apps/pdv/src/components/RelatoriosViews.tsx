@@ -1,6 +1,7 @@
 // Visualizações dos relatórios emitidos (US5, FR-042/043).
 
 import { brl } from "@/lib/format";
+import { Cover } from "./Cover";
 import type { RelatorioDestinacoes } from "@/lib/types";
 import { CATEGORIAS } from "@/lib/types";
 import type { RelatorioEstoque, RelatorioVendas } from "@/lib/ipc";
@@ -50,6 +51,7 @@ export function VendasView({ rel }: VendasProps) {
             <ul className="text-muted-foreground mt-1">
               {p.itens.map((i) => (
                 <li key={i.id} className="flex items-center gap-2 font-mono text-[12px]">
+                  <Cover titulo={i.titulo} codigo={i.codigo} tamanho="sm" />
                   <span className="flex-1">
                     {i.qtd}× {i.titulo}
                   </span>
@@ -171,7 +173,7 @@ export function EstoqueView({ rel }: { rel: RelatorioEstoque }) {
           {rel.itens.map((i) => (
             <tr key={i.codigo} className="border-b">
               <td className="py-1 font-mono text-[12px]">{i.codigo}</td>
-              <td className="max-w-[220px] truncate">{i.titulo}</td>
+              <td className="max-w-[220px]"><div className="flex items-center gap-2"><Cover titulo={i.titulo} codigo={i.codigo} tamanho="sm" /><span className="truncate">{i.titulo}</span></div></td>
               <td className="text-[12px]">{cat(i.categoria)}</td>
               <td className="text-right font-mono">{brl(i.precoCentavos)}</td>
               <td className="text-right font-mono">{i.estoque}</td>

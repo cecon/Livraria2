@@ -47,5 +47,6 @@ pub async fn executar(
             summary.orfas += r.orfas;
         }
     }
+    crate::images::aquecer(db.clone(), machine_config.map(Path::to_path_buf));
     Ok(summary)
 }

@@ -73,8 +73,8 @@ export default function Pesquisa() {
             Voltar aos resultados
           </Button>
         )}
-        <div className="bg-card flex gap-5 rounded-xl border p-5">
-          <Cover titulo={detalhe.titulo} tamanho="lg" />
+        <div className="bg-card flex flex-col gap-5 rounded-xl border p-5 sm:flex-row">
+          <Cover titulo={detalhe.titulo} codigo={detalhe.codigo} tamanho="lg" />
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-semibold tracking-tight">{detalhe.titulo}</h1>
             {detalhe.autor && (
@@ -86,7 +86,7 @@ export default function Pesquisa() {
               </span>
               <StockBadge estoque={saldoOperacional(detalhe)} rotulo="Saldo op." />
             </div>
-            <dl className="mt-4 grid grid-cols-[120px_1fr] gap-y-2 text-sm">
+            <dl className="mt-4 grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
               <dt className="text-muted-foreground">Categoria</dt>
               <dd>{cat ? `${cat.id} - ${cat.nome}` : detalhe.categoria}</dd>
               <dt className="text-muted-foreground">Saldo op.</dt>
@@ -128,12 +128,12 @@ export default function Pesquisa() {
         O estoque oficial e administrado no Escritorio/nuvem. O PDV mostra saldo
         operacional simples para apoiar a venda offline.
       </div>
-      <div className="bg-card mt-4 grid grid-cols-2 gap-4 rounded-xl border p-5">
+      <div className="bg-card mt-4 grid grid-cols-1 gap-4 rounded-xl border p-5 sm:grid-cols-2">
         <div>
-          <Label>Codigo de barras</Label>
+          <Label htmlFor="pesquisa-codigo">Codigo de barras</Label>
           <div className="mt-1 flex gap-2">
             <Input
-              value={porCodigo}
+              id="pesquisa-codigo" value={porCodigo}
               onChange={(e) => setPorCodigo(e.currentTarget.value)}
               onKeyDown={(e) => e.key === "Enter" && buscarCodigo()}
               className="h-9 font-mono"
@@ -144,10 +144,10 @@ export default function Pesquisa() {
           </div>
         </div>
         <div>
-          <Label>Titulo ou autor</Label>
+          <Label htmlFor="pesquisa-texto">Titulo ou autor</Label>
           <div className="mt-1 flex gap-2">
             <Input
-              value={porTexto}
+              id="pesquisa-texto" value={porTexto}
               onChange={(e) => setPorTexto(e.currentTarget.value)}
               onKeyDown={(e) => e.key === "Enter" && buscarTexto()}
               className="h-9"
@@ -160,14 +160,14 @@ export default function Pesquisa() {
       </div>
 
       {resultados && resultados.length > 0 && (
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {resultados.map((livro) => (
             <button
               key={livro.codigo}
               onClick={() => setDetalhe(livro)}
               className="bg-card hover:bg-muted/50 flex gap-3 rounded-lg border p-3 text-left"
             >
-              <Cover titulo={livro.titulo} tamanho="md" />
+              <Cover titulo={livro.titulo} codigo={livro.codigo} tamanho="md" />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{livro.titulo}</div>
                 {livro.autor && (

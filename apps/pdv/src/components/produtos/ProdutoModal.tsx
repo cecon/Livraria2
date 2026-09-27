@@ -1,3 +1,4 @@
+import { ImagemProduto } from "@/interface/ImagemProduto";
 import { useRef, useState } from "react";
 import { Button } from "@livraria/ui/wowdash/button";
 import { Input } from "@livraria/ui/wowdash/input";
@@ -30,6 +31,8 @@ export function ProdutoModal({ inicial = null, codigo = "", venda = false, onSal
   const [pending, setPending] = useState(() => pendencia(key));
   const [produto, setProduto] = useState(inicial);
   const [form, setForm] = useState(() => formInicial(inicial, codigo, pending));
+  const [capaUid, setCapaUid] = useState(pending?.pedido.dados ? pending.pedido.dados.capaUid ?? null : inicial?.capaUid ?? null);
+  const [imagemOcupada, setImagemOcupada] = useState(false);
   const [ativo, setAtivo] = useState(inicial?.ativo ?? true);
   const [contando, setContando] = useState(pending?.pedido.acao === "contar");
   const [quantidade, setQuantidade] = useState(String(pending?.pedido.quantidade ?? inicial?.saldoPublicado ?? 0));
@@ -54,7 +57,7 @@ export function ProdutoModal({ inicial = null, codigo = "", venda = false, onSal
     finally { trava.current = false; setOcupado(false); }
   }
   async function salvar() {
-    if (trava.current) return;
+    if (trava.current || imagemOcupada) return;
     trava.current = true; setOcupado(true); setErro("");
     try {
       let tentativa = pending;
@@ -66,7 +69,7 @@ export function ProdutoModal({ inicial = null, codigo = "", venda = false, onSal
           const d = validarProduto(form);
           pedido = { operacao: crypto.randomUUID(), uid: produto?.uid ?? crypto.randomUUID(),
             acao: produto ? "editar" : "criar", versao: produto?.versao,
-            dados: { codigo: d.codigo, titulo: d.titulo, autor: d.autor ?? "", descricao: d.descricao ?? "",
+            dados: { capaUid, codigo: d.codigo, titulo: d.titulo, autor: d.autor ?? "", descricao: d.descricao ?? "",
               preco_centavos: d.precoCentavos, categoria: d.categoria, estoqueInicial: produto ? 0 : d.estoqueInicial,
               ...(produto ? { ativo } : {}) } };
         }
@@ -81,6 +84,7 @@ export function ProdutoModal({ inicial = null, codigo = "", venda = false, onSal
         return;
       }
       guardar(null);
+      window.dispatchEvent(new Event("imagens-atualizadas"));
       if (tentativa.pedido.acao === "contar") {
         setProduto(r.produto); setAtivo(r.produto.ativo); setContando(false);
         toast.success("Contagem registrada. Estoque atualizado.");
@@ -112,6 +116,7 @@ export function ProdutoModal({ inicial = null, codigo = "", venda = false, onSal
             onChange={(e) => setQuantidade(e.target.value)} required />
           <p className="rounded-md bg-muted p-3 text-sm">Saldo: {produto?.saldoPublicado} · Total contado: {total ?? "—"} · Diferença: {total !== null && produto ? total - produto.saldoPublicado : "—"}</p>
         </> : <>
+          <ImagemProduto value={capaUid} titulo={form.titulo} disabled={ocupado || !!pending} onChange={setCapaUid} onBusy={setImagemOcupada} />
           <ProdutoCampos value={form} onChange={setForm} disabled={ocupado || !!pending} editando={!!produto} />
           {produto && <div className="space-y-2 rounded-lg border p-3">
             <div className="flex flex-wrap items-center justify-between gap-2"><span>Estoque: {produto.saldoPublicado}</span>
@@ -128,7 +133,7 @@ export function ProdutoModal({ inicial = null, codigo = "", venda = false, onSal
             if (contando && !pending) { setContando(false); setErro(""); setAuth({ usuario: "", senha: "" }); }
             else onFechar();
           }}>Cancelar</Button>
-          <Button type="submit" disabled={ocupado}>{ocupado ? "Salvando…" : pending?.confirmado ? "Disponibilizar no PDV" : contando ? "Confirmar ajuste" : venda ? "Salvar e adicionar à venda" : "Salvar"}</Button>
+          <Button type="submit" disabled={ocupado || imagemOcupada}>{ocupado ? "Salvando…" : pending?.confirmado ? "Disponibilizar no PDV" : contando ? "Confirmar ajuste" : venda ? "Salvar e adicionar à venda" : "Salvar"}</Button>
         </div>
       </form>
     </DialogContent>

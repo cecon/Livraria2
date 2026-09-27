@@ -7,6 +7,8 @@ use serde_json::Value;
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProdutoApi {
+    #[serde(default)]
+    pub capa_uid: Option<String>,
     pub codigo: String,
     pub titulo: String,
     pub autor: Option<String>,
@@ -73,7 +75,7 @@ pub fn validar_pagina(pagina: &PaginaApi, inicio: &str) -> Result<(), RepoErro> 
             ("delete", None) => {}
             ("upsert", Some(p)) if p.preco_centavos >= 0 &&
                 p.preco_centavos <= 9_007_199_254_740_991 && !p.codigo.is_empty() &&
-                !p.titulo.is_empty() && p.ativo => {}
+                !p.titulo.is_empty() && p.ativo && p.capa_uid.as_ref().is_none_or(|id| uuid::Uuid::parse_str(id).is_ok()) => {}
             _ => return Err(erro()),
         }
         last = n;

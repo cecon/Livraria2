@@ -3,6 +3,8 @@
 pub mod adapters;
 pub mod application;
 pub mod commands;
+pub mod images;
+pub mod image_bootstrap;
 pub mod commands_produtos;
 pub mod commands_llm;
 pub mod commands_destinacao;
@@ -128,6 +130,8 @@ pub fn run() {
             commands_produtos::produto_consultar,
             commands_produtos::produtos_listar,
             commands_produtos::produto_salvar,
+            images::imagem_produto,
+            images::imagem_enviar,
             commands::relatorio_vendas,
             commands::relatorio_estoque,
             commands::excluir_pedido,

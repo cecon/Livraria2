@@ -19,6 +19,7 @@ pub mod m015;
 pub mod m016;
 pub mod m017;
 pub mod m018;
+pub mod m019;
 pub mod m_api_v1;
 
 pub struct Migrator;
