@@ -55,6 +55,15 @@ module.exports = async (t, db, base, admin, device) => {
       dados: { ...create.dados, codigo: "ZERO-" + uid, estoqueInicial: 0 } });
     assert.equal(inactive.status, 201);
     assert.equal(inactive.body.ativo, false);
+    const activate = { operacao: randomUUID(), uid: inactive.body.uid, acao: "editar", versao: inactive.body.versao,
+      dados: { ...create.dados, codigo: "ZERO-" + uid, estoqueInicial: 0, ativo: true } };
+    assert.equal((await post(activate, device)).status, 403);
+    const activated = await post(activate);
+    assert.equal(activated.status, 201, JSON.stringify(activated.body));
+    assert.equal(activated.body.ativo, true);
+    assert.equal(activated.body.saldoPublicado, 0);
+    assert.deepEqual(await post(activate), activated);
+    assert.equal(await db.movimento_estoque.count({ where: { livro_uid: inactive.body.uid } }), 0);
     assert.equal((await post({ ...count, operacao: randomUUID(), quantidade: -1 })).status, 400);
     // Replay never sends an obsolete snapshot back to the PDV after newer operations.
     assert.equal((await post(create)).body.titulo, "Título editado");
