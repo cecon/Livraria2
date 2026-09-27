@@ -63,7 +63,7 @@ pub async fn produto_consultar(state: tauri::State<'_, AppState>, codigo: Option
 }
 
 #[tauri::command]
-pub async fn produto_salvar(state: tauri::State<'_, AppState>, pedido: Value, autorizacao: Autorizacao)
+pub async fn produto_salvar(state: tauri::State<'_, AppState>, pedido: Value, autorizacao: Option<Autorizacao>)
     -> Result<ProdutoDisponivel, ErroDto> {
     let p = produtos::salvar(state.machine_config_path.as_deref(), &pedido, autorizacao).await?;
     Ok(disponibilizar(&state, p).await)

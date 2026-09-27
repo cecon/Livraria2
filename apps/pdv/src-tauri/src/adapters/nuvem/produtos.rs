@@ -22,7 +22,16 @@ pub fn rede(_: impl std::fmt::Display) -> ErroDto {
     erro("SEM_CONEXAO", "Não foi possível acessar a retaguarda. Confira a conexão e tente novamente.")
 }
 
-pub async fn salvar(path: Option<&Path>, pedido: &Value, auth: Autorizacao) -> Result<Produto, ErroDto> {
+pub async fn salvar(path: Option<&Path>, pedido: &Value, auth: Option<Autorizacao>) -> Result<Produto, ErroDto> {
+    if pedido.get("acao").and_then(Value::as_str) == Some("criar") {
+        let api = super::api_sync::ApiSync::conectar_com_config(path).await.map_err(rede)?;
+        let response = api.cadastrar_produto(pedido).await.map_err(rede)?;
+        if matches!(response.status(), StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN) {
+            return Err(erro("SEM_PERMISSAO", "Este PDV não está autorizado. Confira a configuração da máquina na retaguarda."));
+        }
+        return serde_json::from_value(resposta(response).await?).map_err(rede);
+    }
+    let auth = auth.ok_or_else(|| erro("SEM_PERMISSAO", "Informe as credenciais de um administrador ativo."))?;
     let config = crate::machine_config::identity(path).map_err(rede)?;
     let base = crate::machine_config::validate_api_url(&config.api_url).map_err(rede)?;
     let client = Client::builder().timeout(Duration::from_secs(30))

@@ -15,7 +15,7 @@ export type PedidoProduto = {
 export const listarProdutos = (termo: string, pagina: number) => invoke<Produto[]>("produtos_listar", { termo, pagina });
 export const consultarProduto = (codigo?: string, uid?: string) =>
   invoke<ProdutoResposta | null>("produto_consultar", { codigo: codigo ?? null, uid: uid ?? null });
-export const salvarProduto = (pedido: PedidoProduto, autorizacao: CredencialAdmin) =>
-  invoke<ProdutoResposta>("produto_salvar", { pedido, autorizacao });
+export const salvarProduto = (pedido: PedidoProduto, autorizacao?: CredencialAdmin) =>
+  invoke<ProdutoResposta>("produto_salvar", { pedido, autorizacao: autorizacao ?? null });
 export const erroProduto = (e: unknown): string => e instanceof Error ? e.message :
   (e as { mensagem?: string })?.mensagem ?? "Não foi possível concluir a operação.";

@@ -17,6 +17,11 @@ fn erro(_: impl std::fmt::Display) -> RepoErro {
 }
 
 impl ApiSync {
+    pub async fn cadastrar_produto(&self, pedido: &Value) -> Result<reqwest::Response, reqwest::Error> {
+        self.client.post(format!("{}/produtos", self.base))
+            .bearer_auth(&self.token).json(pedido).send().await
+    }
+
     pub async fn llms(&self, turno: &str, testar: Option<&str>) -> Result<Value, RepoErro> {
         uuid::Uuid::parse_str(turno).map_err(erro)?;
         let request = if let Some(uid) = testar {
