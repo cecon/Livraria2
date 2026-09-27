@@ -6,7 +6,6 @@ const ROTAS_PUBLICAS_API = [
   "/.well-known",
   "/api/v1",
   "/api/auth",
-  "/api/rest",
   "/api/sync",
   "/api/pdv",
   "/api/pdvs",
@@ -18,7 +17,6 @@ const ROTAS_PUBLICAS_API = [
   "/pdvs",
   "/sync",
   "/auth",
-  "/rest",
 ];
 
 function caminhoComecaComSegmento(caminho: string, rota: string) {
