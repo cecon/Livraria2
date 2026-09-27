@@ -1,0 +1,58 @@
+# Dokploy clona o repositorio; o GitHub publica as imagens da mesma revisao.
+# PostgreSQL e seu volume existentes permanecem fora deste Compose.
+services:
+  cloud-migrator:
+    image: ghcr.io/cecon/livraria2-migrator:${CLOUD_VERSION:?Informe o commit publicado}
+    restart: "no"
+    environment:
+      DATABASE_URL: ${MIGRATOR_DATABASE_URL:?Informe a conexao do migrador}
+      MIGRATOR_SLEEP_SECONDS: "0"
+    networks: [livraria-internal]
+  cloud-api:
+    image: ghcr.io/cecon/livraria2-nuvem-api:${CLOUD_VERSION:?Informe o commit publicado}
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3001"
+      DATABASE_URL: ${DATABASE_URL:?Informe a conexao da API}
+      API_JWT_SECRET: ${API_JWT_SECRET:?Informe o segredo da API}
+      API_OPERATIONS_ENABLED: "true"
+      LLM_ENCRYPTION_KEY: ${LLM_ENCRYPTION_KEY:-}
+      LLM_ALLOWED_BASE_URLS: ${LLM_ALLOWED_BASE_URLS:-}
+    depends_on:
+      cloud-migrator:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks: [livraria-internal]
+  cloud-web:
+    image: ghcr.io/cecon/livraria2-escritorio:${CLOUD_VERSION:?Informe o commit publicado}
+    restart: unless-stopped
+    environment:
+      HOSTNAME: 0.0.0.0
+      NODE_ENV: production
+      NUVEM_API_URL: http://cloud-api:3001
+    depends_on:
+      cloud-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      livraria-internal:
+      dokploy-network:
+        aliases: [livraria-cloud-web]
+networks:
+  livraria-internal:
+    external: true
+    name: livraria_cloud_internal
+  dokploy-network:
+    external: true
+    name: dokploy-network

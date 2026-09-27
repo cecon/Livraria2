@@ -8,6 +8,8 @@ on:
       - "apps/nuvem/api/**"
       - "apps/nuvem/migrations/**"
       - "apps/nuvem/migrator/**"
+      - "apps/nuvem/compose.dokploy.yml"
+      - "scripts/deploy-dokploy.py"
       - "packages/**"
       - "package.json"
       - "package-lock.json"
@@ -20,7 +22,7 @@ permissions:
 
 concurrency:
   group: web-images-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
@@ -71,3 +73,16 @@ jobs:
           tags: |
             ${{ env.API_IMAGE }}:latest
             ${{ env.API_IMAGE }}:${{ github.sha }}
+
+  deploy:
+    needs: build-push
+    if: github.ref == 'refs/heads/main' && vars.DOKPLOY_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Solicitar deploy da nuvem no Dokploy
+        env:
+          DOKPLOY_URL: ${{ vars.DOKPLOY_URL }}
+          DOKPLOY_COMPOSE_ID: ${{ vars.DOKPLOY_COMPOSE_ID }}
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+        run: python3 scripts/deploy-dokploy.py
