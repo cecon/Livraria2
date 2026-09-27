@@ -1,12 +1,15 @@
 # Contexto de implementacao
 
-Plano atual: specs/013-separacao-pdv-nuvem/plan.md.
+Governanca atual: Constituicao 3.0.0 e docs/adr/0034-governanca-pdv-cloud.md.
+Plano de transicao historico: specs/013-separacao-pdv-nuvem/plan.md.
 Requisitos e tarefas na mesma pasta. Guardrails: .specify/memory/constitution.md.
-Decisao de separacao: docs/adr/0024-separacao-pdv-nuvem.md.
+Decisao vigente: docs/adr/0032-interfaces-independentes-api-unica.md.
+Existem apenas dois produtos: PDV e Cloud (web + API).
 
 PDV e layout: apps/pdv. Nuvem: apps/nuvem/api e apps/nuvem/web.
 Comandos npm na raiz delegam aos workspaces; scripts de deploy usam contexto raiz.
-Dominio Rust compartilhado em crates; contratos sem ORM em packages/contratos.
+Bibliotecas Rust em crates e contratos sem ORM em packages/contratos nao sao outro produto.
+Compartilhamento de calculos nao obriga compartilhar interfaces. A ADR-0034 lista pendencias reais.
 
 Segredos ficam somente na memoria Notion do projeto ou ambiente seguro.
 Nunca versionar credenciais, bancos, dumps ou arquivos .env.
@@ -28,7 +31,9 @@ Toda criacao, alteracao ou revisao de interface do PDV ou da nuvem DEVE seguir
 `docs/references/theme` e sua documentacao em
 `docs/references/theme/documentation`. Antes de editar UI, leia
 `docs/ui-theme-policy.md`, consulte a documentacao do tema e procure no tema uma pagina ou
-componente equivalente. Reutilize primeiro `packages/ui` e os padroes ja adaptados no projeto.
+componente equivalente. A decisao e manter componentes em `apps/pdv/src/interface` e `apps/nuvem/web/interface`.
+Nao ampliar o pacote legado `packages/ui`; sua remocao ainda precisa chegar a main.
+Consulte ADR-0032 e preserve as interfaces independentes.
 Nao crie linguagem visual paralela nem copie regras de negocio, autenticacao ou dados de exemplo
 do tema. Preserve responsividade, acessibilidade e os modos claro/escuro.
 

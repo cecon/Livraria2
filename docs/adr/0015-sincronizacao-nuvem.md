@@ -1,5 +1,9 @@
 # ADR-0015 — Sincronização com a nuvem: hub Supabase, PDV réplica offline, escritório web
 
+> **Vigência revisada em 27/09/2026: Substituida.** Integracao direta antiga nao e autorizada; seguir ADR-0032.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 **Status**: Aceito · **Data**: 2026-07-20
 
 ## Contexto

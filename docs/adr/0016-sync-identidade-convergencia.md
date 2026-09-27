@@ -1,5 +1,9 @@
 # ADR-0016 — Sincronização: identidade estável, deduplicação e convergência idempotente
 
+> **Vigência revisada em 27/09/2026: Parcialmente vigente.** Preserva UUID e idempotencia; transporte e cursor seguem API dedicada (ADR-0024/0034).
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 **Status**: Aceito · **Data**: 2026-07-20
 
 ## Contexto

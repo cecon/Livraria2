@@ -1,5 +1,9 @@
 # ADR-0027: Convencoes de interface persistidas no AgentMemory
 
+> **Vigência revisada em 27/09/2026: Complementada.** Memoria e opcional e nao bloqueia trabalho; arquivos do projeto continuam sendo a referencia.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 ## Status
 
 Aceito em 2026-09-15.

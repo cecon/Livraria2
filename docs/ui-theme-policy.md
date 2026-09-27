@@ -19,7 +19,8 @@ que o material seja restaurado; nao e permitido substituir a referencia por supo
 2. Leia a secao aplicavel em `docs/references/theme/documentation/index.html`.
 3. Procure uma pagina equivalente em `docs/references/theme/app`.
 4. Procure componentes equivalentes em `docs/references/theme/components`.
-5. Verifique primeiro o que ja existe em `packages/ui` e nos layouts compartilhados.
+5. Verifique os componentes da propria aplicacao; interfaces independentes seguem ADR-0032.
+   `packages/ui` ainda existente e legado em transicao, nao destino de novos componentes.
 6. Implemente a adaptacao e valide em desktop e smartphone, nos modos claro e escuro.
 7. Copie `docs/theme-reviews/TEMPLATE.md` para um novo arquivo nessa pasta, preencha as
    referencias e marque as validacoes antes de publicar a branch.
@@ -38,7 +39,7 @@ Execute manualmente com `npm run theme:check`; os testes do guardrail usam `npm 
 
 - Preserve a hierarquia, densidade, espacamento, tipografia, cores, estados e comportamento
   responsivo demonstrados pelo tema.
-- Use `packages/ui` como fonte dos componentes compartilhados entre PDV e nuvem.
+- Mantenha componentes separados por produto; nao imponha pacote de UI compartilhado.
 - Use Lucide para icones e os tokens existentes do projeto.
 - Adapte textos, rotas, permissoes, dados e interacoes ao dominio da Livraria.
 - Mantenha estados de carregamento, vazio, erro, sucesso, foco e desabilitado.
@@ -47,7 +48,7 @@ Execute manualmente com `npm run theme:check`; os testes do guardrail usam `npm 
 ## O Que Nao Copiar
 
 - Regras de negocio, autenticacao, chamadas de API ou dados ficticios do tema.
-- Dependencias ou componentes duplicados quando ja houver equivalente em `packages/ui`.
+- Dependencias desnecessarias ou componentes duplicados dentro da mesma aplicacao.
 - Paginas inteiras sem adequacao ao fluxo real e aos requisitos de acessibilidade.
 - Segredos, licencas, arquivos completos ou assets do tema para o AgentMemory.
 
@@ -56,3 +57,9 @@ Execute manualmente com `npm run theme:check`; os testes do guardrail usam `npm 
 Decisoes visuais ainda em avaliacao ficam em memoria privada. Depois de verificadas na tela real,
 podem ser promovidas para memoria de equipe com a origem do requisito ou arquivo relacionado.
 O codigo, esta politica e a documentacao local do tema sempre prevalecem sobre memorias antigas.
+
+## Estado da referencia em 27/09/2026
+
+O material versionado e minimo e contem placeholders; isso nao comprova fidelidade
+visual completa ao WowDash. Declare essa limitacao, preserve os padroes existentes e
+nao invente validacoes. Memoria indisponivel nao bloqueia a tarefa.

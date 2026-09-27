@@ -40,7 +40,14 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] Identificar PDV/Cloud afetados e autoridade de cada dado; nao criar terceiro produto.
+- [ ] Preservar operacao offline e interfaces independentes (ADR-0032).
+- [ ] Validar identidade/autorizacao, centavos, transacao e idempotencia quando aplicaveis.
+- [ ] Separar ativacao de produto de quantidade em estoque (ADR-0034).
+- [ ] Identificar migrations, compatibilidade dos clientes e ordem de publicacao.
+- [ ] Declarar teste local, teste integrado e verificacao real de producao separadamente.
+- [ ] Conferir limite de arquivos, ADRs vigentes e pendencias de implementacao.
+- [ ] Registrar excecoes justificadas; marcar nao aplicavel com motivo.
 
 ## Project Structure
 

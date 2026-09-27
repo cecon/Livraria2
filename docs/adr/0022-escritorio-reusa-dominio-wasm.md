@@ -1,5 +1,9 @@
 # ADR-0022 — Escritório reusa o domínio (Rust) via WebAssembly
 
+> **Vigência revisada em 27/09/2026: Opcao tecnica existente.** Reuso de calculos puros em WASM nao obriga compartilhar interface ou toda regra da nuvem.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 **Status**: Aceito · **Data**: 2026-07-22
 
 > **Nota de renumeração (feature 009)**: originalmente registrado como ADR-0019, colidiu com o

@@ -1,5 +1,9 @@
 # ADR-0006 — Import do legado Access via mdbtools (upsert idempotente)
 
+> **Vigência revisada em 27/09/2026: Historica: importacao.** Importacao de Access e transicao do legado, nao o protocolo de sincronizacao atual.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 **Status**: Aceito · **Data**: 2026-06-14
 
 ## Contexto

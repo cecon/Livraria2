@@ -1,5 +1,9 @@
 # ADR-0019 — Identidade unificada na tabela `usuario`: senha sincronizada e protegida
 
+> **Vigência revisada em 27/09/2026: Parcialmente substituida.** Identidade individual permanece; conta compartilhada e transporte Supabase foram substituidos pela API autenticada.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 **Status**: Aceito · **Data**: 2026-07-22 · **Supersede**: D15 (research 007) · **Relaciona**: [ADR-0015](0015-sincronizacao-nuvem.md), [ADR-0016](0016-sync-identidade-convergencia.md)
 
 ## Contexto

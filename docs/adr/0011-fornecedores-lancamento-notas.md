@@ -1,5 +1,9 @@
 # ADR-0011 — Fornecedores e lançamento de entrada por nota
 
+> **Vigência revisada em 27/09/2026: Complementada.** Lancamentos sao da nuvem; ativacao confirmada e saldo zero seguem ADR-0034.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 **Status**: Aceito · **Data**: 2026-06-24
 
 ## Contexto

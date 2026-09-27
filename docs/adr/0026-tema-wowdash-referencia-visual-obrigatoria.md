@@ -1,5 +1,9 @@
 # ADR-0026: Tema WowDash como referencia visual obrigatoria
 
+> **Vigência revisada em 27/09/2026: Complementada.** Tema e referencia visual; componentes de cada produto sao independentes. Material local incompleto deve ser declarado.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 ## Status
 
 Aceito em 2026-09-15.

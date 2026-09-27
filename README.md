@@ -1,8 +1,15 @@
 # Livraria 2 — Espaço do Livro (PIB Penha)
 
-Sistema desktop de **estoque & vendas** da livraria da igreja. Aplicativo gerencial de balcão,
-**offline**, orientado a leitor de código de barras. Sem TEF nem nota fiscal — as formas de pagamento
+Dois produtos para a livraria: **PDV offline** para o balcão e **Cloud** para retaguarda,
+API e PostgreSQL oficial. Sem TEF nem nota fiscal — as formas de pagamento
 apenas registram como a venda foi recebida.
+
+## Governança vigente
+
+Leia a [Constituição 3.0.0](.specify/memory/constitution.md) e o
+[índice de ADRs](docs/adr/README.md). A [ADR-0034](docs/adr/0034-governanca-pdv-cloud.md)
+distingue decisões aprovadas, implementação e publicação. Interfaces independentes
+e retirada do provedor antigo ainda têm pendências na main; não presumir conclusão.
 
 ## Agent Memory
 
@@ -67,7 +74,7 @@ Build de produção: `npm run build && npm run tauri build`.
 
 Na tela **Início**, informe o caminho do `.mdb` (padrão `../Livraria/livraria.mdb`) e clique
 **Sincronizar**. Importa acervo + vendas de forma **idempotente** (upsert) — pode rodar quantas vezes
-quiser durante a transição. Relatórios usam o gate padrão **adm / adm**.
+quiser durante a transição. Operações administrativas exigem identidade autenticada e permissão; não usar senha fixa de liberação.
 
 ## Testes & guardrails
 

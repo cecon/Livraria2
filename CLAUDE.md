@@ -1,13 +1,13 @@
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan:
-`specs/012-pdv-nuvem-manda/plan.md`
-(base features: `specs/001-sistema-estoque-vendas/plan.md`, `specs/002-estoque-movimentos-inventario/plan.md`, `specs/003-fornecedores-lancamento-notas/plan.md`, `specs/004-inventario-melhorias/plan.md`, `specs/005-formas-pagamento/plan.md`, `specs/006-destinacao-doacoes/plan.md`, `specs/007-sincronizacao-nuvem/plan.md`, `specs/008-escritorio-espelho-pdv/plan.md`, `specs/009-turno-venda-inventario/plan.md`, `specs/010-gestao-usuarios-perfis/plan.md`, `specs/011-pdv-responsabilidade-reduzida/plan.md`)
+Governanca vigente: `.specify/memory/constitution.md` (3.0.0), `AGENTS.md` e
+`docs/adr/README.md`. ADR-0032 define dois produtos e interfaces independentes;
+ADR-0034 consolida responsabilidades, estoque, permissoes e publicacao.
 
-Project guardrails live in `.specify/memory/constitution.md` (v2.0.0): Hexagonal/SOLID Rust core,
-KISS/DRY, ≤300 significant lines per logic file, idempotent migrations via command, money as integer
-cents, hooks+skills+ADRs. Architecture decisions: `docs/adr/`. Feature spec:
-`specs/012-pdv-nuvem-manda/spec.md`.
+PDV: `apps/pdv`, offline com SQLite. Cloud: `apps/nuvem/web` + `apps/nuvem/api`,
+PostgreSQL oficial. Bibliotecas internas nao sao outro produto. Supabase esta
+descontinuado por decisao; pendencias de remocao em main estao na ADR-0032.
+Planos de features anteriores sao historicos e nao substituem a governanca atual.
+Nao confundir alteracao local, imagem oficial e versao executando na VM.
 <!-- SPECKIT END -->
 
 ## Memória do projeto (segredos & longa duração)

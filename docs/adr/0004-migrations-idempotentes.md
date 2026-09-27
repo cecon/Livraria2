@@ -1,5 +1,9 @@
 # ADR-0004 — Migrations por comando, idempotentes
 
+> **Vigência revisada em 27/09/2026: Complementada.** Migrations locais e de PostgreSQL, imutabilidade de checksum e reparos rastreaveis seguem a Constituicao 3.0.0.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 **Status**: Aceito · **Data**: 2026-06-14
 
 ## Contexto

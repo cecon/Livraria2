@@ -1,5 +1,9 @@
 # ADR-0017 — Estoque: `saldo_inicial` obrigatório e reparo do ledger incompleto
 
+> **Vigência revisada em 27/09/2026: Parcialmente vigente.** Preserva integridade do ledger; nao exige estoque positivo para ativar produto nem inventar movimento zero (ADR-0034).
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 **Status**: Aceito · **Data**: 2026-07-21 · **Complementa/corrige**: [ADR-0008](0008-razao-movimentos-estoque.md), [ADR-0016](0016-sync-identidade-convergencia.md)
 
 ## Contexto

@@ -1,180 +1,139 @@
-<!--
-SYNC IMPACT REPORT
-==================
-Version change: 1.1.0 → 2.0.0
-Bump rationale: MAJOR — **redefinição** do invariante offline do PDV para a realidade atual: a
-CONTABILIDADE OFICIAL de estoque (baixa por venda, estorno, entrada de nota, ajuste de inventário)
-deixa de ser função offline do PDV e passa a ser RESPONSABILIDADE DA NUVEM; o PDV produz FATOS
-(venda/cancelamento) e CONSUME o saldo publicado, mantendo offline apenas venda/cancelamento/consulta
-(saldo operacional). Motivada pelas features 011 (fase 1, em produção) e 012 e registrada em ADR-0023
-(estoque oficial na nuvem) e ADR-0024 (PDV consumidor). É uma redefinição de governança (não mera
-expansão), por isso MAJOR; princípios I–VI seguem inalterados.
+# Constituição da Livraria
 
-Modified principles: nenhum (I–VI inalterados)
-Modified sections:
-  - Restrições Técnicas & Stack — invariante offline redefinido: offline garante VENDA/CANCELAMENTO/
-    CONSULTA (saldo operacional); a contabilidade oficial e as funções de retaguarda (entrada,
-    inventário, edição de cadastros) vivem na nuvem e podem exigir conexão (ADR-0023/0024)
-Added principles: nenhum
-Added sections: nenhuma
-Removed sections: nenhuma
+**Version**: 3.0.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-27
 
-Templates de dependência:
-  - .specify/templates/plan-template.md ........ ✅ alinhado (Constitution Check puxa os gates daqui)
-  - .specify/templates/spec-template.md ......... ✅ alinhado
-  - .specify/templates/tasks-template.md ........ ✅ alinhado
-  - .specify/templates/checklist-template.md .... ✅ alinhado
-  - .specify/templates/constitution-template.md . ℹ️ é o template fonte; não alterado
+Esta constituição orienta os dois produtos: **PDV** e **Cloud (nuvem)**. Substitui a
+versão 2.0.0, que misturava SQLite local, nuvem como espelho e estoque centralizado.
+O [índice de ADRs](../../docs/adr/README.md) distingue decisões vigentes e históricas.
+Decisão aprovada não significa implementação ou publicação concluída. Instruções do
+responsável prevalecem; mudanças duradouras devem ser refletidas nestes registros.
 
-Propagação (feature 012):
-  - CLAUDE.md .................................. ⚠️ atualizar referência "(v1.1.0)" → "(v2.0.0)"
-  - docs/adr/0023, docs/adr/0024 ............... ✅ registram estoque oficial na nuvem + PDV consumidor
-  - specs/012-pdv-nuvem-manda/plan.md .......... ✅ Constitution Check alinhado ao invariante redefinido
+## I. Dois produtos, responsabilidades claras
 
-Follow-up TODOs: nenhum.
--->
+| Produto | Localização | Responsabilidade |
+|---|---|---|
+| PDV | `apps/pdv` | Balcão, interface própria, SQLite e pendências de sincronização |
+| Cloud | `apps/nuvem/web` e `apps/nuvem/api` | Retaguarda, API, permissões e PostgreSQL oficial |
 
-# Constituição da Livraria 2 (Espaço do Livro)
+Web e API são partes do Cloud. `crates` e `packages` são bibliotecas internas, não
+um terceiro produto. Reutilização exige benefício concreto e não obriga compartilhar
+interface, navegação, menus ou acesso a banco.
 
-Este documento define os princípios **não-negociáveis** que governam a evolução do código da Livraria 2.
-Ele tem precedência sobre conveniências pontuais. Conflitos entre uma decisão de implementação e esta
-constituição resolvem-se a favor da constituição — ou exigem emenda formal (ver Governança).
+Cada produto mantém sua interface. O tema pode ser referência comum sem pacote de
+componentes compartilhado. Supabase foi descontinuado: não introduzir dependência,
+fallback, chave ou acesso direto a esse serviço. Referências históricas em migrations
+não autorizam uso. A API é a fronteira de acesso aos dados oficiais.
 
-## Princípios Fundamentais
+## II. Balcão offline e autoridade da nuvem
 
-### I. Arquitetura Hexagonal & SOLID (Domínio Isolado)
+O PDV deve registrar vendas, cancelamentos e operações de turno/caixa suportadas
+localmente sem internet. SQLite preserva fatos e pendências até confirmação da nuvem.
+Funcionamento offline não permite prometer atualização imediata das outras máquinas.
 
-O sistema MUST seguir arquitetura **Hexagonal (ports & adapters)** sob os princípios **SOLID**:
+PostgreSQL mantém cadastros, permissões e estoque oficiais. O saldo offline é
+operacional: último saldo recebido e fatos locais pendentes. Não é outro razão oficial.
+Cadastro, ativação e ajuste iniciados na interface do PDV são operações administrativas
+online executadas na nuvem, com autorização no servidor.
 
-- O **domínio** (regras de negócio: venda, estoque, pedido, relatórios) MUST ser código puro, sem
-  importar UI, framework, banco, sistema de arquivos ou bibliotecas de I/O.
-- Toda dependência externa (SQLite, leitor do `.mdb` legado, relógio, impressão, UI) MUST ser acessada
-  por **portas** (interfaces) e implementada por **adapters** na borda. As dependências apontam **para
-  dentro**: domínio ← aplicação ← adapters.
-- As regras de negócio MUST ser testáveis **sem UI e sem banco** (com fakes/in-memory das portas).
-- Cada unidade MUST ter responsabilidade única; abstrações MUST depender de interfaces, não de
-  implementações concretas.
+## III. Identidade, integridade e sincronização
 
-**Rationale**: o sistema sobrevive a trocas de UI, de mecanismo de persistência e à migração do legado
-sem reescrever o núcleo. Evita o acoplamento que inviabilizou a tentativa anterior.
+- UUID estável identifica registros entre sistemas. Código de barras, nome, número
+  exibido e horário não substituem a identidade.
+- Venda, itens e pagamentos formam uma unidade. Somente venda completa afeta estoque
+  oficial, uma vez. Lotes parciais de itens não autorizam baixa parcial.
+- Reenvios não duplicam vendas ou movimentos. Mesma identidade com conteúdo diferente
+  exige conflito explícito, não sobrescrita silenciosa.
+- Cursor representa aplicação e confirmação. Recuperação deve preservar registros e
+  permitir reenvio seguro. Rejeições não desaparecem nem confirmam dados não aplicados.
+- Dados recebidos não voltam à fila como alterações locais. Máquina não assume a
+  identidade de outra; cópia de banco exige conferir provisionamento antes de conectar.
 
-### II. Simplicidade Deliberada (KISS & DRY, YAGNI)
+## IV. Estoque, dinheiro e ativação
 
-A solução MUST ser a mais simples que resolve o problema real.
+Dinheiro é inteiro em centavos no contrato e na persistência. Formatação pt-BR é da
+interface. Movimentos possuem origem, responsável e referência ao fato; estorno
+preserva a trilha original. Correção não apaga histórico.
 
-- **KISS**: preferir o óbvio ao engenhoso. Nenhuma camada, padrão ou dependência entra sem necessidade
-  demonstrada no escopo atual.
-- **DRY**: conhecimento de negócio MUST ter uma única fonte de verdade; duplicação de regra é proibida
-  (duplicação acidental de forma trivial é tolerável até virar regra).
-- **YAGNI**: não construir para requisitos hipotéticos. Generalização especulativa MUST ser rejeitada.
+**Administrador pode ativar produto com saldo zero**, sem criar saldo ou movimento
+artificial. Ativação e quantidade são conceitos diferentes. Cadastro novo pode manter
+seu padrão documentado de ativação, sem impedir ativação explícita posterior.
 
-**Rationale**: lição direta do legado abandonado (Next.js + Prisma + Postgres + pgvector/embeddings para
-uma livraria de igreja de balcão). Complexidade não justificada é dívida, não ativo.
+Ao incluir título inativo em lançamento, perguntar se deve ativar. Cancelar não ativa
+nem inclui; confirmar permite ativação e inclusão na mesma transação. Salvar rascunho
+não dá entrada no estoque: finalização é explícita.
 
-### III. Limite de 300 Linhas por Arquivo de Lógica (NÃO-NEGOCIÁVEL)
+A nuvem registra toda quantidade efetivamente vendida, mesmo que gere saldo negativo
+para reconciliação; não truncar baixa oficial ao cache do PDV. Inventário registra a
+diferença entre contagem física e saldo oficial, protegendo concorrência e reenvio.
 
-Todo arquivo de **arquitetura/lógica** MUST ter no máximo **300 linhas significativas**.
+## V. Identidade, permissões e segredos
 
-- **Escopo**: `.ts`, `.tsx`, `.js`, `.jsx`, `.rs`, `.css`, `.scss` e equivalentes de lógica/estilo.
-- **Linhas significativas**: exclui comentários, linhas em branco e arquivos de documentação (`.md`).
-- Ao se aproximar do limite, o arquivo MUST ser refatorado (extrair módulo, separar responsabilidade) —
-  **nunca** comprimir código para burlar a contagem.
-- O limite é verificado por **hook automático** (ver Princípio V); exceções pontuais MUST ser explícitas
-  e justificadas via ADR, jamais silenciosas.
+Dispositivo, operador e administrador têm identidades distintas. Token de PDV não é
+permissão administrativa. Alteração administrativa exige identidade autenticada e
+permissão conferida no servidor. Autenticação offline do operador não autoriza escrita
+administrativa na nuvem sem validação online.
 
-**Rationale**: arquivos pequenos forçam responsabilidade única, facilitam revisão e teste, e refletem
-KISS/SOLID na prática.
+Não distribuir credencial administrativa compartilhada ou senha fixa de liberação.
+Segredos ficam no Notion do projeto ou ambiente seguro, nunca em Git, `.env` versionado,
+bancos ou dumps do repositório. Logs não incluem senhas, tokens ou payloads sensíveis.
+Memória de agentes é opcional, não guarda segredos nem concede autorização.
 
-### IV. Persistência Idempotente via Comando (SQLite & Migrations)
+## VI. Arquitetura simples e interfaces independentes
 
-A persistência é **SQLite local** e toda evolução de esquema/dados MUST ser idempotente e por comando.
+Regras puras são testáveis sem UI, banco ou rede. I/O e ORM ficam nas bordas.
+Rust/SeaORM/SQLite atendem ao PDV; NestJS/Prisma/PostgreSQL ao Cloud. Não exigir
+reescrever toda regra do servidor em Rust. Contratos e cálculos puros podem ser
+reutilizados sem impor UI compartilhada.
 
-- Mudanças de esquema MUST ser feitas por **migrations geradas e aplicadas por comando** — nunca por
-  alteração manual do banco.
-- Migrations e a inicialização do esquema MUST ser **idempotentes**: re-aplicar em base nova ou já
-  migrada produz o mesmo estado, sem erro, sem duplicar efeitos e sem perder dados.
-- A **importação do legado** (Access `../Livraria/livraria.mdb`) MUST ser idempotente e re-executável
-  como **upsert** por chave estável (código de barras para livros; número do pedido para vendas),
-  preservando o que foi criado no novo sistema (ver spec `001-sistema-estoque-vendas`).
+KISS, responsabilidade única e necessidade demonstrada orientam abstrações. Arquivos
+de lógica/estilo têm limite de 300 linhas significativas, excluindo comentários e
+linhas vazias. Exceções precisam de ADR e verificador coerente. Não comprimir código
+para contornar contagem nem declarar que hook inexistente protege a regra.
 
-**Rationale**: durante a transição os dois sistemas convivem; reproveniência segura exige idempotência.
+Interfaces usam pt-BR, acessibilidade, responsividade e temas claro/escuro, conforme
+`docs/ui-theme-policy.md`. Preservar vocabulário sem tornar nomes antigos de tabela
+obrigação de negócio. Falha deve oferecer recuperação, sem tela em branco ou falso sucesso.
 
-### V. Guardrails Automatizados (Hooks, Skills & ADRs)
+## VII. Migrações e publicação verificável
 
-As filosofias desta constituição MUST ser protegidas por automação, não por disciplina manual.
+SQLite e PostgreSQL têm migrations próprias. Migração aplicada é imutável; corrigir
+com nova migração, preservar checksum e registrar aplicação. O migrador publicado
+precisa conter toda estrutura exigida pela API.
 
-- **Hooks** automáticos MUST sinalizar/bloquear violações no momento da alteração (mínimo: limite de 300
-  linhas; e demais verificações viáveis de KISS/DRY/camadas).
-- Erros e decisões recorrentes resolvidos MUST ser capturados como **skills** reutilizáveis, para não se
-  repetirem.
-- Toda decisão de arquitetura relevante MUST ser registrada como **ADR** versionado (contexto, decisão,
-  consequências) em `docs/adr/`.
+Reparo operacional autorizado é restrito, transacional quando aplicável e verificável
+antes/depois. Mudança emergencial de schema volta ao código como migração. SQL de
+PostgreSQL não se executa no SQLite do caixa.
 
-**Rationale**: o que não é automatizado regride. Guardrails preservam a qualidade ao longo do tempo e
-transformam erros em aprendizado institucional.
+Publicar migrations aditivas e servidor compatível antes dos clientes. Restrições
+incompatíveis só entram depois de comprovar compatibilidade dos clientes em uso.
+Publicação identifica commit/imagem, ambiente, verificação e reversão. Hotfix na VM
+não substitui integração e imagem oficial.
 
-### VI. Fidelidade ao Domínio & Localização pt-BR
+Teste no Docker local não comprova produção. Saúde HTTP não comprova inclusão,
+finalização ou sincronização. Verificar ambiente real e fluxo afetado; não criar
+transações fictícias na loja para testar sem autorização.
 
-O sistema MUST preservar o modelo mental e o vocabulário dos usuários atuais.
+## VIII. Testes, diagnóstico e governança
 
-- Termos e regras do negócio MUST ser mantidos exatamente: "Ministério", "Vale Presente", "Turma da
-  Manhã/Tarde", "Pedido Nº", enum de categorias 0–6 ("0 = Não Categorizado"), turno por horário, baixa de
-  estoque na venda, número de pedido sequencial contínuo.
-- Idioma, moeda e datas MUST ser **pt-BR** (ex.: `R$ 1.234,56`); buscas MUST ser insensíveis a acento e
-  caixa.
-- O protótipo em `docs/design-handoff/` é a referência de alta fidelidade de aparência e comportamento.
+Mudanças de dinheiro, estoque, permissão e sincronização exigem testes proporcionais:
+rejeição, transação, repetição, concorrência e reconexão quando pertinentes. Documentação
+ou alteração visual simples não exige teste que apenas copie a implementação.
+Registrar verificações e seus limites.
 
-**Rationale**: o objetivo é modernizar sem causar estranheza a voluntários; mudar termos quebra a adoção.
+Diagnóstico distingue etapa, erro, operação/dispositivo e correlação quando disponível.
+A interface preserva dados para retentativa. Falta de logs é pendência, não evidência de
+sucesso. Não afirmar que a observabilidade está publicada sem verificá-la.
 
-## Restrições Técnicas & Stack
+Decisão arquitetural atualiza ADR, constituição e dependentes. Fluxo de especificação
+é proporcional ao trabalho. Histórico é preservado, com substituição total ou parcial
+explícita. Plano antigo não prevalece sobre decisão posterior.
 
-- **Shell desktop**: Tauri 2. **UI**: React + TypeScript + shadcn/ui + Tailwind. **Núcleo/adapters de
-  sistema**: Rust quando apropriado. **Dados**: SQLite local como base de operação.
-- **Funcionamento offline do PDV é INVARIANTE (operação de balcão)**: o ponto de venda MUST operar por
-  completo sem internet para **vender, cancelar e consultar saldo**, com o SQLite local como fonte de
-  operação do balcão. A consulta offline usa o **saldo operacional** (saldo publicado pela nuvem ±
-  fatos locais ainda não sincronizados). A **contabilidade oficial de estoque** — baixa por venda,
-  estorno, entrada de nota e ajuste de inventário — é **responsabilidade da nuvem**, convergindo por
-  idempotência (ADR-0023/0024): o PDV produz **fatos** (venda/cancelamento) e **consome** o saldo
-  publicado, não mantém o ledger oficial. Funções administrativas de retaguarda (entrada de notas,
-  inventário, edição de cadastros) vivem na nuvem e podem exigir conexão. Nenhuma funcionalidade
-  essencial de **venda** pode depender de conectividade.
-- **Sincronização opcional com a nuvem é PERMITIDA** (emenda 1.1.0), desde que: (a) seja **aditiva** e
-  o PDV continue 100% funcional offline; (b) a nuvem seja um **espelho/hub** que converge por
-  idempotência (upsert por identidade estável), nunca a única fonte de operação do PDV; (c) o acesso
-  use **autenticação por usuário + RLS** e **nenhum segredo administrativo** (`service_role`
-  equivalente) seja embarcado no cliente distribuído; (d) a decisão seja registrada em **ADR**. Um
-  segundo cliente (ex.: app web do escritório) é permitido sob as mesmas condições.
-- **Camadas** (Hexagonal): domínio (regras puras) → aplicação (casos de uso/portas) → adapters
-  (persistência SQLite, importador do `.mdb`, **sincronização com a nuvem**, UI, impressão). A regra
-  de dependência aponta para dentro; a nuvem entra **exclusivamente** por porta/adapter.
-- **ADRs** ficam em `docs/adr/`. No mínimo: persistência SQLite; camada de dados/ORM; estratégia de
-  migrations; Hexagonal/SOLID; limite de 300 linhas; hooks+skills; ETL/mapeamento do legado;
-  **sincronização com a nuvem** (arquitetura e identidade/convergência).
-- Decisões de tecnologia que afetem estes pontos MUST passar por ADR antes da implementação.
+Versionamento: MAJOR redefine princípios; MINOR acrescenta orientação compatível;
+PATCH esclarece. Revisão confere gates do plano, testes pertinentes e publicação real.
 
-## Fluxo de Desenvolvimento & Quality Gates
+## Impacto da versão 3.0.0
 
-- O desenvolvimento segue **Spec-Driven Development** via Spec Kit: `specify → clarify → plan → tasks →
-  implement`. O `plan` MUST validar o design contra esta constituição (Constitution Check).
-- **Quality gates** antes de integrar mudança:
-  1. Hooks de guardrail passam (limite de 300 linhas e demais verificações).
-  2. Regras de domínio cobertas por testes que rodam sem UI nem banco.
-  3. Toda nova decisão arquitetural possui ADR.
-  4. Migrations/import permanecem idempotentes (re-execução não quebra nem duplica).
-- Violar um princípio MUST ser justificado por escrito (ADR) ou corrigido — nunca ignorado em silêncio.
-
-## Governança
-
-- Esta constituição **tem precedência** sobre práticas e conveniências pontuais.
-- **Emendas**: requerem (a) descrição da mudança e motivo, (b) atualização deste arquivo com incremento de
-  versão, (c) propagação para os templates/artefatos dependentes afetados.
-- **Versionamento** (semântico): MAJOR = remoção/redefinição incompatível de princípio ou governança;
-  MINOR = novo princípio/seção ou expansão material de orientação; PATCH = esclarecimentos e ajustes não
-  semânticos.
-- **Conformidade**: revisões de código e o Constitution Check do `plan` MUST verificar aderência.
-  Complexidade adicional MUST ser justificada. Hooks automatizam a verificação sempre que possível.
-- Esta constituição reside em `.specify/memory/constitution.md` e é a fonte de orientação de runtime para
-  o agente e para os colaboradores.
-
-**Version**: 2.0.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-31
+Substitui nuvem opcional/espelho, persistência exclusivamente SQLite e UI compartilhada
+obrigatória. Consolida dois produtos, estoque oficial, ativação com saldo zero e deploy
+verificável. ADR-0032 e ADR-0034 detalham decisões e pendências. Esta revisão documental
+não publica por si só a remoção do legado ainda presente no código de produção.

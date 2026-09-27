@@ -1,5 +1,9 @@
 # ADR-0008 — Razão de movimentos como fonte da verdade do estoque
 
+> **Vigência revisada em 27/09/2026: Vigente na nuvem.** Razao oficial na nuvem; saldo local e operacional, conforme ADR-0023.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 **Status**: Aceito · **Data**: 2026-06-23
 
 ## Contexto

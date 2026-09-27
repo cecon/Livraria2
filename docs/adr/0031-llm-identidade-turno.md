@@ -1,5 +1,9 @@
 # ADR-0031: LLM central e identidade do operador do turno
 
+> **Vigência revisada em 27/09/2026: Vigente.** Identidade do operador vem do turno; credenciais de LLM ficam na nuvem.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 Status: aceito para implementação. Data: 2026-09-19.
 
 O token da máquina identifica o equipamento e seu cadastrador. Não representa,

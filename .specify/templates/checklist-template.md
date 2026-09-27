@@ -20,6 +20,13 @@
   ============================================================================
 -->
 
+## Governanca aplicavel
+
+Ao gerar a checklist, conferir Constituicao 3.0.0 e ADRs vigentes: produto afetado,
+autoridade do dado, offline, autorizacao, centavos, idempotencia, migrations e publicacao.
+Distinguir decidido, implementado, testado e publicado. Omitir criterios nao aplicaveis
+com justificativa; nao marcar um fluxo validado apenas por health check.
+
 ## [Category 1]
 
 - [ ] CHK001 First checklist item with clear action
