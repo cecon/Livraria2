@@ -1,5 +1,9 @@
 # ADR-0024: Separar PDV e nuvem com API dedicada
 
+> **Vigência revisada em 27/09/2026: Complementada.** Dois produtos e API dedicada permanecem; tolerancia transitoria a Supabase foi encerrada pela decisao ADR-0032.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 Data: 2026-09-14. Status: aceito para implementacao incremental.
 
 ## Contexto

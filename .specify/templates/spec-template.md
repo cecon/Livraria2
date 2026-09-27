@@ -8,6 +8,12 @@
 
 **Input**: User description: "$ARGUMENTS"
 
+**Produto afetado**: [PDV / Cloud / ambos]
+
+**Autoridade dos dados e dependencias online**: [descrever]
+
+**ADRs vigentes e pendencias**: [consultar docs/adr/README.md]
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--

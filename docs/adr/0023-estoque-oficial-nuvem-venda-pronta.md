@@ -1,5 +1,9 @@
 # ADR-0023: Estoque oficial na nuvem por venda pronta
 
+> **Vigência revisada em 27/09/2026: Vigente.** Aplicavel dentro dos limites da Constituicao 3.0.0.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 ## Status
 
 Aceito.

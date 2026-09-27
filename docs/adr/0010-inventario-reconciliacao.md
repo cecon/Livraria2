@@ -1,5 +1,9 @@
 # ADR-0010 — Inventário: sessão parcial/total e reconciliação no fechamento
 
+> **Vigência revisada em 27/09/2026: Complementada.** Ajustes oficiais sao online na nuvem, inclusive quando iniciados no PDV.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 **Status**: Aceito · **Data**: 2026-06-23
 
 ## Contexto

@@ -1,5 +1,9 @@
 # ADR-0002 — Núcleo de domínio em Rust + Hexagonal/SOLID
 
+> **Vigência revisada em 27/09/2026: Vigente com escopo.** Regras puras e adapters no PDV; nao obriga implementar todo o Cloud em Rust.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 **Status**: Aceito · **Data**: 2026-06-14
 
 ## Contexto

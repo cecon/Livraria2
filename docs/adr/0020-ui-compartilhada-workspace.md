@@ -1,5 +1,9 @@
 # ADR-0020 — UI compartilhada via `packages/ui` + workspace
 
+> **Vigência revisada em 27/09/2026: Substituida.** Interfaces independentes por decisao do responsavel, conforme ADR-0032.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 **Status**: Aceito · **Data**: 2026-07-22
 
 ## Contexto

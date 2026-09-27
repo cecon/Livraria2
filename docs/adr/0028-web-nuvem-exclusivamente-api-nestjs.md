@@ -1,5 +1,9 @@
 # ADR-0028: Web da nuvem exclusivamente pela API NestJS
 
+> **Vigência revisada em 27/09/2026: Vigente.** Acesso web exclusivamente pela API; criterio estendido ao PDV pela ADR-0032.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 ## Status
 
 Aceito em 2026-09-15. Substitui, para o web administrativo, o acesso direto descrito nos

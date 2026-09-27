@@ -1,5 +1,9 @@
 # ADR-0030: Modelo comercial do PDV e livro-caixa
 
+> **Vigência revisada em 27/09/2026: Implementacao parcial.** Livro-caixa e API existem; renomeacao fisica de tabelas permanece pendente e exige migracao especifica.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 ## Status
 
 Em implementacao. Livro-caixa local, sincronizacao API e acompanhamento na nuvem estao

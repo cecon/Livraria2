@@ -1,5 +1,9 @@
 # ADR-0001 — Persistência em SQLite local
 
+> **Vigência revisada em 27/09/2026: Vigente no PDV.** SQLite e local ao PDV; PostgreSQL e oficial na nuvem.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 **Status**: Aceito · **Data**: 2026-06-14 · **Decisores**: time Livraria 2
 
 ## Contexto

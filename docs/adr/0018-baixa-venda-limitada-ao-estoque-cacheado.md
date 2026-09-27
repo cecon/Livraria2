@@ -1,5 +1,9 @@
 # ADR-0018 — Baixa de venda limitada ao estoque cacheado: drift silencioso quando o cache diverge
 
+> **Vigência revisada em 27/09/2026: Substituida para estoque oficial.** ADR-0023 exige baixar a quantidade total vendida; limite do cache nao rege a nuvem.
+> A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
+
+
 **Status**: Aceito · **Data**: 2026-07-21 · **Relaciona**: [ADR-0008](0008-razao-movimentos-estoque.md), [ADR-0017](0017-saldo-inicial-obrigatorio-ledger-completo.md)
 
 ## Contexto
