@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { PrismaClient } = require("@prisma/client");
 
-test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async t => {
+test("venda atomica e idempotente com triggers reais", { timeout: 90000 }, async t => {
   assert.equal(process.env.API_TEST_DATABASE, "isolated-local");
   assert.match(process.env.DATABASE_URL ?? "", /@127\.0\.0\.1:55439\/livraria_test/);
   const db = new PrismaClient();
@@ -54,7 +54,7 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
       env: { ...process.env, PORT: "3003", API_OPERATIONS_ENABLED: "true", API_JWT_SECRET: randomUUID() + randomUUID() },
       stdio: "ignore",
     });
-    for (let n = 0; n < 100; n++) {
+    for (let n = 0; n < 300; n++) {
       if (child.exitCode !== null) throw new Error("API nao iniciou");
       try { if ((await fetch(base + "/health")).ok) break; } catch {}
       await new Promise(r => setTimeout(r, 100));
@@ -198,6 +198,7 @@ test("venda atomica e idempotente com triggers reais", { timeout: 45000 }, async
       });
     }
     await require("./pdv-products.cjs")(t, db, base, adminToken, firstDevice.accessToken);
+    await require("./images.cjs")(t, db, base, adminToken, firstDevice.accessToken);
     await require("./admin-catalog.cjs")(t, db, base, adminToken, firstDevice.accessToken, run);
     await require("./admin-references.cjs")(t, db, base, adminToken, firstDevice.accessToken, run);
     await require("./admin-destinations.cjs")(t, db, base, adminToken, firstDevice.accessToken);

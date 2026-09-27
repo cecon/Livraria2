@@ -2,6 +2,7 @@ export type LivroEstoqueRaw = {
   sync_uid: string;
   codigo: string;
   titulo: string;
+  capaUid?: string | null;
   categoria: number;
   preco_centavos: number;
 };
@@ -9,6 +10,7 @@ export type LivroEstoqueRaw = {
 export type ItemRelatorioEstoque = {
   codigo: string;
   titulo: string;
+  capaUid?: string | null;
   categoria: number;
   precoCentavos: number;
   estoque: number;

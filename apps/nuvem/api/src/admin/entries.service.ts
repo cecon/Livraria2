@@ -37,11 +37,11 @@ export class EntriesService {
       select: { sync_uid: true, numero: true, status: true, fornecedor_uid: true,
         fornecedor: { select: { nome: true } }, item_lancamento: { where: { excluido_em: null },
           orderBy: { sincronizado_em: "asc" }, select: { sync_uid: true, qtd: true,
-            custo_unit_centavos: true, livro: { select: { titulo: true } } } } },
+            custo_unit_centavos: true, livro: { select: { titulo: true, capaUid: true } } } } },
     });
     if (!row) throw new NotFoundException("Lancamento nao encontrado");
     const items = row.item_lancamento.map(item => ({ sync_uid: item.sync_uid,
-      titulo: item.livro.titulo, qtd: integer(item.qtd, "Quantidade"),
+      titulo: item.livro.titulo, capaUid: item.livro.capaUid, qtd: integer(item.qtd, "Quantidade"),
       custoUnitCentavos: integer(item.custo_unit_centavos, "Custo"),
       subtotalCentavos: integer(item.qtd * item.custo_unit_centavos, "Subtotal") }));
     return { sync_uid: row.sync_uid, numero: row.numero, status: row.status,

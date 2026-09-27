@@ -10,6 +10,7 @@ export type NotaResumo = {
   totalCentavos: number;
 };
 export type ItemNota = {
+  capaUid?: string | null;
   sync_uid: string;
   titulo: string;
   qtd: number;

@@ -14,13 +14,13 @@ export class ReportsService {
   constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
 
   async stock() {
-    const rows = await this.db.$queryRaw<{ codigo: string; titulo: string; categoria: number;
+    const rows = await this.db.$queryRaw<{ codigo: string; titulo: string; capaUid: string | null; categoria: number;
       preco: bigint; saldo: bigint }[]>`
-      select l.codigo, l.titulo, l.categoria, l.preco_centavos as preco,
+      select l.codigo, l.titulo, l.capa_uid::text as "capaUid", l.categoria, l.preco_centavos as preco,
         coalesce(sum(m.qtd) filter (where m.excluido_em is null),0)::bigint as saldo
       from public.livro l left join public.movimento_estoque m on m.livro_uid=l.sync_uid
       where l.excluido_em is null and l.ativo group by l.sync_uid order by l.titulo`;
-    const items = rows.map(row => ({ codigo: row.codigo, titulo: row.titulo, categoria: row.categoria,
+    const items = rows.map(row => ({ codigo: row.codigo, titulo: row.titulo, capaUid: row.capaUid, categoria: row.categoria,
       precoCentavos: integer(row.preco, "Preco"), estoque: integer(row.saldo, "Saldo"),
       valorCentavos: integer(row.preco * row.saldo, "Valor do estoque") }));
     return { titulos: items.length,
@@ -55,7 +55,7 @@ export class ReportsService {
       data: { gte: date, lt: nextDate(date) }, ...(period !== "dia" && { turno: period }) },
       orderBy: { numero: "asc" }, select: { numero: true, cliente: true, cancelado: true,
         total_centavos: true, item_pedido: { where: { excluido_em: null },
-          select: { titulo: true, qtd: true, preco_centavos: true } },
+          select: { titulo: true, qtd: true, preco_centavos: true, livro: { select: { capaUid: true } } } },
         pagamento_pedido: { where: { excluido_em: null }, select: {
           valor_centavos: true, forma_pagamento: { select: { rotulo: true } } } } } });
     const forms = new Map<string, bigint>();
@@ -68,7 +68,7 @@ export class ReportsService {
       });
       return { numero: integer(row.numero, "Numero"), cliente: row.cliente, cancelado: row.cancelado,
         totalCentavos: integer(row.total_centavos, "Total"), recebimentos: payments,
-        itens: row.item_pedido.map(item => ({ titulo: item.titulo, qtd: integer(item.qtd, "Quantidade"),
+        itens: row.item_pedido.map(item => ({ titulo: item.titulo, capaUid: item.livro?.capaUid ?? null, qtd: integer(item.qtd, "Quantidade"),
           valorCentavos: integer(item.qtd * item.preco_centavos, "Subtotal") })) };
     });
     const summary = [...forms].map(([rotulo, value]) => ({ rotulo, valorCentavos: integer(value, "Total por forma") }));
@@ -92,8 +92,8 @@ export class ReportsService {
     const sales = valid.reduce((sum, order) => sum + order.total_centavos, 0n);
     const itemCount = valid.reduce((sum, order) => sum +
       order.item_pedido.reduce((subtotal, item) => subtotal + item.qtd, 0n), 0n);
-    const stocks = await this.db.$queryRaw<{ codigo: string; titulo: string; autor: string | null; saldo: bigint }[]>`
-      select l.codigo,l.titulo,l.autor,coalesce(sum(m.qtd) filter(where m.excluido_em is null),0)::bigint saldo
+    const stocks = await this.db.$queryRaw<{ codigo: string; titulo: string; capaUid: string | null; autor: string | null; saldo: bigint }[]>`
+      select l.codigo,l.titulo,l.autor,l.capa_uid::text as "capaUid",coalesce(sum(m.qtd) filter(where m.excluido_em is null),0)::bigint saldo
       from public.livro l left join public.movimento_estoque m on m.livro_uid=l.sync_uid
       where l.excluido_em is null and l.ativo group by l.sync_uid order by saldo asc,l.titulo`;
     const totalStock = stocks.reduce((sum, row) => sum + row.saldo, 0n);
@@ -103,6 +103,6 @@ export class ReportsService {
       totalLivros: stocks.length, totalEstoque: integer(totalStock, "Estoque"), canceladasQtd: canceled.length,
       canceladasCentavos: integer(canceled.reduce((sum, order) => sum + order.total_centavos, 0n), "Canceladas"),
       estoqueBaixo: stocks.filter(row => row.saldo <= 3n).slice(0, 8).map(row => ({ codigo: row.codigo,
-        titulo: row.titulo, autor: row.autor, estoque: integer(row.saldo, "Saldo") })) };
+        titulo: row.titulo, capaUid: row.capaUid, autor: row.autor, estoque: integer(row.saldo, "Saldo") })) };
   }
 }

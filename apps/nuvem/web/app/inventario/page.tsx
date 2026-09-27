@@ -64,7 +64,7 @@ export default function InventarioPage() {
   }, [contados]);
 
   const buscaLivros: LivroBusca[] = useMemo(
-    () => livros.map((l) => ({ sync_uid: l.livroUid, codigo: l.codigo, titulo: l.titulo, autor: null, preco_centavos: 0, estoque: l.saldo })),
+    () => livros.map((l) => ({ capaUid: l.capaUid, sync_uid: l.livroUid, codigo: l.codigo, titulo: l.titulo, autor: null, preco_centavos: 0, estoque: l.saldo })),
     [livros],
   );
 
@@ -72,7 +72,7 @@ export default function InventarioPage() {
     const porUid = new Map(livros.map((l) => [l.livroUid, l]));
     return [...contados.entries()].map(([livroUid, contado]) => {
       const l = porUid.get(livroUid);
-      return { livroUid, codigo: l?.codigo ?? "?", titulo: l?.titulo ?? "?", contado };
+      return { capaUid: l?.capaUid, livroUid, codigo: l?.codigo ?? "?", titulo: l?.titulo ?? "?", contado };
     });
   }, [contados, livros]);
 

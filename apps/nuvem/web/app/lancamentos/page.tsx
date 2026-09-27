@@ -8,6 +8,7 @@ import { Input } from "@livraria/ui/ui/input";
 import { Label } from "@livraria/ui/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@livraria/ui/ui/table";
 import { FornecedorSelect } from "@/components/FornecedorSelect";
+import { Cover } from "@/components/Cover";
 import { EntradaProduto, type LivroBusca } from "@/components/EntradaProduto";
 import { ItensNotaTabela } from "@/components/ItensNotaTabela";
 import { listarFornecedores, type Fornecedor } from "@/lib/nuvem/fornecedor";
@@ -140,7 +141,7 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
     (async () => {
       const [fs, ls, ss] = await Promise.all([listarFornecedores(), listarLivros(true), listarSaldos()]);
       setFornecedores(fs);
-      setLivros(ls.map((l) => ({ sync_uid: l.sync_uid, codigo: l.codigo, titulo: l.titulo, autor: l.autor, preco_centavos: l.preco_centavos, estoque: ss.get(l.sync_uid) ?? 0, ativo: l.ativo })));
+      setLivros(ls.map((l) => ({ capaUid: l.capaUid, sync_uid: l.sync_uid, codigo: l.codigo, titulo: l.titulo, autor: l.autor, preco_centavos: l.preco_centavos, estoque: ss.get(l.sync_uid) ?? 0, ativo: l.ativo })));
     })().catch((error) => {
       if (error instanceof BrowserApiError && error.status === 401) return;
       toast.error("Catalogo indisponivel. Confira sua sessao.");
@@ -273,7 +274,7 @@ function Editor({ uid, onFechar }: { uid: string; onFechar: () => void }) {
             <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
               <div className="min-w-0 flex-1">
                 <span className="text-muted-foreground text-[11px]">Livro</span>
-                <div className="truncate font-medium">{pendente.titulo}</div>
+                <div className="flex items-center gap-3"><Cover titulo={pendente.titulo} capaUid={pendente.capaUid} tamanho="sm" /><span className="truncate font-medium">{pendente.titulo}</span></div>
               </div>
               <div className="w-full sm:w-16">
                 <span className="text-muted-foreground text-[11px]">Qtd</span>

@@ -2,13 +2,14 @@
 
 // Contagem de inventário (feature 009, US3) — seletor de modo (parcial/total) e
 // bip por código/título (reusa EntradaProduto), com lista contada (+1/−1/remover).
+import { Cover } from "./Cover";
 import type { RefObject } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@livraria/ui/ui/button";
 import { EntradaProduto, type LivroBusca } from "@/components/EntradaProduto";
 import type { ModoInventario } from "@/lib/nuvem/inventario";
 
-export type ItemContado = { livroUid: string; codigo: string; titulo: string; contado: number };
+export type ItemContado = { capaUid?: string | null; livroUid: string; codigo: string; titulo: string; contado: number };
 
 export function ContagemInventario({
   modo,
@@ -55,7 +56,7 @@ export function ContagemInventario({
           <div className="divide-y">
             {itens.map((it) => (
               <div key={it.livroUid} className="flex flex-wrap items-center gap-2 py-2">
-                <div className="min-w-0 flex-1">
+                <Cover titulo={it.titulo} capaUid={it.capaUid} tamanho="sm" /><div className="min-w-0 flex-1">
                   <div className="truncate text-sm">{it.titulo}</div>
                   <div className="text-muted-foreground truncate font-mono text-[11px]">{it.codigo}</div>
                 </div>

@@ -19,6 +19,11 @@ export function bookInput(value: unknown, creating: boolean) {
   const category = input.categoria;
   const initial = input.estoqueInicial ?? 0;
   const active = input.ativo;
+  const capaUid = input.capaUid;
+  if (capaUid !== undefined && capaUid !== null && (typeof capaUid !== "string" ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(capaUid))) {
+    throw new BadRequestException("Imagem inválida.");
+  }
   if (!Number.isSafeInteger(cents) || (cents as number) < 0 ||
       !Number.isInteger(category) || (category as number) < 0 || (category as number) > 6 ||
       !Number.isSafeInteger(initial) || (initial as number) < 0 || (!creating && initial !== 0) ||
@@ -29,5 +34,6 @@ export function bookInput(value: unknown, creating: boolean) {
     .replace(/[\u0300-\u036f]/g, "").toLowerCase();
   return { codigo, titulo, autor: autor || null, descricao: descricao || null,
     precoCentavos: BigInt(cents as number), categoria: category as number,
-    buscaNorm, ...(active === undefined ? {} : { ativo: active as boolean }), initial: BigInt(initial as number) };
+    buscaNorm, ...(capaUid === undefined ? {} : { capaUid: capaUid as string | null }),
+    ...(active === undefined ? {} : { ativo: active as boolean }), initial: BigInt(initial as number) };
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { API_COOKIE, apiFetch } from "./server";
 
-function sameOrigin(req: NextRequest) {
+export function sameOrigin(req: NextRequest) {
   try {
     const origin = new URL(req.headers.get("origin") || "");
     const host = req.headers.get("host") || req.nextUrl.host;

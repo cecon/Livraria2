@@ -1,6 +1,7 @@
 import { catalogRequest, listApiBooks, saveApiBook } from "@/lib/api/catalogo-client";
 
 export type Livro = {
+  capaUid?: string | null;
   sync_uid: string;
   codigo: string;
   titulo: string;
@@ -16,6 +17,7 @@ export async function listarLivros(incluirInativos = false): Promise<Livro[]> {
 }
 
 export type EntradaLivro = {
+  capaUid?: string | null;
   sync_uid?: string;
   codigo: string;
   titulo: string;

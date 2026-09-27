@@ -1,4 +1,5 @@
 "use client";
+import { Cover } from "./Cover";
 
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
@@ -79,7 +80,7 @@ export function StockReportView({ report }: { report: RelatorioEstoque }) {
               <TableRow key={item.codigo}>
                 <TableCell className="hidden font-mono text-xs md:table-cell">{item.codigo}</TableCell>
                 <TableCell className="min-w-0 whitespace-normal break-words font-medium" title={item.titulo}>
-                  <span className="line-clamp-2">{item.titulo}</span>
+                  <div className="flex items-center gap-3"><Cover titulo={item.titulo} capaUid={item.capaUid} tamanho="sm" /><span className="line-clamp-2">{item.titulo}</span></div>
                   <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground sm:hidden">
                     {item.codigo} · {category(item.categoria)} · {reais(item.precoCentavos)}
                   </span>

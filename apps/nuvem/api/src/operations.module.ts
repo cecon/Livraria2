@@ -1,3 +1,5 @@
+import { ImagesController } from "./images/images.controller";
+import { ImagesService } from "./images/images.service";
 import { Module } from "@nestjs/common";
 import { PdvProductsController } from "./admin/pdv-products.controller";
 import { PdvProductsService } from "./admin/pdv-products.service";
@@ -66,10 +68,10 @@ import { IaGateway } from "./external-ai/gateway.service";
       },
     }),
   ],
-  controllers: [PdvProductsController, AuthController, DevicesController, PdvPublicController, CatalogController, SalesController, ShiftSyncController, CashSyncController, BooksController,
+  controllers: [ImagesController, PdvProductsController, AuthController, DevicesController, PdvPublicController, CatalogController, SalesController, ShiftSyncController, CashSyncController, BooksController,
     FormsController, SuppliersController, UsersController, DestinationsController, StockController,
     EntriesController, ShiftsController, AdminSalesController, ReportsController, LlmAdminController, LlmUsageController, IaController, IaMcpController, IaOAuthController],
-  providers: [PdvProductsService, AuthService, AuthGuard, SalesService, ShiftSyncService, CashSyncService, BooksService, FormsService, SuppliersService,
+  providers: [ImagesService, PdvProductsService, AuthService, AuthGuard, SalesService, ShiftSyncService, CashSyncService, BooksService, FormsService, SuppliersService,
     UsersService, DestinationsService, StockService, EntriesService, ShiftsService, AdminSalesService,
     ReportsService, LlmService, ShiftContextService, IaAccessService, IaCatalog, IaGateway,
     { provide: APP_GUARD, useClass: ApiThrottlerGuard }],

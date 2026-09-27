@@ -97,7 +97,7 @@ export default function Inicio() {
             ) : (
               dash?.estoqueBaixo.map((l) => (
                 <div key={l.codigo} className="flex items-center gap-2">
-                  <Cover titulo={l.titulo} tamanho="sm" />
+                  <Cover titulo={l.titulo} capaUid={l.capaUid} tamanho="sm" />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm">{l.titulo}</div>
                     {l.autor && <div className="text-muted-foreground truncate text-[11px]">{l.autor}</div>}

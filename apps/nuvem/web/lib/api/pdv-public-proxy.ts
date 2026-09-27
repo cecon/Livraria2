@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiFetch, apiLogin } from "./server";
+import { imageUploadProxy } from "./image-upload-proxy";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -70,6 +71,11 @@ async function upstreamError(response: Response) {
 }
 
 export async function publicPdvProxy(request: NextRequest, path: string[]) {
+  if (request.method === "POST" && path.join("/") === "capas") {
+    const token = bearer(request);
+    if (!token) return NextResponse.json({ erro: "Credencial ausente." }, { status: 401 });
+    return imageUploadProxy(request, token);
+  }
   if (request.method === "GET" && path.join("/") === "llms") {
     const turno = request.nextUrl.searchParams.get("turnoUid") ?? "";
     if (!UUID.test(turno)) return NextResponse.json({ erro: "Turno inválido." }, { status: 400 });
@@ -92,6 +98,11 @@ export async function publicPdvProxy(request: NextRequest, path: string[]) {
   }
   if (request.method === "POST" && path.join("/") === "produtos") {
     return forward(request, "produtos-pdv", true);
+  }
+  if (request.method === "GET" && path.join("/") === "produtos/imagens") {
+    const after = request.nextUrl.searchParams.get("after");
+    if (after && !UUID.test(after)) return NextResponse.json({ erro: "Cursor inválido." }, { status: 400 });
+    return forward(request, `produtos-pdv/imagens${after ? `?after=${after}` : ""}`, true);
   }
   if (request.method === "GET" && path.join("/") === "produtos/codigo") {
     const codigo = request.nextUrl.searchParams.get("codigo") ?? "";

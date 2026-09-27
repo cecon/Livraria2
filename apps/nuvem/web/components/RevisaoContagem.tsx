@@ -1,4 +1,5 @@
 "use client";
+import { Cover } from "./Cover";
 
 // Revisão da contagem (feature 009, US3) — divergências (saldo × contado) antes de
 // aplicar os ajustes. Reconciliação já calculada pelo domínio (WASM).
@@ -37,7 +38,7 @@ export function RevisaoContagem({
               {comDiferenca.map((d) => (
                 <tr key={d.livroUid} className="border-b last:border-b-0">
                   <td className="py-1">
-                    <div className="truncate">{d.titulo}</div>
+                    <div className="flex items-center gap-3"><Cover titulo={d.titulo} capaUid={d.capaUid} tamanho="sm" /><span className="truncate">{d.titulo}</span></div>
                     <div className="text-muted-foreground font-mono text-[11px]">{d.codigo}</div>
                   </td>
                   <td className="py-1 text-right tabular-nums">{d.saldo}</td>

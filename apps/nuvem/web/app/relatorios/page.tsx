@@ -8,6 +8,7 @@ import { Input } from "@livraria/ui/ui/input";
 import { Label } from "@livraria/ui/ui/label";
 import { reais } from "@/utils/texto";
 import { StockReportView } from "@/components/StockReportView";
+import { Cover } from "@/components/Cover";
 import { downloadStockFile, fetchStockFile, shareStockPdf, type StockFormat } from "@/lib/nuvem/stock-export";
 import {
   relatorioVendas,
@@ -208,7 +209,7 @@ function VendasView({ rel }: { rel: RelatorioVendas }) {
               <ul className="text-muted-foreground mt-1">
                 {p.itens.map((i, k) => (
                 <li key={k} className="flex flex-wrap items-center gap-2 font-mono text-[12px]">
-                    <span className="flex-1">{i.qtd}× {i.titulo}</span>
+                    <Cover titulo={i.titulo} capaUid={i.capaUid} tamanho="sm" /><span className="flex-1">{i.qtd}× {i.titulo}</span>
                     <span>{reais(i.valorCentavos)}</span>
                   </li>
                 ))}

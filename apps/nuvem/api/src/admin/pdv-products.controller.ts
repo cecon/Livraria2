@@ -13,6 +13,11 @@ export class PdvProductsController {
     if (req.principal.tipo === "pdv") device(req.principal); else admin(req.principal);
     return { produto: await this.products.exact(codigo) };
   }
+  @Get("imagens")
+  images(@Req() req: AuthRequest, @Query("after") after?: string) {
+    device(req.principal);
+    return this.products.images(after);
+  }
   @Get(":uid")
   async get(@Req() req: AuthRequest, @Param("uid") uid: string) {
     if (req.principal.tipo === "pdv") device(req.principal); else admin(req.principal);

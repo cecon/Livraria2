@@ -1,4 +1,4 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import { PrismaService } from "../database/prisma.service";
 import { bookInput } from "./book-input";
@@ -20,7 +20,7 @@ export class BooksService {
       }
       return { sync_uid: row.syncUid, codigo: row.codigo, titulo: row.titulo, autor: row.autor,
         preco_centavos: Number(row.precoCentavos), categoria: row.categoria,
-        descricao: row.descricao, ativo: row.ativo };
+        descricao: row.descricao, ativo: row.ativo, capaUid: row.capaUid };
     });
     return { items, next: rows.length > 500 ? items[items.length - 1].sync_uid : null };
   }
@@ -56,6 +56,7 @@ export class BooksService {
         return { sync_uid: uid };
       });
     } catch (error) {
+      if ((error as { code?: string }).code === "P2003") throw new BadRequestException("Imagem não encontrada. Envie novamente.");
       if ((error as { code?: string }).code === "P2002") {
         throw new ConflictException("Ja existe produto com este UUID ou codigo");
       }
