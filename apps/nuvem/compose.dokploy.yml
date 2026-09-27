@@ -28,7 +28,10 @@ services:
       timeout: 5s
       retries: 12
       start_period: 20s
-    networks: [livraria-internal]
+    networks:
+      livraria-internal:
+        # As rewrites do Next tambem usam este hostname gravado no build.
+        aliases: [api]
   cloud-web:
     image: ghcr.io/cecon/livraria2-escritorio:${CLOUD_VERSION:?Informe o commit publicado}
     restart: unless-stopped
