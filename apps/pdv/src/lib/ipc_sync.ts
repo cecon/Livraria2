@@ -9,6 +9,7 @@ export interface ResumoSync {
 
 export interface StatusSync {
   pendentes: number;
+  imagensPendentes?: number;
 }
 
 // Dispara uma sincronização completa (push→pull→recompute).

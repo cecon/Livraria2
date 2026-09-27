@@ -14,6 +14,9 @@ pub async fn importar(db: &DatabaseConnection, p: &Produto) -> Result<(), DbErr>
         "SELECT 1 FROM livro WHERE codigo=? AND (sync_uid IS NULL OR sync_uid<>?)",
         [p.codigo.clone().into(), p.uid.clone().into()])).await?;
     if conflicting.is_some() { return Err(DbErr::Custom("Conflito de identidade local".into())); }
+    tx.execute(Statement::from_sql_and_values(backend,
+        "INSERT INTO produto_capa(produto_uid,capa_uid,versao) VALUES(?,?,?) ON CONFLICT(produto_uid) DO UPDATE SET capa_uid=excluded.capa_uid,versao=excluded.versao WHERE CAST(produto_capa.versao AS INTEGER)<=CAST(excluded.versao AS INTEGER)",
+        [p.uid.clone().into(), p.capa_uid.clone().into(), p.versao.clone().into()])).await?;
     let now = chrono::Utc::now().to_rfc3339();
     let search = crate::domain::texto::normalize(&format!("{} {} {}", p.codigo, p.titulo, p.autor.as_deref().unwrap_or("")));
     let values: Vec<Value> = vec![p.uid.clone().into(), p.codigo.clone().into(), p.titulo.clone().into(),

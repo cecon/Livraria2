@@ -1,3 +1,4 @@
+import { Cover } from "@/components/Cover";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Search } from "lucide-react";
@@ -55,7 +56,7 @@ export default function Produtos() {
       <div className="divide-y" aria-busy={carregando}>
         {carregando ? <p className="p-5">Carregando…</p> : !produtos.length ? <p className="p-5">Nenhum produto encontrado.</p> :
           produtos.slice(0,20).map((p) => <div key={p.uid} className="flex flex-wrap items-center justify-between gap-3 p-4">
-            <div className="min-w-0"><p className="break-words font-medium">{p.titulo}</p><p className="text-xs text-muted-foreground">{p.codigo} · {p.ativo ? "Ativo" : "Inativo"}</p></div>
+            <div className="flex min-w-0 items-center gap-3"><Cover titulo={p.titulo} codigo={p.codigo} tamanho="sm" /><div className="min-w-0"><p className="break-words font-medium">{p.titulo}</p><p className="text-xs text-muted-foreground">{p.codigo} · {p.ativo ? "Ativo" : "Inativo"}</p></div></div>
             <div className="flex flex-wrap items-center gap-3 text-sm"><span>{brl(p.precoCentavos)}</span><span>Estoque: {p.saldoPublicado}</span>
               <Button variant="outline" disabled={ocupado} onClick={() => void editar(p.codigo)}>Editar</Button></div>
           </div>)}

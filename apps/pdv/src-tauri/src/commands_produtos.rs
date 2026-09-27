@@ -11,13 +11,15 @@ pub async fn produtos_listar(state: tauri::State<'_, AppState>, termo: String, p
     -> Result<Vec<Produto>, ErroDto> {
     let termo = crate::domain::texto::normalize(termo.trim());
     let rows = state.db.query_all(Statement::from_sql_and_values(state.db.get_database_backend(),
-        "SELECT sync_uid,codigo,titulo,autor,preco_centavos,categoria,descricao,saldo_publicado,ativo
+        "SELECT sync_uid,codigo,titulo,autor,preco_centavos,categoria,descricao,saldo_publicado,ativo,
+         (SELECT capa_uid FROM produto_capa WHERE produto_uid=livro.sync_uid) as capa_uid
          FROM livro WHERE excluido_em IS NULL AND sync_uid IS NOT NULL AND busca_norm LIKE ?
          ORDER BY titulo,codigo LIMIT 21 OFFSET ?",
         [format!("%{termo}%").into(), i64::from(pagina.min(100000)) .saturating_mul(20).into()]))
         .await.map_err(produtos::rede)?;
     rows.into_iter().map(|r| Ok(Produto {
         uid: r.try_get("", "sync_uid").map_err(produtos::rede)?,
+        capa_uid: r.try_get("", "capa_uid").map_err(produtos::rede)?,
         codigo: r.try_get("", "codigo").map_err(produtos::rede)?,
         titulo: r.try_get("", "titulo").map_err(produtos::rede)?,
         autor: r.try_get("", "autor").map_err(produtos::rede)?,

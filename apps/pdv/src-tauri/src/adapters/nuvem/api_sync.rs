@@ -17,6 +17,34 @@ fn erro(_: impl std::fmt::Display) -> RepoErro {
 }
 
 impl ApiSync {
+    #[cfg(test)]
+    pub(crate) fn teste(base: String) -> Self {
+        Self { client: Client::new(), base, token: "test".into() }
+    }
+    pub async fn mapa_capas(&self, after: Option<&str>) -> Result<crate::image_bootstrap::ImagePage, RepoErro> {
+        let mut req = self.client.get(format!("{}/produtos/imagens", self.base)).bearer_auth(&self.token);
+        if let Some(after) = after { req = req.query(&[("after", after)]); }
+        req.send().await.map_err(erro)?.error_for_status().map_err(erro)?.json().await.map_err(erro)
+    }
+    pub async fn enviar_capa(&self, imagem: &str) -> Result<reqwest::Response, reqwest::Error> {
+        self.client.post(format!("{}/capas", self.base)).bearer_auth(&self.token)
+            .json(&json!({ "imagem": imagem })).send().await
+    }
+    pub async fn baixar_capa(&self, uid: &str) -> Result<Vec<u8>, RepoErro> {
+        uuid::Uuid::parse_str(uid).map_err(erro)?;
+        let mut response = self.client.get(format!("{}/capas/{uid}", self.base))
+            .bearer_auth(&self.token).timeout(Duration::from_secs(8)).send().await.map_err(erro)?;
+        if !response.status().is_success() || response.content_length().is_some_and(|n| n > 512_000) {
+            return Err(erro("Imagem indisponível"));
+        }
+        let mut data = Vec::new();
+        while let Some(chunk) = response.chunk().await.map_err(erro)? {
+            if data.len() + chunk.len() > 512_000 { return Err(erro("Imagem excessiva")); }
+            data.extend_from_slice(&chunk);
+        }
+        if data.len() < 12 || &data[..4] != b"RIFF" || &data[8..12] != b"WEBP" { return Err(erro("Imagem inválida")); }
+        Ok(data)
+    }
     pub async fn cadastrar_produto(&self, pedido: &Value) -> Result<reqwest::Response, reqwest::Error> {
         self.client.post(format!("{}/produtos", self.base))
             .bearer_auth(&self.token).json(pedido).send().await

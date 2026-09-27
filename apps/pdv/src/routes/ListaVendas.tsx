@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Cover } from "@/components/Cover";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Eye, House, RefreshCw, RotateCcw, Search, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -190,7 +191,7 @@ function FragmentoVenda({ pedido: p, expandido, divergente, onDetalhes, onReabri
       <div className="grid gap-4 text-sm md:grid-cols-2">
         <div><h3 className="mb-2 font-semibold">Itens</h3>
           {p.itens.map((item) => <div key={item.id} className="flex justify-between gap-3 border-b py-1.5">
-            <span>{item.qtd} × {item.titulo}{item.alocacoes.length ? ` · ${item.alocacoes.map((a) => `${a.qtd} un. ${a.nome}`).join(", ")}` : ""}</span>
+            <span className="flex items-center gap-2"><Cover titulo={item.titulo} codigo={item.codigo} tamanho="sm" />{item.qtd} × {item.titulo}{item.alocacoes.length ? ` · ${item.alocacoes.map((a) => `${a.qtd} un. ${a.nome}`).join(", ")}` : ""}</span>
             <span className="shrink-0 tabular-nums">{brl(item.valorCentavos)}</span>
           </div>)}
         </div>

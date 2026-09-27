@@ -10,6 +10,8 @@ pub struct Autorizacao { pub usuario: String, pub senha: String }
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Produto {
+    #[serde(default)]
+    pub capa_uid: Option<String>,
     pub uid: String, pub codigo: String, pub titulo: String, pub autor: Option<String>,
     pub preco_centavos: i64, pub categoria: i64, pub descricao: Option<String>,
     pub saldo_publicado: i64, pub ativo: bool, pub excluido: bool, pub versao: String,

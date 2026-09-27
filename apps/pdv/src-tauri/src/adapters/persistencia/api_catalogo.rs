@@ -23,11 +23,16 @@ pub async fn aplicar(db: &DatabaseConnection, page: &PaginaApi) -> Result<(), Re
             [event.produto_uid.clone().into(), event.sequencia.clone().into()])).await.map_err(erro)?;
         if event.operacao == "delete" {
             tx.execute(Statement::from_sql_and_values(backend,
+                "INSERT INTO produto_capa(produto_uid,capa_uid,versao) VALUES(?,NULL,?) ON CONFLICT(produto_uid) DO UPDATE SET capa_uid=NULL,versao=excluded.versao WHERE CAST(produto_capa.versao AS INTEGER)<=CAST(excluded.versao AS INTEGER)", [event.produto_uid.clone().into(), event.sequencia.clone().into()])).await.map_err(erro)?;
+            tx.execute(Statement::from_sql_and_values(backend,
                 "UPDATE livro SET ativo=0,excluido_em=?,sincronizado_em=? WHERE sync_uid=?",
                 [now.clone().into(), now.clone().into(), event.produto_uid.clone().into()])).await.map_err(erro)?;
             continue;
         }
         let p = event.produto.as_ref().ok_or_else(|| erro("produto ausente"))?;
+        tx.execute(Statement::from_sql_and_values(backend,
+            "INSERT INTO produto_capa(produto_uid,capa_uid,versao) VALUES(?,?,?) ON CONFLICT(produto_uid) DO UPDATE SET capa_uid=excluded.capa_uid,versao=excluded.versao WHERE CAST(produto_capa.versao AS INTEGER)<=CAST(excluded.versao AS INTEGER)",
+            [event.produto_uid.clone().into(), p.capa_uid.clone().into(), event.sequencia.clone().into()])).await.map_err(erro)?;
         // Cloud UUID owns the code; quarantine stale local aliases without deleting
         // row identities, foreign keys, movements or historical sale snapshots.
         tx.execute(Statement::from_sql_and_values(backend,

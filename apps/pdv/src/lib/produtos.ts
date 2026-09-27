@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { Livro } from "./types";
 import type { CredencialAdmin } from "@livraria/ui/ui/autorizacao-admin";
 export type Produto = {
+  capaUid?: string | null;
   uid: string; codigo: string; titulo: string; autor: string | null; precoCentavos: number;
   categoria: number; descricao: string | null; saldoPublicado: number;
   ativo: boolean; excluido: boolean; versao: string;
@@ -10,7 +11,7 @@ export type ProdutoResposta = { produto: Produto; livro: Livro | null; pendenteL
 export type PedidoProduto = {
   operacao: string; uid: string; acao: "criar" | "editar" | "contar"; versao?: string;
   quantidade?: number; dados?: { codigo: string; titulo: string; autor: string; descricao: string;
-    preco_centavos: number; categoria: number; estoqueInicial: number; ativo?: boolean };
+    preco_centavos: number; categoria: number; estoqueInicial: number; capaUid?: string | null; ativo?: boolean };
 };
 export const listarProdutos = (termo: string, pagina: number) => invoke<Produto[]>("produtos_listar", { termo, pagina });
 export const consultarProduto = (codigo?: string, uid?: string) =>

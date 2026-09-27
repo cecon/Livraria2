@@ -1,3 +1,4 @@
+import { Cover } from "./Cover";
 import { Minus, Plus, ScanBarcode, Trash2 } from "lucide-react";
 import { Button } from "@livraria/ui/wowdash/button";
 import { Card, CardContent } from "@livraria/ui/wowdash/card";
@@ -30,8 +31,9 @@ export function CarrinhoItens({ itens, onAlterar, onRemover }: Props) {
         </TableRow></TableHeader>
         <TableBody className="[&_td]:border-b [&_td]:border-neutral-200 dark:[&_td]:border-slate-600">{itens.map((item) => <TableRow key={item.codigo}>
           <TableCell className="min-w-52 px-4 py-3">
+            <div className="flex items-center gap-3"><Cover titulo={item.titulo} codigo={item.codigo} tamanho="md" /><div>
             <div className="font-medium">{item.titulo}</div>
-            <div className="text-xs text-muted-foreground">{item.codigo}</div>
+            <div className="text-xs text-muted-foreground">{item.codigo}</div></div></div>
           </TableCell>
           <TableCell className="px-4 py-3 text-right tabular-nums">{brl(item.precoCentavos)}</TableCell>
           <TableCell className="px-4 py-3">

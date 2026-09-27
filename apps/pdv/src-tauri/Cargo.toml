@@ -22,6 +22,7 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+base64 = "0.22"
 # Domínio puro extraído (ADR-0022): reusado pelo PDV (nativo) e pelo Escritório (WASM).
 livraria-domain = { path = "../../../crates/livraria-domain" }
 tauri = { version = "2", features = [] }

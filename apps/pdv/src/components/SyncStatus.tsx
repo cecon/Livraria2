@@ -8,6 +8,7 @@ import { sincronizarAgora, statusSincronizacao } from "../lib/ipc_sync";
 type Estado = "sincronizado" | "pendente" | "sincronizando" | "offline";
 
 export function SyncStatus() {
+  const [imagens, setImagens] = useState(0);
   const [pendentes, setPendentes] = useState(0);
   const [estado, setEstado] = useState<Estado>("sincronizado");
   const [erro, setErro] = useState<string | null>(null);
@@ -16,6 +17,7 @@ export function SyncStatus() {
     try {
       const s = await statusSincronizacao();
       setPendentes(s.pendentes);
+      setImagens(s.imagensPendentes ?? 0);
       setEstado((e) => (e === "sincronizando" ? e : s.pendentes > 0 ? "pendente" : "sincronizado"));
     } catch {
       /* status é local; ignora falhas transitórias */
@@ -34,6 +36,7 @@ export function SyncStatus() {
     try {
       await sincronizarAgora();
       setEstado("sincronizado");
+      window.dispatchEvent(new Event("imagens-atualizadas"));
     } catch (e) {
       setEstado("offline");
       setErro(typeof e === "string" ? e : ((e as Error)?.message ?? "erro"));
@@ -71,6 +74,7 @@ export function SyncStatus() {
         )}
         <span>{rotulo}</span>
       </button>
+      {imagens > 0 && <span role="status" className="block text-[11px] text-muted-foreground">{imagens} imagem(ns) aguardando download. A venda continua disponível.</span>}
       {erro && (
         <span className="block break-words text-[11px] text-red-600">
           {erro}
