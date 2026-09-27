@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import { PrismaService } from "../database/prisma.service";
@@ -22,7 +22,7 @@ export class PdvProductsService {
     return result;
   }
 
-  async execute(input: Record<string, unknown>, actor: string) {
+  async execute(input: Record<string, unknown>, actor: string, pdvUid?: string) {
     const op = uuid(input?.operacao);
     const uid = uuid(input?.uid);
     const action = input?.acao;
@@ -35,10 +35,18 @@ export class PdvProductsService {
     if (action !== "criar" && (typeof input.versao !== "string" || !/^\d+$/.test(input.versao))) {
       throw new BadRequestException("Recarregue o produto antes de confirmar.");
     }
-    const payload = JSON.stringify({ uid, action, data, quantity, version: input.versao },
+    const payload = JSON.stringify({ uid, action, data, quantity, version: input.versao, pdvUid },
       (_, value) => typeof value === "bigint" ? value.toString() : value);
     try {
       return await this.db.$transaction(async tx => {
+        if (pdvUid) {
+          // Conta tecnica solicitada pela loja; o pedido tambem registra o PDV.
+          const admins = await tx.$queryRaw<{ uid: string }[]>`
+            select sync_uid::text as uid from public.usuario
+            where usuario='adm' and perfil='admin' and ativo and excluido_em is null`;
+          if (!admins[0]) throw new ForbiddenException("Responsável técnico adm indisponível para cadastro pelo PDV.");
+          actor = admins[0].uid;
+        }
         // All official writers take the publication lock first; ledger lock also
         // serializes legacy writers. Preview is compared inside the transaction.
         await tx.$queryRaw`select id from public.nuvem_sync_contador where id=1 for update`;

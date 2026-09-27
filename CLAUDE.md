@@ -1,5 +1,5 @@
 <!-- SPECKIT START -->
-Governanca vigente: `.specify/memory/constitution.md` (3.0.0), `AGENTS.md` e
+Governanca vigente: `.specify/memory/constitution.md` (3.1.0), `AGENTS.md` e
 `docs/adr/README.md`. ADR-0032 define dois produtos e interfaces independentes;
 ADR-0034 consolida responsabilidades, estoque, permissoes e publicacao.
 

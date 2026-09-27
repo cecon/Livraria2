@@ -2,6 +2,7 @@
 
 Data: 2026-09-27. Status: aceita pela revisão solicitada pelo responsável.
 Complementa ADR-0032 e fundamenta a Constituição 3.0.0.
+Complementada pela ADR-0037 (Constituição 3.1.0): cadastro pelo canal PDV usa adm técnico.
 
 Complemento em 27/09/2026: a [ADR-0035](0035-deploy-cloud-dokploy.md) define a
 publicação da nuvem pelo Dokploy e o gatilho após as imagens no GitHub.
