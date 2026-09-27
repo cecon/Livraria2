@@ -7,6 +7,36 @@ module.exports = async (t, db, base, admin, device) => {
       headers: { "content-type": "application/json", authorization: "Bearer " + token }, body: JSON.stringify(body) });
     return { status: r.status, body: await r.json() };
   };
+  await t.test("cadastro pelo canal PDV usa adm tecnico, audita maquina e preserva limites", async () => {
+    const uid = randomUUID();
+    const input = { operacao: randomUUID(), uid, acao: "criar", pdvUid: randomUUID(),
+      dados: { codigo: "CANAL-" + uid, titulo: "Cadastro pelo PDV", categoria: 0, autor: "", descricao: "",
+        preco_centavos: 1000, estoqueInicial: 3 } };
+    assert.equal((await post(input, "invalido")).status, 401);
+    assert.equal((await post(input, device)).status, 403); // adm ainda nao existe
+    const technical = randomUUID();
+    await db.$executeRaw`insert into public.usuario(sync_uid,usuario,perfil,ativo,senha_hash)
+      values(${technical}::uuid,'adm','admin',true,'')`;
+    const result = await post(input, device);
+    assert.equal(result.status, 201, JSON.stringify(result.body));
+    assert.equal(result.body.saldoPublicado, 3);
+    assert.deepEqual(await post(input, device), result);
+    const audit = await db.$queryRaw`select responsavel_uid::text as actor,pedido from public.nuvem_produto_operacao
+      where uid=${input.operacao}::uuid`;
+    const deviceUid = JSON.parse(Buffer.from(device.split('.')[1], 'base64url').toString()).sub;
+    assert.equal(audit[0].actor, technical);
+    assert.equal(audit[0].pedido.pdvUid, deviceUid);
+    assert.notEqual(audit[0].pedido.pdvUid, input.pdvUid); // origem vem da autenticacao
+    assert.equal((await db.livro.findUnique({ where: { syncUid: uid } })).criadoPor, technical);
+    assert.equal(await db.movimento_estoque.count({ where: { livro_uid: uid } }), 1);
+    assert.equal((await post({ ...input, dados: { ...input.dados, titulo: "Mudou" } }, device)).status, 409);
+    assert.equal((await post({ ...input, acao: "editar", versao: result.body.versao }, device)).status, 403);
+    assert.equal((await post({ ...input, acao: "contar", versao: result.body.versao, quantidade: 10 }, device)).status, 403);
+    await db.$executeRaw`update public.usuario set ativo=false where sync_uid=${technical}::uuid`;
+    assert.equal((await post({ ...input, uid: randomUUID(), operacao: randomUUID() }, device)).status, 403);
+    await db.$executeRaw`delete from public.nuvem_produto_operacao where responsavel_uid=${technical}::uuid`;
+    await db.$executeRaw`update public.usuario set usuario='adm-teste-encerrado' where sync_uid=${technical}::uuid`;
+  });
   await t.test("produtos do PDV: autorização, gravação atômica, contagem e concorrência", async () => {
     const uid = randomUUID();
     const create = { operacao: randomUUID(), uid, acao: "criar",

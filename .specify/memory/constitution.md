@@ -1,6 +1,6 @@
 # Constituição da Livraria
 
-**Version**: 3.0.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-27
+**Version**: 3.1.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-27
 
 Esta constituição orienta os dois produtos: **PDV** e **Cloud (nuvem)**. Substitui a
 versão 2.0.0, que misturava SQLite local, nuvem como espelho e estoque centralizado.
@@ -72,6 +72,12 @@ Dispositivo, operador e administrador têm identidades distintas. Token de PDV n
 permissão administrativa. Alteração administrativa exige identidade autenticada e
 permissão conferida no servidor. Autenticação offline do operador não autoriza escrita
 administrativa na nuvem sem validação online.
+
+Exceção aprovada na [ADR-0037](../../docs/adr/0037-cadastro-pdv-adm-tecnico.md):
+PDV provisionado e ativo pode criar produtos pelo canal autenticado, usando `adm`
+ativo como responsável técnico resolvido pelo servidor. A auditoria registra também
+a máquina; isso não comprova autenticação humana de adm. Não abrange edição,
+ativação ou contagem e não distribui senha administrativa.
 
 Não distribuir credencial administrativa compartilhada ou senha fixa de liberação.
 Segredos ficam no Notion do projeto ou ambiente seguro, nunca em Git, `.env` versionado,

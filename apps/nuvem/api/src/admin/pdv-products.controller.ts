@@ -20,7 +20,11 @@ export class PdvProductsController {
   }
   @Post()
   save(@Req() req: AuthRequest, @Body() body: Record<string, unknown>) {
-    admin(req.principal);
-    return this.products.execute(body, req.principal.uid);
+    // Cadastro liberado para qualquer PDV provisionado e ativo.
+    // Edicao e inventario continuam exigindo a identidade administrativa.
+    const pdvUid = body?.acao === "criar" && req.principal.tipo === "pdv"
+      ? device(req.principal) : undefined;
+    if (!pdvUid) admin(req.principal);
+    return this.products.execute(body, req.principal.uid, pdvUid);
   }
 }
