@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { PrismaClient } = require("@prisma/client");
 
-test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", { timeout: 30000 }, async t => {
+test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", { timeout: 60000 }, async t => {
   // Explicit opt-in prevents running destructive fixtures against a real database.
   assert.equal(process.env.API_TEST_DATABASE, "isolated-local");
   assert.match(process.env.DATABASE_URL ?? "", /@127\.0\.0\.1:55439\/livraria_test/);
@@ -66,17 +66,59 @@ test("autenticacao, identidade e protocolo de catalogo em PostgreSQL isolado", {
       env: { ...process.env, PORT: "3003", API_OPERATIONS_ENABLED: "true", API_JWT_SECRET: randomUUID() + randomUUID() },
       stdio: "ignore",
     });
-    for (let attempt = 0; attempt < 100; attempt++) {
+    let ready = false;
+    for (let attempt = 0; attempt < 300; attempt++) {
       if (child.exitCode !== null) throw new Error("API de teste nao iniciou");
-      try { if ((await fetch(base + "/health")).ok) break; } catch {}
+      try { if ((await fetch(base + "/health")).ok) { ready = true; break; } } catch {}
       await new Promise(resolve => setTimeout(resolve, 100));
     }
+    assert.ok(ready, "API de teste nao ficou saudavel em 30 segundos");
     const adminLogin = (await request("/auth/login", null, { usuario: "admin", senha: password })).body;
     assert.equal(adminLogin.expiresIn, 28800);
     const adminToken = adminLogin.accessToken;
     const operatorToken = (await request("/auth/login", null, { usuario: "operador", senha: password })).body.accessToken;
     assert.ok(adminToken);
     assert.ok(operatorToken);
+    await t.test("referencias exigem dispositivo e paginam sem perder registros", async () => {
+      assert.equal((await request("/sync/referencias/usuario")).status, 401);
+      assert.equal((await request("/sync/referencias/usuario", adminToken)).status, 403);
+      const configured = await request("/pdv/configurar", null, {
+        nome: "Referencias " + randomUUID(), usuario: "admin", senha: password,
+      });
+      const token = configured.body.accessToken;
+      assert.ok(token);
+      // More than one page, including an inactive operator, exercises the boundary.
+      await db.$executeRawUnsafe(`insert into public.usuario(sync_uid,usuario,senha_hash,perfil,ativo)
+        select gen_random_uuid(), 'ref.' || n, 'offline-test-hash', 'operador', n <> 501
+        from generate_series(1,501) n`);
+      try {
+        let after = "";
+        const rows = [];
+        do {
+          const result = await request("/sync/referencias/usuario?after=" + after, token);
+          assert.equal(result.status, 200);
+          assert.ok(result.body.registros.length <= 500);
+          rows.push(...result.body.registros);
+          const next = result.body.proximo;
+          if (next) assert.ok(next > after);
+          after = next;
+        } while (after);
+        assert.equal(rows.length, 505);
+        assert.equal(new Set(rows.map(row => row.sync_uid)).size, rows.length);
+        assert.ok(rows.some(row => row.usuario === "admin" && row.senha_hash));
+        assert.ok(rows.find(row => row.usuario === "ref.501").excluido_em);
+        assert.equal(rows.find(row => row.usuario === "ref.1").excluido_em, null);
+        assert.equal((await request("/sync/referencias/pedido", token)).status, 400);
+        assert.equal((await request("/sync/referencias/usuario?after=invalid", token)).status, 400);
+        const alias = await fetch("http://127.0.0.1:3003/api/pdv/referencias/usuario", {
+          headers: { authorization: "Bearer " + token },
+        });
+        assert.equal(alias.status, 200);
+        assert.equal(alias.headers.get("cache-control"), "no-store");
+      } finally {
+        await db.$executeRawUnsafe("delete from public.usuario where usuario like 'ref.%'");
+      }
+    });
     await t.test("credenciais e permissoes", async () => {
       assert.ok((await request("/auth/login", null, { usuario: "  AdMiN  ", senha: password })).body.accessToken);
       assert.equal((await request("/auth/login", null, { usuario: "admin", senha: "errada" })).status, 401);

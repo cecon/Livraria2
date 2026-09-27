@@ -72,6 +72,25 @@ test("venda atomica e idempotente com triggers reais", { timeout: 90000 }, async
       values(${randomUUID()}::uuid,'NOVA.PESSOA',extensions.crypt(${password},extensions.gen_salt('bf')),'operador')`);
     const firstDevice = (await request("/pdvs", adminToken, { nome: "caixa 1", usuarioUid: operatorUid })).body;
     const secondDevice = (await request("/pdvs", adminToken, { nome: "caixa 2", usuarioUid: operatorUid })).body;
+    await t.test("referencias do PDV usam o schema real de usuarios, formas e destinacoes", async () => {
+      for (const resource of ["usuario", "forma_pagamento", "destinacao"]) {
+        const response = await fetch(base + "/sync/referencias/" + resource, {
+          headers: { authorization: "Bearer " + firstDevice.accessToken },
+        });
+        assert.equal(response.status, 200);
+        assert.equal(response.headers.get("cache-control"), "no-store");
+        const page = await response.json();
+        assert.equal(page.proximo, null);
+        assert.ok(Array.isArray(page.registros));
+        if (resource === "usuario") assert.ok(page.registros.some(row => row.sync_uid === operatorUid));
+        if (resource === "forma_pagamento") {
+          const form = page.registros.find(row => row.sync_uid === formUid);
+          assert.equal(form.chave, "pix");
+          assert.equal(typeof form.ativa, "boolean");
+          assert.equal(typeof form.ordem, "number");
+        }
+      }
+    });
     const shiftUid = randomUUID();
     const opening = { turnoUid: shiftUid, operadorUid: operatorUid,
       caixaInicialCentavos: 0, abertura: "2026-09-14T09:00:00" };

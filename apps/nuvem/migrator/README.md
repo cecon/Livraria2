@@ -1,22 +1,13 @@
-# Migrator da nuvem
+# Migrador da nuvem
 
-Container de migrations para o ambiente web local/prod-local. Ele aplica arquivos
-`apps/nuvem/migrations/*.sql` no Supabase vinculado e registra hash em
-`public.livraria_schema_migrations`.
+Imagem PostgreSQL 16 com bash e coreutils. Executa `run-migrations.sh` usando
+DATABASE_URL do ambiente seguro e as migrations oficiais copiadas no build.
+Nao requer CLI, conta ou chave de provedor externo.
 
-No primeiro deploy contra o prod atual, usar:
+O Compose Dokploy fornece MIGRATOR_DATABASE_URL como DATABASE_URL e
+MIGRATOR_SLEEP_SECONDS=0. O migrador deve terminar com codigo zero antes da API.
+A web aguarda a saude da API. A imagem usa o mesmo SHA da web e API.
 
-```text
-MIGRATION_BASELINE_UP_TO=0011_estoque_oficial_venda
-```
-
-Assim o migrator marca `0001..0011` como baseline, porque esses arquivos ja foram
-aplicados manualmente. Migrations futuras, como `0012_*.sql`, serao aplicadas
-automaticamente quando a imagem nova for puxada pelo Watchtower.
-
-Segredos exigidos no runtime:
-
-- `SUPABASE_ACCESS_TOKEN`
-- `SUPABASE_DB_PASSWORD`
-
-Eles ficam na memoria operacional/Portainer, nunca no repositorio.
+Checksums impedem alteracao silenciosa de migrations aplicadas. Preservar arquivos
+SQL, volume e ledger existentes. Nunca restaurar ou recriar o banco para publicar.
+Procedimento: [deploy Dokploy](../../../docs/deploy-dokploy.md).

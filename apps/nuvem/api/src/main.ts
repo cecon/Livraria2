@@ -39,6 +39,7 @@ class HttpErrorLogFilter implements ExceptionFilter {
 
 function installLegacyPdvRoutes(app: { use: (fn: (req: { url?: string }, res: unknown, next: () => void) => void) => void }) {
   const rewrites: Array<[RegExp, string]> = [
+    [/^\/api\/(?:v1\/)?pdv\/referencias\/(usuario|forma_pagamento|destinacao)(?=\?|$)/, "/api/v1/sync/referencias/$1"],
     [/^\/api\/(?:v1\/)?pdv\/capas(?=\/|\?|$)/, "/api/v1/capas"],
     [/^\/api\/(?:v1\/)?pdv\/catalogo(\/confirmacao)?(?=\?|$)/, "/api/v1/sync/catalogo$1"],
     [/^\/api\/(?:v1\/)?pdv\/vendas(\/[0-9a-f-]+\/cancelamento)?(?=\?|$)/i, "/api/v1/sync/vendas$1"],

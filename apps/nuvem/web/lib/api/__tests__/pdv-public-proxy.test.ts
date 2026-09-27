@@ -69,3 +69,20 @@ test("consulta e gravacao de produtos exigem credencial e preservam conflitos", 
   expect(conflict.status).toBe(409);
   expect(await conflict.json()).toEqual({ message: "PRODUTO_ALTERADO" });
 });
+
+
+test("referencias autenticadas preservam pagina, cursor e proibicao de cache", async () => {
+  const path = ["referencias", "usuario"];
+  expect((await publicPdvProxy(request("referencias/usuario", "GET"), path)).status).toBe(401);
+  expect((await publicPdvProxy(request("referencias/usuario?after=bad", "GET"), path)).status).toBe(400);
+  expect((await publicPdvProxy(request("referencias/pedido", "GET"), ["referencias", "pedido"])).status).toBe(404);
+  expect(mocked.fetcher).not.toHaveBeenCalled();
+  const uid = "11111111-1111-4111-8111-111111111111";
+  const page = { registros: [{ sync_uid: uid }], proximo: uid };
+  mocked.fetcher.mockResolvedValue(new Response(JSON.stringify(page)));
+  const result = await publicPdvProxy(request(`referencias/usuario?after=${uid}`, "GET", undefined, "a".repeat(30)), path);
+  expect(await result.json()).toEqual(page);
+  expect(result.headers.get("cache-control")).toBe("no-store");
+  expect(mocked.fetcher).toHaveBeenCalledWith(`sync/referencias/usuario?after=${uid}`,
+    { method: "GET", body: undefined }, "a".repeat(30));
+});
