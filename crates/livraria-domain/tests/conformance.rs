@@ -30,7 +30,7 @@ fn pedido_do_vetor(c: &Value) -> Pedido {
 }
 
 const VECTORS: &str =
-    include_str!("../../../specs/008-escritorio-espelho-pdv/contracts/conformance-vectors.json");
+    include_str!("conformance-vectors.json");
 
 fn casos<'a>(v: &'a Value, chave: &str) -> &'a Vec<Value> {
     v[chave].as_array().unwrap()

@@ -25,7 +25,7 @@ Renomeações futuras, integrações retiradas e nomes históricos não são arq
 | [0012](0012-identidade-livro-id.md) | Identidade do livro: `id` numérico e `codigo` (barcode) único | Parcialmente substituida |
 | [0013](0013-cadastro-formas-pagamento.md) | Cadastro de formas de pagamento: registro + junção, chave estável e migração m006 | Vigente |
 | [0014](0014-destinacao-doacoes.md) | Destinação de estoque para doações: Loja como resíduo, carimbos com prioridade de venda | Vigente |
-| [0015](0015-sincronizacao-nuvem.md) | Sincronização com a nuvem: hub Supabase, PDV réplica offline, escritório web | Substituida |
+| [0015](0015-sincronizacao-nuvem.md) | Sincronização com a nuvem: hub provedor legado, PDV réplica offline, escritório web | Substituida |
 | [0016](0016-sync-identidade-convergencia.md) | Sincronização: identidade estável, deduplicação e convergência idempotente | Parcialmente vigente |
 | [0017](0017-saldo-inicial-obrigatorio-ledger-completo.md) | Estoque: `saldo_inicial` obrigatório e reparo do ledger incompleto | Parcialmente vigente |
 | [0018](0018-baixa-venda-limitada-ao-estoque-cacheado.md) | Baixa de venda limitada ao estoque cacheado: drift silencioso quando o cache diverge | Substituida para estoque oficial |
@@ -43,12 +43,14 @@ Renomeações futuras, integrações retiradas e nomes históricos não são arq
 | [0030](0030-modelo-comercial-pdv-e-livro-caixa.md) | Modelo comercial do PDV e livro-caixa | Implementacao parcial |
 | [0031](0031-llm-identidade-turno.md) | LLM central e identidade do operador do turno | Vigente |
 | [0032](0032-interfaces-independentes-api-unica.md) | Dois produtos, interfaces independentes e API da nuvem | Aceita; ver pendências |
+| [0033](0033-binding-wasm-gerado.md) | Binding WASM gerado no verificador de tamanho | Vigente |
 | [0034](0034-governanca-pdv-cloud.md) | Governança vigente do PDV e Cloud | Vigente |
 | [0035](0035-deploy-cloud-dokploy.md) | Deploy Cloud pelo Dokploy após publicação das imagens | Vigente |
 | [0036](0036-graphify-agentmemory.md) | Graphify e AgentMemory no trabalho dos agentes | Vigente |
 | [0037](0037-cadastro-pdv-adm-tecnico.md) | Cadastro pelo canal do PDV com adm técnico | Aceita |
 | [0038](0038-imagens-produtos-pdv-cloud.md) | Imagens persistentes e cache offline por produto | Aceita; implantação em etapas |
 
-Novas decisões recebem número ainda não utilizado. A numeração 0033 está reservada ao
-registro local sobre binding WASM gerado; esta revisão não presume essa exceção implantada.
+Novas decisões recebem número ainda não utilizado.
 Alterar decisão exige nova ADR ou complemento explícito, com data, consequências e evidência.
+
+- [0039: Sincronizacao exclusivamente pela API](0039-sincronizacao-exclusiva-api.md) — aceita.

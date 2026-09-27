@@ -1,11 +1,11 @@
 <!-- SPECKIT START -->
-Governanca vigente: `.specify/memory/constitution.md` (3.1.0), `AGENTS.md` e
+Governanca vigente: `.specify/memory/constitution.md` (3.1.1), `AGENTS.md` e
 `docs/adr/README.md`. ADR-0032 define dois produtos e interfaces independentes;
 ADR-0034 consolida responsabilidades, estoque, permissoes e publicacao.
 
 PDV: `apps/pdv`, offline com SQLite. Cloud: `apps/nuvem/web` + `apps/nuvem/api`,
-PostgreSQL oficial. Bibliotecas internas nao sao outro produto. Supabase esta
-descontinuado por decisao; pendencias de remocao em main estao na ADR-0032.
+PostgreSQL oficial. Bibliotecas internas nao sao outro produto. Sincronizacao
+exclusivamente pela API, conforme ADR-0039; nao reintroduzir o transporte antigo.
 Planos de features anteriores sao historicos e nao substituem a governanca atual.
 Nao confundir alteracao local, imagem oficial e versao executando na VM.
 Deploy Cloud: `docs/adr/0035-deploy-cloud-dokploy.md`, `docs/deploy-dokploy.md` e

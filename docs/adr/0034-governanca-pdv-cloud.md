@@ -41,7 +41,8 @@ a tela oferecia título inativo que a API recusava; ativação exigia estoque po
 | Lançamentos/rotas/ativação | PR #53, commit `7d0e182` | Integrado à main e imagens oficiais publicadas na VM em 27/09 |
 | Operações administrativas do PDV | `migrations/0024_produto_operacao_pdv.sql` | Migração versionada; aplicada na VM em 26/09 |
 | Estoque zero | `books.service.ts`, `pdv-products.service.ts` e testes | Ativação explícita aceita, sem movimento artificial |
-| Interfaces independentes/remoção de Supabase | ADR-0032, trabalho local `ba1a02c` | Decisão aceita, pendente na base main desta revisão |
+| Interfaces independentes | ADR-0032, trabalho local `ba1a02c` | Separacao de componentes ainda pendente |
+| Transporte exclusivo pela API | ADR-0039 | Remocao implementada; publicacao exige verificar Cloud e PDV |
 | Diagnóstico e indicador de sincronização | Alterações locais ainda não integradas | Não declarar logs completos como publicados |
 | Renomeação comercial de tabelas | ADR-0030 | Proposta incremental, não pressupor tabelas renomeadas |
 

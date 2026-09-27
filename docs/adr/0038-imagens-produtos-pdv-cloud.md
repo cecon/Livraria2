@@ -12,7 +12,7 @@ imagens reais na venda, pesquisa, cadastro e listagens dos dois produtos.
 
 - Cada produto tem uma capa opcional, identificada por `livro.capa_uid`.
   O arquivo fica no PostgreSQL existente, em `livro_capa_arquivo`, coberto pelo
-  backup do banco. Não depende de Supabase, URLs externas ou disco do container.
+  backup do banco. Não depende de URLs externas ou disco do container.
 - Upload autenticado pelo administrador da web ou pelo canal de um PDV ativo.
   O upload prepara o arquivo; somente salvar o produto altera o vínculo, com
   as permissões e auditoria já existentes. Não muda estoque nem autorização.

@@ -5,7 +5,7 @@
 use super::entities::usuario::Entity as UsuarioEntity;
 use crate::application::ports::{RepoErro, UsuarioRepo};
 use async_trait::async_trait;
-use sea_orm::{DatabaseConnection, DbErr, EntityTrait};
+use sea_orm::{DatabaseConnection, DbErr, EntityTrait, QueryFilter, sea_query::Expr};
 use sha2::{Digest, Sha256};
 
 pub struct SeaUsuarioRepo {
@@ -43,6 +43,7 @@ pub fn verificar_senha(senha: &str, hash: &str) -> bool {
 impl UsuarioRepo for SeaUsuarioRepo {
     async fn autenticar(&self, usuario: &str, senha: &str) -> Result<bool, RepoErro> {
         let u = UsuarioEntity::find_by_id(usuario.trim().to_lowercase())
+            .filter(Expr::cust("excluido_em IS NULL OR excluido_em=''"))
             .one(&self.db)
             .await
             .map_err(erro)?;

@@ -6,6 +6,9 @@ use serde_json::{json, Value};
 use std::path::Path;
 use std::time::Duration;
 
+#[derive(serde::Deserialize)]
+pub struct PaginaReferencias { pub registros: Vec<Value>, pub proximo: Option<String> }
+
 pub struct ApiSync {
     client: Client,
     base: String,
@@ -17,6 +20,11 @@ fn erro(_: impl std::fmt::Display) -> RepoErro {
 }
 
 impl ApiSync {
+    pub async fn referencias(&self, recurso: &str, after: &str) -> Result<PaginaReferencias, RepoErro> {
+        let response = self.client.get(format!("{}/referencias/{recurso}", self.base))
+            .bearer_auth(&self.token).query(&[("after", after)]).send().await.map_err(erro)?;
+        serde_json::from_value(Self::resposta(response).await?).map_err(erro)
+    }
     #[cfg(test)]
     pub(crate) fn teste(base: String) -> Self {
         Self { client: Client::new(), base, token: "test".into() }

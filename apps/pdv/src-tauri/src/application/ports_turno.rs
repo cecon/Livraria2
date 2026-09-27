@@ -1,5 +1,5 @@
 //! Portas do turno de operação (feature 009, ADR-0021). O adapter SeaORM persiste
-//! em `turno_operacao` (m009), que sincroniza com a nuvem (replica_mapa).
+//! em `turno_operacao` (m009), que sincroniza com a nuvem pela API.
 
 use crate::application::ports::RepoErro;
 use crate::domain::pedido::Recebimento;

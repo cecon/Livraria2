@@ -65,6 +65,8 @@ for f in "${files[@]:-}"; do
   [ -z "${f:-}" ] && continue
   # ignora dependências/builds
   case "$f" in
+    # ADR-0033: somente o binding produzido pelo wasm-bindgen; fontes continuam verificadas.
+    packages/domain/index.js) continue ;;
     # Ignora dependências/builds e componentes shadcn gerados (PDV e pacote de UI compartilhado).
     # crates/ e packages/ (exceto os componentes gerados) SÃO verificados normalmente.
     */node_modules/*|*/target/*|*/dist/*|*/.next/*|apps/pdv/src/components/ui/*|packages/ui/src/ui/*|*/packages/ui/src/ui/*) continue ;;

@@ -1,6 +1,6 @@
 # Constituição da Livraria
 
-**Version**: 3.1.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-27
+**Version**: 3.1.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-27
 
 Esta constituição orienta os dois produtos: **PDV** e **Cloud (nuvem)**. Substitui a
 versão 2.0.0, que misturava SQLite local, nuvem como espelho e estoque centralizado.
@@ -20,9 +20,9 @@ um terceiro produto. Reutilização exige benefício concreto e não obriga comp
 interface, navegação, menus ou acesso a banco.
 
 Cada produto mantém sua interface. O tema pode ser referência comum sem pacote de
-componentes compartilhado. Supabase foi descontinuado: não introduzir dependência,
-fallback, chave ou acesso direto a esse serviço. Referências históricas em migrations
-não autorizam uso. A API é a fronteira de acesso aos dados oficiais.
+componentes compartilhado. A API autenticada é a fronteira exclusiva de acesso aos
+dados oficiais, incluindo as referências do PDV (ADR-0039). Não reintroduzir
+adaptadores ou credenciais de acesso direto a provedores descontinuados.
 
 ## II. Balcão offline e autoridade da nuvem
 

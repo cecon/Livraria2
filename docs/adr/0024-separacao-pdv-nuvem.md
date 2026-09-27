@@ -1,6 +1,6 @@
 # ADR-0024: Separar PDV e nuvem com API dedicada
 
-> **Vigência revisada em 27/09/2026: Complementada.** Dois produtos e API dedicada permanecem; tolerancia transitoria a Supabase foi encerrada pela decisao ADR-0032.
+> **Vigência revisada em 27/09/2026: Complementada.** Dois produtos e API dedicada permanecem; tolerancia transitoria a provedor legado foi encerrada pela decisao ADR-0032.
 > A decisão vigente consolidada está na [ADR-0034](0034-governanca-pdv-cloud.md). O texto abaixo preserva o registro original.
 
 
@@ -25,8 +25,8 @@ Contratos nao dependem de tabelas ORM. Codigo/ISBN nao representa identidade.
 
 Introducao de backend HTTP e ORM e justificada pela necessidade concreta de
 coordenacao e observabilidade de sincronizacao. Evitar servicos adicionais.
-Supabase direto e mantido temporariamente; nao considerar a separacao operacional
-concluida ate migrar todos os fluxos e testar reconexao/rollback.
+A tolerancia transitoria a acesso direto foi encerrada pela ADR-0039.
+Validar reconexao e preservacao de pendencias pelo protocolo da API.
 
 Migrations SQL atuais continuam funcionando. Adocao Prisma exige introspeccao
 e baseline antes de qualquer alteracao de schema.
