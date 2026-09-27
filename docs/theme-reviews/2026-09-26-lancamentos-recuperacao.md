@@ -6,12 +6,12 @@
 
 ## Validacoes
 
-- [x] AgentMemory recall (consultado; indisponivel)
-- [x] Desktop (1280px, Chromium)
-- [x] Smartphone (390px, Chromium)
+- [x] AgentMemory recall
+- [x] Desktop
+- [x] Smartphone
 - [x] Light mode
 - [x] Dark mode
-- [x] Accessibility (alert/status, botoes nomeados, navegacao de retorno)
+- [x] Accessibility
 
 ## Adaptacao
 
@@ -40,3 +40,6 @@ e cancelar notas. Chromium validou cancelar/confirmar nos quatro cenarios de tel
 recusa sem consentimento, rollback da ativacao se a inclusao falha e entrada idempotente.
 A ativacao explicita no lancamento pode ocorrer antes de haver estoque positivo; isso permite
 preparar o rascunho de entrada conforme a solicitacao do usuario. Finalizacao continua explicita.
+
+Detalhes: memoria consultada, servico indisponivel; Chromium em 1280px e 390px;
+acessibilidade verificada por alert/status, botoes nomeados e navegacao de retorno.
