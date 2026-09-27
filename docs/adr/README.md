@@ -45,6 +45,7 @@ Renomeações futuras, integrações retiradas e nomes históricos não são arq
 | [0032](0032-interfaces-independentes-api-unica.md) | Dois produtos, interfaces independentes e API da nuvem | Aceita; ver pendências |
 | [0034](0034-governanca-pdv-cloud.md) | Governança vigente do PDV e Cloud | Vigente |
 | [0035](0035-deploy-cloud-dokploy.md) | Deploy Cloud pelo Dokploy após publicação das imagens | Vigente |
+| [0036](0036-graphify-agentmemory.md) | Graphify e AgentMemory no trabalho dos agentes | Vigente |
 
 Novas decisões recebem número ainda não utilizado. A numeração 0033 está reservada ao
 registro local sobre binding WASM gerado; esta revisão não presume essa exceção implantada.

@@ -20,6 +20,10 @@ O release automático do PDV permanece independente.
 
 ## Agent Memory
 
+Usamos Graphify para mapear o repositório completo e AgentMemory para preservar
+conclusões verificadas. Consulte [o procedimento](docs/agent-knowledge.md) e a
+[ADR-0036](docs/adr/0036-graphify-agentmemory.md). Não são dependências da aplicação.
+
 Agentes de desenvolvimento podem usar um AgentMemory externo e opcional.
 Configuracao, MCP e limites: [docs/agent-memory.md](docs/agent-memory.md).
 

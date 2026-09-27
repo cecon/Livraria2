@@ -1,5 +1,15 @@
 # Agent Memory
 
+Uso conjunto com Graphify: [agent-knowledge.md](agent-knowledge.md) e
+[ADR-0036](adr/0036-graphify-agentmemory.md). Consultar memoria quando relevante e
+procedimento padrao; a disponibilidade continua opcional para a aplicacao.
+
+Validacao local em 27/09/2026: a instancia existente da Livraria em loopback 3131
+foi conectada ao checkout principal por ambiente local ignorado pelo Git. Health,
+recall e gravacao/recuperacao de conclusao privada foram verificados via CLI.
+Isso nao instala ferramentas MCP em uma sessao que nao as expoe, nem configura
+automaticamente outros clones ou maquinas. Nenhum servidor de outro projeto foi alterado.
+
 Memoria opcional dos agentes de desenvolvimento, nao da aplicacao.
 PDV, nuvem, builds e banco de negocio nao dependem deste servico.
 

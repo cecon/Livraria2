@@ -24,6 +24,14 @@ Aceite da API ou job GitHub verde nao substitui verificar a implantacao no Dokpl
 
 ## Memoria Opcional dos Agentes
 
+Uso padrao: Graphify + AgentMemory, conforme docs/adr/0036-graphify-agentmemory.md
+e docs/agent-knowledge.md. Mapear todo o repositorio, excluindo dados/segredos e
+dependencias; o responsavel autorizou escopo acima de 500 arquivos. Consultar o
+grafo existente antes de investigar relacoes, conferir branch/commit/dirty files e
+confirmar fontes atuais. Saidas graphify-out sao locais, nao representam producao.
+Se ferramentas MCP de memoria nao estiverem expostas, usar npm run memory:health
+e npm run memory:recall. Indisponibilidade nao bloqueia nem permite inventar contexto.
+
 Integracao: docs/agent-memory.md. Consulte memory_recall antes de investigar regressao,
 alterar arquitetura ou integracoes relevantes. Indisponibilidade nunca bloqueia a tarefa.
 Use memory_remember apenas para conclusoes uteis, com source e evidencia; escrita privada.
