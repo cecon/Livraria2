@@ -14,6 +14,14 @@ Compartilhamento de calculos nao obriga compartilhar interfaces. A ADR-0034 list
 Segredos ficam somente na memoria Notion do projeto ou ambiente seguro.
 Nunca versionar credenciais, bancos, dumps ou arquivos .env.
 
+## Deploy da nuvem
+
+Decisao: docs/adr/0035-deploy-cloud-dokploy.md. Procedimento: docs/deploy-dokploy.md.
+Use .claude/skills/deploy-nuvem-livraria/SKILL.md para publicar, verificar ou reverter
+a nuvem. GitHub publica imagens; Dokploy clona o Compose e executa migrador, API e web.
+PostgreSQL existente permanece fora do Compose. Deploy da nuvem nao publica o PDV.
+Aceite da API ou job GitHub verde nao substitui verificar a implantacao no Dokploy.
+
 ## Memoria Opcional dos Agentes
 
 Integracao: docs/agent-memory.md. Consulte memory_recall antes de investigar regressao,

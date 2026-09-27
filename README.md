@@ -11,6 +11,13 @@ Leia a [Constituição 3.0.0](.specify/memory/constitution.md) e o
 distingue decisões aprovadas, implementação e publicação. Interfaces independentes
 e retirada do provedor antigo ainda têm pendências na main; não presumir conclusão.
 
+## Deploy da nuvem
+
+Siga o [procedimento Dokploy](docs/deploy-dokploy.md) e a
+[ADR-0035](docs/adr/0035-deploy-cloud-dokploy.md). GitHub publica as imagens e
+solicita a implantação; confirmar o resultado no Dokploy e na aplicação.
+O release automático do PDV permanece independente.
+
 ## Agent Memory
 
 Agentes de desenvolvimento podem usar um AgentMemory externo e opcional.
