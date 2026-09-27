@@ -87,12 +87,16 @@ export class EntriesService {
     const input = entryItem(value);
     try {
       await this.db.$transaction(async tx => {
+        await tx.$queryRaw`select sync_uid from public.lancamento_entrada where sync_uid=${entryUid}::uuid for update`;
         const entry = await tx.lancamento_entrada.findFirst({ where: {
           sync_uid: entryUid, status: "rascunho", excluido_em: null } });
         if (!entry) await this.draftFailure(entryUid);
-        const book = await tx.livro.findFirst({ where: { syncUid: input.bookUid, excluidoEm: null, ativo: true } });
+        const book = await tx.livro.findFirst({ where: { syncUid: input.bookUid, excluidoEm: null } });
         if (!book) throw new NotFoundException("Produto indisponivel");
+        if (!book.ativo && !input.reactivate) throw new ConflictException("Titulo inativo. Confirme a ativacao");
         const now = new Date();
+        if (!book.ativo) await tx.livro.update({ where: { syncUid: input.bookUid },
+          data: { ativo: true, atualizadoEm: now, sincronizadoEm: now } });
         await tx.item_lancamento.create({ data: { sync_uid: input.syncUid, lancamento_uid: entryUid,
           livro_uid: input.bookUid, qtd: input.quantity, custo_unit_centavos: input.unitCost,
           origem: "nuvem", criado_por: actor, atualizado_em: now, sincronizado_em: now } });

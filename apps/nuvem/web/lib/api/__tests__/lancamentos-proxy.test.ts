@@ -39,3 +39,15 @@ test("sessao ausente nao chega a API", async () => {
   expect((await entriesProxy(request(), [])).status).toBe(401);
   expect(mocked.fetcher).not.toHaveBeenCalled();
 });
+
+test("inclusao informa produto indisponivel sem expor mensagens arbitrarias", async () => {
+  for (const message of ["Produto indisponivel", "database-password-secret"]) {
+    mocked.fetcher.mockResolvedValueOnce(new Response(JSON.stringify({ message }), { status: 404 }));
+    const response = await entriesProxy(request("POST", `/${uid}/itens`, "https://livraria.test"), [uid, "itens"]);
+    expect(response.status).toBe(404);
+    const result = await response.json();
+    expect(result.erro).not.toContain("database-password-secret");
+    if (message === "Produto indisponivel") expect(result.erro).toContain("Título inativo");
+    expect(mocked.fetcher.mock.lastCall?.[0]).toBe(`admin/lancamentos/${uid}/itens`);
+  }
+});

@@ -6,7 +6,7 @@ import { StockBadge } from "@/components/StockBadge";
 import { Cover } from "@/components/Cover";
 import { reais } from "@/utils/texto";
 
-export type LivroBusca = { sync_uid: string; codigo: string; titulo: string; autor: string | null; preco_centavos: number; estoque: number };
+export type LivroBusca = { sync_uid: string; codigo: string; titulo: string; autor: string | null; preco_centavos: number; estoque: number; ativo?: boolean };
 
 interface Props {
   value: string;

@@ -41,7 +41,8 @@ const nextConfig = {
         { source: "/api/ia/:path*", destination: `${nuvemApiUrl}/api/v1/ia/:path*` },
         { source: "/api/capas/:path*", destination: `${nuvemApiUrl}/api/v1/capas/:path*` },
       ],
-      afterFiles: [
+      // Executar somente depois das rotas dinamicas da aplicacao.
+      fallback: [
         { source: "/api/:path*", destination: `${nuvemApiUrl}/api/v1/:path*` },
         { source: "/auth/:path*", destination: `${nuvemApiUrl}/api/v1/auth/:path*` },
         { source: "/sync/:path*", destination: `${nuvemApiUrl}/api/v1/sync/:path*` },

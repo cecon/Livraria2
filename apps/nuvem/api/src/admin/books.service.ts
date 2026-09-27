@@ -49,14 +49,6 @@ export class BooksService {
           const existing = await tx.livro.findFirst({ where: { syncUid: uid, excluidoEm: null },
             select: { ativo: true } });
           if (!existing) throw new NotFoundException("Produto indisponivel");
-          if (!existing.ativo && data.ativo === true) {
-            const balance = await tx.$queryRaw<{ saldo: bigint }[]>`
-              select coalesce(s.saldo,0)::bigint as saldo from public.vw_saldo_livro s
-              where s.livro_uid=${uid}::uuid`;
-            if (!balance[0] || balance[0].saldo <= 0n) {
-              throw new ConflictException("Registre estoque positivo antes de reativar o produto");
-            }
-          }
           const changed = await tx.livro.updateMany({ where: { syncUid: uid, excluidoEm: null },
             data: { ...data, atualizadoEm: now, sincronizadoEm: now } });
           if (!changed.count) throw new NotFoundException("Produto indisponivel");

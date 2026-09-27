@@ -82,7 +82,13 @@ module.exports = async function adminCatalog(t, db, base, adminToken, deviceToke
     const other = randomUUID();
     assert.equal((await call("POST", "", { ...input, sync_uid: other, codigo: "TEST-DUPLICATE", estoqueInicial: 0 })).status, 201);
     assert.equal((await db.livro.findUnique({ where: { syncUid: other } })).ativo, false);
-    assert.equal((await call("PUT", "/" + other, { ...input, codigo: "TEST-DUPLICATE", estoqueInicial: 0, ativo: true })).status, 409);
+    assert.equal((await call("PUT", "/" + other, { ...input, codigo: "TEST-DUPLICATE", estoqueInicial: 0, ativo: true })).status, 200);
+    assert.equal((await db.livro.findUnique({ where: { syncUid: other } })).ativo, true);
+    assert.equal(await db.movimento_estoque.count({ where: { livro_uid: other } }), 0);
+    const published = await db.$queryRaw`select produto from public.nuvem_catalogo_evento
+      where produto_uid=${other}::uuid order by sequencia desc limit 1`;
+    assert.equal(published[0].produto.ativo, true);
+    assert.equal(published[0].produto.saldoPublicado, 0);
     assert.equal((await call("PUT", "/" + id, { ...input, codigo: "TEST-DUPLICATE", estoqueInicial: 0 })).status, 409);
     assert.equal((await db.livro.findUnique({ where: { syncUid: id } })).codigo, "9786585995887");
     assert.equal((await db.livro.findUnique({ where: { syncUid: other } })).codigo, "TEST-DUPLICATE");

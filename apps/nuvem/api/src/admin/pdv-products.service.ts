@@ -63,7 +63,6 @@ export class PdvProductsService {
           if (before.versao !== input.versao) throw new ConflictException("PRODUTO_ALTERADO");
           if (action === "editar" && data) {
             const { initial: _initial, ...fields } = data;
-            if (!before.ativo && fields.ativo && before.saldoPublicado <= 0) throw new ConflictException("Informe estoque positivo antes de ativar.");
             await tx.livro.update({ where: { syncUid: uid }, data: { ...fields, atualizadoEm: now, sincronizadoEm: now } });
           } else {
             const difference = BigInt(quantity as number) - BigInt(before.saldoPublicado);
