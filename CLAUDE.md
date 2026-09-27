@@ -15,6 +15,10 @@ ao Dokploy a publicacao; verificar a conclusao e preservar o banco existente.
 
 ## Memória do projeto (segredos & longa duração)
 
+Graphify e AgentMemory: `docs/agent-knowledge.md` e ADR-0036. O mapa abrange o
+repositorio completo; confirmar revisao e fontes. AgentMemory guarda conclusoes
+privadas com evidencia. Grafo e memoria nao sao autoridade sobre codigo/ADRs atuais.
+
 Segredos e informações sensíveis de longa duração (senhas, credenciais, IDs de serviço) ficam na
 página do Notion — **nunca** neste repositório:
 [Memoria_Projeto_Livraria](https://app.notion.com/p/Memoria_Projeto_Livraria-3a30fcc132cf8068ab0dee09d80f9b76).

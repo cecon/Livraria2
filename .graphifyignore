@@ -1,0 +1,24 @@
+# Dados, segredos, dependencias e saidas geradas nao pertencem ao grafo.
+.env*
+**/.env*
+*.db
+*.sqlite
+*.sqlite3
+*.mdb
+*.accdb
+*.dump
+*.pfx
+*.pem
+backups/
+node_modules/
+**/node_modules/
+target/
+**/target/
+dist/
+**/dist/
+**/.next/
+graphify-out/
+.graphify/
+.graphify_cache/
+**/__pycache__/
+# Codigo/documentacao do produto e as ADRs permanecem no escopo completo.

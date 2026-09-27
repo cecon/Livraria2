@@ -58,6 +58,11 @@ fixar versão anterior. Reativar a automação depois de resolver a causa.
   publicou as imagens, mas pulou o job deploy: começou antes da habilitação da
   variável. O run seguinte estava em andamento nesta conferência. Verificar o
   resultado atual; configuração não é prova de execução completa.
+- Conferência posterior em 27/09/2026: o
+  [run 36319746157](https://github.com/cecon/Livraria2/actions/runs/36319746157)
+  concluiu build-push e deploy com sucesso. Na VM, as três imagens usam
+  `0f446f616f3306e2dbd221f10d375e8b320d542b`; migrador saiu com código zero,
+  web/API estão saudáveis e `/api/health` público retornou 200.
 - Serviços antigos web/API/migrador do Swarm ficaram com zero réplicas. O banco
   permaneceu ativo no mesmo volume. Não usar o stack antigo para atualizações.
 
