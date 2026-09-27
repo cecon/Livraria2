@@ -82,7 +82,7 @@ export default function PesquisaPage() {
           </Button>
         )}
         <div className="bg-card flex flex-col gap-5 rounded-xl border p-5 sm:flex-row">
-          <Cover titulo={detalhe.titulo} tamanho="lg" />
+          <Cover titulo={detalhe.titulo} capaUid={detalhe.capaUid} tamanho="lg" />
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-semibold tracking-tight">{detalhe.titulo}</h1>
             {detalhe.autor && <div className="text-muted-foreground text-sm">{detalhe.autor}</div>}
@@ -143,7 +143,7 @@ export default function PesquisaPage() {
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {resultados.map((l) => (
             <button key={l.sync_uid} onClick={() => setDetalhe(l)} className="bg-card hover:bg-muted/50 flex gap-3 rounded-lg border p-3 text-left">
-              <Cover titulo={l.titulo} tamanho="md" />
+              <Cover titulo={l.titulo} capaUid={l.capaUid} tamanho="md" />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{l.titulo}</div>
                 {l.autor && <div className="text-muted-foreground truncate text-[12px]">{l.autor}</div>}

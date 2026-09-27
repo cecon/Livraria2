@@ -4,7 +4,7 @@ import type { ItemRelatorioEstoque } from "./relatorios_estoque";
 export { montarItensRelatorioEstoque } from "./relatorios_estoque";
 
 export type LinhaValor = { rotulo: string; valorCentavos: number };
-export type ItemRel = { titulo: string; qtd: number; valorCentavos: number };
+export type ItemRel = { titulo: string; capaUid?: string | null; qtd: number; valorCentavos: number };
 export type PedidoRel = {
   numero: number;
   cliente: string;

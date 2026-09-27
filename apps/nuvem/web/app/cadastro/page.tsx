@@ -1,5 +1,7 @@
 "use client";
 
+import { ImagemProduto } from "@/interface/ImagemProduto";
+import { Cover } from "@/components/Cover";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Pencil, Plus, Search, Trash2 } from "lucide-react";
@@ -140,7 +142,7 @@ export default function CadastroPage() {
               return (
                 <TableRow key={l.sync_uid}>
                   <TableCell>
-                    <div className="truncate font-medium">{l.titulo}</div>
+                    <div className="flex items-center gap-3"><Cover titulo={l.titulo} capaUid={l.capaUid} tamanho="sm" /><div className="min-w-0"><div className="truncate font-medium">{l.titulo}</div>
                     <div className="text-muted-foreground truncate text-[11px]">
                       {l.autor ? `${l.autor} · ` : ""}
                       <span className="font-mono">{l.codigo}</span>
@@ -148,7 +150,7 @@ export default function CadastroPage() {
                     <div className="mt-1 flex items-center gap-1.5 md:hidden">
                       <span className="text-[11px] text-muted-foreground">Estoque</span>
                       <StockBadge estoque={est} />
-                    </div>
+                    </div></div></div>
                   </TableCell>
                   <TableCell className="text-right font-mono whitespace-nowrap">{reais(l.preco_centavos)}</TableCell>
                   <TableCell className="hidden md:table-cell">
@@ -197,13 +199,16 @@ function LivroForm({ inicial, onSalvo, onCancelar }: { inicial: Livro | null; on
     descricao: inicial?.descricao ?? "",
     ativo: inicial?.ativo ?? true,
   }));
+  const [capaUid, setCapaUid] = useState(inicial?.capaUid ?? null);
+  const [imagemOcupada, setImagemOcupada] = useState(false);
   const [salvando, setSalvando] = useState(false);
 
   async function salvar() {
+    if (salvando || imagemOcupada) return;
     if (!form.codigo.trim()) return toast.error("Informe o código (de barras) do livro");
     setSalvando(true);
     const { error } = await salvarLivro({
-      sync_uid: inicial?.sync_uid,
+      capaUid, sync_uid: inicial?.sync_uid,
       codigo: form.codigo,
       titulo: form.titulo,
       autor: form.autor,
@@ -230,6 +235,7 @@ function LivroForm({ inicial, onSalvo, onCancelar }: { inicial: Livro | null; on
 
       <ContentPanel title="Dados do livro" description="Campos usados na pesquisa, venda e sincronização com os caixas.">
         <div className="admin-form space-y-4">
+        <ImagemProduto value={capaUid} titulo={form.titulo} disabled={salvando || imagemOcupada} onChange={setCapaUid} onBusy={setImagemOcupada} />
         <div>
           <Label htmlFor="cod">Código de barras (EAN/ISBN)</Label>
           <Input id="cod" value={form.codigo} disabled={editando} onChange={(e) => setForm({ ...form, codigo: e.currentTarget.value })} className="mt-1 h-9 font-mono" placeholder="ex.: 9788573671469" />
@@ -277,7 +283,7 @@ function LivroForm({ inicial, onSalvo, onCancelar }: { inicial: Livro | null; on
         </label>}
 
         <div className="flex flex-wrap gap-2 pt-2">
-          <Button onClick={salvar} disabled={salvando} className="h-10">
+          <Button onClick={salvar} disabled={salvando || imagemOcupada} className="h-10">
             {editando ? "Alterar" : "Cadastrar"}
           </Button>
           <Button variant="outline" onClick={onCancelar} className="h-10 sm:ml-auto">

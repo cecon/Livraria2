@@ -18,6 +18,7 @@ const nextConfig = {
   async rewrites() {
     return {
       beforeFiles: [
+        { source: "/api/pdv/capas/:uid", destination: `${nuvemApiUrl}/api/v1/capas/:uid` },
         { source: "/mcp", destination: `${nuvemApiUrl}/api/v1/ia/mcp` },
         { source: "/mcp/:path*", destination: `${nuvemApiUrl}/api/v1/ia/mcp/:path*` },
         {

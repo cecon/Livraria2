@@ -10,6 +10,15 @@ import { productSnapshot, ProductSnapshot } from "./pdv-products-read";
 export class PdvProductsService {
   constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
 
+  async images(after?: string) {
+    const start = after ? uuid(after) : "00000000-0000-0000-0000-000000000000";
+    const rows = await this.db.$queryRaw<{ uid: string; capaUid: string | null; versao: string }[]>`
+      select l.sync_uid::text as uid,
+        case when l.excluido_em is null then l.capa_uid::text else null end as "capaUid",
+        coalesce((select max(e.sequencia) from public.nuvem_catalogo_evento e where e.produto_uid=l.sync_uid),0)::text as versao
+      from public.livro l where l.sync_uid>${start}::uuid order by l.sync_uid limit 501`;
+    return { items: rows.slice(0,500), next: rows.length > 500 ? rows[499].uid : null };
+  }
   async exact(codigo: unknown) {
     if (typeof codigo !== "string" || !codigo.trim() || codigo.length > 100) throw new BadRequestException();
     const book = await this.db.livro.findUnique({ where: { codigo: codigo.trim() }, select: { syncUid: true } });
@@ -84,6 +93,7 @@ export class PdvProductsService {
         return result;
       }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
     } catch (error) {
+      if ((error as { code?: string }).code === "P2003") throw new BadRequestException("Imagem não encontrada. Envie novamente.");
       if ((error as { code?: string }).code === "P2002") throw new ConflictException("Já existe produto com este código.");
       throw error;
     }

@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { json } from "express";
 import { ArgumentsHost, Catch, Controller, ExceptionFilter, Get, HttpException, Logger, Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { OperationsModule } from "./operations.module";
@@ -38,10 +39,12 @@ class HttpErrorLogFilter implements ExceptionFilter {
 
 function installLegacyPdvRoutes(app: { use: (fn: (req: { url?: string }, res: unknown, next: () => void) => void) => void }) {
   const rewrites: Array<[RegExp, string]> = [
+    [/^\/api\/(?:v1\/)?pdv\/capas(?=\/|\?|$)/, "/api/v1/capas"],
     [/^\/api\/(?:v1\/)?pdv\/catalogo(\/confirmacao)?(?=\?|$)/, "/api/v1/sync/catalogo$1"],
     [/^\/api\/(?:v1\/)?pdv\/vendas(\/[0-9a-f-]+\/cancelamento)?(?=\?|$)/i, "/api/v1/sync/vendas$1"],
     [/^\/api\/(?:v1\/)?pdv\/turnos(\/[0-9a-f-]+\/encerramento)?(?=\?|$)/i, "/api/v1/sync/turnos$1"],
     [/^\/api\/(?:v1\/)?pdv\/caixa-movimentos(?=\?|$)/, "/api/v1/sync/caixa-movimentos"],
+    [/^\/api\/(?:v1\/)?pdv\/produtos\/imagens(?=\?|$)/, "/api/v1/produtos-pdv/imagens"],
     [/^\/api\/(?:v1\/)?pdv\/produtos\/codigo(?=\?|$)/, "/api/v1/produtos-pdv/codigo"],
     [/^\/api\/(?:v1\/)?pdv\/produtos\/([0-9a-f-]+)(?=\?|$)/i, "/api/v1/produtos-pdv/$1"],
     [/^\/api\/(?:v1\/)?pdv\/produtos(?=\?|$)/, "/api/v1/produtos-pdv"],
@@ -63,6 +66,8 @@ function installLegacyPdvRoutes(app: { use: (fn: (req: { url?: string }, res: un
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   installLegacyPdvRoutes(app);
+  app.use("/api/v1/capas", json({ limit: "7mb" }));
+  app.use(json({ limit: "100kb" }));
   app.useGlobalFilters(new HttpErrorLogFilter());
   app.setGlobalPrefix("api/v1");
   app.enableShutdownHooks();

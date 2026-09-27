@@ -1,5 +1,6 @@
 "use client";
 
+import { Cover } from "./Cover";
 import { Trash2 } from "lucide-react";
 import { reais } from "@/utils/texto";
 import type { ItemNota } from "@/lib/nuvem/lancamento";
@@ -20,7 +21,7 @@ export function ItensNotaTabela({ itens, lendo, onRemover }: { itens: ItemNota[]
         <tbody>
           {itens.map((i) => (
             <tr key={i.sync_uid} className="border-t">
-              <td className="p-2">{i.titulo}</td>
+              <td className="p-2"><div className="flex items-center gap-3"><Cover titulo={i.titulo} capaUid={i.capaUid} tamanho="sm" /><span>{i.titulo}</span></div></td>
               <td className="p-2 text-right font-mono">{i.qtd}</td>
               <td className="p-2 text-right font-mono">{reais(i.custoUnitCentavos)}</td>
               <td className="p-2 text-right font-mono">{reais(i.subtotalCentavos)}</td>

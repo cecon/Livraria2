@@ -6,7 +6,7 @@ import { StockBadge } from "@/components/StockBadge";
 import { Cover } from "@/components/Cover";
 import { reais } from "@/utils/texto";
 
-export type LivroBusca = { sync_uid: string; codigo: string; titulo: string; autor: string | null; preco_centavos: number; estoque: number; ativo?: boolean };
+export type LivroBusca = { capaUid?: string | null; sync_uid: string; codigo: string; titulo: string; autor: string | null; preco_centavos: number; estoque: number; ativo?: boolean };
 
 interface Props {
   value: string;
@@ -65,7 +65,7 @@ export function EntradaProduto({ value, onChange, onSelecionar, onCodigoExato, i
               onClick={() => onSelecionar(l)}
               className={`flex w-full items-center gap-2 border-b p-2 text-left last:border-b-0 ${idx === Math.min(ativo, resultados.length - 1) ? "bg-muted" : "hover:bg-muted/60"}`}
             >
-              <Cover titulo={l.titulo} tamanho="sm" />
+              <Cover titulo={l.titulo} capaUid={l.capaUid} tamanho="sm" />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm">{l.titulo}</div>
                 <div className="text-muted-foreground truncate text-[11px]">

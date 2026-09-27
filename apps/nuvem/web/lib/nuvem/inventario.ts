@@ -10,9 +10,10 @@ import { listarSaldos } from "@/lib/nuvem/estoque";
 
 export type ModoInventario = "parcial" | "total";
 
-export type LivroContagem = { livroUid: string; codigo: string; titulo: string; saldo: number };
+export type LivroContagem = { capaUid?: string | null; livroUid: string; codigo: string; titulo: string; saldo: number };
 
 export type Divergencia = {
+  capaUid?: string | null;
   livroUid: string;
   codigo: string;
   titulo: string;
@@ -24,7 +25,7 @@ export type Divergencia = {
 // Livros com saldo corrente (derivado) para a contagem.
 export async function livrosParaContagem(): Promise<LivroContagem[]> {
   const [livros, saldos] = await Promise.all([listarLivros(), listarSaldos()]);
-  return livros.map((l) => ({ livroUid: l.sync_uid, codigo: l.codigo, titulo: l.titulo, saldo: saldos.get(l.sync_uid) ?? 0 }));
+  return livros.map((l) => ({ capaUid: l.capaUid, livroUid: l.sync_uid, codigo: l.codigo, titulo: l.titulo, saldo: saldos.get(l.sync_uid) ?? 0 }));
 }
 
 // Reconcilia a contagem contra o saldo (via WASM). Parcial: só os contados; Total:
@@ -43,7 +44,7 @@ export async function reconciliar(
     const efetiva = dom.contagem_efetiva(modo, contada, tem) as number | null;
     if (efetiva === null) continue; // parcial não-contado: intacto
     const diferenca = Number(dom.diferenca_contagem(l.saldo, efetiva));
-    divergencias.push({ livroUid: l.livroUid, codigo: l.codigo, titulo: l.titulo, saldo: l.saldo, efetiva, diferenca });
+    divergencias.push({ capaUid: l.capaUid, livroUid: l.livroUid, codigo: l.codigo, titulo: l.titulo, saldo: l.saldo, efetiva, diferenca });
   }
   return divergencias;
 }

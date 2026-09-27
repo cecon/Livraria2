@@ -1,0 +1,63 @@
+const assert = require('node:assert/strict');
+const { randomUUID } = require('node:crypto');
+const sharp = require('sharp');
+
+module.exports = async (t, db, base, admin, device) => {
+  await t.test('imagens: valida arquivo, preserva identidade, publica troca/remocao e nao altera estoque', async () => {
+    const call = async (path, body, token = admin, method = 'POST') => {
+      const r = await fetch(base + path, { method, headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+      return { status: r.status, body: await r.json() };
+    };
+    const png = await sharp({ create: { width: 1500, height: 1000, channels: 3, background: '#b32818' } }).png().toBuffer();
+    const imagem = 'data:image/png;base64,' + png.toString('base64');
+    assert.equal((await call('/capas', { imagem }, 'invalido')).status, 401);
+    assert.equal((await call('/capas', { imagem: 'data:image/png;base64,' + Buffer.from('<svg/>').toString('base64') })).status, 400);
+    assert.equal((await call('/capas', { imagem: 'https://example.com/a.jpg' })).status, 400);
+    const oversized = 'data:image/png;base64,' + Buffer.alloc(5 * 1024 * 1024 + 1).toString('base64');
+    const rejected = await call('/capas', { imagem: oversized });
+    assert.equal(rejected.status, 400);
+    assert.match(rejected.body.message, /5 MB/);
+    const first = await call('/capas', { imagem }, device);
+    assert.equal(first.status, 201, JSON.stringify(first.body));
+    assert.deepEqual((await call('/capas', { imagem })).body, first.body);
+    const served = await fetch(base + '/capas/' + first.body.uid);
+    assert.equal(served.status, 200);
+    assert.equal(served.headers.get('content-type'), 'image/webp');
+    assert.match(served.headers.get('cache-control'), /immutable/);
+    assert.equal(served.headers.get('x-content-type-options'), 'nosniff');
+    const meta = await sharp(Buffer.from(await served.arrayBuffer())).metadata();
+    assert.equal(meta.width, 1000); assert.equal(meta.height, 667); assert.equal(meta.exif, undefined);
+    assert.equal((await fetch(base + '/capas/' + randomUUID())).status, 404);
+    const uid = randomUUID();
+    const dados = { codigo: 'CAPA-' + uid, titulo: 'Livro com capa', autor: '', descricao: '', preco_centavos: 1000, categoria: 0, estoqueInicial: 2, capaUid: first.body.uid };
+    const create = { operacao: randomUUID(), uid, acao: 'criar', dados };
+    const saved = await call('/produtos-pdv', create);
+    assert.equal(saved.status, 201, JSON.stringify(saved.body));
+    assert.equal(saved.body.capaUid, first.body.uid);
+    assert.deepEqual(await call('/produtos-pdv', create), saved);
+    const events = await db.$queryRaw`select produto from public.nuvem_catalogo_evento where produto_uid=${uid}::uuid order by sequencia desc limit 1`;
+    assert.equal(events[0].produto.capaUid, first.body.uid);
+    const manifest = await fetch(base + '/produtos-pdv/imagens', { headers: { authorization: `Bearer ${device}` } });
+    assert.equal(manifest.status, 200);
+    assert.equal((await manifest.json()).items.find(row => row.uid === uid).capaUid, first.body.uid);
+    const alias = await fetch(base.replace('/api/v1', '/api/pdv') + '/capas', {
+      method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${device}` }, body: JSON.stringify({ imagem }) });
+    assert.equal(alias.status, 201);
+    assert.equal((await alias.json()).uid, first.body.uid);
+    const { capaUid, ...unchanged } = dados;
+    const edit = { ...unchanged, estoqueInicial: 0 };
+    assert.equal((await call('/admin/livros/' + uid, edit, admin, 'PUT')).status, 200);
+    assert.equal((await db.livro.findUnique({where:{syncUid:uid}})).capaUid, first.body.uid);
+    const otherPng = await sharp(png).negate().png().toBuffer();
+    const other = await call('/capas', { imagem: 'data:image/png;base64,' + otherPng.toString('base64') });
+    assert.notEqual(other.body.uid, first.body.uid);
+    assert.equal((await call('/admin/livros/' + uid, { ...edit, capaUid: other.body.uid }, admin, 'PUT')).status, 200);
+    assert.equal((await call('/admin/livros/' + uid, { ...edit, capaUid: randomUUID() }, admin, 'PUT')).status, 400);
+    assert.equal((await db.livro.findUnique({where:{syncUid:uid}})).capaUid, other.body.uid);
+    assert.equal((await call('/admin/livros/' + uid, { ...edit, capaUid: null }, admin, 'PUT')).status, 200);
+    const removed = await db.$queryRaw`select produto from public.nuvem_catalogo_evento where produto_uid=${uid}::uuid order by sequencia desc limit 1`;
+    assert.equal(removed[0].produto.capaUid, null);
+    assert.equal(await db.movimento_estoque.count({ where: { livro_uid: uid } }), 1);
+    assert.equal((await fetch(base + '/capas/' + first.body.uid)).status, 200);
+  });
+};
