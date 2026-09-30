@@ -54,3 +54,5 @@ Novas decisões recebem número ainda não utilizado.
 Alterar decisão exige nova ADR ou complemento explícito, com data, consequências e evidência.
 
 - [0039: Sincronizacao exclusivamente pela API](0039-sincronizacao-exclusiva-api.md) — aceita.
+
+- [0040: Retaguarda baseada no seed Able Pro](0040-retaguarda-able-pro.md) — aceita.

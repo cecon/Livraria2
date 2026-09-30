@@ -58,3 +58,8 @@ graphify-out/
 
 # Cache de compilacao TypeScript
 *.tsbuildinfo
+
+.reference-able-pro/
+
+# Evidencias locais dos testes de navegador
+test-results/

@@ -1,0 +1,29 @@
+import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import "./globals.css";
+import { Providers } from "@/components/Providers";
+import { Shell } from "@/components/Shell";
+import { ConexaoBanner } from "@/components/ConexaoBanner";
+import { Toaster } from "@/interface/ui/sonner";
+
+export const metadata: Metadata = {
+  title: "Escritório — Livraria",
+  description: "Retaguarda: recebimento, cadastros e consultas.",
+};
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const store = await cookies();
+  const usuario = store.get("nuvem_usuario")?.value ? store.get("app_user")?.value ?? null : null;
+  // suppressHydrationWarning: o next-themes ajusta a classe do <html> antes da hidratação.
+  return (
+    <html lang="pt-BR" suppressHydrationWarning>
+      <body>
+        <Providers>
+          <ConexaoBanner />
+          <Shell usuario={usuario}>{children}</Shell>
+          <Toaster />
+        </Providers>
+      </body>
+    </html>
+  );
+}

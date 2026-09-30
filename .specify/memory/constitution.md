@@ -1,6 +1,6 @@
 # Constituição da Livraria
 
-**Version**: 3.1.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-27
+**Version**: 3.1.2 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-30
 
 Esta constituição orienta os dois produtos: **PDV** e **Cloud (nuvem)**. Substitui a
 versão 2.0.0, que misturava SQLite local, nuvem como espelho e estoque centralizado.
@@ -13,14 +13,15 @@ responsável prevalecem; mudanças duradouras devem ser refletidas nestes regist
 | Produto | Localização | Responsabilidade |
 |---|---|---|
 | PDV | `apps/pdv` | Balcão, interface própria, SQLite e pendências de sincronização |
-| Cloud | `apps/nuvem/web` e `apps/nuvem/api` | Retaguarda, API, permissões e PostgreSQL oficial |
+| Cloud | `apps/nuvem/retaguarda` e `apps/nuvem/api` | Retaguarda, API, permissões e PostgreSQL oficial |
 
 Web e API são partes do Cloud. `crates` e `packages` são bibliotecas internas, não
 um terceiro produto. Reutilização exige benefício concreto e não obriga compartilhar
 interface, navegação, menus ou acesso a banco.
 
-Cada produto mantém sua interface. O tema pode ser referência comum sem pacote de
-componentes compartilhado. A API autenticada é a fronteira exclusiva de acesso aos
+Cada produto mantém sua interface. A retaguarda adota Able Pro 9.2.2 em sua
+pasta própria (ADR-0040); o PDV conserva sua referência visual. Não há obrigação de
+tema ou componentes compartilhados. A API autenticada é a fronteira exclusiva de acesso aos
 dados oficiais, incluindo as referências do PDV (ADR-0039). Não reintroduzir
 adaptadores ou credenciais de acesso direto a provedores descontinuados.
 

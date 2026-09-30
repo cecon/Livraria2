@@ -1,0 +1,165 @@
+"use client";
+import { PageHeader } from "@/components/PageHeader";
+import { Alert, IconButton } from "@mui/material";
+
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Copy } from "lucide-react";
+import { Button } from "@/interface/ui/button";
+import { Input } from "@/interface/ui/input";
+import { Label } from "@/interface/ui/label";
+import { StockBadge } from "@/components/StockBadge";
+import { Cover } from "@/components/Cover";
+import { AjusteEstoque } from "@/components/AjusteEstoque";
+import { ExtratoMovimentos } from "@/components/ExtratoMovimentos";
+import { CATEGORIAS } from "@/lib/catalogo";
+import { listarLivros, type Livro } from "@/lib/nuvem/livro";
+import { listarSaldos } from "@/lib/nuvem/estoque";
+import { BrowserApiError } from "@/lib/api/browser-client";
+import { reais } from "@/utils/texto";
+
+// Pesquisa + Detalhes (US2) — paridade com o PDV: busca por código OU texto,
+// resultados em cards, detalhe com capa/estoque/extrato/ajuste.
+export default function PesquisaPage() {
+  const [livros, setLivros] = useState<Livro[]>([]);
+  const [saldos, setSaldos] = useState<Map<string, number>>(new Map());
+  const [porCodigo, setPorCodigo] = useState("");
+  const [porTexto, setPorTexto] = useState("");
+  const [resultados, setResultados] = useState<Livro[] | null>(null);
+  const [detalhe, setDetalhe] = useState<Livro | null>(null);
+  const [refresh, setRefresh] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  async function carregarBase() {
+    const [ls, ss] = await Promise.all([listarLivros(), listarSaldos()]);
+    setLivros(ls);
+    setSaldos(ss);
+    return ss;
+  }
+  useEffect(() => {
+    carregarBase().catch((error) => {
+      if (error instanceof BrowserApiError && error.status === 401) return;
+      setError("Catálogo indisponível. Recarregue a página para tentar novamente.");
+    }).finally(() => setLoading(false));
+  }, []);
+
+  const est = (l: Livro) => saldos.get(l.sync_uid) ?? 0;
+
+  function buscarCodigo() {
+    const cod = porCodigo.trim();
+    if (!cod) return;
+    const l = livros.find((x) => x.codigo === cod);
+    if (!l) return toast.error("Nenhum livro encontrado");
+    setResultados(null);
+    setDetalhe(l);
+  }
+
+  function buscarTexto() {
+    const termo = porTexto.trim().toLowerCase();
+    if (!termo) return;
+    const ls = livros.filter((x) => `${x.titulo} ${x.autor ?? ""}`.toLowerCase().includes(termo));
+    if (ls.length === 0) {
+      toast.error("Nenhum livro encontrado");
+      setResultados([]);
+    } else if (ls.length === 1) {
+      setDetalhe(ls[0]);
+      setResultados(null);
+    } else {
+      setResultados(ls.slice(0, 60));
+      setDetalhe(null);
+    }
+  }
+
+  function copiar(codigo: string) {
+    navigator.clipboard.writeText(codigo);
+    toast.success("Código copiado");
+  }
+
+  if (detalhe) {
+    const cat = CATEGORIAS.find((c) => c.id === detalhe.categoria);
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-4 sm:p-6">
+        {resultados && (
+          <Button variant="ghost" onClick={() => setDetalhe(null)} className="mb-3">
+            ← Voltar aos resultados
+          </Button>
+        )}
+        <div className="bg-card flex flex-col gap-5 rounded-xl border p-5 sm:flex-row">
+          <Cover titulo={detalhe.titulo} capaUid={detalhe.capaUid} tamanho="lg" />
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-semibold tracking-tight">{detalhe.titulo}</h1>
+            {detalhe.autor && <div className="text-muted-foreground text-sm">{detalhe.autor}</div>}
+            <div className="mt-2 flex items-center gap-3">
+              <span className="font-mono text-2xl font-bold">{reais(detalhe.preco_centavos)}</span>
+              <StockBadge estoque={est(detalhe)} />
+            </div>
+            <dl className="mt-4 grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
+              <dt className="text-muted-foreground">Categoria</dt>
+              <dd>{cat ? `${cat.id} — ${cat.nome}` : detalhe.categoria}</dd>
+              <dt className="text-muted-foreground">Estoque</dt>
+              <dd className="font-mono">{est(detalhe)}</dd>
+              <dt className="text-muted-foreground">Código</dt>
+              <dd className="flex items-center gap-2 font-mono">
+                {detalhe.codigo}
+                <IconButton onClick={() => copiar(detalhe.codigo)} size="small" aria-label="Copiar código"><Copy size={14} /></IconButton>
+              </dd>
+              {detalhe.descricao && (
+                <>
+                  <dt className="text-muted-foreground">Descrição</dt>
+                  <dd>{detalhe.descricao}</dd>
+                </>
+              )}
+            </dl>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <AjusteEstoque livroUid={detalhe.sync_uid} onAjustado={async () => { await carregarBase(); setRefresh((n) => n + 1); }} />
+        </div>
+        <ExtratoMovimentos livroUid={detalhe.sync_uid} refresh={refresh} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-4 sm:p-6">
+      <PageHeader title="Pesquisa" crumbs={[{label:"Catálogo"},{label:"Pesquisa"}]} description="Consulte títulos, preços e disponibilidade." />
+      {loading && <p role="status" className="mt-4">Carregando catálogo…</p>}
+      {error && <Alert severity="error" sx={{mt:2}}>{error}</Alert>}
+      <div className="bg-card mt-4 grid grid-cols-1 gap-4 rounded-xl border p-5 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="pesquisa-codigo">Código de Barras</Label>
+          <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+            <Input disabled={loading || !!error} id="pesquisa-codigo" value={porCodigo} onChange={(e) => setPorCodigo(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && buscarCodigo()} className="h-9 font-mono" />
+            <Button disabled={loading || !!error} onClick={buscarCodigo} className="h-9">Pesquisar</Button>
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="pesquisa-texto">Título ou Autor</Label>
+          <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+            <Input disabled={loading || !!error} id="pesquisa-texto" value={porTexto} onChange={(e) => setPorTexto(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && buscarTexto()} className="h-9" />
+            <Button disabled={loading || !!error} onClick={buscarTexto} className="h-9">Pesquisar</Button>
+          </div>
+        </div>
+      </div>
+
+      {resultados && resultados.length > 0 && (
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {resultados.map((l) => (
+            <button key={l.sync_uid} onClick={() => setDetalhe(l)} className="bg-card hover:bg-muted/50 flex gap-3 rounded-lg border p-3 text-left">
+              <Cover titulo={l.titulo} capaUid={l.capaUid} tamanho="md" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{l.titulo}</div>
+                {l.autor && <div className="text-muted-foreground truncate text-[12px]">{l.autor}</div>}
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="font-mono text-sm">{reais(l.preco_centavos)}</span>
+                  <StockBadge estoque={est(l)} />
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

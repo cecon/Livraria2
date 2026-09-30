@@ -3,7 +3,7 @@ Governanca vigente: `.specify/memory/constitution.md` (3.1.1), `AGENTS.md` e
 `docs/adr/README.md`. ADR-0032 define dois produtos e interfaces independentes;
 ADR-0034 consolida responsabilidades, estoque, permissoes e publicacao.
 
-PDV: `apps/pdv`, offline com SQLite. Cloud: `apps/nuvem/web` + `apps/nuvem/api`,
+PDV: `apps/pdv`, offline com SQLite. Cloud: `apps/nuvem/retaguarda` + `apps/nuvem/api`,
 PostgreSQL oficial. Bibliotecas internas nao sao outro produto. Sincronizacao
 exclusivamente pela API, conforme ADR-0039; nao reintroduzir o transporte antigo.
 Planos de features anteriores sao historicos e nao substituem a governanca atual.

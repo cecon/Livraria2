@@ -1,10 +1,10 @@
 name: nuvem-api
 on:
   pull_request:
-    paths: ["apps/nuvem/api/**", "apps/nuvem/web/lib/api/**", "apps/nuvem/web/app/api/catalogo/**", "packages/contratos/**", "package*.json", ".github/workflows/nuvem-api.yml"]
+    paths: ["apps/nuvem/api/**", "apps/nuvem/retaguarda/**", "packages/contratos/**", "package*.json", ".github/workflows/nuvem-api.yml"]
   push:
     branches: [main]
-    paths: ["apps/nuvem/api/**", "packages/contratos/**", "package*.json", ".github/workflows/nuvem-api.yml"]
+    paths: ["apps/nuvem/api/**", "apps/nuvem/retaguarda/**", "packages/contratos/**", "package*.json", ".github/workflows/nuvem-api.yml"]
   workflow_dispatch:
 permissions:
   contents: read
@@ -26,6 +26,9 @@ jobs:
       - name: Validar cadastro LLM e identidade do turno
         run: node --test --test-concurrency=1 apps/nuvem/api/tests/llm-provider.cjs apps/nuvem/api/tests/llm.cjs
       - run: npm run test:api -w livraria-escritorio
+      - run: npm run build:web
+        env:
+          NUVEM_API_URL: http://127.0.0.1:3003
       - name: PostgreSQL isolado para protocolo
         run: |
           docker run -d --name livraria-separacao-db -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=livraria_test -p 127.0.0.1:55439:5432 postgres:16-alpine
@@ -42,5 +45,6 @@ jobs:
       - run: npm run test:integration -w @livraria/nuvem-api
         env:
           API_TEST_DATABASE: isolated-local
+          API_WEB_E2E: "true"
           DATABASE_URL: postgresql://postgres@127.0.0.1:55439/livraria_test
       - run: docker build -f apps/nuvem/api/Dockerfile -t livraria-nuvem-api:ci .

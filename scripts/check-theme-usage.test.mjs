@@ -16,10 +16,10 @@ const complete = `# Theme Review
 test('detects UI files and ignores tests', () => {
   assert.deepEqual(uiFiles([
     'apps/pdv/src/Pdv.tsx',
-    'apps/nuvem/web/app/page.tsx', 'packages/ui/theme.css',
+    'apps/nuvem/retaguarda/app/page.tsx', 'packages/ui/theme.css',
     'apps/pdv/src/Pdv.test.tsx', 'apps/nuvem/api/src/main.ts', 'docs/readme.md',
   ]), ['apps/pdv/src/Pdv.tsx',
-    'apps/nuvem/web/app/page.tsx', 'packages/ui/theme.css']);
+    'apps/nuvem/retaguarda/app/page.tsx', 'packages/ui/theme.css']);
 });
 
 test('accepts a complete report with existing references', () => {
@@ -43,14 +43,14 @@ test('staged UI changes only require local theme availability', () => {
 });
 
 test('push rejects UI changes without a changed report', () => {
-  const result = validate({ files: ['apps/nuvem/web/app/page.tsx'], staged: false,
+  const result = validate({ files: ['apps/nuvem/retaguarda/app/page.tsx'], staged: false,
     root: '/repo', exists: () => true });
   assert.ok(result.errors.some(error => error.includes('relatorio novo')));
 });
 
 test('push accepts UI changes with complete changed report', () => {
   const result = validate({
-    files: ['apps/nuvem/web/app/page.tsx', 'docs/theme-reviews/mobile-home.md'],
+    files: ['apps/nuvem/retaguarda/app/page.tsx', 'docs/theme-reviews/mobile-home.md'],
     staged: false, root: '/repo', exists: () => true, read: () => complete,
   });
   assert.deepEqual(result.errors, []);
@@ -58,10 +58,10 @@ test('push accepts UI changes with complete changed report', () => {
 
 test('detects web stylesheet and shared layout as UI', () => {
   assert.deepEqual(uiFiles([
-    'apps/nuvem/web/app/globals.css',
-    'apps/nuvem/web/components/Shell.tsx',
+    'apps/nuvem/retaguarda/app/globals.css',
+    'apps/nuvem/retaguarda/components/Shell.tsx',
   ]), [
-    'apps/nuvem/web/app/globals.css',
-    'apps/nuvem/web/components/Shell.tsx',
+    'apps/nuvem/retaguarda/app/globals.css',
+    'apps/nuvem/retaguarda/components/Shell.tsx',
   ]);
 });

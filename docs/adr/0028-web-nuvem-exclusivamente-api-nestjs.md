@@ -21,7 +21,7 @@ nova imagem restaurar acidentalmente problemas ja corrigidos.
 
 ## Decisao
 
-O web em `apps/nuvem/web` usa exclusivamente a API NestJS em `apps/nuvem/api` para autenticacao e
+O web em `apps/nuvem/retaguarda` usa exclusivamente a API NestJS em `apps/nuvem/api` para autenticacao e
 dados administrativos. Sao removidos:
 
 - clientes provedor legado do frontend e suas dependencias;

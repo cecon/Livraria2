@@ -33,7 +33,7 @@ Marco da reorganizacao: `marco-pre-separacao-2026-09-14`.
 Plano: [separacao PDV/nuvem](specs/013-separacao-pdv-nuvem/plan.md).
 
 - `apps/pdv`: Tauri e layout React, com banco local.
-- `apps/nuvem/web`: administrativo Next.js.
+- `apps/nuvem/retaguarda`: administrativo Next.js.
 - `apps/nuvem/api`: API NestJS com Prisma/PostgreSQL.
 - `packages/contratos`: comunicacao versionada entre sistemas.
 

@@ -4,7 +4,7 @@
 
 - [x] T001 Criar tag da base e worktree isolado.
 - [x] T002 Mover PDV e layout para apps/pdv.
-- [x] T003 Mover escritorio para apps/nuvem/web.
+- [x] T003 Mover escritorio para apps/nuvem/retaguarda.
 - [x] T004 Ajustar manifests, caminhos Rust, Docker e workflows.
 - [x] T005 Introduzir API NestJS, ORM inicial e contratos v1.
 - [x] T006 Validar builds, testes existentes e endpoint health.

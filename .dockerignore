@@ -1,6 +1,7 @@
 # Contexto de build enxuto (o Dockerfile do Escritório builda da raiz do workspace).
 # Fora o que é pesado/gerado — em especial src-tauri/target (pode ter GBs).
 .git
+.reference-able-pro/
 node_modules
 **/node_modules
 target
@@ -10,6 +11,8 @@ src-tauri/target
 crates/*/target
 dist
 **/.next
-apps/nuvem/web/.next
+apps/nuvem/retaguarda/.next
 **/*.log
 .DS_Store
+
+**/test-results/

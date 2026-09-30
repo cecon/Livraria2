@@ -226,10 +226,10 @@ test("venda atomica e idempotente com triggers reais", { timeout: 90000 }, async
     await require("./admin-shifts.cjs")(t, db, base, adminToken, firstDevice.accessToken);
     await require("./admin-sales.cjs")(t, db, base, adminToken, firstDevice.accessToken);
     await require("./admin-reports.cjs")(t, base, adminToken, firstDevice.accessToken);
-    await require("./admin-users.cjs")(t, db, base, adminToken, firstDevice.accessToken, request);
     if (process.env.API_WEB_E2E === "true") {
       await require("./web-catalog.cjs")(t, db, base, adminToken, firstDevice.accessToken);
     }
+    await require("./admin-users.cjs")(t, db, base, adminToken, firstDevice.accessToken, request);
   } finally {
     if (child && child.exitCode === null && child.signalCode === null) {
       const stopped = new Promise(resolve => child.once("exit", resolve));
