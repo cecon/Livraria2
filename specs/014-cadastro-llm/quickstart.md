@@ -9,7 +9,7 @@
    base completos separados por vírgula (incluindo o caminho da API). A permissão
    explícita é necessária inclusive para servidores locais. Endereços são acessados
    a partir do servidor da retaguarda, não do navegador nem da máquina PDV.
-   O compose `apps/nuvem/web/stack.yml` encaminha as duas variáveis ao serviço API.
+   O compose `apps/nuvem/retaguarda/stack.yml` encaminha as duas variáveis ao serviço API.
    Recriar o serviço é necessário para incorporar variáveis de ambiente novas.
 4. Administrador acessa **LLMs**, cadastra provedor/modelo/chave e testa a conexão.
    A edição com chave vazia preserva a chave anterior. Trocar destino requer informá-la

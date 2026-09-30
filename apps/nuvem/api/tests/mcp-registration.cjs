@@ -20,15 +20,15 @@ test("MCP OAuth continua registrado na API e exposto pelo web", () => {
   }
 
   const webRoutes = [
-    "apps/nuvem/web/app/mcp/route.ts",
-    "apps/nuvem/web/app/.well-known/oauth-authorization-server/route.ts",
-    "apps/nuvem/web/app/.well-known/oauth-protected-resource/route.ts",
+    "apps/nuvem/retaguarda/app/mcp/route.ts",
+    "apps/nuvem/retaguarda/app/.well-known/oauth-authorization-server/route.ts",
+    "apps/nuvem/retaguarda/app/.well-known/oauth-protected-resource/route.ts",
   ];
   for (const route of webRoutes) {
     assert.ok(fs.existsSync(path.join(root, route)), `${route} deve existir para clientes MCP descobrirem OAuth`);
   }
 
-  const middleware = read("apps/nuvem/web/middleware.ts");
+  const middleware = read("apps/nuvem/retaguarda/middleware.ts");
   assert.match(middleware, /"\/mcp"/, "/mcp deve ser publico no middleware");
   assert.match(middleware, /"\/\.well-known"/, "/.well-known deve ser publico no middleware");
 });

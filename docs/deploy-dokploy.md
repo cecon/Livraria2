@@ -35,7 +35,7 @@ O proxy usa o alias livraria-cloud-web na rede dokploy-network.
 `MIGRATOR_SLEEP_SECONDS=0` permite o encerramento do migrador. Healthchecks:
 API `/api/v1/health`; web `/api/health`. Nao repetir mudancas de rede do banco a
 cada publicacao: atualizar rede do servico Swarm pode reiniciar sua tarefa.
-Nao executar `down -v`, fresh volumes, nem o antigo `apps/nuvem/web/stack.yml`
+Nao executar `down -v`, fresh volumes, nem o antigo `apps/nuvem/retaguarda/stack.yml`
 como procedimento de atualizacao. Backup fica em armazenamento protegido, fora do Git.
 
 Validar o resultado na aba Deployments, a saude da API e os fluxos autenticados

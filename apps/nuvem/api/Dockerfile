@@ -5,7 +5,7 @@ COPY packages/ui/package.json packages/ui/package.json
 COPY packages/domain/package.json packages/domain/package.json
 COPY packages/contratos/package.json packages/contratos/package.json
 COPY apps/pdv/package.json apps/pdv/package.json
-COPY apps/nuvem/web/package.json apps/nuvem/web/package.json
+COPY apps/nuvem/retaguarda/package.json apps/nuvem/retaguarda/package.json
 COPY apps/nuvem/api/package.json apps/nuvem/api/package.json
 RUN npm ci --ignore-scripts --workspace=@livraria/nuvem-api --include-workspace-root=false
 COPY apps/nuvem/api apps/nuvem/api

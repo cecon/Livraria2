@@ -4,7 +4,7 @@
 
 - apps/pdv: React/Vite, Tauri, SQLite/SeaORM.
 - apps/nuvem/api: NestJS 11, Prisma 6, PostgreSQL existente.
-- apps/nuvem/web: Next.js administrativo existente.
+- apps/nuvem/retaguarda: Next.js administrativo existente.
 - apps/nuvem/migrations e migrator: SQL historico preservado.
 - packages/contratos: contratos de comunicacao versionados.
 - crates/livraria-domain: dominio Rust puro compartilhado.

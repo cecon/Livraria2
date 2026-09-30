@@ -13,9 +13,9 @@ não deve ser apresentada como vários produtos ou como dependência entre suas 
 ## Decisão
 
 - PDV: `apps/pdv`, Tauri/React/Rust/SQLite; interface própria e operação offline.
-- Cloud: `apps/nuvem/web` e `apps/nuvem/api`, Next.js/NestJS/Prisma/PostgreSQL.
+- Cloud: `apps/nuvem/retaguarda` e `apps/nuvem/api`, Next.js/NestJS/Prisma/PostgreSQL.
   Web e API são partes do mesmo produto.
-- Interfaces próprias em `apps/pdv/src/interface` e `apps/nuvem/web/interface`.
+- Interfaces próprias em `apps/pdv/src/interface` e `apps/nuvem/retaguarda/interface`.
   Tema comum é referência visual, não pacote obrigatório de UI compartilhada.
 - `crates` e `packages` podem conter contratos e cálculos puros justificados;
   não formam terceiro produto nem obrigam compartilhar UI ou persistência.
