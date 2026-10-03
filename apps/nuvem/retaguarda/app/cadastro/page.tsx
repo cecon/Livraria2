@@ -239,7 +239,8 @@ function LivroForm({ inicial, onSalvo, onCancelar }: { inicial: Livro | null; on
         <ImagemProduto value={capaUid} titulo={form.titulo} disabled={salvando || imagemOcupada} onChange={setCapaUid} onBusy={setImagemOcupada} />
         <div>
           <Label htmlFor="cod">Código de barras (EAN/ISBN)</Label>
-          <Input id="cod" value={form.codigo} disabled={editando} onChange={(e) => setForm({ ...form, codigo: e.currentTarget.value })} className="mt-1 h-9 font-mono" placeholder="ex.: 9788573671469" />
+          <Input id="cod" value={form.codigo} aria-describedby={editando ? "cod-ajuda" : undefined} onChange={(e) => setForm({ ...form, codigo: e.currentTarget.value })} className="mt-1 h-9 font-mono" placeholder="ex.: 9788573671469" />
+          {editando && <p id="cod-ajuda" className="mt-1 text-[11px] text-muted-foreground">Alterar o código mantém vendas e estoque do produto. Etiquetas com o código antigo deixam de ser lidas após a sincronização dos caixas.</p>}
         </div>
         <div>
           <Label htmlFor="tit">Título</Label>
