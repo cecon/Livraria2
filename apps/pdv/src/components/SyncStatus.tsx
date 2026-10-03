@@ -76,7 +76,7 @@ export function SyncStatus() {
       </button>
       {imagens > 0 && <span role="status" className="block text-[11px] text-muted-foreground">{imagens} imagem(ns) aguardando download. A venda continua disponível.</span>}
       {erro && (
-        <span role="alert" className="block break-words text-[11px] text-red-600">
+        <span role="alert" className="block break-words text-[11px] text-red-600 dark:text-red-400">
           {erro}
         </span>
       )}
