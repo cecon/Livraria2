@@ -63,3 +63,4 @@ graphify-out/
 
 # Evidencias locais dos testes de navegador
 test-results/
+.kanbots/
