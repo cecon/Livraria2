@@ -29,7 +29,8 @@ impl ApiSync {
     }
     #[cfg(test)]
     pub(crate) fn teste(base: String) -> Self {
-        Self { client: Client::new(), base, token: "test".into() }
+        let diagnostico = Diagnostico { origem: base.clone(), pdv_uid: String::new(), arquivo: None };
+        Self { client: Client::new(), base, token: "test".into(), diagnostico }
     }
     pub async fn mapa_capas(&self, after: Option<&str>) -> Result<crate::image_bootstrap::ImagePage, RepoErro> {
         let mut req = self.client.get(format!("{}/produtos/imagens", self.base)).bearer_auth(&self.token);

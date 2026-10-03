@@ -57,8 +57,9 @@ async function forward(request: NextRequest, path: string, requiresToken: boolea
     return NextResponse.json({ erro: "Dados excessivos." }, { status: 413 });
   }
   try {
+    const requestId = request.headers.get("x-request-id");
     const response = await apiFetch(path, { method: request.method, body: text,
-      headers: { "x-request-id": request.headers.get("x-request-id") ?? "" } }, token);
+      ...(requestId && { headers: { "x-request-id": requestId } }) }, token);
     const responseText = await response.text();
     return new NextResponse(responseText || null, { status: response.status,
       headers: { "content-type": "application/json", "cache-control": "no-store",
