@@ -26,7 +26,17 @@ export class CatalogController {
         from public.nuvem_pdv where uid = ${uid}::uuid and ativo for update`;
       if (!rows[0]) throw new ConflictException("Dispositivo indisponivel");
       const start = value === undefined ? rows[0].aplicado : cursor(value);
-      if (start !== rows[0].aplicado) throw new ConflictException("Cursor nao confirmado");
+      if (start !== rows[0].aplicado) {
+        await tx.$executeRaw`
+          update public.nuvem_pdv set cursor_aplicado = ${start},
+            cursor_entregue = greatest(cursor_entregue, ${start}), confirmado_em = now()
+          where uid = ${uid}::uuid`;
+        if (start > rows[0].entregue) {
+          await tx.$executeRaw`
+            update public.nuvem_sync_contador set sequencia = greatest(sequencia, ${start})
+            where id = 1`;
+        }
+      }
       const events = await tx.$queryRaw<Event[]>`
         select sequencia, produto_uid::text as "produtoUid", operacao, produto
         from public.nuvem_catalogo_evento where sequencia > ${start}
@@ -64,7 +74,7 @@ export class CatalogController {
         select cursor_aplicado as aplicado, cursor_entregue as entregue
         from public.nuvem_pdv where uid = ${uid}::uuid and ativo for update`;
       const row = rows[0];
-      if (!row || applied < row.aplicado) throw new ConflictException("Cursor nao entregue");
+      if (!row) throw new ConflictException("Dispositivo indisponivel");
       if (applied > row.entregue) {
         await tx.$executeRaw`
           update public.nuvem_sync_contador set sequencia = greatest(sequencia, ${applied})
