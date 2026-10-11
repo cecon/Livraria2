@@ -11,9 +11,9 @@ export function OAuthConnectionForm({ params }: { params: Record<string, string>
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
-  const modo = (params.scope || "").split(/\s+/).includes("livraria:write")
-    ? "Consultas e alterações"
-    : "Somente consultas";
+  const pediuAlteracoes = (params.scope || "").split(/\s+/).includes("livraria:write");
+  const [alteracoes, setAlteracoes] = useState(pediuAlteracoes);
+  const modo = alteracoes ? "Consultas e alterações" : "Somente consultas";
   const destino = useMemo(() => {
     try {
       return new URL(params.resource || "").host || "conector";
@@ -30,7 +30,7 @@ export function OAuthConnectionForm({ params }: { params: Record<string, string>
       const resposta = await fetch("/api/ia/oauth/authorize", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...params, usuario, senha }),
+        body: JSON.stringify({ ...params, usuario, senha, alteracoes }),
       });
       const body = await resposta.json().catch(() => ({}));
       if (!resposta.ok || typeof body.redirect !== "string") {
@@ -79,6 +79,13 @@ export function OAuthConnectionForm({ params }: { params: Record<string, string>
               onChange={(e) => setSenha(e.target.value)}
             />
           </div>
+          {!pediuAlteracoes && (
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" className="mt-0.5" checked={alteracoes}
+                onChange={(e) => setAlteracoes(e.target.checked)} />
+              <span>Permitir alterações (ajustar estoque e editar cadastro de livros)</span>
+            </label>
+          )}
           <Button className="w-full" type="submit" disabled={carregando}>
             {carregando ? "Conectando..." : "Autorizar conector"}
           </Button>

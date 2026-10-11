@@ -14,7 +14,8 @@ const mcpRoutes = new Set([
   "GET /admin/estoque/livros/:uid/movimentos", "POST /admin/estoque/ajustes", "POST /admin/estoque/contagens",
   "POST /agentes/cadastro/analisar", "POST /agentes/cadastro/qualidades", "POST /agentes/cadastro/fotos",
   "POST /agentes/cadastro/sessoes", "GET /admin/fornecedores", "GET /admin/formas", "GET /admin/destinacoes",
-  "GET /admin/relatorios/dashboard", "GET /admin/relatorios/estoque", "GET /admin/vendas/hoje", "GET /admin/turnos",
+  "GET /admin/relatorios/dashboard", "GET /admin/relatorios/estoque", "GET /admin/relatorios/vendas",
+  "GET /admin/relatorios/livros-vendidos", "GET /admin/vendas/hoje", "GET /admin/turnos",
 ]);
 @Injectable()
 export class IaCatalog implements OnApplicationBootstrap {

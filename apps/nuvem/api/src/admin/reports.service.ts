@@ -1,4 +1,4 @@
-import { ConflictException, Inject, Injectable } from "@nestjs/common";
+import { BadRequestException, ConflictException, Inject, Injectable } from "@nestjs/common";
 import { PrismaService } from "../database/prisma.service";
 import { dashboardPeriod, dateInput, nextDate, salesPeriod } from "./report-input";
 
@@ -74,6 +74,30 @@ export class ReportsService {
     const summary = [...forms].map(([rotulo, value]) => ({ rotulo, valorCentavos: integer(value, "Total por forma") }));
     return { data: date, periodo: period, pedidos: orders, repasses: [], resumo: {
       formas: summary, subtotalCentavos: integer([...forms.values()].reduce((sum, value) => sum + value, 0n), "Total") } };
+  }
+
+  // Livros vendidos no período (pedidos não cancelados), agregados por produto.
+  async soldBooks(startValue: unknown, endValue: unknown, searchValue: unknown) {
+    const start = dateInput(startValue);
+    const end = endValue === undefined || endValue === "" ? start : dateInput(endValue);
+    if (end < start) throw new ConflictException("Periodo invertido");
+    if (Date.parse(end) - Date.parse(start) > 366 * 86400000) throw new BadRequestException("Periodo maior que um ano");
+    const search = typeof searchValue === "string" && searchValue.trim() ? searchValue.trim().slice(0, 200) : null;
+    const rows = await this.db.$queryRaw<{ livro_uid: string | null; codigo: string; titulo: string;
+      qtd: bigint; valor: bigint; pedidos: bigint }[]>`
+      select i.livro_uid::text, i.codigo, max(i.titulo) as titulo, sum(i.qtd)::bigint as qtd,
+        sum(i.qtd*i.preco_centavos)::bigint as valor, count(distinct p.sync_uid)::bigint as pedidos
+      from public.item_pedido i join public.pedido p on p.sync_uid=i.pedido_uid
+      where i.excluido_em is null and p.excluido_em is null and not p.cancelado
+        and p.data >= ${start} and p.data < ${nextDate(end)}
+        and (${search}::text is null or i.titulo ilike '%' || ${search}::text || '%' or i.codigo ilike '%' || ${search}::text || '%')
+      group by i.livro_uid, i.codigo order by qtd desc, titulo limit 500`;
+    const items = rows.map(row => ({ livro_uid: row.livro_uid, codigo: row.codigo, titulo: row.titulo,
+      qtd: integer(row.qtd, "Quantidade"), valorCentavos: integer(row.valor, "Valor"),
+      pedidos: integer(row.pedidos, "Pedidos") }));
+    return { inicio: start, fim: end, titulos: items.length,
+      qtdTotal: items.reduce((sum, item) => sum + item.qtd, 0),
+      valorTotalCentavos: items.reduce((sum, item) => sum + item.valorCentavos, 0), itens: items };
   }
 
   async dashboard(value: unknown) {

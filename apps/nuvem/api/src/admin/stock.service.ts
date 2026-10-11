@@ -17,9 +17,11 @@ export class StockService {
   constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
 
   async balances() {
-    const rows = await this.db.$queryRaw<{ livro_uid: string; saldo: bigint }[]>`
-      select livro_uid::text, saldo from public.vw_saldo_livro order by livro_uid`;
-    return rows.map(row => ({ livro_uid: row.livro_uid, saldo: safeInteger(row.saldo, "Saldo") }));
+    const rows = await this.db.$queryRaw<{ livro_uid: string; codigo: string; titulo: string; saldo: bigint }[]>`
+      select s.livro_uid::text, s.codigo, l.titulo, s.saldo from public.vw_saldo_livro s
+      join public.livro l on l.sync_uid=s.livro_uid order by s.livro_uid`;
+    return rows.map(row => ({ livro_uid: row.livro_uid, codigo: row.codigo, titulo: row.titulo,
+      saldo: safeInteger(row.saldo, "Saldo") }));
   }
 
   async movements(id: string) {

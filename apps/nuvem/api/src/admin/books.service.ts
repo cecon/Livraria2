@@ -2,27 +2,24 @@ import { BadRequestException, ConflictException, Inject, Injectable, NotFoundExc
 import { randomUUID } from "node:crypto";
 import { PrismaService } from "../database/prisma.service";
 import { bookInput } from "./book-input";
+import { bookListItem, bookListLimit, bookListQuery, BookListFilter, BookRow } from "./book-query";
 import { uuid } from "../sync/validation";
 
 @Injectable()
 export class BooksService {
   constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
 
-  async list(after?: string, includeInactive = false) {
-    const rows = await this.db.livro.findMany({
-      where: { excluidoEm: null, ...(!includeInactive && { ativo: true }),
-        ...(after && { syncUid: { gt: uuid(after) } }) },
-      orderBy: { syncUid: "asc" }, take: 501,
-    });
-    const items = rows.slice(0, 500).map(row => {
-      if (row.precoCentavos < 0n || row.precoCentavos > BigInt(Number.MAX_SAFE_INTEGER)) {
-        throw new ConflictException("Preco legado fora do contrato; reconciliacao necessaria");
-      }
-      return { sync_uid: row.syncUid, codigo: row.codigo, titulo: row.titulo, autor: row.autor,
-        preco_centavos: Number(row.precoCentavos), categoria: row.categoria,
-        descricao: row.descricao, ativo: row.ativo, capaUid: row.capaUid };
-    });
-    return { items, next: rows.length > 500 ? items[items.length - 1].sync_uid : null };
+  async list(filter: BookListFilter = {}) {
+    const limit = bookListLimit(filter.limit);
+    const rows = await this.db.$queryRaw<BookRow[]>(bookListQuery(filter, limit));
+    const items = rows.slice(0, limit).map(row => bookListItem(row, !!filter.summary));
+    return { items, next: rows.length > limit ? items[items.length - 1].sync_uid : null };
+  }
+
+  async get(id: string) {
+    const rows = await this.db.$queryRaw<BookRow[]>(bookListQuery({ uid: id, includeInactive: true }, 1));
+    if (!rows.length) throw new NotFoundException("Produto indisponivel");
+    return bookListItem(rows[0], false);
   }
 
   async save(id: string, input: unknown, actor: string, creating: boolean) {
