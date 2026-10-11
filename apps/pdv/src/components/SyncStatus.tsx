@@ -10,7 +10,7 @@ type Estado = "sincronizado" | "pendente" | "sincronizando" | "offline";
 export function SyncStatus() {
   const [imagens, setImagens] = useState(0);
   const [pendentes, setPendentes] = useState(0);
-  const [estado, setEstado] = useState<Estado>("sincronizado");
+  const [estado, setEstado] = useState<Estado>("pendente");
   const [erro, setErro] = useState<string | null>(null);
 
   const atualizar = useCallback(async () => {
@@ -18,7 +18,7 @@ export function SyncStatus() {
       const s = await statusSincronizacao();
       setPendentes(s.pendentes);
       setImagens(s.imagensPendentes ?? 0);
-      setEstado((e) => (e === "sincronizando" ? e : s.pendentes > 0 ? "pendente" : "sincronizado"));
+      setEstado((e) => (e === "sincronizando" || e === "offline" ? e : s.pendentes > 0 ? "pendente" : e));
     } catch {
       /* status é local; ignora falhas transitórias */
     }
@@ -48,10 +48,10 @@ export function SyncStatus() {
     estado === "sincronizando"
       ? "Sincronizando…"
       : estado === "offline"
-        ? "Sem conexão"
+        ? "Falha ao sincronizar"
         : pendentes > 0
           ? `${pendentes} pendente${pendentes > 1 ? "s" : ""}`
-          : "Sincronizado";
+          : estado === "sincronizado" ? "Sincronizado" : "Sem envios pendentes";
 
   return (
     <div className="space-y-1">
@@ -76,7 +76,7 @@ export function SyncStatus() {
       </button>
       {imagens > 0 && <span role="status" className="block text-[11px] text-muted-foreground">{imagens} imagem(ns) aguardando download. A venda continua disponível.</span>}
       {erro && (
-        <span className="block break-words text-[11px] text-red-600">
+        <span role="alert" className="block break-words text-[11px] text-red-600 dark:text-red-400">
           {erro}
         </span>
       )}

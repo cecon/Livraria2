@@ -6,9 +6,12 @@ export const API_COOKIE = "nuvem_usuario";
 
 export async function apiFetch(path: string, init: RequestInit = {}, token?: string, timeoutMs = 5000) {
   const credential = token ?? (await cookies()).get(API_COOKIE)?.value;
+  const incomingId = new Headers(init.headers).get("x-request-id");
+  const requestId = incomingId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(incomingId)
+    ? incomingId : undefined;
   return fetch(`${apiOrigin()}/api/v1/${path}`, {
     ...init, redirect: "error", cache: "no-store", signal: AbortSignal.timeout(timeoutMs),
-    headers: { "content-type": "application/json", ...(credential && { authorization: `Bearer ${credential}` }) },
+    headers: { "content-type": "application/json", ...(requestId && { "x-request-id": requestId }), ...(credential && { authorization: `Bearer ${credential}` }) },
   });
 }
 

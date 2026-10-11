@@ -3,3 +3,4 @@
 
 pub mod api_sync;
 pub mod produtos;
+pub mod diagnostico;
