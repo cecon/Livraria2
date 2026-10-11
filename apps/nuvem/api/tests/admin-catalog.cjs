@@ -44,6 +44,17 @@ module.exports = async function adminCatalog(t, db, base, adminToken, deviceToke
     assert.equal(await db.movimento_estoque.count({ where: { livro_uid: id } }), 1);
   });
 
+  await t.test("busca filtra por palavras sem acento e devolve saldo", async () => {
+    const found = await call("GET", "?busca=test-503%20PRODUTO%20t%C3%A9ste&resumo=1&limite=5");
+    assert.equal(found.status, 200);
+    assert.deepEqual(found.body.items.map(book => [book.sync_uid, book.saldo, "descricao" in book]), [[id, 7, false]]);
+    assert.equal((await call("GET", "?busca=inexistente-xyz")).body.items.length, 0);
+    assert.equal((await call("GET", "?limite=0")).status, 400);
+    const single = await call("GET", "/" + id);
+    assert.equal(single.status, 200);
+    assert.equal(single.body.saldo, 7);
+  });
+
   await t.test("renomear codigo e preco preserva UUID e nao repete saldo inicial", async () => {
     assert.equal((await call("PUT", "/" + id, { ...input, estoqueInicial: 0,
       codigo: "9786585995887", preco_centavos: 4500 })).status, 200);

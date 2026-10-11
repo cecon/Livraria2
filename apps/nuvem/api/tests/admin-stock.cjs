@@ -22,7 +22,7 @@ module.exports = async function adminStock(t, db, base, adminToken, deviceToken)
     assert.equal((await call("GET", "/saldos", undefined, deviceToken)).status, 403);
     const response = await call("GET", "/saldos");
     assert.equal(response.status, 200);
-    assert.deepEqual(response.body.find(item => item.livro_uid === bookUid), { livro_uid: bookUid, saldo: 5 });
+    assert.deepEqual(response.body.find(item => item.livro_uid === bookUid), { livro_uid: bookUid, codigo: "STOCK-TEST", titulo: "Estoque teste", saldo: 5 });
     for (const qtd of [0, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
       assert.equal((await call("POST", "/ajustes", {
         sync_uid: randomUUID(), livro_uid: bookUid, qtd, motivo: "teste",
