@@ -99,8 +99,11 @@ export class IaAccessService {
     return { ...p, clientName: client.client_name, modo: p.scope.includes("livraria:write") ? "alteracao" : "consulta" };
   }
   async authorizeOAuth(value: unknown, issuer: string) {
-    const v = object(value), p = this.authParams(v);
-    await this.client(p.client_id, p.redirect_uri);
+    const v = object(value), requested = this.authParams(v);
+    await this.client(requested.client_id, requested.redirect_uri);
+    // The person may grant changes on the consent screen even when the client only asked for reads.
+    const p = v.alteracoes === true && !requested.scope.includes("livraria:write")
+      ? { ...requested, scope: `${requested.scope} livraria:write` } : requested;
     const mode = p.scope.includes("livraria:write") ? "alteracao" : "consulta";
     const session = await this.auth.login(v.usuario, v.senha);
     const user = await this.auth.authenticate(session.accessToken);

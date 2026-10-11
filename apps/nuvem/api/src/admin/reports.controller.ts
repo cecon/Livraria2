@@ -37,6 +37,11 @@ export class ReportsController {
   sales(@Req() req: AuthRequest, @Query("data") date?: string, @Query("periodo") period?: string) {
     admin(req.principal); return this.reports.sales(date, period);
   }
+  @Get("livros-vendidos")
+  soldBooks(@Req() req: AuthRequest, @Query("inicio") start?: string, @Query("fim") end?: string,
+    @Query("busca") search?: string) {
+    admin(req.principal); return this.reports.soldBooks(start, end, search);
+  }
   @Get("dashboard")
   dashboard(@Req() req: AuthRequest, @Query("periodo") period?: string) {
     admin(req.principal); return this.reports.dashboard(period);

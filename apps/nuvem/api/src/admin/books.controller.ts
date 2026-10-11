@@ -10,9 +10,18 @@ export class BooksController {
   constructor(@Inject(BooksService) private readonly books: BooksService) {}
 
   @Get()
-  list(@Req() req: AuthRequest, @Query("after") after?: string, @Query("inativos") inativos?: string) {
+  list(@Req() req: AuthRequest, @Query("after") after?: string, @Query("inativos") inativos?: string,
+    @Query("busca") busca?: string, @Query("codigo") codigo?: string, @Query("titulo") titulo?: string,
+    @Query("limite") limite?: string, @Query("resumo") resumo?: string) {
     admin(req.principal);
-    return this.books.list(after, inativos === "1");
+    return this.books.list({ after, includeInactive: inativos === "1", search: busca, code: codigo, title: titulo,
+      limit: limite, summary: resumo === "1" });
+  }
+
+  @Get(":uid")
+  get(@Req() req: AuthRequest, @Param("uid") uid: string) {
+    admin(req.principal);
+    return this.books.get(uid);
   }
 
   @Post()
