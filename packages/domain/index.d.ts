@@ -79,6 +79,11 @@ export function turno_proximo_numero(qtd_no_turno: number): number;
 export function turno_resumir_fechamento(pagamentos_do_turno: any, caixa_inicial_centavos: number, dinheiro_forma_id: number, qtd_vendas: number): any;
 
 /**
+ * Valida um ajuste manual de estoque (ADR-0026): `{ ok, novoSaldo }` ou `{ ok: false, erro }`.
+ */
+export function validar_ajuste_estoque(saldo_atual: number, delta: number, motivo: string): any;
+
+/**
  * Valida a conclusão da venda (≥1 item, pago ≥ total, troco só do dinheiro).
  */
 export function validar_conclusao_venda(itens: any, pagamentos: any, dinheiro_forma_id: number): any;
@@ -102,6 +107,7 @@ export interface InitOutput {
     readonly turno_pode_registrar_venda: (a: number, b: number) => number;
     readonly turno_proximo_numero: (a: number) => number;
     readonly turno_resumir_fechamento: (a: any, b: number, c: number, d: number) => [number, number, number];
+    readonly validar_ajuste_estoque: (a: number, b: number, c: number, d: number) => [number, number, number];
     readonly validar_conclusao_venda: (a: any, b: any, c: number) => [number, number, number];
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

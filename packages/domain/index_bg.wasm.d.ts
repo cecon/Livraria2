@@ -16,6 +16,7 @@ export const turno_encerrar: (a: number, b: number) => [number, number, number];
 export const turno_pode_registrar_venda: (a: number, b: number) => number;
 export const turno_proximo_numero: (a: number) => number;
 export const turno_resumir_fechamento: (a: any, b: number, c: number, d: number) => [number, number, number];
+export const validar_ajuste_estoque: (a: number, b: number, c: number, d: number) => [number, number, number];
 export const validar_conclusao_venda: (a: any, b: any, c: number) => [number, number, number];
 export const __wbindgen_malloc: (a: number, b: number) => number;
 export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
