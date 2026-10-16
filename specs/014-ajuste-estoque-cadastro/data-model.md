@@ -21,6 +21,7 @@ A linha do livro é travada (`for update`) pela guarda durante o insert de um aj
 | `tipo` | `ajuste` |
 | `qtd` | inteiro com sinal, ≠ 0 |
 | `motivo` | texto livre, obrigatório, sem espaços nas pontas |
+| `referencia` | `ajuste_manual` (marcador que ativa a guarda; o estorno de nota não o usa) |
 | `origem` | `escritorio` |
 | `criado_por` | usuário autenticado |
 | `criado_em` | momento do ajuste |
@@ -41,4 +42,5 @@ agora pela tela "Alterar livro".
 | 3 | `saldo_atual + delta < 0` | `EstoqueNegativo` (`ESTOQUE_NEGATIVO`) |
 | — | caso contrário | `Ok(saldo_atual + delta)` (zero é aceito) |
 
-A guarda da nuvem reaplica só a condição 3, com o saldo oficial do momento do insert.
+A guarda da nuvem reaplica só a condição 3, com o saldo oficial do momento do insert, e só para
+movimentos `tipo='ajuste'`, `origem='escritorio'`, `referencia='ajuste_manual'`.

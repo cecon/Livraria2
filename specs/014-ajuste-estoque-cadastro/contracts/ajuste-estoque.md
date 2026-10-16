@@ -23,7 +23,10 @@ erro de regra não lança exceção). A mensagem pt-BR é montada no escritório
 ## 3. Nuvem (Postgres, migração `0016`)
 
 - Gatilho `trg_ajuste_sem_saldo_negativo` `BEFORE INSERT ON movimento_estoque FOR EACH ROW`, ativo só
-  quando `new.tipo = 'ajuste' and new.origem = 'escritorio'`.
+  quando `new.tipo = 'ajuste' and new.origem = 'escritorio' and new.referencia = 'ajuste_manual'`.
+- Não afeta: estorno de nota cancelada (`lancamentoCancelar`, sem `referencia`), `contagem`
+  (inventário), `saida_venda`/`estorno_venda`, `entrada`, `saldo_inicial`, movimentos de outra origem.
+- Limite: serializa ajustes concorrentes do mesmo livro; não trava contra a baixa de venda (0011).
 - Recusa: `raise exception 'ESTOQUE_NEGATIVO' using detail = '<saldo atual>'`, `errcode = 'P0001'`.
 - Aceita: insert segue; o gatilho `trg_mov_republica_livro` (0012) continua republicando o saldo.
 - Idempotente: `create or replace function` + `drop trigger if exists … ; create trigger …`.
@@ -35,16 +38,20 @@ estoque.saldoLivro(livroUid: string): Promise<number>          // vw_saldo_livro
 movimentos.registrarAjuste(livroUid, delta, motivo): Promise<{ error?: string }>
 ```
 
-`registrarAjuste` mantém a assinatura atual; quando o Postgres devolve `ESTOQUE_NEGATIVO`, `error`
-vira "O estoque ficaria negativo (atual: N)". Demais erros seguem a mensagem do servidor.
+`registrarAjuste` mantém a assinatura de entrada; passa a gravar `referencia: 'ajuste_manual'` e a
+devolver `{ error?: string; saldoAtual?: number }`. Quando o Postgres devolve `ESTOQUE_NEGATIVO`,
+`error` vira "O estoque ficaria negativo (atual: N)" e `saldoAtual = N`. Demais erros seguem a
+mensagem do servidor.
 
 ## 5. UI (`apps/escritorio/components`)
 
 ```text
-<AjusteEstoque livroUid saldoAtual onAjustado />
+<AjusteEstoque livroUid saldoAtual onAjustado onSaldoAtualizado? />
 ```
 
 - `saldoAtual: number` — usado na validação local via domínio antes de enviar.
+- Quantidade: só inteiro exato (`/^[+-]?\d+$/` após trim); senão "Informe a quantidade (ex.: -2 ou 3)".
+- `onSaldoAtualizado?(n)` — chamado quando a nuvem recusa com `saldoAtual` diferente do exibido.
 - Fechado: botão "Ajustar estoque". Aberto: "Qtd (±)", "Motivo", "Cancelar", "Aplicar".
 - "Aplicar" desabilitado enquanto envia. Sucesso: toast "Estoque ajustado", fecha e chama
   `onAjustado()`. Erro: toast com a mensagem, continua aberto com os valores.

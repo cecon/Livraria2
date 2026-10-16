@@ -18,8 +18,8 @@ npm test
 ```
 
 Em homologação, rodar `apps/nuvem/tests/0016_ajuste_sem_saldo_negativo.sql`: aceita ajuste positivo,
-aceita ajuste que zera, recusa ajuste que deixaria negativo com `ESTOQUE_NEGATIVO`, ignora movimentos
-de outro tipo/origem.
+aceita ajuste que zera, recusa ajuste manual que deixaria negativo com `ESTOQUE_NEGATIVO`, ignora
+estorno de nota (ajuste sem `referencia`), contagem e movimentos de outra origem.
 
 ## 2. Cenários manuais (spec US1/US2)
 
@@ -34,3 +34,8 @@ de outro tipo/origem.
 7. "Novo livro" não tem "Ajustar estoque"; a lista do Cadastro não tem ação de ajuste.
 8. Clique duplo em "Aplicar" → um único movimento no extrato.
 9. Pesquisa: ajuste que deixaria negativo também é recusado.
+10. Quantidade "2,5" ou "-2abc" → "Informe a quantidade (ex.: -2 ou 3)", nada registrado.
+11. Nota de entrada finalizada com livros já vendidos → cancelar a nota funciona como antes (o estorno
+    não é bloqueado pela regra nova).
+12. Abrir "Alterar livro" (estoque 3), vender 2 no PDV e sincronizar, ajustar −2 → recusado pela
+    nuvem com "atual: 1" e o "Estoque atual" da tela passa a mostrar 1.

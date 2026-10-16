@@ -27,6 +27,9 @@ então ajustar. Esta feature traz o mesmo ajuste para dentro do cadastro do livr
   ao "Estoque atual"; a lista do Cadastro não ganha ação de ajuste. (FR-002)
 - Q: Como o motivo do ajuste é informado? → A: **Texto livre** obrigatório, igual à Pesquisa hoje;
   sem lista de motivos padrão. (FR-003)
+- Decisão (pós-análise): a recusa de saldo negativo vale só para o **ajuste manual** (Cadastro e
+  Pesquisa). O **estorno automático de nota de entrada cancelada**, que também grava um movimento de
+  ajuste, **não** é afetado — o comportamento do cancelamento de nota continua como hoje. (FR-012)
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -85,8 +88,10 @@ que o preço digitado continua no campo e que o livro ainda tem o preço antigo 
 
 - **Livro novo**: na tela "Novo livro" não há botão de ajuste — o saldo inicial continua sendo
   informado no campo "Estoque inicial" (ADR-0017).
-- **Quantidade inválida**: zero, vazia ou não numérica → o ajuste é recusado com "Informe a quantidade
-  (ex.: -2 ou 3)" e nada é registrado.
+- **Quantidade inválida**: zero, vazia, não numérica ou não inteira (ex.: "2,5", "-2abc") → o ajuste
+  é recusado com "Informe a quantidade (ex.: -2 ou 3)" e nada é registrado.
+- **Cancelar nota de entrada** cujos livros já foram vendidos: continua como hoje (o estorno da nota
+  não passa pela recusa de saldo negativo — FR-012).
 - **Motivo vazio** (ou só espaços) → recusado com "Motivo é obrigatório".
 - **Ajuste que deixa o estoque negativo** (ex.: estoque 1, ajuste −3): é **recusado** com uma
   mensagem que informa o estoque atual (ex.: "O estoque ficaria negativo (atual: 1)"); nada é
@@ -97,7 +102,8 @@ que o preço digitado continua no campo e que o livro ainda tem o preço antigo 
   muda.
 - **Clique duplo em "Aplicar"**: um único ajuste é registrado.
 - **Venda no PDV durante a edição**: o estoque exibido após o ajuste reflete o saldo atual da nuvem
-  (incluindo vendas já sincronizadas), não um valor calculado só na tela.
+  (incluindo vendas já sincronizadas), não um valor calculado só na tela. Se a nuvem recusar o ajuste
+  por saldo negativo, o "Estoque atual" exibido é atualizado para o saldo informado na recusa.
 
 ## Requirements *(mandatory)*
 
@@ -119,17 +125,19 @@ que o preço digitado continua no campo e que o livro ainda tem o preço antigo 
   do livro.
 - **FR-007**: Um ajuste já aplicado MUST permanecer registrado mesmo que o usuário cancele a edição do
   livro.
-- **FR-008**: Em caso de erro ao registrar, o sistema MUST exibir a mensagem, manter o formulário de
-  ajuste aberto com os valores digitados e não alterar o estoque exibido.
+- **FR-008**: Em caso de erro ao registrar, o sistema MUST exibir a mensagem e manter o formulário de
+  ajuste aberto com os valores digitados; o estoque exibido só muda se a recusa trouxer um saldo
+  oficial diferente do mostrado (caso de venda concorrente).
 - **FR-009**: Enquanto um ajuste está sendo registrado, o sistema MUST impedir um segundo envio do
   mesmo ajuste.
 - **FR-010**: O ajuste a partir do Cadastro MUST estar disponível para os mesmos usuários que hoje
   podem ajustar pela Pesquisa — não cria nem amplia permissão.
 - **FR-011**: O ajuste pela Pesquisa MUST continuar funcionando como hoje, exceto pela nova
   checagem de saldo negativo (FR-012).
-- **FR-012**: O sistema MUST recusar todo ajuste cujo saldo resultante (saldo oficial atual +
-  quantidade) fique **abaixo de zero**, no Cadastro e na Pesquisa, informando o estoque atual.
-  Resultado igual a zero é aceito.
+- **FR-012**: O sistema MUST recusar todo **ajuste manual** (feito pelo Cadastro ou pela Pesquisa)
+  cujo saldo resultante (saldo oficial atual + quantidade) fique **abaixo de zero**, informando o
+  estoque atual. Resultado igual a zero é aceito. Movimentos gerados automaticamente por outras
+  operações (estorno de nota cancelada, inventário, venda) MUST NOT ser afetados por esta regra.
 
 ### Key Entities
 

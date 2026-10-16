@@ -11,8 +11,9 @@ oficial da nuvem) e o botão **"Ajustar estoque"**, reutilizando o componente de
 na Pesquisa. A única regra nova é **recusar ajuste que deixe o saldo negativo** (FR-012). Ela nasce
 **pura no domínio Rust** (`estoque::validar_ajuste`), chega ao escritório pelo WASM (ADR-0022) para
 dar retorno imediato, e é **garantida na nuvem** por uma guarda transacional no insert do movimento
-de ajuste (a nuvem é a autoridade do estoque, ADR-0023), o que cobre a concorrência com vendas e
-também a Pesquisa. Não há mudança de esquema: o ajuste continua sendo um `movimento_estoque` do tipo
+de ajuste (a nuvem é a autoridade do estoque, ADR-0023), restrita ao **ajuste manual**
+(`referencia = 'ajuste_manual'`), o que cobre ajustes concorrentes e também a Pesquisa sem afetar o
+estorno de nota cancelada nem o inventário. Não há mudança de esquema: o ajuste continua sendo um `movimento_estoque` do tipo
 `ajuste`.
 
 ## Technical Context
@@ -68,8 +69,9 @@ de domínio, 1 migração (guarda), ~2 mil livros, ajustes esporádicos (dezenas
   mensagem pt-BR com o saldo atual. Sem dinheiro envolvido.
 
 **Invariante offline (v2.1.0)**: ✅ Não afetado — ajuste é retaguarda na nuvem; o PDV não ganha
-ajuste e continua vendendo offline. A guarda vale só para ajustes de origem `escritorio`, então não
-interfere em movimentos que chegam por sync.
+ajuste e continua vendendo offline. A guarda vale só para ajustes manuais do escritório
+(`referencia = 'ajuste_manual'`), então não interfere em movimentos que chegam por sync, no estorno
+de nota nem no inventário.
 
 **Resultado**: passa, com uma justificativa registrada (guarda duplicada no banco).
 
@@ -92,10 +94,10 @@ crates/livraria-domain/src/
 ├── estoque.rs            # + validar_ajuste(saldo, delta, motivo) -> Result<i64, ErroDominio>
 └── erros.rs              # + AjusteSemQuantidade ("AJUSTE_SEM_QUANTIDADE")
 crates/livraria-domain-wasm/src/lib.rs   # + validar_ajuste_estoque (export WASM)
-packages/domain/                          # artefato WASM regenerado (build via CI)
+packages/domain/                          # artefato WASM regenerado SÓ pelo CI (wasm.yml) após push
 
 apps/nuvem/
-├── migrations/0016_ajuste_sem_saldo_negativo.sql   # guarda BEFORE INSERT (tipo=ajuste, origem=escritorio)
+├── migrations/0016_ajuste_sem_saldo_negativo.sql   # guarda BEFORE INSERT (ajuste manual do escritório)
 ├── migrations/README.md                            # + linha da 0016
 └── tests/0016_ajuste_sem_saldo_negativo.sql        # casos: aceita, zera, recusa, concorrência
 
@@ -106,7 +108,7 @@ apps/escritorio/
 ├── app/pesquisa/page.tsx            # passa saldoAtual ao AjusteEstoque
 └── lib/nuvem/
     ├── estoque.ts                   # + saldoLivro(livroUid)
-    ├── movimentos.ts                # registrarAjuste mapeia ESTOQUE_NEGATIVO → mensagem pt-BR
+    ├── movimentos.ts                # registrarAjuste grava referencia 'ajuste_manual' e mapeia ESTOQUE_NEGATIVO
     └── __tests__/movimentos.test.ts # mapeamento de erro + payload do ajuste
 
 docs/adr/0026-ajuste-sem-saldo-negativo.md
@@ -120,4 +122,4 @@ docs/adr/0026-ajuste-sem-saldo-negativo.md
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| Checagem de saldo negativo no domínio **e** numa guarda SQL (DRY parcial) | O domínio dá retorno imediato e é a regra testável; só a nuvem vê o saldo oficial no momento do insert e pode travar a linha do livro contra uma venda concorrente | Só no domínio/cliente: corrida com venda pode gravar saldo negativo. Só no SQL: viola o Princípio I (regra fora do domínio, não testável sem banco) e o retorno ao usuário só viria após ida à nuvem |
+| Checagem de saldo negativo no domínio **e** numa guarda SQL (DRY parcial) | O domínio dá retorno imediato e é a regra testável; só a nuvem vê o saldo oficial no momento do insert e trava a linha do livro contra **outro ajuste** concorrente (a baixa de venda não usa a trava — risco residual aceito, ver research D2) | Só no domínio/cliente: corrida entre ajustes e saldo lido na abertura da tela podem gravar saldo negativo. Só no SQL: viola o Princípio I (regra fora do domínio, não testável sem banco) e o retorno ao usuário só viria após ida à nuvem |
