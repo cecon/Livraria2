@@ -59,6 +59,34 @@ module.exports = async function adminStock(t, db, base, adminToken, deviceToken)
     assert.equal(await db.movimento_estoque.count({ where: { sync_uid: valid } }), 0);
   });
 
+  await t.test("ajuste negativo nao deixa saldo negativo; positivo e reenvio sempre passam", async () => {
+    const livro = randomUUID();
+    await db.livro.create({ data: { syncUid: livro, codigo: "STOCK-NEG", titulo: "Estoque negativo" } });
+    await db.movimento_estoque.create({ data: {
+      sync_uid: randomUUID(), livro_uid: livro, tipo: "saldo_inicial", qtd: 1n, criado_em: new Date().toISOString(),
+    } });
+    const ajuste = (qtd, sync_uid = randomUUID()) =>
+      call("POST", "/ajustes", { sync_uid, livro_uid: livro, qtd, motivo: "teste 015" });
+    const saldo = async () => (await call("GET", "/saldos")).body.find(item => item.livro_uid === livro).saldo;
+
+    const recusado = await ajuste(-3);
+    assert.equal(recusado.status, 409);
+    assert.equal(recusado.body.message, "O estoque ficaria negativo (atual: 1)");
+    assert.equal(await saldo(), 1);
+
+    const zera = randomUUID();
+    assert.equal((await ajuste(-1, zera)).status, 201);
+    assert.equal(await saldo(), 0);
+    assert.equal((await ajuste(-1, zera)).status, 201); // reenvio idempotente, sem nova checagem
+    assert.equal(await saldo(), 0);
+
+    await db.movimento_estoque.create({ data: {
+      sync_uid: randomUUID(), livro_uid: livro, tipo: "saida_venda", qtd: -2n, criado_em: new Date().toISOString(),
+    } });
+    assert.equal((await ajuste(1)).status, 201); // correcao positiva com saldo negativo por venda
+    assert.equal(await saldo(), -1);
+  });
+
   await t.test("antiga fila de divergencias nao e exposta", async () => {
     assert.equal((await call("GET", "/divergencias")).status, 404);
     assert.equal((await call("PUT", `/divergencias/${randomUUID()}`, { status: "resolvida" })).status, 404);
