@@ -28,7 +28,7 @@ quality gate 2), guarda SQL da nuvem (concorrência) e mapeamento de erro do ada
 
 **Purpose**: registro da decisão de arquitetura
 
-- [ ] T001 Criar **ADR-0026** em `docs/adr/0026-ajuste-sem-saldo-negativo.md` (contexto: FR-012 da 014;
+- [X] T001 Criar **ADR-0026** em `docs/adr/0026-ajuste-sem-saldo-negativo.md` (contexto: FR-012 da 014;
   decisão: regra pura `estoque::validar_ajuste` no domínio + guarda `BEFORE INSERT` na nuvem só para o
   ajuste manual (`tipo='ajuste' and origem='escritorio' and referencia='ajuste_manual'`), travando a
   linha do livro; consequências: DRY parcial justificado, Pesquisa também passa a recusar negativo,
@@ -44,10 +44,10 @@ quality gate 2), guarda SQL da nuvem (concorrência) e mapeamento de erro do ada
 
 **⚠️ CRITICAL**: nenhuma história começa antes desta fase
 
-- [ ] T002 Adicionar `ErroDominio::AjusteSemQuantidade` (mensagem "informe a quantidade do ajuste
+- [X] T002 Adicionar `ErroDominio::AjusteSemQuantidade` (mensagem "informe a quantidade do ajuste
   (ex.: -2 ou 3)", código `AJUSTE_SEM_QUANTIDADE`) em `crates/livraria-domain/src/erros.rs`, incluindo
   o caso no teste `codigos_estaveis`
-- [ ] T003 Implementar `pub fn validar_ajuste(saldo_atual: i64, delta: i64, motivo: &str) -> Result<i64,
+- [X] T003 Implementar `pub fn validar_ajuste(saldo_atual: i64, delta: i64, motivo: &str) -> Result<i64,
   ErroDominio>` em `crates/livraria-domain/src/estoque.rs` na ordem do `data-model.md` (delta 0 →
   `AjusteSemQuantidade`; motivo vazio/espaços → `MotivoObrigatorio`; `saldo+delta < 0` →
   `EstoqueNegativo`; senão `Ok(saldo+delta)`), com testes no `mod tests`: positivo, zera (aceito),
@@ -58,33 +58,33 @@ quality gate 2), guarda SQL da nuvem (concorrência) e mapeamento de erro do ada
   Control): commitar T002–T004, dar push da branch, aguardar o workflow `build-wasm`
   (`.github/workflows/wasm.yml`) commitar `packages/domain` de volta e fazer `git pull`; conferir que
   `packages/domain/index.d.ts` tem `validar_ajuste_estoque`. T011 depende deste passo
-- [ ] T005 [P] Criar migração idempotente `apps/nuvem/migrations/0016_ajuste_sem_saldo_negativo.sql`:
+- [X] T005 [P] Criar migração idempotente `apps/nuvem/migrations/0016_ajuste_sem_saldo_negativo.sql`:
   função `guarda_ajuste_sem_saldo_negativo()` (plpgsql) que, se `new.tipo = 'ajuste' and new.origem =
   'escritorio' and new.referencia = 'ajuste_manual'`, faz `perform 1 from livro where sync_uid = new.livro_uid for update`, soma
   `movimento_estoque.qtd` não excluídos do livro e, se `saldo + new.qtd < 0`, executa `raise exception
   'ESTOQUE_NEGATIVO' using detail = saldo::text, errcode = 'P0001'`; `drop trigger if exists
   trg_ajuste_sem_saldo_negativo on movimento_estoque` + `create trigger … before insert … for each row`
-- [ ] T006 [P] Criar `apps/nuvem/tests/0016_ajuste_sem_saldo_negativo.sql` no padrão de
+- [X] T006 [P] Criar `apps/nuvem/tests/0016_ajuste_sem_saldo_negativo.sql` no padrão de
   `tests/0013_*.sql` (fixtures com uuid `00000000-0016-…`, transação com rollback): ajuste +2 aceito;
   ajuste que zera aceito; ajuste manual que deixaria −1 recusado com `ESTOQUE_NEGATIVO` e `detail` =
   saldo; **não** bloqueados: ajuste negativo sem `referencia` (estorno de nota), `contagem` com
   `referencia='inventario'`, ajuste de `origem='pdv'` e `saida_venda`
-- [ ] T007 [P] Registrar a `0016` na tabela de `apps/nuvem/migrations/README.md` (conteúdo + status
+- [X] T007 [P] Registrar a `0016` na tabela de `apps/nuvem/migrations/README.md` (conteúdo + status
   "a aplicar em homologação, depois produção")
-- [ ] T008 [P] Adicionar `saldoLivro(livroUid: string): Promise<number>` em
+- [X] T008 [P] Adicionar `saldoLivro(livroUid: string): Promise<number>` em
   `apps/escritorio/lib/nuvem/estoque.ts` (lê `vw_saldo_livro` com `.eq("livro_uid", livroUid)
   .maybeSingle()`; retorna 0 se não houver linha)
-- [ ] T009 [P] Em `apps/escritorio/lib/nuvem/movimentos.ts`, fazer `registrarAjuste` gravar
+- [X] T009 [P] Em `apps/escritorio/lib/nuvem/movimentos.ts`, fazer `registrarAjuste` gravar
   `referencia: "ajuste_manual"` no insert e retornar `{ error?: string; saldoAtual?: number }`: erro do
   Postgres com `message` `ESTOQUE_NEGATIVO` vira "O estoque ficaria negativo (atual: N)" e
   `saldoAtual = N` (do `details`); demais erros seguem `error.message`. Exportar a função pura de
   tradução (`traduzirErroAjuste(error) -> { error, saldoAtual? }`) para teste. Não alterar
   `lancamentoCancelar` em `lancamento.ts` (estorno de nota fica fora da guarda)
-- [ ] T010 [P] Criar `apps/escritorio/lib/nuvem/__tests__/movimentos.test.ts` (vitest, padrão de
+- [X] T010 [P] Criar `apps/escritorio/lib/nuvem/__tests__/movimentos.test.ts` (vitest, padrão de
   `estoque.test.ts`): `traduzirErroAjuste` com `ESTOQUE_NEGATIVO` + details "3" → mensagem "O estoque
   ficaria negativo (atual: 3)" e `saldoAtual` 3; erro genérico mantém a mensagem e vem sem
   `saldoAtual`
-- [ ] T011 Atualizar `apps/escritorio/components/AjusteEstoque.tsx` (contrato §5): novas props
+- [X] T011 Atualizar `apps/escritorio/components/AjusteEstoque.tsx` (contrato §5): novas props
   `saldoAtual: number` e `onSaldoAtualizado?: (n: number) => void`; a quantidade só é aceita se o
   texto (após trim) casar com `/^[+-]?\d+$/` — senão "Informe a quantidade (ex.: -2 ou 3)" sem
   chamar o domínio (substitui o `parseInt`, que aceita "2,5" e "-2abc"); ao aplicar, chamar `validar_ajuste_estoque` via `dominio()` de
@@ -93,7 +93,7 @@ quality gate 2), guarda SQL da nuvem (concorrência) e mapeamento de erro do ada
   estoque ficaria negativo (atual: N)") sem enviar; estado `enviando` desabilita "Aplicar" e
   "Cancelar" durante o envio; em erro do servidor, toast e formulário continua aberto com os valores;
   se o retorno trouxer `saldoAtual`, chamar `onSaldoAtualizado(saldoAtual)` (venda concorrente)
-- [ ] T012 Em `apps/escritorio/app/pesquisa/page.tsx`, passar `saldoAtual={est(detalhe)}` ao
+- [X] T012 Em `apps/escritorio/app/pesquisa/page.tsx`, passar `saldoAtual={est(detalhe)}` ao
   `AjusteEstoque` (FR-011/FR-012 — Pesquisa passa a recusar negativo) depende de T011
 
 **Checkpoint**: regra no domínio testada, guarda pronta para homologação, componente de ajuste com
@@ -110,15 +110,15 @@ mostra 3; lista do Cadastro e Pesquisa mostram 3; extrato tem o ajuste (quicksta
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Extrair `LivroForm` de `apps/escritorio/app/cadastro/page.tsx` para
+- [X] T013 [US1] Extrair `LivroForm` de `apps/escritorio/app/cadastro/page.tsx` para
   `apps/escritorio/components/LivroForm.tsx` (export nomeado, mesmas props e comportamento; mover
   `centsInput` junto) e importar na página — sem mudança visual
-- [ ] T014 [US1] Em `apps/escritorio/components/LivroForm.tsx`, quando `editando`: estado `saldo`
+- [X] T014 [US1] Em `apps/escritorio/components/LivroForm.tsx`, quando `editando`: estado `saldo`
   carregado por `saldoLivro(inicial.sync_uid)` ao montar; campo "Estoque atual" mostra o número (não
   "—", continua desabilitado) e, ao lado, `<AjusteEstoque livroUid={inicial.sync_uid}
   saldoAtual={saldo} onAjustado={recarregarSaldo} onSaldoAtualizado={setSaldo} />`. Em "Novo livro"
   nada muda (sem ajuste)
-- [ ] T015 [US1] Em `apps/escritorio/app/cadastro/page.tsx`, ao voltar do formulário por "Cancelar"
+- [X] T015 [US1] Em `apps/escritorio/app/cadastro/page.tsx`, ao voltar do formulário por "Cancelar"
   (hoje `onCancelar` só fecha), chamar `carregar()` para a lista refletir ajustes feitos (SC-002) — e
   nada além disso: o "Cancelar" só descarta o estado do `LivroForm`, sem reverter o ajuste já gravado
   (FR-007)
@@ -136,7 +136,7 @@ muda ao clicar "Alterar"; cancelar a edição mantém o ajuste no extrato (quick
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Em `apps/escritorio/components/LivroForm.tsx`, garantir que `recarregarSaldo` só
+- [X] T016 [US2] Em `apps/escritorio/components/LivroForm.tsx`, garantir que `recarregarSaldo` só
   atualiza o estado `saldo` (não chama `onSalvo`, não reinicializa `form`, não remonta o componente) e
   que o `AjusteEstoque` fica fora de qualquer `<form>`/submit do livro (botões `type="button"`), para
   que "Aplicar" e Enter no ajuste não disparem "Alterar"
@@ -147,9 +147,9 @@ muda ao clicar "Alterar"; cancelar a edição mantém o ajuste no extrato (quick
 
 ## Phase 5: Polish & Cross-Cutting Concerns
 
-- [ ] T017 [P] Rodar `scripts/check-file-size.sh` e confirmar ≤ 300 linhas significativas em
+- [X] T017 [P] Rodar `scripts/check-file-size.sh` e confirmar ≤ 300 linhas significativas em
   `LivroForm.tsx`, `cadastro/page.tsx`, `AjusteEstoque.tsx`, `estoque.rs`, `lib.rs` (wasm)
-- [ ] T018 [P] Rodar `cargo test -p livraria-domain` e `npm test` (raiz) — tudo verde
+- [X] T018 [P] Rodar `cargo test -p livraria-domain` e `npm test` (raiz) — tudo verde
 - [ ] T019 Aplicar `0016` em homologação **duas vezes** (idempotência) e rodar
   `apps/nuvem/tests/0016_ajuste_sem_saldo_negativo.sql` (token de acesso no Notion — nunca no repo)
 - [ ] T020 Validar no navegador (desktop e celular) os cenários do `quickstart.md` §2 (1–12), medindo o

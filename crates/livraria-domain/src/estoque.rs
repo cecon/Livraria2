@@ -3,6 +3,7 @@
 //! contagem, baseline de saldo inicial. Dinheiro em centavos (ADR-0005).
 
 use super::dinheiro::Dinheiro;
+use super::erros::ErroDominio;
 
 /// Tipo de um movimento de estoque. Persistido como texto estável.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -98,6 +99,23 @@ pub fn baseline_saldo_inicial(estoque: i64, soma_movimentos: i64) -> i64 {
     estoque - soma_movimentos
 }
 
+/// Valida um ajuste manual de estoque (ADR-0026) e devolve o novo saldo.
+/// Quantidade com sinal ≠ 0, motivo obrigatório e saldo resultante nunca negativo
+/// (zerar é permitido). A nuvem reaplica só a checagem de saldo, com o saldo oficial.
+pub fn validar_ajuste(saldo_atual: i64, delta: i64, motivo: &str) -> Result<i64, ErroDominio> {
+    if delta == 0 {
+        return Err(ErroDominio::AjusteSemQuantidade);
+    }
+    if motivo.trim().is_empty() {
+        return Err(ErroDominio::MotivoObrigatorio);
+    }
+    let novo = saldo_atual + delta;
+    if novo < 0 {
+        return Err(ErroDominio::EstoqueNegativo);
+    }
+    Ok(novo)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -159,6 +177,27 @@ mod tests {
         assert_eq!(clamp_baixa_venda(5, 2), 2); // limita ao saldo (drift)
         assert_eq!(clamp_baixa_venda(4, 0), 0); // sem estoque
         assert_eq!(clamp_baixa_venda(4, -5), 0); // saldo negativo → piso 0
+    }
+
+    #[test]
+    fn ajuste_valido_devolve_novo_saldo() {
+        assert_eq!(validar_ajuste(5, -2, "quebra"), Ok(3));
+        assert_eq!(validar_ajuste(5, 3, "correção"), Ok(8));
+        assert_eq!(validar_ajuste(3, -3, "perda"), Ok(0)); // zerar é permitido
+    }
+
+    #[test]
+    fn ajuste_que_deixaria_negativo_e_recusado() {
+        assert_eq!(validar_ajuste(1, -3, "quebra"), Err(ErroDominio::EstoqueNegativo));
+        assert_eq!(validar_ajuste(0, -1, "quebra"), Err(ErroDominio::EstoqueNegativo));
+    }
+
+    #[test]
+    fn ajuste_exige_quantidade_e_motivo() {
+        assert_eq!(validar_ajuste(5, 0, "quebra"), Err(ErroDominio::AjusteSemQuantidade));
+        assert_eq!(validar_ajuste(5, 1, "   "), Err(ErroDominio::MotivoObrigatorio));
+        // quantidade é checada antes do motivo
+        assert_eq!(validar_ajuste(5, 0, ""), Err(ErroDominio::AjusteSemQuantidade));
     }
 
     #[test]

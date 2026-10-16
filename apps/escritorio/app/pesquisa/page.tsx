@@ -108,7 +108,12 @@ export default function PesquisaPage() {
           </div>
         </div>
         <div className="mt-4 flex justify-end gap-2">
-          <AjusteEstoque livroUid={detalhe.sync_uid} onAjustado={async () => { await carregarBase(); setRefresh((n) => n + 1); }} />
+          <AjusteEstoque
+            livroUid={detalhe.sync_uid}
+            saldoAtual={est(detalhe)}
+            onAjustado={async () => { await carregarBase(); setRefresh((n) => n + 1); }}
+            onSaldoAtualizado={() => carregarBase()}
+          />
         </div>
         <ExtratoMovimentos livroUid={detalhe.sync_uid} refresh={refresh} />
       </div>

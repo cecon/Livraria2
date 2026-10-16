@@ -30,6 +30,9 @@ pub enum ErroDominio {
     #[error("motivo obrigatório")]
     MotivoObrigatorio,
 
+    #[error("informe a quantidade do ajuste (ex.: -2 ou 3)")]
+    AjusteSemQuantidade,
+
     #[error("nome obrigatório")]
     NomeObrigatorio,
 
@@ -107,6 +110,7 @@ impl ErroDominio {
             ErroDominio::TrocoSemDinheiro => "TROCO_SEM_DINHEIRO",
             ErroDominio::EstoqueNegativo => "ESTOQUE_NEGATIVO",
             ErroDominio::MotivoObrigatorio => "MOTIVO_OBRIGATORIO",
+            ErroDominio::AjusteSemQuantidade => "AJUSTE_SEM_QUANTIDADE",
             ErroDominio::NomeObrigatorio => "NOME_OBRIGATORIO",
             ErroDominio::FornecedorDuplicado => "FORNECEDOR_DUPLICADO",
             ErroDominio::SemFornecedor => "SEM_FORNECEDOR",
@@ -144,6 +148,8 @@ mod tests {
             "PAGO_INSUFICIENTE"
         );
         assert_eq!(ErroDominio::CodigoInvalido.codigo(), "CODIGO_INVALIDO");
+        assert_eq!(ErroDominio::AjusteSemQuantidade.codigo(), "AJUSTE_SEM_QUANTIDADE");
+        assert_eq!(ErroDominio::EstoqueNegativo.codigo(), "ESTOQUE_NEGATIVO");
     }
 
     #[test]

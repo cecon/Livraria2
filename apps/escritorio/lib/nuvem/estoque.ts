@@ -48,6 +48,13 @@ export async function listarSaldos(): Promise<Map<string, number>> {
   return m;
 }
 
+// Saldo oficial de um livro (mesma view da lista do Cadastro e da Pesquisa).
+export async function saldoLivro(livroUid: string): Promise<number> {
+  const sb = createClient();
+  const { data } = await sb.from("vw_saldo_livro").select("saldo").eq("livro_uid", livroUid).maybeSingle();
+  return Number((data as { saldo: number } | null)?.saldo ?? 0);
+}
+
 export async function listarDivergenciasEstoque(): Promise<DivergenciaEstoque[]> {
   const sb = createClient();
   const { data } = await sb

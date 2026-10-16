@@ -9,6 +9,7 @@ Aplicadas via Management API (`POST /v1/projects/{ref}/database/query`) — toke
 | `0001_schema_espelho.sql` | 13 tabelas espelho. **Relações por `sync_uid`** (não por id local — ids autoincrement não são estáveis entre PDV e escritório). Derivados (`estoque`, `custo_medio`) NÃO existem como coluna. `usuario` **sem `senha_hash`** (D15). Colunas de sync: `origem/atualizado_em/excluido_em/criado_por/sincronizado_em`. | ✅ aplicado (T008) |
 | `0002_rls_e_views.sql` | RLS por usuário autenticado (13 policies `to authenticated`) + `vw_saldo_livro` (soma dos movimentos). | ✅ aplicado (T009) |
 | `0011_estoque_oficial_venda.sql` | Estoque oficial na nuvem por venda pronta: status de estoque no pedido, vinculos de item/movimento, divergencias, baseline de producao, view `vw_produto_pdv` e gatilhos idempotentes de baixa/estorno. | reservado; aplicar somente apos backup/snapshot de producao |
+| `0016_ajuste_sem_saldo_negativo.sql` | Feature 014 (ADR-0026): gatilho `BEFORE INSERT` em `movimento_estoque` que recusa o **ajuste manual** (`tipo='ajuste'`, `origem='escritorio'`, `referencia='ajuste_manual'`) que deixaria o saldo negativo (`ESTOQUE_NEGATIVO`, saldo no DETAIL). Estorno de nota, inventário e venda não são afetados. Teste: `tests/0016_ajuste_sem_saldo_negativo.sql`. | a aplicar em homologação (2×), depois produção — **antes** de publicar o escritório da 014 |
 
 ## Decisão-chave: FK por `sync_uid`
 

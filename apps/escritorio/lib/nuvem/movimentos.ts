@@ -1,5 +1,7 @@
 // Movimentos de um livro (US2) — extrato com saldo acumulado e ajuste avulso.
 import { createClient } from "@/utils/supabase/client";
+import { dominio } from "@/lib/dominio";
+import { mensagemAjuste, traduzirErroAjuste } from "./ajuste_erro";
 
 export const ROTULO_MOVIMENTO: Record<string, string> = {
   saldo_inicial: "Saldo inicial",
@@ -41,7 +43,20 @@ export async function extratoLivro(livroUid: string, limite = 50): Promise<Movim
   return comSaldo.reverse().slice(0, limite);
 }
 
-export async function registrarAjuste(livroUid: string, delta: number, motivo: string): Promise<{ error?: string }> {
+// Validação do ajuste manual pela regra do domínio (WASM, ADR-0026) antes de enviar.
+export async function validarAjuste(saldoAtual: number, delta: number, motivo: string): Promise<{ error?: string }> {
+  const dom = await dominio();
+  const r = dom.validar_ajuste_estoque(saldoAtual, delta, motivo) as { ok: boolean; erro?: string };
+  return r.ok ? {} : { error: mensagemAjuste(r.erro ?? "", saldoAtual) };
+}
+
+// Ajuste manual (Cadastro/Pesquisa). `referencia: "ajuste_manual"` ativa a guarda
+// de saldo negativo na nuvem (0016); a recusa devolve o saldo oficial atual.
+export async function registrarAjuste(
+  livroUid: string,
+  delta: number,
+  motivo: string,
+): Promise<{ error?: string; saldoAtual?: number }> {
   const sb = createClient();
   const { data: sessao } = await sb.auth.getUser();
   const { error } = await sb.from("movimento_estoque").insert({
@@ -50,9 +65,10 @@ export async function registrarAjuste(livroUid: string, delta: number, motivo: s
     tipo: "ajuste",
     qtd: delta,
     motivo: motivo.trim(),
+    referencia: "ajuste_manual",
     criado_em: new Date().toISOString(),
     origem: "escritorio",
     criado_por: sessao.user?.id ?? null,
   });
-  return error ? { error: error.message } : {};
+  return error ? traduzirErroAjuste(error) : {};
 }

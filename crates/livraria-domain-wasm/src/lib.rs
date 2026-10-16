@@ -173,6 +173,25 @@ pub fn restante_venda(itens: JsValue, pagamentos: JsValue) -> Result<f64, JsErro
     Ok(montar_pedido(ler(itens)?, ler(pagamentos)?).restante().centavos() as f64)
 }
 
+#[derive(Serialize)]
+struct AjusteOut {
+    ok: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    erro: Option<&'static str>,
+    #[serde(rename = "novoSaldo", skip_serializing_if = "Option::is_none")]
+    novo_saldo: Option<i64>,
+}
+
+/// Valida um ajuste manual de estoque (ADR-0026): `{ ok, novoSaldo }` ou `{ ok: false, erro }`.
+#[wasm_bindgen]
+pub fn validar_ajuste_estoque(saldo_atual: f64, delta: f64, motivo: &str) -> Result<JsValue, JsError> {
+    let out = match estoque::validar_ajuste(saldo_atual as i64, delta as i64, motivo) {
+        Ok(n) => AjusteOut { ok: true, erro: None, novo_saldo: Some(n) },
+        Err(e) => AjusteOut { ok: false, erro: Some(e.codigo()), novo_saldo: None },
+    };
+    escrever(&out)
+}
+
 // ---------------------------------------------------------------------------
 // Turno de operação (ADR-0021) — regra em `turno_operacao.rs`.
 // ---------------------------------------------------------------------------
