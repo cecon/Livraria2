@@ -1,20 +1,20 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.1.0 → 2.0.0
-Bump rationale: MAJOR — **redefinição** do invariante offline do PDV para a realidade atual: a
-CONTABILIDADE OFICIAL de estoque (baixa por venda, estorno, entrada de nota, ajuste de inventário)
-deixa de ser função offline do PDV e passa a ser RESPONSABILIDADE DA NUVEM; o PDV produz FATOS
-(venda/cancelamento) e CONSUME o saldo publicado, mantendo offline apenas venda/cancelamento/consulta
-(saldo operacional). Motivada pelas features 011 (fase 1, em produção) e 012 e registrada em ADR-0023
-(estoque oficial na nuvem) e ADR-0024 (PDV consumidor). É uma redefinição de governança (não mera
-expansão), por isso MAJOR; princípios I–VI seguem inalterados.
+Version change: 2.0.0 → 2.1.0
+Bump rationale: MINOR — incorpora ao texto decisões já aceitas em ADR que a constituição não refletia:
+dinheiro em centavos (ADR-0005), "Pedido Nº" por turno de operação com número contínuo preservado
+internamente (ADR-0021/0025) e retenção local do PDV com a nuvem como histórico permanente (ADR-0025,
+feature 013). Nenhum princípio é removido ou contrariado; a orientação é expandida materialmente.
 
-Modified principles: nenhum (I–VI inalterados)
+Modified principles:
+  - VI. Fidelidade ao Domínio & Localização pt-BR — "Pedido Nº" passa a ser o número sequencial do
+    turno de operação (1..N), com o `pedido.numero` sequencial contínuo preservado como identidade
+    interna; distinção explícita entre turno por horário (Manhã/Tarde) e turno de operação
 Modified sections:
-  - Restrições Técnicas & Stack — invariante offline redefinido: offline garante VENDA/CANCELAMENTO/
-    CONSULTA (saldo operacional); a contabilidade oficial e as funções de retaguarda (entrada,
-    inventário, edição de cadastros) vivem na nuvem e podem exigir conexão (ADR-0023/0024)
+  - Restrições Técnicas & Stack — + dinheiro como inteiro de centavos; + venda exige turno de operação
+    aberto (calculável offline); + retenção local do PDV (janela operacional, poda só local, nuvem
+    retém o histórico); lista mínima de ADRs ampliada (dinheiro, turno de operação, retenção)
 Added principles: nenhum
 Added sections: nenhuma
 Removed sections: nenhuma
@@ -26,10 +26,11 @@ Templates de dependência:
   - .specify/templates/checklist-template.md .... ✅ alinhado
   - .specify/templates/constitution-template.md . ℹ️ é o template fonte; não alterado
 
-Propagação (feature 012):
-  - CLAUDE.md .................................. ⚠️ atualizar referência "(v1.1.0)" → "(v2.0.0)"
-  - docs/adr/0023, docs/adr/0024 ............... ✅ registram estoque oficial na nuvem + PDV consumidor
-  - specs/012-pdv-nuvem-manda/plan.md .......... ✅ Constitution Check alinhado ao invariante redefinido
+Propagação:
+  - CLAUDE.md .................................. ✅ referência "(v2.0.0)" → "(v2.1.0)"
+  - README.md .................................. ✅ resumo dos princípios já cita dinheiro em centavos
+  - docs/adr/0005, 0021, 0025 .................. ✅ fontes das decisões incorporadas
+  - specs/013-venda-turno-retencao/plan.md ..... ✅ a tensão VI tratada lá agora está no próprio texto
 
 Follow-up TODOs: nenhum.
 -->
@@ -120,6 +121,13 @@ O sistema MUST preservar o modelo mental e o vocabulário dos usuários atuais.
 - Termos e regras do negócio MUST ser mantidos exatamente: "Ministério", "Vale Presente", "Turma da
   Manhã/Tarde", "Pedido Nº", enum de categorias 0–6 ("0 = Não Categorizado"), turno por horário, baixa de
   estoque na venda, número de pedido sequencial contínuo.
+- O **"Pedido Nº" exibido** é o número sequencial **do turno de operação** (1..N,
+  `pedido.numero_no_turno`); o **`pedido.numero` sequencial contínuo** MUST ser preservado como
+  identidade interna e nunca removido. Buscas e relatórios identificam a venda por
+  `(turno, Pedido Nº)` (ADR-0021/0025).
+- **Turno de operação** (sessão abrir/fechar, `TurnoOperacao`) e **turno por horário** (Manhã/Tarde,
+  `Turno`) são conceitos distintos e MUST NOT compartilhar nome. Na UI diz-se "Fechar/Fechado"; no
+  domínio/banco o valor é `encerrado`.
 - Idioma, moeda e datas MUST ser **pt-BR** (ex.: `R$ 1.234,56`); buscas MUST ser insensíveis a acento e
   caixa.
 - O protótipo em `docs/design-handoff/` é a referência de alta fidelidade de aparência e comportamento.
@@ -130,6 +138,9 @@ O sistema MUST preservar o modelo mental e o vocabulário dos usuários atuais.
 
 - **Shell desktop**: Tauri 2. **UI**: React + TypeScript + shadcn/ui + Tailwind. **Núcleo/adapters de
   sistema**: Rust quando apropriado. **Dados**: SQLite local como base de operação.
+- **Dinheiro é inteiro de centavos** (`i64` no Rust, `number` de centavos no TS) no domínio, no banco e
+  nos DTOs; float MUST NOT representar valor monetário. A formatação `R$ 1.234,56` e o parsing de
+  vírgula decimal acontecem só na borda (UI/importação) (ADR-0005).
 - **Funcionamento offline do PDV é INVARIANTE (operação de balcão)**: o ponto de venda MUST operar por
   completo sem internet para **vender, cancelar e consultar saldo**, com o SQLite local como fonte de
   operação do balcão. A consulta offline usa o **saldo operacional** (saldo publicado pela nuvem ±
@@ -139,6 +150,13 @@ O sistema MUST preservar o modelo mental e o vocabulário dos usuários atuais.
   publicado, não mantém o ledger oficial. Funções administrativas de retaguarda (entrada de notas,
   inventário, edição de cadastros) vivem na nuvem e podem exigir conexão. Nenhuma funcionalidade
   essencial de **venda** pode depender de conectividade.
+- **Venda exige turno de operação aberto** no PDV; a numeração do turno MUST ser calculável offline,
+  sem alocador central. O fechamento de um turno pela nuvem MUST NOT bloquear a venda offline nem
+  perder vendas pendentes (o PDV abre um novo turno e migra as pendentes) (ADR-0021/0025).
+- **Retenção local do PDV**: o PDV guarda uma **janela operacional** (hoje 45 dias) e MAY podar apenas
+  turnos **encerrados, totalmente sincronizados e fora da janela**, como agregado completo e em ordem
+  FK-safe (filha→pai). A **nuvem retém o histórico permanentemente**; a poda é local, idempotente e
+  MUST NOT disparar remoção na nuvem (ADR-0025).
 - **Sincronização opcional com a nuvem é PERMITIDA** (emenda 1.1.0), desde que: (a) seja **aditiva** e
   o PDV continue 100% funcional offline; (b) a nuvem seja um **espelho/hub** que converge por
   idempotência (upsert por identidade estável), nunca a única fonte de operação do PDV; (c) o acesso
@@ -150,7 +168,8 @@ O sistema MUST preservar o modelo mental e o vocabulário dos usuários atuais.
   de dependência aponta para dentro; a nuvem entra **exclusivamente** por porta/adapter.
 - **ADRs** ficam em `docs/adr/`. No mínimo: persistência SQLite; camada de dados/ORM; estratégia de
   migrations; Hexagonal/SOLID; limite de 300 linhas; hooks+skills; ETL/mapeamento do legado;
-  **sincronização com a nuvem** (arquitetura e identidade/convergência).
+  **sincronização com a nuvem** (arquitetura e identidade/convergência); dinheiro em centavos; turno
+  de operação; retenção local do PDV.
 - Decisões de tecnologia que afetem estes pontos MUST passar por ADR antes da implementação.
 
 ## Fluxo de Desenvolvimento & Quality Gates
@@ -177,4 +196,4 @@ O sistema MUST preservar o modelo mental e o vocabulário dos usuários atuais.
 - Esta constituição reside em `.specify/memory/constitution.md` e é a fonte de orientação de runtime para
   o agente e para os colaboradores.
 
-**Version**: 2.0.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-31
+**Version**: 2.1.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-16
