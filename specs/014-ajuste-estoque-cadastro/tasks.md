@@ -52,7 +52,7 @@ quality gate 2), guarda SQL da nuvem (concorrência) e mapeamento de erro do ada
   `AjusteSemQuantidade`; motivo vazio/espaços → `MotivoObrigatorio`; `saldo+delta < 0` →
   `EstoqueNegativo`; senão `Ok(saldo+delta)`), com testes no `mod tests`: positivo, zera (aceito),
   negativo (recusado), delta 0, motivo só espaços, precedência delta 0 sobre motivo vazio
-- [ ] T004 Expor `validar_ajuste_estoque(saldo_atual: f64, delta: f64, motivo: &str) -> Result<JsValue,
+- [X] T004 Expor `validar_ajuste_estoque(saldo_atual: f64, delta: f64, motivo: &str) -> Result<JsValue,
   JsError>` em `crates/livraria-domain-wasm/src/lib.rs`, retornando `{ ok, erro?, novoSaldo? }` no
   padrão de `ValidacaoOut` (contrato §2). **Não dá para compilar o WASM nesta máquina** (Smart App
   Control): commitar T002–T004, dar push da branch, aguardar o workflow `build-wasm`
