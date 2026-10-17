@@ -48,6 +48,21 @@ export class StockService {
     return this.persist(items, "contagem", actor, "inventario").then(() => ({ ajustes: items.length }));
   }
 
+  // Ajuste manual que reduz o saldo nao pode deixa-lo negativo (spec 015). Roda sob o
+  // lock de movimento_estoque do persist; venda e inventario nao passam por aqui
+  // (constituicao IV) e ajuste positivo e sempre aceito, mesmo com saldo negativo.
+  private async rejectNegativeAdjustments(tx: Prisma.TransactionClient, items: StockMovementInput[]) {
+    for (const item of items) {
+      if (item.quantity >= 0n) continue;
+      const total = await tx.movimento_estoque.aggregate({ _sum: { qtd: true },
+        where: { livro_uid: item.bookUid, excluido_em: null } });
+      const balance = total._sum.qtd ?? 0n;
+      if (balance + item.quantity < 0n) {
+        throw new ConflictException(`O estoque ficaria negativo (atual: ${balance})`);
+      }
+    }
+  }
+
   private async persist(items: StockMovementInput[], type: "ajuste" | "contagem", actor: string,
     reference: string | null) {
     if (!items.length) return;
@@ -72,6 +87,7 @@ export class StockService {
         if (books.length !== bookIds.length) throw new NotFoundException("Produto indisponivel");
         const now = new Date();
         const missing = items.filter(item => !byId.has(item.syncUid));
+        if (type === "ajuste") await this.rejectNegativeAdjustments(tx, missing);
         if (missing.length) await tx.movimento_estoque.createMany({ data: missing.map(item => ({
           sync_uid: item.syncUid, livro_uid: item.bookUid, tipo: type, qtd: item.quantity,
           motivo: item.reason, referencia: reference, criado_em: now.toISOString(), origem: "nuvem",
