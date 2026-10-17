@@ -38,3 +38,13 @@ test("mutacao aceita mesma origem e nao revela erro interno", async () => {
   const failed = await stockProxy(request(), ["saldos"]);
   expect(await failed.text()).not.toContain("token-secret");
 });
+
+test("repassa so a recusa de saldo negativo; outro 409 segue generico", async () => {
+  const post = () => stockProxy(request("POST", "ajustes", "https://livraria.test"), ["ajustes"]);
+  mocked.fetcher.mockResolvedValueOnce(new Response(JSON.stringify({
+    message: "O estoque ficaria negativo (atual: 1)", statusCode: 409 }), { status: 409 }));
+  expect(await (await post()).json()).toEqual({ erro: "O estoque ficaria negativo (atual: 1)" });
+  mocked.fetcher.mockResolvedValueOnce(new Response(JSON.stringify({
+    message: "UUID de movimento ja utilizado", statusCode: 409 }), { status: 409 }));
+  expect(await (await post()).json()).toEqual({ erro: "Os dados mudaram. Recarregue e tente novamente." });
+});

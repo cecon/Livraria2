@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/interface/ui/button";
 import { Input } from "@/interface/ui/input";
@@ -18,12 +18,14 @@ export function AjusteEstoque({ livroUid, onAjustado, onRecusado }: Props) {
   const [qtd, setQtd] = useState("");
   const [motivo, setMotivo] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const emEnvio = useRef(false); // trava síncrona: cliques no mesmo instante não esperam o render
 
   async function aplicar() {
-    if (enviando) return;
+    if (emEnvio.current) return;
     const delta = lerQtdAjuste(qtd);
     if (delta === null) return toast.error("Informe a quantidade (ex.: -2 ou 3)");
     if (!motivo.trim()) return toast.error("Motivo é obrigatório");
+    emEnvio.current = true;
     setEnviando(true);
     try {
       const { error } = await registrarAjuste(livroUid, delta, motivo.trim());
@@ -38,6 +40,7 @@ export function AjusteEstoque({ livroUid, onAjustado, onRecusado }: Props) {
       setMotivo("");
       onAjustado();
     } finally {
+      emEnvio.current = false;
       setEnviando(false);
     }
   }
