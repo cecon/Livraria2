@@ -3,6 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { API_COOKIE, apiFetch } from "./server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Unica mensagem da API repassada ao usuario: recusa de ajuste por saldo (spec 015).
+// O formato e conferido exatamente; qualquer outro 409 segue com o texto generico.
+const SALDO_NEGATIVO = /^O estoque ficaria negativo \(atual: -?\d+\)$/;
+
+function negativeBalanceMessage(result: unknown) {
+  const message = (result as { message?: unknown } | null)?.message;
+  return typeof message === "string" && SALDO_NEGATIVO.test(message) ? message : null;
+}
 
 function sameOrigin(req: NextRequest) {
   try {
@@ -39,7 +47,7 @@ export async function stockProxy(req: NextRequest, path: string[]) {
       const error = response.status === 401 ? "Sessao expirada. Entre novamente."
         : response.status === 403 ? "Esta operacao nao e permitida."
         : response.status === 404 ? "Produto nao localizado."
-        : response.status === 409 ? "Os dados mudaram. Recarregue e tente novamente."
+        : response.status === 409 ? negativeBalanceMessage(result) ?? "Os dados mudaram. Recarregue e tente novamente."
         : response.status === 400 ? "Confira os dados informados." : "Estoque indisponivel.";
       return NextResponse.json({ erro: error }, { status: response.status });
     }

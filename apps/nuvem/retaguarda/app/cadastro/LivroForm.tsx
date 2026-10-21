@@ -85,7 +85,7 @@ export function LivroForm({ inicial, saldo: saldoInicial, onSalvo, onCancelar }:
               <span className="font-mono text-2xl tabular-nums" aria-label="Saldo atual">{saldo ?? "—"}</span>
               {saldo !== null && <StockBadge estoque={saldo} />}
             </div>
-            <AjusteEstoque livroUid={inicial.sync_uid} onAjustado={recarregarSaldo} />
+            <AjusteEstoque livroUid={inicial.sync_uid} onAjustado={recarregarSaldo} onRecusado={recarregarSaldo} />
           </div>
         </ContentPanel>
       )}
